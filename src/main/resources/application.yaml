@@ -1,0 +1,12 @@
+server:
+  port: 8888
+spring:
+  profiles:
+    active: dev
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+logging:
+  file:
+    path: "./.logs"
+  level:
+    root: error
