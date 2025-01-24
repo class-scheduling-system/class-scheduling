@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: "jdbc:mysql://172.16.11.3:3306/class-scheduling-system?useUnicode=true&characterEncoding=utf-8&serverTimezone=GMT%2B8"
+    username: "class-scheduling-system"
+    password: "123456"
+logging:
+  level:
+    com.frontleaves: debug
+    com.frontleaves.scheduling.mapper: info
+xutil:
+  mail:
+    default-encoding: "utf-8"
+    host: "smtp.qiye.aliyun.com"
+    username: ""
+    password: ""
+    nickname: "ClassScheduling"
+    port: 25

@@ -26,38 +26,59 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.models.entity;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 /**
- * 系统常量
+ * 表实体
  * <p>
- * 该类用于定义系统常量;
- * 该类使用 {@link Getter} 和 {@link Setter} 注解标记;
+ * 该类用于定义表实体，对应 `information_schema.tables` 视图。
+ * 字段映射规则：数据库字段使用大写蛇形命名，Java 中使用驼峰命名。
+ * 通过 {@link TableField} 注解实现字段映射。
+ * </p>
  *
+ * @author 锋楪技术团队
  * @version v1.0.0
- * @since v1.0.0
- * @author xiao_lfeng
+ * @since 2025-01-24
  */
-@Slf4j
-public class SystemConstant {
-    @Getter
-    @Setter
-    private static String isInitMode = "false";
+@Data
+@TableName(value = "TABLES", schema = "INFORMATION_SCHEMA")
+@Accessors(chain = true)
+@NoArgsConstructor
+@AllArgsConstructor
+public class TableDO {
 
-    @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
+    /**
+     * 表目录。
+     * 对应数据库字段：TABLE_CATALOG
+     */
+    @TableField("TABLE_CATALOG")
+    private String tableCatalog;
 
-    @Getter
-    private static final String SYSTEM_VERSION = "v1.0.0";
+    /**
+     * 数据库名（模式）。
+     * 对应数据库字段：TABLE_SCHEMA
+     */
+    @TableField("TABLE_SCHEMA")
+    private String tableSchema;
 
-    @Getter
-    private static final String SYSTEM_AUTHOR = "锋楪技术团队";
+    /**
+     * 表名。
+     * 对应数据库字段：TABLE_NAME
+     */
+    @TableField("TABLE_NAME")
+    private String tableName;
 
-    private SystemConstant() {
-        log.error("SystemConstant 不能被实例化");
-    }
+    /**
+     * 表类型（如：BASE TABLE 或 VIEW）。
+     * 对应数据库字段：TABLE_TYPE
+     */
+    @TableField("TABLE_TYPE")
+    private String tableType;
 }

@@ -26,38 +26,24 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.daos;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.mappers.SystemMapper;
+import com.frontleaves.scheduling.models.entity.SystemDO;
+import org.springframework.stereotype.Repository;
 
 /**
- * 系统常量
+ * 系统表数据访问对象
  * <p>
- * 该类用于定义系统常量;
- * 该类使用 {@link Getter} 和 {@link Setter} 注解标记;
+ * 该类用于定义系统表数据访问对象。
+ * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-public class SystemConstant {
-    @Getter
-    @Setter
-    private static String isInitMode = "false";
-
-    @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
-
-    @Getter
-    private static final String SYSTEM_VERSION = "v1.0.0";
-
-    @Getter
-    private static final String SYSTEM_AUTHOR = "锋楪技术团队";
-
-    private SystemConstant() {
-        log.error("SystemConstant 不能被实例化");
-    }
+@Repository
+public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IService<SystemDO> {
 }

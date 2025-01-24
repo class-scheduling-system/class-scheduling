@@ -28,6 +28,10 @@
 
 package com.frontleaves.scheduling.configs.init;
 
+import com.frontleaves.scheduling.daos.SystemDAO;
+import com.frontleaves.scheduling.daos.TableDAO;
+import com.frontleaves.scheduling.models.entity.SystemDO;
+import com.frontleaves.scheduling.models.entity.TableDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,4 +48,36 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 class FunctionInit {
+    private final TableDAO tableDAO;
+    private final SystemDAO systemDAO;
+
+    /**
+     * 检查数据表是否完整
+     * <p>
+     * 该方法用于检查数据表是否完整，如果数据表不完整则会禁止服务启动。
+     */
+    public void checkDatabase(String tableName) {
+        TableDO tableDO = tableDAO.lambdaQuery().eq(TableDO::getTableName, tableName).one();
+        if (tableDO == null) {
+            log.error("[INIT] 数据表 {} 不存在", tableName);
+            System.exit(0);
+        } else {
+            log.debug("[INIT] 数据表 {} 存在", tableName);
+        }
+    }
+
+    /**
+     * 检查系统表是否完整
+     * <p>
+     * 该方法用于检查系统表是否完整，如果系统表不完整将会创建内容。
+     */
+    public void checkSystemTable(String key, String value) {
+        SystemDO systemDO = systemDAO.lambdaQuery().eq(SystemDO::getSystemKey, key).one();
+        if (systemDO == null) {
+            log.info("[INIT] 系统表 {} 不存在，创建中", key);
+            systemDAO.save(new SystemDO().setSystemKey(key).setSystemVal(value));
+        } else {
+            log.debug("[INIT] 系统表 {} 存在", key);
+        }
+    }
 }

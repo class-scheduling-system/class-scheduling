@@ -26,38 +26,55 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.models.entity;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+import lombok.experimental.Accessors;
+
+import java.sql.Timestamp;
 
 /**
- * 系统常量
+ * 系统表实体类
  * <p>
- * 该类用于定义系统常量;
- * 该类使用 {@link Getter} 和 {@link Setter} 注解标记;
+ * 对应数据库表：`cs_system`
+ * 主键采用 UUID 自动生成。
+ * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-public class SystemConstant {
-    @Getter
-    @Setter
-    private static String isInitMode = "false";
+@Data
+@TableName(value = "cs_system")
+@Accessors(chain = true)
+public class SystemDO {
 
-    @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
+    /**
+     * 系统主键，采用 UUID 自动生成
+     */
+    @TableId(value = "system_uuid", type = IdType.ASSIGN_UUID)
+    private String systemUuid;
 
-    @Getter
-    private static final String SYSTEM_VERSION = "v1.0.0";
+    /**
+     * 系统键
+     */
+    private String systemKey;
 
-    @Getter
-    private static final String SYSTEM_AUTHOR = "锋楪技术团队";
+    /**
+     * 系统值
+     */
+    private String systemVal;
 
-    private SystemConstant() {
-        log.error("SystemConstant 不能被实例化");
-    }
+    /**
+     * 创建时间
+     */
+    private Timestamp createdAt;
+
+    /**
+     * 更新时间
+     */
+    private Timestamp updatedAt;
 }

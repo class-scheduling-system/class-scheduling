@@ -36,5 +36,5 @@ build/
 Thumbs.db
 
 ### 其他 ###
-*.log/
+*.logs/
 application-dev.yaml

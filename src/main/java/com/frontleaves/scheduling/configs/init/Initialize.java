@@ -28,6 +28,9 @@
 
 package com.frontleaves.scheduling.configs.init;
 
+import com.frontleaves.scheduling.constants.SystemConstant;
+import com.frontleaves.scheduling.daos.SystemDAO;
+import com.frontleaves.scheduling.daos.TableDAO;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +52,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @RequiredArgsConstructor
 public class Initialize {
+    private final TableDAO tableDAO;
+    private final SystemDAO systemDAO;
+
     private FunctionInit init;
 
     @PostConstruct
@@ -56,9 +62,11 @@ public class Initialize {
         log.info("[INIT] 系统初始化开始");
         log.info("========== Start of Initialization ==========");
         // 初始化准备算法
-        init = new FunctionInit();
+        init = new FunctionInit(tableDAO, systemDAO);
 
         // 初始化数据库完整性检查
+        this.checkTable();
+        this.checkSystemTable();
     }
 
     @Bean
@@ -66,13 +74,67 @@ public class Initialize {
         return args -> {
             log.info("========== End of Initialization ==========");
             log.info("""
-                       ________                _____      __             __      ___           \s
-                      / ____/ /___ ___________/ ___/_____/ /_  ___  ____/ /_  __/ (_)___  ____ _
-                     / /   / / __ `/ ___/ ___/\\__ \\/ ___/ __ \\/ _ \\/ __  / / / / / / __ \\/ __ `/
-                    / /___/ / /_/ (__  |__  )___/ / /__/ / / /  __/ /_/ / /_/ / / / / / / /_/ /\s
-                    \\____/_/\\__,_/____/____//____/\\___/_/ /_/\\___/\\__,_/\\__,_/_/_/_/ /_/\\__, / \s
-                                                                                       /____/  \s
-                    """);
+                    \s
+                    \u001B[38;5;111m    ________                \u001B[32m   _____      __             __      ___           \s
+                    \u001B[38;5;111m   / ____/ /___ ___________ \u001B[32m  / ___/_____/ /_  ___  ____/ /_  __/ (_)___  ____ _
+                    \u001B[38;5;111m  / /   / / __ `/ ___/ ___/ \u001B[32m  \\__ \\/ ___/ __ \\/ _ \\/ __  / / / / / / __ \\/ __ `/
+                    \u001B[38;5;111m / /___/ / /_/ (__  |__  )  \u001B[32m ___/ / /__/ / / /  __/ /_/ / /_/ / / / / / / /_/ /\s
+                    \u001B[38;5;111m \\____/_/\\__,_/____/____/ \u001B[32m  /____/\\___/_/ /_/\\___/\\__,_/\\__,_/_/_/_/ /_/\\__, / \s
+                    \t\t\t\u001B[33m::: {} :::\t\t\t\t ::: {} ::: \t\u001B[32m       /____/  \s
+                    """, SystemConstant.getSYSTEM_AUTHOR(), SystemConstant.getSYSTEM_VERSION()
+            );
         };
+    }
+
+    /**
+     * 检查数据表是否完整
+     * <p>
+     * 该方法用于检查数据表是否完整，如果数据表不完整则会禁止服务启动。
+     */
+    private void checkTable() {
+        log.info("[INIT] 数据库检查开始");
+
+        // 按照顺序检查数据库表
+        init.checkDatabase("cs_system");
+        init.checkDatabase("cs_permission");
+        init.checkDatabase("cs_role");
+        init.checkDatabase("cs_user");
+        init.checkDatabase("cs_unit_type");
+        init.checkDatabase("cs_unit_category");
+        init.checkDatabase("cs_tables_chairs_type");
+        init.checkDatabase("cs_semester");
+        init.checkDatabase("cs_major");
+        init.checkDatabase("cs_credit_hour_type");
+        init.checkDatabase("cs_course_type");
+        init.checkDatabase("cs_course_property");
+        init.checkDatabase("cs_course_nature");
+        init.checkDatabase("cs_course_category");
+        init.checkDatabase("cs_campus");
+        init.checkDatabase("cs_building");
+        init.checkDatabase("cs_department");
+        init.checkDatabase("cs_classroom_tag");
+        init.checkDatabase("cs_classroom_type");
+        init.checkDatabase("cs_classroom");
+        init.checkDatabase("cs_student");
+        init.checkDatabase("cs_teacher");
+        init.checkDatabase("cs_course_library");
+        init.checkDatabase("cs_academic_affairs_permission");
+        init.checkDatabase("cs_class_assignment");
+
+        log.info("[INIT] 数据库检查完成");
+    }
+
+    /**
+     * 检查系统数据表
+     * <p>
+     * 该方法用于检查系统数据表内数据是否完整，如果不完整将会创建系统表数据。
+     */
+    private void checkSystemTable() {
+        log.info("[INIT] 系统数据表检查开始");
+
+        // 检查 cs_system 表
+        init.checkSystemTable("is_init_mode", "true");
+
+        log.info("[INIT] 系统数据表检查完成");
     }
 }
