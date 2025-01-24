@@ -28,8 +28,13 @@ pipeline {
                     withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
                         def tag = sh(script: '''
                             curl -s https://api.github.com/repos/class-scheduling-system/table-install-cli/releases/latest \
-                            -H "Authorization: Bearer $GITHUB_TOKEN" | grep tag_name | cut -f4 -d \"
+                            -H "Authorization: Bearer $GITHUB_TOKEN" | grep tag_name | cut -f4 -d "\""
                         ''', returnStdout: true).trim()
+
+                        if (!tag) {
+                            error "无法获取 CLI 最新 RELEASE 版本，请检查 GITHUB_TOKEN 或网络连接！"
+                        }
+
                         echo "当前 CLI 最新 RELEASE ${tag}"
 
                         sh """
