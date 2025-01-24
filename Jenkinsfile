@@ -26,7 +26,7 @@ pipeline {
                     echo "当前工作目录: ${workspace}"
                     sh "cd ${workspace}"
                     sh '''
-                        rm -rf ./cli-linux-amd64
+                        rm -rf ${workspace}/cli-linux-amd64
                         tag=$(curl -s https://api.github.com/repos/class-scheduling-system/table-install-cli/releases/latest -H "Authorization: Bearer ${GITHUB_TOKEN}" | grep tag_name | cut -f4 -d \")
                         echo "$tag"
                         wget https://github.com/class-scheduling-system/table-install-cli/releases/download/$tag/cli-linux-amd64
