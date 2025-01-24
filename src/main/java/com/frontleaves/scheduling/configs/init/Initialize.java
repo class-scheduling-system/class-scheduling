@@ -148,6 +148,7 @@ public class Initialize {
      * 该方法用于获取系统信息常量，将系统信息常量存入常量类中。
      */
     private void getSystemIntoConstant() {
+        // 系统有关信息
         SystemConstant.setIsInitMode(jedis.get("is_init_mode"));
     }
 }

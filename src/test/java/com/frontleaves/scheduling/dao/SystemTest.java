@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.dao;
 import com.frontleaves.scheduling.daos.SystemDAO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -42,11 +43,20 @@ class SystemTest {
 
     @Test
     void getSystemInfo() {
+        // 存在的结果
         String getAuthor = systemDAO.getSystemInfo("author");
         log.debug("getAuthor: {}", getAuthor);
         systemDAO.setSystemInfo("author", "锋楪技朋团队");
         String getAuthor2 = systemDAO.getSystemInfo("author");
         log.debug("getAuthor2: {}", getAuthor2);
+        Assertions.assertEquals("锋楪技朋团队", getAuthor2);
+        // 不存在的结果
+        String getAuthor3 = systemDAO.getSystemInfo("author2");
+        log.debug("getAuthor3: {}", getAuthor3);
+
+        // 测试结果
+        Assertions.assertNull(getAuthor3);
+        Assertions.assertEquals("锋楪技朋团队", getAuthor2);
         // 恢复
         systemDAO.setSystemInfo("author", "锋楪技术团队");
     }
