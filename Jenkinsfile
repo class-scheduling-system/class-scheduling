@@ -24,6 +24,7 @@ pipeline {
                     def workspace = pwd()
                     echo "当前工作目录: ${workspace}"
                     sh """
+                    sed -i '/^host = localhost/a password = 123456' ${workspace}/src/main/resources/config/redis.setting
                     sed -i 's/host = localhost/host = 172.16.11.3/' ${workspace}/src/main/resources/config/redis.setting
                     """
                 }
