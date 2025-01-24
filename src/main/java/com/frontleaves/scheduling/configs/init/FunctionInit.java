@@ -35,7 +35,6 @@ import com.frontleaves.scheduling.models.entity.TableDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.params.SetParams;
 
 /**
  * 初始化方法类
