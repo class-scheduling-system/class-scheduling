@@ -75,8 +75,12 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
             SystemDO systemDO = this.lambdaQuery()
                     .eq(SystemDO::getSystemKey, key)
                     .one();
-            jedis.set(StringConstant.Redis.SYSTEM + key, systemDO.getSystemVal());
-            return systemDO.getSystemVal();
+            if (systemDO != null) {
+                jedis.set(StringConstant.Redis.SYSTEM + key, systemDO.getSystemVal());
+                return systemDO.getSystemVal();
+            } else {
+                return null;
+            }
         }
     }
 
