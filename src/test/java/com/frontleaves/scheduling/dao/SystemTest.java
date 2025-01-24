@@ -1,7 +1,7 @@
 /*
  * --------------------------------------------------------------------------------
  * Copyright (c) 2022-NOW(至今) 锋楪技术团队
- * Author: 锋楪技术团队 (https://www.frontleaves.com)
+ * system_author: 锋楪技术团队 (https://www.frontleaves.com)
  *
  * 本文件包含锋楪技术团队项目的源代码，项目的所有源代码均遵循 MIT 开源许可证协议。
  * --------------------------------------------------------------------------------
@@ -44,20 +44,41 @@ class SystemTest {
     @Test
     void getSystemInfo() {
         // 存在的结果
-        String getAuthor = systemDAO.getSystemInfo("author");
-        log.debug("getAuthor: {}", getAuthor);
-        systemDAO.setSystemInfo("author", "锋楪技朋团队");
-        String getAuthor2 = systemDAO.getSystemInfo("author");
-        log.debug("getAuthor2: {}", getAuthor2);
-        Assertions.assertEquals("锋楪技朋团队", getAuthor2);
+        String getSystemAuthor = systemDAO.getSystemInfo("system_author");
+        log.debug("getSystemAuthor: {}", getSystemAuthor);
+        systemDAO.setSystemInfo("system_author", "锋楪技朋团队");
+        String getSystemAuthor2 = systemDAO.getSystemInfo("system_author");
+        log.debug("getSystemAuthor2: {}", getSystemAuthor2);
+        Assertions.assertEquals("锋楪技朋团队", getSystemAuthor2);
         // 不存在的结果
-        String getAuthor3 = systemDAO.getSystemInfo("author2");
-        log.debug("getAuthor3: {}", getAuthor3);
+        String getSystemAuthor3 = systemDAO.getSystemInfo("system_author2");
+        log.debug("getSystemAuthor3: {}", getSystemAuthor3);
 
         // 测试结果
-        Assertions.assertNull(getAuthor3);
-        Assertions.assertEquals("锋楪技朋团队", getAuthor2);
+        Assertions.assertNull(getSystemAuthor3);
+        Assertions.assertEquals("锋楪技朋团队", getSystemAuthor2);
         // 恢复
-        systemDAO.setSystemInfo("author", "锋楪技术团队");
+        systemDAO.setSystemInfo("system_author", "锋楪技术团队");
+    }
+
+    @Test
+    void addSystemInfo() {
+        String getKey = "system_" + System.currentTimeMillis();
+        // 存入随机结果
+        systemDAO.addSystemInfo(getKey, "随机存入测试");
+        String getRandomAdd = systemDAO.getSystemInfo(getKey);
+        log.debug("获取随机存入结果: {}", getRandomAdd);
+
+        try {
+            // 存入已存在的结果
+            systemDAO.addSystemInfo("system_author", "测试团队");
+            String getSystemAuthor = systemDAO.getSystemInfo("system_author");
+            log.debug("获取添加的内容，检查是否会报错: {}", getSystemAuthor);
+            systemDAO.setSystemInfo("system_author", "锋楪技术团队");
+            Assertions.fail("添加已存在的内容时未报错");
+        } catch (Exception e) {
+            log.error("添加已存在的内容时报错: {}", e.getMessage());
+            Assertions.assertTrue(true);
+        }
     }
 }

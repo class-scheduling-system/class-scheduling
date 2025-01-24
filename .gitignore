@@ -38,3 +38,4 @@ Thumbs.db
 ### 其他 ###
 *.logs/
 application-dev.yaml
+cli-*

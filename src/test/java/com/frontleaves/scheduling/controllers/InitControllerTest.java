@@ -1,0 +1,84 @@
+/*
+ * --------------------------------------------------------------------------------
+ * Copyright (c) 2022-NOW(至今) 锋楪技术团队
+ * Author: 锋楪技术团队 (https://www.frontleaves.com)
+ *
+ * 本文件包含锋楪技术团队项目的源代码，项目的所有源代码均遵循 MIT 开源许可证协议。
+ * --------------------------------------------------------------------------------
+ * 许可证声明：
+ *
+ * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
+ *
+ * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
+ * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
+ * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
+ *
+ * 使用本软件即表示您了解此声明并同意其条款。
+ *
+ * 有关 MIT 许可证的更多信息，请查看项目根目录下的 LICENSE 文件或访问：
+ * https://opensource.org/licenses/MIT
+ * --------------------------------------------------------------------------------
+ * 免责声明：
+ *
+ * 使用本软件的风险由用户自担。作者或版权持有人在法律允许的最大范围内，
+ * 对因使用本软件内容而导致的任何直接或间接的损失不承担任何责任。
+ * --------------------------------------------------------------------------------
+ */
+
+package com.frontleaves.scheduling.controllers;
+
+import com.frontleaves.scheduling.constants.SystemConstant;
+import com.frontleaves.scheduling.models.vo.InitVO;
+import com.xlf.utility.BaseResponse;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.ResponseEntity;
+
+@Slf4j
+@SpringBootTest
+class InitControllerTest {
+    @Resource
+    private InitController initController;
+
+    // 备份初始化模式
+    private String backupInitMode;
+
+    @Test
+    void testSuccessInit() {
+        backupInitMode = SystemConstant.getIsInitMode();
+
+        SystemConstant.setIsInitMode("true");
+        InitVO initVO = new InitVO("debug", "debug", "debug@x-lf.cn", "13316666666");
+        ResponseEntity<BaseResponse<Void>> getResponse = initController.systemInit(initVO);
+        if (getResponse != null && getResponse.getBody() != null) {
+            if ("Success".equals(getResponse.getBody().output())) {
+                log.debug("系统初始化成功");
+                Assertions.assertTrue(true);
+            } else {
+                Assertions.fail("系统初始化失败");
+            }
+        } else {
+            Assertions.fail("系统初始化失败");
+        }
+        SystemConstant.setIsInitMode(backupInitMode);
+    }
+
+    @Test
+    void testFailInit() {
+        backupInitMode = SystemConstant.getIsInitMode();
+
+        SystemConstant.setIsInitMode("false");
+        InitVO initVO = new InitVO("debug", "debug", "debug@x-lf.cn", "13316666666");
+        ResponseEntity<BaseResponse<Void>> getResponse = initController.systemInit(initVO);
+        if (getResponse != null && getResponse.getBody() != null) {
+            Assertions.assertNotEquals("Success", getResponse.getBody().output());
+        } else {
+            Assertions.fail("系统初始化失败");
+        }
+        SystemConstant.setIsInitMode(backupInitMode);
+    }
+}
