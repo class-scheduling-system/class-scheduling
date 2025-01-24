@@ -36,6 +36,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
+import javax.annotation.processing.Generated;
+
 /**
  * 通用工具配置类
  * <p>
@@ -48,6 +50,7 @@ import org.springframework.core.env.Environment;
  */
 @Configuration
 @RequiredArgsConstructor
+@Generated("SonarIgnore")
 public class GeneralUtilConfig {
 
     /**

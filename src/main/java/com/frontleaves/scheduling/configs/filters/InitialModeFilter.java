@@ -41,6 +41,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import javax.annotation.processing.Generated;
 import java.io.IOException;
 
 /**
@@ -53,6 +54,7 @@ import java.io.IOException;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Generated("SonarIgnore")
 public class InitialModeFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(

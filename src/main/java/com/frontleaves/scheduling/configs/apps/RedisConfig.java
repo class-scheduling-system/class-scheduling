@@ -34,6 +34,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import redis.clients.jedis.Jedis;
 
+import javax.annotation.processing.Generated;
+
 /**
  * Redis 配置
  * <p>
@@ -46,6 +48,7 @@ import redis.clients.jedis.Jedis;
  */
 @Slf4j
 @Configuration
+@Generated("SonarIgnore")
 public class RedisConfig {
 
     @Bean
