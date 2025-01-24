@@ -13,7 +13,7 @@ pipeline {
         stage('SCM') {
             steps {
                 ansiColor('xterm') {
-                    echo(message: '拉取代码...')
+                    echo '拉取代码...'
                     checkout scm  // 拉取代码
                 }
             }
@@ -24,7 +24,8 @@ pipeline {
                     withSonarQubeEnv('SonarScanner') {
                         sh 'java -version'
                         sh '''
-                            mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install -Dmaven.test.failure.ignore=true verify sonar:sonar \
+                            mvn clean verify sonar:sonar \
+                                -Dspring.profiles.active=test \
                                 -Dsonar.projectKey=class-scheduling-system_class-scheduling_adf82c13-2ed9-4412-b641-55fe84228bae \
                                 -Dsonar.projectName="class-scheduling" \
                                 -Dsonar.token=${SONAR_TOKEN}
@@ -37,10 +38,10 @@ pipeline {
 
     post {
         success {
-            echo(message: 'SonarQube 分析完成 🎉')
+            echo 'SonarQube 分析完成 🎉'
         }
         failure {
-            error(message: 'SonarQube 分析失败，请检查日志！')
+            error 'SonarQube 分析失败，请检查日志！'
         }
     }
 }
