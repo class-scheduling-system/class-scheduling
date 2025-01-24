@@ -34,6 +34,8 @@ import com.frontleaves.scheduling.models.entity.SystemDO;
 import com.frontleaves.scheduling.models.entity.TableDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.params.SetParams;
 
 /**
  * 初始化方法类
@@ -50,6 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 class FunctionInit {
     private final TableDAO tableDAO;
     private final SystemDAO systemDAO;
+    private final Jedis jedis;
 
     /**
      * 检查数据表是否完整
@@ -79,5 +82,8 @@ class FunctionInit {
         } else {
             log.debug("[INIT] 系统表 {} 存在", key);
         }
+
+        // 数据存入 Redis
+        jedis.setGet(key, value);
     }
 }

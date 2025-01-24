@@ -1,0 +1,16 @@
+#-------------------------------------------------------------------------------
+# Redis客户端配置样例
+# 每一个分组代表一个Redis实例
+# 无分组的Pool配置为所有分组的共用配置，如果分组自己定义Pool配置，则覆盖共用配置
+# 池配置来自于：https://www.cnblogs.com/jklk/p/7095067.html
+#-------------------------------------------------------------------------------
+
+host = localhost
+port = 6379
+timeout = 2000
+connectionTimeout = 2000
+soTimeout = 2000
+# 数据库序号，默认0
+database = 0
+clientName = classSchedule
+ssl = false;

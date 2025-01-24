@@ -37,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import redis.clients.jedis.Jedis;
 
 /**
  * 初始化方法类
@@ -54,6 +55,7 @@ import org.springframework.context.annotation.Configuration;
 public class Initialize {
     private final TableDAO tableDAO;
     private final SystemDAO systemDAO;
+    private final Jedis jedis;
 
     private FunctionInit init;
 
@@ -62,7 +64,7 @@ public class Initialize {
         log.info("[INIT] 系统初始化开始");
         log.info("========== Start of Initialization ==========");
         // 初始化准备算法
-        init = new FunctionInit(tableDAO, systemDAO);
+        init = new FunctionInit(tableDAO, systemDAO, jedis);
 
         // 初始化数据库完整性检查
         this.checkTable();
