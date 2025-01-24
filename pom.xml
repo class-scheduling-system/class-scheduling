@@ -13,10 +13,6 @@
     <version>1.0.0-SNAPSHOT</version>
     <name>class-scheduling</name>
     <description>class-scheduling</description>
-<!--    github https://github.com/class-scheduling-system/class-scheduling -->
-    <url>
-
-    </url>
     <licenses>
         <license>
             <name>MIT</name>
@@ -24,14 +20,32 @@
         </license>
     </licenses>
     <developers>
-        <developer/>
+        <developer>
+            <name>XiaoLFeng</name>
+            <email>gm@x-lf.cn</email>
+            <organization>FrontLeaves Technology</organization>
+        </developer>
+        <developer>
+            <name>FLASHLACK</name>
+            <email>flashlack1314@163.com</email>
+            <organization>FrontLeaves Technology</organization>
+        </developer>
+        <developer>
+            <name>qiyu-yzh</name>
+            <email>2845872182@qq.com</email>
+            <organization>FrontLeaves Technology</organization>
+        </developer>
+        <developer>
+            <name>GUjiYN</name>
+            <email>2946459904@qq.com</email>
+            <organization>FrontLeaves Technology</organization>
+        </developer>
+        <developer>
+            <name>fanfan187</name>
+            <email>2238194270@qq.com</email>
+            <organization>FrontLeaves Technology</organization>
+        </developer>
     </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
     <properties>
         <java.version>17</java.version>
         <skipTests>true</skipTests>
@@ -109,14 +123,21 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
                 <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
