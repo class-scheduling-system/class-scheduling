@@ -24,7 +24,7 @@ pipeline {
                 script {
                     def workspace = pwd()
                     echo "当前工作目录: ${workspace}"
-                    def tag = sh(script: "curl -s https://api.github.com/repos/class-scheduling-system/table-install-cli/releases/latest -H "Authorization: Bearer ${GITHUB_TOKEN}" | grep tag_name | cut -f4 -d \"", returnStdout: true).trim()
+                    def tag = sh(script: "curl -s https://api.github.com/repos/class-scheduling-system/table-install-cli/releases/latest -H \"Authorization: Bearer ${GITHUB_TOKEN}\" | grep tag_name | cut -f4 -d \"", returnStdout: true).trim()
                     echo "当前 CLI 最新 RELEASE ${tag}"
                     sh """
                         cd ${workspace}
