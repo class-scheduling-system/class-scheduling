@@ -26,36 +26,22 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.mappers;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.frontleaves.scheduling.models.entity.UserDO;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
- * 系统常量
+ * 用户表映射器
  * <p>
- * 该类用于定义系统常量;
- * 该类使用 {@link Getter} 和 {@link Setter} 注解标记;
+ * 该类用于定义用户表映射器;
+ * 用于实现用户表的数据库操作。
  *
  * @version v1.0.0
  * @since v1.0.0
  * @author xiao_lfeng
  */
-@Slf4j
-public class SystemConstant {
-    @Getter
-    @Setter
-    private static String isInitMode = "false";
-
-    @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
-    @Getter
-    private static final String SYSTEM_VERSION = "v1.0.0";
-    @Getter
-    private static final String SYSTEM_AUTHOR = "锋楪技术团队";
-
-    private SystemConstant() {
-        log.error("SystemConstant 不能被实例化");
-    }
+@Mapper
+public interface UserMapper extends BaseMapper<UserDO> {
 }

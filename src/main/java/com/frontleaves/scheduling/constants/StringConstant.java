@@ -42,6 +42,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class StringConstant {
+
+    /**
+     * Redis 常量
+     */
     public static class Redis {
         public static final String SYSTEM = "system:";
 

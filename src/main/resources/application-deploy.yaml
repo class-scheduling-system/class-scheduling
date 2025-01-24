@@ -1,8 +1,8 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: "jdbc:mysql://172.16.11.3:3306/class-scheduling-system?useUnicode=true&characterEncoding=utf-8&serverTimezone=GMT%2B8"
-    username: "class-scheduling-system"
+    url: "jdbc:mysql://172.16.11.3:3306/class-scheduling?useUnicode=true&characterEncoding=utf-8&serverTimezone=GMT%2B8"
+    username: "class-scheduling"
     password: "123456"
 logging:
   level:
@@ -12,7 +12,7 @@ xutil:
   mail:
     default-encoding: "utf-8"
     host: "smtp.qiye.aliyun.com"
-    username: ""
-    password: ""
+    username: "debug@x-lf.cn"
+    password: "QAZwsx123"
     nickname: "ClassScheduling"
     port: 25

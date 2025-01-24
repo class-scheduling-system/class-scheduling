@@ -28,12 +28,22 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.constants.SystemConstant;
+import com.frontleaves.scheduling.daos.SystemDAO;
+import com.frontleaves.scheduling.daos.UserDAO;
+import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.vo.InitVO;
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -43,15 +53,18 @@ import org.springframework.web.bind.annotation.RestController;
  * 该类用于定义初始化控制器;
  * 用于系统在于初始化时进行调用的控制器接口。
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class InitController {
+
+    private final UserDAO userDAO;
+    private final SystemDAO systemDAO;
 
     /**
      * 系统初始化
@@ -60,7 +73,28 @@ public class InitController {
      * 用于系统在启动时进行初始化操作。
      */
     @PostMapping("/init")
-    public ResponseEntity<BaseResponse<Void>> systemInit() {
-        return ResultUtil.success("系统初始化成功");
+    public ResponseEntity<BaseResponse<Void>> systemInit(@RequestBody @Validated InitVO initVO) {
+        if ("true".equals(SystemConstant.getIsInitMode())) {
+            // 创建超级管理员用户
+            UserDO newUser = new UserDO();
+            newUser
+                    .setName(initVO.getUsername())
+                    .setPassword(PasswordUtil.encrypt(initVO.getPassword()))
+                    .setEmail(initVO.getEmail())
+                    .setPhone(initVO.getPhone());
+            userDAO.save(newUser);
+            UserDO adminUser = userDAO.lambdaQuery().eq(UserDO::getName, initVO.getUsername()).one();
+            if (adminUser != null) {
+                // 添加超级管理员 UUID
+                systemDAO.addSystemInfo("system_admin_uuid", adminUser.getUserUuid());
+                // 设置初始化结束
+                SystemConstant.setIsInitMode(systemDAO.setSystemInfo("system_init_mode", "false"));
+                return ResultUtil.success("系统初始化成功");
+            } else {
+                throw new BusinessException("初始化失败", ErrorCode.SERVER_INTERNAL_ERROR);
+            }
+        } else {
+            throw new BusinessException("当前系统不处于初始化模式", ErrorCode.FORBIDDEN);
+        }
     }
 }

@@ -96,11 +96,30 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
      * @return 系统值
      */
     public String setSystemInfo(String key, String value) {
-        jedis.set(StringConstant.Redis.SYSTEM + key, value);
         this.lambdaUpdate()
                 .eq(SystemDO::getSystemKey, key)
                 .set(SystemDO::getSystemVal, value)
                 .update();
+        jedis.set(StringConstant.Redis.SYSTEM + key, value);
         return value;
+    }
+
+    /**
+     * 添加系统信息
+     * <p>
+     * 该方法用于添加系统表的信息;
+     * 输入系统键和系统值，无返回值;
+     * 添加完成后将数据存入 Redis 缓存中，并更新数据库中的数据。
+     *
+     * @param key   系统键
+     * @param value 系统值
+     */
+    public void addSystemInfo(String key, String value) {
+        SystemDO systemDO = new SystemDO();
+        systemDO
+                .setSystemKey(key)
+                .setSystemVal(value);
+        this.save(systemDO);
+        jedis.set(StringConstant.Redis.SYSTEM + key, value);
     }
 }

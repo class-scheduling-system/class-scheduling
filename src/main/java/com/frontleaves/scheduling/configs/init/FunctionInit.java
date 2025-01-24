@@ -79,11 +79,19 @@ class FunctionInit {
         if (systemDO == null) {
             log.info("[INIT] 系统表 {} 不存在，创建中", key);
             systemDAO.save(new SystemDO().setSystemKey(key).setSystemVal(value));
+            SystemDO newSystemDO = systemDAO.lambdaQuery().eq(SystemDO::getSystemKey, key).one();
+            if (newSystemDO == null) {
+                log.error("[INIT] 系统表 {} 创建失败", key);
+                System.exit(0);
+            } else {
+                log.debug("[INIT] 系统表 {} 创建成功", key);
+                // 数据存入 Redis
+                jedis.setGet(StringConstant.Redis.SYSTEM + key, newSystemDO.getSystemVal());
+            }
         } else {
             log.debug("[INIT] 系统表 {} 存在", key);
+            // 数据存入 Redis
+            jedis.setGet(StringConstant.Redis.SYSTEM + key, systemDO.getSystemVal());
         }
-
-        // 数据存入 Redis
-        jedis.setGet(StringConstant.Redis.SYSTEM + key, value);
     }
 }

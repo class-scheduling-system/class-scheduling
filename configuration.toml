@@ -1,0 +1,13 @@
+# 请勿编辑「自动化脚本使用」
+
+[database]
+# 数据库主机地址
+host = "172.16.11.3"
+# 数据库端口
+port = 3306
+# 数据库名称
+name = "class-scheduling-system"
+# 数据库用户名
+user = "class-scheduling-system"
+# 数据库密码
+password = "123456"

@@ -18,6 +18,24 @@ pipeline {
                 }
             }
         }
+        stage('clear database') {
+            steps {
+                script {
+                    def workspace = pwd()
+                    echo "当前工作目录: ${workspace}"
+                    sh "cd ${workspace}"
+                    sh """
+                        rm -rf
+                        tag=$(curl -s https://api.github.com/repos/class-scheduling-system/table-install-cli/releases/latest -H "Authorization: Bearer ${workspace}" | grep tag_name | cut -f4 -d "\"")
+                        echo "$tag"
+                        wget https://github.com/class-scheduling-system/table-install-cli/releases/download/$tag/cli-linux-amd64
+                        chmod +x cli-linux-amd64
+                    """
+                    sh "bash cli-linux-amd64 reset"
+                    echo "清空数据库完成"
+                }
+            }
+        }
         stage('Prepare Environment') {
             steps {
                 script {

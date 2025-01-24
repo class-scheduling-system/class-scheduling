@@ -26,39 +26,85 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.controllers;
+package com.frontleaves.scheduling.models.entity;
 
-import com.xlf.utility.BaseResponse;
-import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.ResponseEntity;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+import lombok.experimental.Accessors;
+
+import java.sql.Timestamp;
 
 /**
- * 初始化控制器测试
+ * 用户表实体类
  * <p>
- * 该类用于定义初始化控制器测试。
+ * 对应数据库表：`cs_user`
+ * 主键采用 UUID 自动生成。
  * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-@SpringBootTest
-class InitControllerTest {
-    @Resource
-    private InitController initController;
+@Data
+@TableName(value = "cs_user")
+@Accessors(chain = true)
+public class UserDO {
 
-    @Test
-    void initTest() {
-        ResponseEntity<BaseResponse<Void>> getResponse = initController.systemInit();
-        BaseResponse<Void> body = getResponse.getBody();
-        if (body != null) {
-            log.debug("body: {}", body);
-            Assertions.assertEquals("Success", body.output());
-        }
-    }
+    /**
+     * 用户主键，采用 UUID 自动生成
+     */
+    @TableId(value = "user_uuid", type = IdType.ASSIGN_UUID)
+    private String userUuid;
+
+    /**
+     * 用户名
+     */
+    private String name;
+
+    /**
+     * 用户密码
+     */
+    private String password;
+
+    /**
+     * 用户邮箱
+     */
+    private String email;
+
+    /**
+     * 用户手机号
+     */
+    private String phone;
+
+    /**
+     * 用户状态 0: 禁用 1: 启用
+     */
+    private Integer status;
+
+    /**
+     * 用户是否被封禁 0: 未封禁 1: 已封禁
+     */
+    private Integer ban;
+
+    /**
+     * 角色 UUID
+     */
+    private String roleUuid;
+
+    /**
+     * 用户权限，JSON 格式
+     */
+    private String permission;
+
+    /**
+     * 创建时间
+     */
+    private Timestamp createdAt;
+
+    /**
+     * 更新时间
+     */
+    private Timestamp updatedAt;
 }

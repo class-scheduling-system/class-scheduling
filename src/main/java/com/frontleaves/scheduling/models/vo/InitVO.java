@@ -26,36 +26,35 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.models.vo;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import lombok.NoArgsConstructor;
 
 /**
- * 系统常量
+ * 初始化视图对象
  * <p>
- * 该类用于定义系统常量;
- * 该类使用 {@link Getter} 和 {@link Setter} 注解标记;
+ * 该类用于定义初始化视图对象;
+ * 用于系统在于初始化时进行调用的视图对象。
  *
  * @version v1.0.0
  * @since v1.0.0
  * @author xiao_lfeng
  */
-@Slf4j
-public class SystemConstant {
-    @Getter
-    @Setter
-    private static String isInitMode = "false";
-
-    @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
-    @Getter
-    private static final String SYSTEM_VERSION = "v1.0.0";
-    @Getter
-    private static final String SYSTEM_AUTHOR = "锋楪技术团队";
-
-    private SystemConstant() {
-        log.error("SystemConstant 不能被实例化");
-    }
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class InitVO {
+    @Pattern(regexp = "^[a-zA-Z0-9_-]{4,32}$", message = "用户名格式不正确")
+    private String username;
+    @NotBlank(message = "密码不能为空")
+    private String password;
+    @Email(message = "邮箱格式不正确")
+    private String email;
+    @Pattern(regexp = "^(13\\d|14[01456879]|15[0-35-9]|16[2567]|17[0-8]|18\\d|19[0-35-9])\\d{8}$", message = "手机号格式不正确")
+    private String phone;
 }

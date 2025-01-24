@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.configs.init;
 
+import cn.hutool.core.date.DateUtil;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.daos.TableDAO;
@@ -135,9 +136,12 @@ public class Initialize {
     private void checkSystemTable() {
         log.info("[INIT] 系统数据表检查开始");
 
-        // 检查 cs_system 表
-        init.checkSystemTable("author", SystemConstant.getSYSTEM_AUTHOR());
-        init.checkSystemTable("is_init_mode", "true");
+        // 系统有关数据检查
+        init.checkSystemTable("system_author", SystemConstant.getSYSTEM_AUTHOR());
+        init.checkSystemTable("system_version", SystemConstant.getSYSTEM_VERSION());
+        init.checkSystemTable("system_name", SystemConstant.getSYSTEM_NAME());
+        init.checkSystemTable("system_init_mode", "true");
+        init.checkSystemTable("system_init_time", DateUtil.now());
 
         log.info("[INIT] 系统数据表检查完成");
     }
@@ -149,6 +153,6 @@ public class Initialize {
      */
     private void getSystemIntoConstant() {
         // 系统有关信息
-        SystemConstant.setIsInitMode(jedis.get("is_init_mode"));
+        SystemConstant.setIsInitMode(jedis.get("system_init_mode"));
     }
 }
