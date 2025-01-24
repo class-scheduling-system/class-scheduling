@@ -30,9 +30,13 @@ package com.frontleaves.scheduling.daos;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.SystemMapper;
 import com.frontleaves.scheduling.models.entity.SystemDO;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
+import redis.clients.jedis.Jedis;
 
 /**
  * 系统表数据访问对象
@@ -44,6 +48,55 @@ import org.springframework.stereotype.Repository;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 @Repository
+@RequiredArgsConstructor
 public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IService<SystemDO> {
+    /**
+     * Redis 缓存
+     */
+    private final Jedis jedis;
+
+    /**
+     * 获取系统信息
+     * <p>
+     * 该方法用于获取系统表的信息;
+     * 输入系统键，返回系统值;
+     * 查询首先从 Redis 缓存中查询，如果没有则从数据库中查询「当从数据库中查询到数据时，将数据存入 Redis 缓存中」。
+     *
+     * @param key 系统键
+     * @return 系统值
+     */
+    public String getSystemInfo(String key) {
+        String getValue = jedis.get(StringConstant.Redis.SYSTEM + key);
+        if (getValue != null) {
+            return getValue;
+        } else {
+            SystemDO systemDO = this.lambdaQuery()
+                    .eq(SystemDO::getSystemKey, key)
+                    .one();
+            jedis.set(StringConstant.Redis.SYSTEM + key, systemDO.getSystemVal());
+            return systemDO.getSystemVal();
+        }
+    }
+
+    /**
+     * 设置系统信息
+     * <p>
+     * 该方法用于设置系统表的信息;
+     * 输入系统键和系统值，返回系统值;
+     * 设置完成后将数据存入 Redis 缓存中，并更新数据库中的数据。
+     *
+     * @param key   系统键
+     * @param value 系统值
+     * @return 系统值
+     */
+    public String setSystemInfo(String key, String value) {
+        jedis.set(StringConstant.Redis.SYSTEM + key, value);
+        this.lambdaUpdate()
+                .eq(SystemDO::getSystemKey, key)
+                .set(SystemDO::getSystemVal, value)
+                .update();
+        return value;
+    }
 }

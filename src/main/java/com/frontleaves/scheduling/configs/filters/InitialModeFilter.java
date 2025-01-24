@@ -65,7 +65,7 @@ public class InitialModeFilter extends OncePerRequestFilter {
                 .create();
         // 检查是否是初始化模式
         if ("true".equals(SystemConstant.getIsInitMode())) {
-            if (request.getRequestURI().contains("/api/v2/initial")) {
+            if (request.getRequestURI().contains("/api/v1/init")) {
                 filterChain.doFilter(request, response);
             } else {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);

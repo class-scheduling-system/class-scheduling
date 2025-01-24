@@ -69,6 +69,7 @@ public class Initialize {
         // 初始化数据库完整性检查
         this.checkTable();
         this.checkSystemTable();
+        this.getSystemIntoConstant();
     }
 
     @Bean
@@ -135,8 +136,18 @@ public class Initialize {
         log.info("[INIT] 系统数据表检查开始");
 
         // 检查 cs_system 表
+        init.checkSystemTable("author", SystemConstant.getSYSTEM_AUTHOR());
         init.checkSystemTable("is_init_mode", "true");
 
         log.info("[INIT] 系统数据表检查完成");
+    }
+
+    /**
+     * 获取系统信息常量
+     * <p>
+     * 该方法用于获取系统信息常量，将系统信息常量存入常量类中。
+     */
+    private void getSystemIntoConstant() {
+        SystemConstant.setIsInitMode(jedis.get("is_init_mode"));
     }
 }

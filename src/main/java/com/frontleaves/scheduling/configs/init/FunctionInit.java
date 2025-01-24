@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.configs.init;
 
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.daos.TableDAO;
 import com.frontleaves.scheduling.models.entity.SystemDO;
@@ -83,6 +84,6 @@ class FunctionInit {
         }
 
         // 数据存入 Redis
-        jedis.setGet(key, value);
+        jedis.setGet(StringConstant.Redis.SYSTEM + key, value);
     }
 }
