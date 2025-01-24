@@ -40,7 +40,8 @@ pipeline {
                                 -Dspring.profiles.active=test \
                                 -Dsonar.projectKey=class-scheduling-system_class-scheduling_adf82c13-2ed9-4412-b641-55fe84228bae \
                                 -Dsonar.projectName="class-scheduling" \
-                                -Dsonar.token=${SONAR_TOKEN}
+                                -Dsonar.token=${SONAR_TOKEN} \
+                                -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
                         '''
                     }
                 }
