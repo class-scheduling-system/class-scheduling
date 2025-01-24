@@ -28,7 +28,7 @@ pipeline {
                     withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
                         def tag = sh(script: '''
                             curl -s https://api.github.com/repos/class-scheduling-system/table-install-cli/releases/latest \
-                            -H "Authorization: Bearer $GITHUB_TOKEN" | grep tag_name | cut -f4 -d "\""
+                            -H "Authorization: Bearer $GITHUB_TOKEN" | grep tag_name | cut -d '"' -f4
                         ''', returnStdout: true).trim()
 
                         if (!tag) {
