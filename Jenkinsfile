@@ -2,7 +2,6 @@ pipeline {
     agent { label 'centos' }
     environment {
         SONAR_TOKEN = credentials('xiaolfeng-sonar-token')
-        GITHUB_TOKEN = credentials('github-token')
     }
 
     tools {
@@ -24,16 +23,24 @@ pipeline {
                 script {
                     def workspace = pwd()
                     echo "当前工作目录: ${workspace}"
-                    def tag = sh(script: "curl -s https://api.github.com/repos/class-scheduling-system/table-install-cli/releases/latest -H \"Authorization: Bearer ${GITHUB_TOKEN}\" | grep tag_name | cut -f4 -d \"", returnStdout: true).trim()
-                    echo "当前 CLI 最新 RELEASE ${tag}"
-                    sh """
-                        cd ${workspace}
-                        rm -rf ${workspace}/cli-linux-amd64
-                        wget https://github.com/class-scheduling-system/table-install-cli/releases/download/${tag}/cli-linux-amd64
-                        chmod +x cli-linux-amd64
-                    """
-                    sh './cli-linux-amd64 reset'
-                    echo "清空数据库完成"
+
+                    // 使用 withCredentials 传递 GITHUB_TOKEN
+                    withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                        def tag = sh(script: '''
+                            curl -s https://api.github.com/repos/class-scheduling-system/table-install-cli/releases/latest \
+                            -H "Authorization: Bearer $GITHUB_TOKEN" | grep tag_name | cut -f4 -d \"
+                        ''', returnStdout: true).trim()
+                        echo "当前 CLI 最新 RELEASE ${tag}"
+
+                        sh """
+                            cd ${workspace}
+                            rm -rf ${workspace}/cli-linux-amd64
+                            wget https://github.com/class-scheduling-system/table-install-cli/releases/download/${tag}/cli-linux-amd64
+                            chmod +x cli-linux-amd64
+                        """
+                        sh './cli-linux-amd64 reset'
+                        echo "清空数据库完成"
+                    }
                 }
             }
         }
