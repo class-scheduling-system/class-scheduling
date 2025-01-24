@@ -61,7 +61,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/init")
 @RequiredArgsConstructor
 public class InitController {
 
@@ -75,7 +75,7 @@ public class InitController {
      * 该方法用于系统初始化;
      * 用于系统在启动时进行初始化操作。
      */
-    @PostMapping("/init")
+    @PostMapping("/")
     public ResponseEntity<BaseResponse<Void>> systemInit(@RequestBody @Validated InitVO initVO) {
         if ("true".equals(SystemConstant.getIsInitMode())) {
             // 获取管理员角色

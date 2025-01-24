@@ -26,53 +26,77 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.models.dto;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+
+import java.sql.Timestamp;
 
 /**
- * 系统常量
+ * 用户数据传输对象
  * <p>
- * 该类用于定义系统常量;
- * 该类使用 {@link Getter} 和 {@link Setter} 注解标记;
+ * 用于返回用户数据相关信息，传输的是用户的基本信息;
+ * 不包含老师、学生、管理员等信息。
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-public class SystemConstant {
-    // 以下是系统常量
-    @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
-    // 以下是系统常量
-    @Getter
-    @Setter
-    private static String isInitMode;
-    // 以下是角色常量
-    @Getter
-    @Setter
-    private static String roleAdmin;
-    @Getter
-    @Setter
-    private static String roleTeacher;
-    @Getter
-    @Setter
-    private static String roleStudent;
-    @Getter
-    @Setter
-    private static String roleLeader;
-    @Getter
-    @Setter
-    private static String roleAcademic;
-    @Getter
-    private static final String SYSTEM_VERSION = "v1.0.0";
-    @Getter
-    private static final String SYSTEM_AUTHOR = "锋楪技术团队";
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+public class UserDTO {
+    /**
+     * 用户主键，采用 UUID 自动生成
+     */
+    private String userUuid;
 
-    private SystemConstant() {
-        log.error("SystemConstant 不能被实例化");
-    }
+    /**
+     * 用户名
+     */
+    private String name;
+
+    /**
+     * 用户邮箱
+     */
+    private String email;
+
+    /**
+     * 用户手机号
+     */
+    private String phone;
+
+    /**
+     * 用户状态 0: 禁用 1: 启用
+     */
+    private Integer status;
+
+    /**
+     * 用户是否被封禁 0: 未封禁 1: 已封禁
+     */
+    private Integer ban;
+
+    /**
+     * 角色名
+     */
+    private RoleDTO role;
+
+    /**
+     * 用户权限，JSON 格式
+     */
+    private String permission;
+
+    /**
+     * 创建时间
+     */
+    private Timestamp createdAt;
+
+    /**
+     * 更新时间
+     */
+    private Timestamp updatedAt;
 }

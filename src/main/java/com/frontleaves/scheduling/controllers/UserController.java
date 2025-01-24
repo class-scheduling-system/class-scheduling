@@ -26,53 +26,50 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.controllers;
 
-import lombok.Getter;
-import lombok.Setter;
+import com.frontleaves.scheduling.models.dto.UserLoginDTO;
+import com.frontleaves.scheduling.models.vo.UserLoginVO;
+import com.xlf.utility.BaseResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 系统常量
+ * 用户控制器
  * <p>
- * 该类用于定义系统常量;
- * 该类使用 {@link Getter} 和 {@link Setter} 注解标记;
+ * 该类用于定义用户控制器;
+ * 用于定义用户相关的控制器接口。
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Slf4j
-public class SystemConstant {
-    // 以下是系统常量
-    @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
-    // 以下是系统常量
-    @Getter
-    @Setter
-    private static String isInitMode;
-    // 以下是角色常量
-    @Getter
-    @Setter
-    private static String roleAdmin;
-    @Getter
-    @Setter
-    private static String roleTeacher;
-    @Getter
-    @Setter
-    private static String roleStudent;
-    @Getter
-    @Setter
-    private static String roleLeader;
-    @Getter
-    @Setter
-    private static String roleAcademic;
-    @Getter
-    private static final String SYSTEM_VERSION = "v1.0.0";
-    @Getter
-    private static final String SYSTEM_AUTHOR = "锋楪技术团队";
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/user")
+public class UserController {
 
-    private SystemConstant() {
-        log.error("SystemConstant 不能被实例化");
+    /**
+     * 用户登录
+     * <p>
+     * 该接口用于用户登录;
+     * 用户存在时，支持用户名、手机、邮箱登录;
+     * 若不存在该用户，输入学号或工号且默认密码为 {@code stu + 学号} 或者 {@code te + 工号};
+     * 检查学生表及教师表，若在该表存在则创建用户;
+     * 创建用户时候，设置默认角色为学生或者教师;
+     * 对于其余账户角色，应当在后台进行添加。
+     *
+     * @return 用户登录信息
+     */
+    @PostMapping("/login")
+    public ResponseEntity<BaseResponse<UserLoginDTO>> userLogin(@RequestBody @Validated UserLoginVO userLoginVO) {
+        return null;
     }
 }

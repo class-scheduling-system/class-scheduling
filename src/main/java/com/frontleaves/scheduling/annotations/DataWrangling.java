@@ -26,53 +26,24 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.annotations;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * 系统常量
+ * 数据处理调试
  * <p>
- * 该类用于定义系统常量;
- * 该类使用 {@link Getter} 和 {@link Setter} 注解标记;
+ * 该注解用于标记数据处理调试；
+ * 如果需要调试数据处理，则使用该注解。
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-public class SystemConstant {
-    // 以下是系统常量
-    @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
-    // 以下是系统常量
-    @Getter
-    @Setter
-    private static String isInitMode;
-    // 以下是角色常量
-    @Getter
-    @Setter
-    private static String roleAdmin;
-    @Getter
-    @Setter
-    private static String roleTeacher;
-    @Getter
-    @Setter
-    private static String roleStudent;
-    @Getter
-    @Setter
-    private static String roleLeader;
-    @Getter
-    @Setter
-    private static String roleAcademic;
-    @Getter
-    private static final String SYSTEM_VERSION = "v1.0.0";
-    @Getter
-    private static final String SYSTEM_AUTHOR = "锋楪技术团队";
-
-    private SystemConstant() {
-        log.error("SystemConstant 不能被实例化");
-    }
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface DataWrangling {
 }

@@ -26,53 +26,51 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.models.dto;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 /**
- * 系统常量
+ * Token 数据传输对象
  * <p>
- * 该类用于定义系统常量;
- * 该类使用 {@link Getter} 和 {@link Setter} 注解标记;
+ * 用于返回 Token 相关信息，传输的是 Token 的基本信息;
+ * 包含 Token、RefreshToken、过期时间、刷新过期时间、创建时间等信息。
+ * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-public class SystemConstant {
-    // 以下是系统常量
-    @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
-    // 以下是系统常量
-    @Getter
-    @Setter
-    private static String isInitMode;
-    // 以下是角色常量
-    @Getter
-    @Setter
-    private static String roleAdmin;
-    @Getter
-    @Setter
-    private static String roleTeacher;
-    @Getter
-    @Setter
-    private static String roleStudent;
-    @Getter
-    @Setter
-    private static String roleLeader;
-    @Getter
-    @Setter
-    private static String roleAcademic;
-    @Getter
-    private static final String SYSTEM_VERSION = "v1.0.0";
-    @Getter
-    private static final String SYSTEM_AUTHOR = "锋楪技术团队";
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+public class TokenDTO {
+    /**
+     * 用户令牌
+     */
+    private String token;
 
-    private SystemConstant() {
-        log.error("SystemConstant 不能被实例化");
-    }
+    /**
+     * 刷新令牌
+     */
+    private String refreshToken;
+
+    /**
+     * 令牌过期时间（单位：秒）
+     */
+    private Long expireTime;
+
+    /**
+     * 刷新令牌过期时间（单位：秒）
+     */
+    private Long refreshExpireTime;
+
+    /**
+     * 令牌创建时间（单位：「时间戳」毫秒）
+     */
+    private Long createdAt;
 }

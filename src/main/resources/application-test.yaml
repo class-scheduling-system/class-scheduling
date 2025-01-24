@@ -8,6 +8,7 @@ logging:
   level:
     com.frontleaves: debug
     com.frontleaves.scheduling.mappers: info
+    com.xlf: debug
 xutil:
   mail:
     default-encoding: "utf-8"

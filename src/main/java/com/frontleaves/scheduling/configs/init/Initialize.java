@@ -39,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import redis.clients.jedis.Jedis;
 
 /**
@@ -64,19 +65,17 @@ public class Initialize {
 
     @PostConstruct
     public void init() {
-        log.info("[INIT] 系统初始化开始");
-        log.info("========== Start of Initialization ==========");
         // 初始化准备算法
         init = new FunctionInit(tableDAO, systemDAO, roleDAO, jedis);
 
         // 初始化数据库完整性检查
         this.checkTable();
         this.checkSystemTable();
-        this.getSystemIntoConstant();
-        this.getRoleInfo();
+        this.writeRoleInfo();
     }
 
     @Bean
+    @Order(2)
     public CommandLineRunner commandLineRunner() {
         return args -> {
             log.info("========== End of Initialization ==========");
@@ -143,27 +142,22 @@ public class Initialize {
         init.checkSystemTable("system_author", SystemConstant.getSYSTEM_AUTHOR());
         init.checkSystemTable("system_version", SystemConstant.getSYSTEM_VERSION());
         init.checkSystemTable("system_name", SystemConstant.getSYSTEM_NAME());
-        init.checkSystemTable("system_init_mode", "true");
+        SystemConstant.setIsInitMode(init.checkSystemTable("system_init_mode", "true"));
         init.checkSystemTable("system_init_time", DateUtil.now());
 
         log.info("[INIT] 系统数据表检查完成");
     }
 
-    private void getRoleInfo() {
+    /**
+     * 获取角色信息
+     * <p>
+     * 该方法用于获取角色信息，将角色信息存入常量类中。
+     */
+    private void writeRoleInfo() {
         SystemConstant.setRoleAdmin(init.loadRoleContent("管理员"));
         SystemConstant.setRoleTeacher(init.loadRoleContent("教师"));
         SystemConstant.setRoleStudent(init.loadRoleContent("学生"));
         SystemConstant.setRoleLeader(init.loadRoleContent("管理"));
         SystemConstant.setRoleAcademic(init.loadRoleContent("教务"));
-    }
-
-    /**
-     * 获取系统信息常量
-     * <p>
-     * 该方法用于获取系统信息常量，将系统信息常量存入常量类中。
-     */
-    private void getSystemIntoConstant() {
-        // 系统有关信息
-        SystemConstant.setIsInitMode(jedis.get("system_init_mode"));
     }
 }

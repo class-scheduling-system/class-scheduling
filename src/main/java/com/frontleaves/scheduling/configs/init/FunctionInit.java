@@ -77,7 +77,7 @@ class FunctionInit {
      * <p>
      * 该方法用于检查系统表是否完整，如果系统表不完整将会创建内容。
      */
-    public void checkSystemTable(String key, String value) {
+    public String checkSystemTable(String key, String value) {
         SystemDO systemDO = systemDAO.lambdaQuery().eq(SystemDO::getSystemKey, key).one();
         if (systemDO == null) {
             log.info("[INIT] 系统表 {} 不存在，创建中", key);
@@ -86,15 +86,18 @@ class FunctionInit {
             if (newSystemDO == null) {
                 log.error("[INIT] 系统表 {} 创建失败", key);
                 System.exit(0);
+                return null;
             } else {
                 log.debug("[INIT] 系统表 {} 创建成功", key);
                 // 数据存入 Redis
                 jedis.setGet(StringConstant.Redis.SYSTEM + key, newSystemDO.getSystemVal());
+                return newSystemDO.getSystemVal();
             }
         } else {
             log.debug("[INIT] 系统表 {} 存在", key);
             // 数据存入 Redis
             jedis.setGet(StringConstant.Redis.SYSTEM + key, systemDO.getSystemVal());
+            return systemDO.getSystemVal();
         }
     }
 

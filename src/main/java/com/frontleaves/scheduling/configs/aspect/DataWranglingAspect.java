@@ -26,53 +26,50 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.configs.aspect;
 
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
+
+import java.lang.reflect.Parameter;
 
 /**
- * 系统常量
+ * 数据处理切面
  * <p>
- * 该类用于定义系统常量;
- * 该类使用 {@link Getter} 和 {@link Setter} 注解标记;
+ * 该类用于定义数据处理切面;
+ * 该类使用 {@link Aspect} 注解标记;
+ * 该类使用 {@link Component} 注解标记;
+ * 该类未实现任何方法;
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Slf4j
-public class SystemConstant {
-    // 以下是系统常量
-    @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
-    // 以下是系统常量
-    @Getter
-    @Setter
-    private static String isInitMode;
-    // 以下是角色常量
-    @Getter
-    @Setter
-    private static String roleAdmin;
-    @Getter
-    @Setter
-    private static String roleTeacher;
-    @Getter
-    @Setter
-    private static String roleStudent;
-    @Getter
-    @Setter
-    private static String roleLeader;
-    @Getter
-    @Setter
-    private static String roleAcademic;
-    @Getter
-    private static final String SYSTEM_VERSION = "v1.0.0";
-    @Getter
-    private static final String SYSTEM_AUTHOR = "锋楪技术团队";
+@Aspect
+@Component
+public class DataWranglingAspect {
 
-    private SystemConstant() {
-        log.error("SystemConstant 不能被实例化");
+    /**
+     * 数据读取前访问
+     * <p>
+     * 该方法用于在数据读取前访问.
+     *
+     * @param joinPoint 连接点
+     */
+    @Before("@annotation(com.frontleaves.scheduling.annotations.DataWrangling)")
+    public void dataReadsBeforeAccess(@NotNull JoinPoint joinPoint) {
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        Parameter[] parameters = signature.getMethod().getParameters();
+        Object[] args = joinPoint.getArgs();
+        log.debug("[DATA] 获取 {} 数据参数:", signature.getName());
+        for (int i = 0; i < args.length; i++) {
+            log.debug("\t> [{}]: {}", parameters[i].getName(), args[i]);
+        }
     }
 }

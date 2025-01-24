@@ -26,53 +26,30 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.models.vo;
 
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import lombok.NoArgsConstructor;
 
 /**
- * 系统常量
+ * 用户登录视图对象
  * <p>
- * 该类用于定义系统常量;
- * 该类使用 {@link Getter} 和 {@link Setter} 注解标记;
+ * 用于接收用户登录信息，传输的是用户的登录信息;
+ * 包含用户名、密码等信息。
+ * </p>
  *
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
+ * @author  xiao_lfeng
  */
-@Slf4j
-public class SystemConstant {
-    // 以下是系统常量
-    @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
-    // 以下是系统常量
-    @Getter
-    @Setter
-    private static String isInitMode;
-    // 以下是角色常量
-    @Getter
-    @Setter
-    private static String roleAdmin;
-    @Getter
-    @Setter
-    private static String roleTeacher;
-    @Getter
-    @Setter
-    private static String roleStudent;
-    @Getter
-    @Setter
-    private static String roleLeader;
-    @Getter
-    @Setter
-    private static String roleAcademic;
-    @Getter
-    private static final String SYSTEM_VERSION = "v1.0.0";
-    @Getter
-    private static final String SYSTEM_AUTHOR = "锋楪技术团队";
-
-    private SystemConstant() {
-        log.error("SystemConstant 不能被实例化");
-    }
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserLoginVO {
+    @NotBlank(message = "用户名不能为空")
+    private String user;
+    @NotBlank(message = "密码不能为空")
+    private String password;
 }
