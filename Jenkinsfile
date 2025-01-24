@@ -43,7 +43,7 @@ pipeline {
                             curl -L --retry 3 --retry-delay 5 -o cli-linux-amd64 "https://github.com/class-scheduling-system/table-install-cli/releases/download/${tag}/cli-linux-amd64" -v
                             chmod +x cli-linux-amd64
                         """
-                        sh "cd ${workspace}/ && bash cli-linux-amd64 reset"
+                        sh "cd ${workspace}/ && ./cli-linux-amd64 reset"
                         echo "清空数据库完成"
                     }
                 }
