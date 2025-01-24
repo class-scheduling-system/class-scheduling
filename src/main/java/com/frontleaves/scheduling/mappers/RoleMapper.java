@@ -26,37 +26,22 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.mappers;
 
-import lombok.extern.slf4j.Slf4j;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.frontleaves.scheduling.models.entity.RoleDO;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
- * 系统常量
+ * 角色表映射器
  * <p>
- * 该类用于定义系统常量;
- * 定义多处位置使用的字符串常量。
+ * 该类用于定义角色表映射器。
+ * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-public class StringConstant {
-
-    /**
-     * Redis 常量
-     */
-    public static class Redis {
-        public static final String SYSTEM = "system:";
-        public static final String ROLE_UUID = "role:uuid:";
-        public static final String ROLE_NAME = "user:name:";
-
-        private Redis() {
-            log.error("Redis 不能被实例化");
-        }
-    }
-
-    private StringConstant() {
-        log.error("StringConstant 不能被实例化");
-    }
+@Mapper
+public interface RoleMapper extends BaseMapper<RoleDO> {
 }

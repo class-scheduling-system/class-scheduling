@@ -26,37 +26,60 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.models.entity;
 
-import lombok.extern.slf4j.Slf4j;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+import lombok.experimental.Accessors;
+
+import java.sql.Timestamp;
 
 /**
- * 系统常量
+ * 角色表实体类
  * <p>
- * 该类用于定义系统常量;
- * 定义多处位置使用的字符串常量。
+ * 对应数据库表：`cs_role`
+ * 主键采用 UUID 自动生成。
+ * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-public class StringConstant {
+@Data
+@TableName(value = "cs_role")
+@Accessors(chain = true)
+public class RoleDO {
 
     /**
-     * Redis 常量
+     * 角色主键，采用 UUID 自动生成
      */
-    public static class Redis {
-        public static final String SYSTEM = "system:";
-        public static final String ROLE_UUID = "role:uuid:";
-        public static final String ROLE_NAME = "user:name:";
+    @TableId(value = "role_uuid", type = IdType.ASSIGN_UUID)
+    private String roleUuid;
 
-        private Redis() {
-            log.error("Redis 不能被实例化");
-        }
-    }
+    /**
+     * 角色名
+     */
+    private String roleName;
 
-    private StringConstant() {
-        log.error("StringConstant 不能被实例化");
-    }
+    /**
+     * 角色状态 0: 禁用 1: 启用
+     */
+    private Integer roleStatus;
+
+    /**
+     * 角色权限，JSON 格式
+     */
+    private String permission;
+
+    /**
+     * 创建时间
+     */
+    private Timestamp createdAt;
+
+    /**
+     * 更新时间
+     */
+    private Timestamp updatedAt;
 }

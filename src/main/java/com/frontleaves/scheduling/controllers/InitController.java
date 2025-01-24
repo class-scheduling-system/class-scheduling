@@ -29,8 +29,10 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.constants.SystemConstant;
+import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
+import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.InitVO;
 import com.xlf.utility.BaseResponse;
@@ -65,6 +67,7 @@ public class InitController {
 
     private final UserDAO userDAO;
     private final SystemDAO systemDAO;
+    private final RoleDAO roleDAO;
 
     /**
      * 系统初始化
@@ -75,9 +78,15 @@ public class InitController {
     @PostMapping("/init")
     public ResponseEntity<BaseResponse<Void>> systemInit(@RequestBody @Validated InitVO initVO) {
         if ("true".equals(SystemConstant.getIsInitMode())) {
+            // 获取管理员角色
+            RoleDO getAdminRole = roleDAO.getRoleByUuid(SystemConstant.getRoleAdmin());
+            if (getAdminRole == null) {
+                throw new BusinessException("管理员角色不存在", ErrorCode.SERVER_INTERNAL_ERROR);
+            }
             // 创建超级管理员用户
             UserDO newUser = new UserDO();
             newUser
+                    .setRoleUuid(getAdminRole.getRoleUuid())
                     .setName(initVO.getUsername())
                     .setPassword(PasswordUtil.encrypt(initVO.getPassword()))
                     .setEmail(initVO.getEmail())

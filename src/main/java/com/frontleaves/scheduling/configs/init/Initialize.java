@@ -30,6 +30,7 @@ package com.frontleaves.scheduling.configs.init;
 
 import cn.hutool.core.date.DateUtil;
 import com.frontleaves.scheduling.constants.SystemConstant;
+import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.daos.TableDAO;
 import jakarta.annotation.PostConstruct;
@@ -56,6 +57,7 @@ import redis.clients.jedis.Jedis;
 public class Initialize {
     private final TableDAO tableDAO;
     private final SystemDAO systemDAO;
+    private final RoleDAO roleDAO;
     private final Jedis jedis;
 
     private FunctionInit init;
@@ -65,12 +67,13 @@ public class Initialize {
         log.info("[INIT] 系统初始化开始");
         log.info("========== Start of Initialization ==========");
         // 初始化准备算法
-        init = new FunctionInit(tableDAO, systemDAO, jedis);
+        init = new FunctionInit(tableDAO, systemDAO, roleDAO, jedis);
 
         // 初始化数据库完整性检查
         this.checkTable();
         this.checkSystemTable();
         this.getSystemIntoConstant();
+        this.getRoleInfo();
     }
 
     @Bean
@@ -144,6 +147,14 @@ public class Initialize {
         init.checkSystemTable("system_init_time", DateUtil.now());
 
         log.info("[INIT] 系统数据表检查完成");
+    }
+
+    private void getRoleInfo() {
+        SystemConstant.setRoleAdmin(init.loadRoleContent("管理员"));
+        SystemConstant.setRoleTeacher(init.loadRoleContent("教师"));
+        SystemConstant.setRoleStudent(init.loadRoleContent("学生"));
+        SystemConstant.setRoleLeader(init.loadRoleContent("管理"));
+        SystemConstant.setRoleAcademic(init.loadRoleContent("教务"));
     }
 
     /**

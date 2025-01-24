@@ -26,37 +26,50 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.dao;
 
-import lombok.extern.slf4j.Slf4j;
+import com.frontleaves.scheduling.daos.RoleDAO;
+import com.frontleaves.scheduling.models.entity.RoleDO;
+import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 
 /**
- * 系统常量
+ * 角色测试类
  * <p>
- * 该类用于定义系统常量;
- * 定义多处位置使用的字符串常量。
+ * 该类用于测试角色相关功能;
+ * </p>
  *
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-public class StringConstant {
+@SpringBootTest
+@RequiredArgsConstructor
+class RoleTest {
+    @Resource private RoleDAO roleDAO;
 
-    /**
-     * Redis 常量
-     */
-    public static class Redis {
-        public static final String SYSTEM = "system:";
-        public static final String ROLE_UUID = "role:uuid:";
-        public static final String ROLE_NAME = "user:name:";
-
-        private Redis() {
-            log.error("Redis 不能被实例化");
-        }
+    @Test
+    void testGetRoleByName() {
+        // 测试角色
+        RoleDO roleDO = roleDAO.getRoleByName("管理员");
+        Assertions.assertNotNull(roleDO);
     }
 
-    private StringConstant() {
-        log.error("StringConstant 不能被实例化");
+    @Test
+    void testGetRoleByUuid() {
+        RoleDO roleDO = roleDAO.lambdaQuery().eq(RoleDO::getRoleName, "管理员").one();
+        assert roleDO != null;
+        // 测试角色
+        RoleDO getRole = roleDAO.getRoleByUuid(roleDO.getRoleUuid());
+        Assertions.assertNotNull(getRole);
+    }
+
+    @Test
+    void testGetNullRoleByUuid() {
+        // 测试角色
+        RoleDO getRole = roleDAO.getRoleByUuid("null");
+        Assertions.assertNull(getRole);
     }
 }

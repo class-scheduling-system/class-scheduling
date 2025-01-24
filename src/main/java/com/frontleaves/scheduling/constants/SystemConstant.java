@@ -44,12 +44,29 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class SystemConstant {
+    // 以下是系统常量
+    @Getter
+    private static final String SYSTEM_NAME = "ClassScheduling";
+    // 以下是系统常量
     @Getter
     @Setter
     private static String isInitMode = "false";
-
+    // 以下是角色常量
     @Getter
-    private static final String SYSTEM_NAME = "ClassScheduling";
+    @Setter
+    private static String roleAdmin;
+    @Getter
+    @Setter
+    private static String roleTeacher;
+    @Getter
+    @Setter
+    private static String roleStudent;
+    @Getter
+    @Setter
+    private static String roleLeader;
+    @Getter
+    @Setter
+    private static String roleAcademic;
     @Getter
     private static final String SYSTEM_VERSION = "v1.0.0";
     @Getter

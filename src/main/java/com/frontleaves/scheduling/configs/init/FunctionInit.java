@@ -29,8 +29,10 @@
 package com.frontleaves.scheduling.configs.init;
 
 import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.daos.TableDAO;
+import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.SystemDO;
 import com.frontleaves.scheduling.models.entity.TableDO;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +54,7 @@ import redis.clients.jedis.Jedis;
 class FunctionInit {
     private final TableDAO tableDAO;
     private final SystemDAO systemDAO;
+    private final RoleDAO roleDAO;
     private final Jedis jedis;
 
     /**
@@ -92,6 +95,15 @@ class FunctionInit {
             log.debug("[INIT] 系统表 {} 存在", key);
             // 数据存入 Redis
             jedis.setGet(StringConstant.Redis.SYSTEM + key, systemDO.getSystemVal());
+        }
+    }
+
+    public String loadRoleContent(String role) {
+        RoleDO roleDO = roleDAO.lambdaQuery().eq(RoleDO::getRoleName, role).one();
+        if (roleDO != null) {
+            return roleDO.getRoleUuid();
+        } else {
+            return null;
         }
     }
 }
