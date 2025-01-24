@@ -1,4 +1,4 @@
-node {
+pipeline {
     agent { label 'centos' }
     environment {
         SONAR_TOKEN = credentials('xiaolfeng-sonar-token')
@@ -10,7 +10,12 @@ node {
 
     stages {
         stage('SCM') {
-            checkout scm
+            steps {
+                ansiColor('xterm') {
+                    echo(message: '拉取代码...')
+                    checkout scm  // 拉取代码
+                }
+            }
         }
         stage('SonarQube Analysis') {
             ansiColor('xterm') {
@@ -23,6 +28,15 @@ node {
                     '''
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo(message: 'SonarQube 分析完成 🎉')
+        }
+        failure {
+            error(message: 'SonarQube 分析失败，请检查日志！')
         }
     }
 }
