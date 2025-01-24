@@ -40,8 +40,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import redis.clients.jedis.Jedis;
 
-import javax.annotation.processing.Generated;
-
 /**
  * 初始化方法类
  * <p>
@@ -55,7 +53,6 @@ import javax.annotation.processing.Generated;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-@Generated("SonarIgnore")
 public class Initialize {
     private final TableDAO tableDAO;
     private final SystemDAO systemDAO;

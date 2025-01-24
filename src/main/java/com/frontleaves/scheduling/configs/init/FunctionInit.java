@@ -37,8 +37,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
 
-import javax.annotation.processing.Generated;
-
 /**
  * 初始化方法类
  * <p>
@@ -51,7 +49,6 @@ import javax.annotation.processing.Generated;
  */
 @Slf4j
 @RequiredArgsConstructor
-@Generated("SonarIgnore")
 class FunctionInit {
     private final TableDAO tableDAO;
     private final SystemDAO systemDAO;

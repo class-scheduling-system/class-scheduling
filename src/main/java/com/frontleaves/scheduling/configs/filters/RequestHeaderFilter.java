@@ -39,19 +39,19 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.annotation.processing.Generated;
 import java.io.IOException;
+
 
 /**
  * 请求头过滤器
  * <p>
- * 该类用于过滤请求头；
+ * 该类用于定义请求头过滤器;
+ * 用于检查请求头是否符合规范。
  *
  * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
-@Generated("SonarIgnore")
 public class RequestHeaderFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(

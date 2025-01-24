@@ -47,6 +47,12 @@
     </developers>
     <properties>
         <java.version>17</java.version>
+        <sonar.coverage.exclusions>
+            **/configs/**/*.java,
+            **/*DTO.java,
+            **/*VO.java,
+            **/*DO.java,
+        </sonar.coverage.exclusions>
     </properties>
     <dependencies>
         <!-- Spring Boot -->
@@ -163,11 +169,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <excludes>
-                        <exclude>*.Generated</exclude>
-                    </excludes>
-                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -38,8 +38,6 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import javax.annotation.processing.Generated;
-
 /**
  * 公共异常处理器
  * <p>
@@ -51,7 +49,6 @@ import javax.annotation.processing.Generated;
  * @since v1.0.0
  */
 @ControllerAdvice
-@Generated("SonarIgnore")
 public class PublicExceptionHandler extends PublicExceptionHandlerAbstract {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

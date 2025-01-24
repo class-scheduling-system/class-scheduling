@@ -36,8 +36,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-import javax.annotation.processing.Generated;
-
 /**
  * 项目启动类
  * <p>
@@ -51,7 +49,6 @@ import javax.annotation.processing.Generated;
 @EnableScheduling
 @SpringBootConfiguration
 @EnableAutoConfiguration
-@Generated("SonarIgnore")
 @ComponentScan(basePackageClasses = {
         com.xlf.utility.UtilProperties.class,
         com.xlf.utility.exception.PublicExceptionHandlerAbstract.class,
