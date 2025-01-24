@@ -40,7 +40,7 @@ pipeline {
                         sh """
                             cd ${workspace}
                             rm -rf ${workspace}/cli-linux-amd64
-                            wget https://github.com/class-scheduling-system/table-install-cli/releases/download/${tag}/cli-linux-amd64
+                            curl -O https://github.com/class-scheduling-system/table-install-cli/releases/download/${tag}/cli-linux-amd64
                             chmod +x cli-linux-amd64
                         """
                         sh './cli-linux-amd64 reset'
