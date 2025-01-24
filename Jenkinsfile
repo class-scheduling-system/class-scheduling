@@ -40,11 +40,7 @@ pipeline {
                         sh """
                             cd ${workspace}
                             rm -rf ${workspace}/cli-linux-amd64
-                            export https_proxy=http://172.16.1.2:7890
-                            export http_proxy=http://172.16.1.2:7890
-                            export all_proxy=socks5://172.16.1.2:7890
-                            export NO_PROXY="localhost,127.0.0.1,::1"
-                            curl -L --retry 3 --retry-delay 5 -o cli-linux-amd64 "https://github.com/class-scheduling-system/table-install-cli/releases/download/${tag}/cli-linux-amd64 -v"
+                            curl -L --retry 3 --retry-delay 5 -o cli-linux-amd64 "https://github.com/class-scheduling-system/table-install-cli/releases/download/${tag}/cli-linux-amd64" -v
                             chmod +x cli-linux-amd64
                         """
                         sh "cd ${workspace}/ && bash cli-linux-amd64 reset"
