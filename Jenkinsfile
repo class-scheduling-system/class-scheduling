@@ -40,10 +40,10 @@ pipeline {
                         sh """
                             cd ${workspace}
                             rm -rf ${workspace}/cli-linux-amd64
-                            curl -O https://github.com/class-scheduling-system/table-install-cli/releases/download/${tag}/cli-linux-amd64
+                            curl -L -o cli-linux-amd64 "https://github.com/class-scheduling-system/table-install-cli/releases/download/${tag}/cli-linux-amd64"
                             chmod +x cli-linux-amd64
                         """
-                        sh './cli-linux-amd64 reset'
+                        sh 'bash cli-linux-amd64 reset'
                         echo "清空数据库完成"
                     }
                 }
