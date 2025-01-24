@@ -6,6 +6,7 @@ pipeline {
 
     tools {
         maven 'maven'
+        jdk 'JDK17'
     }
 
     stages {
@@ -21,6 +22,7 @@ pipeline {
             steps {
                 ansiColor('xterm') {
                     withSonarQubeEnv('SonarScanner') {
+                        sh 'java -version'
                         sh '''
                             mvn clean verify sonar:sonar \
                                 -Dsonar.projectKey=class-scheduling-system_class-scheduling_adf82c13-2ed9-4412-b641-55fe84228bae \
