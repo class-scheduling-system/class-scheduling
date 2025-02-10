@@ -30,9 +30,13 @@ package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
+import com.frontleaves.scheduling.service.UserService;
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ResultUtil;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -55,6 +59,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/user")
 public class UserController {
+    private final UserService userService;
 
     /**
      * 用户登录接口。
@@ -79,7 +84,15 @@ public class UserController {
      */
     @PostMapping("/login")
     public ResponseEntity<BaseResponse<UserLoginDTO>> userLogin(@RequestBody @Validated UserLoginVO userLoginVO) {
-        return null;
+        //检查用户登录信息（控制层已经检查是否为空）
+        UserLoginDTO userLoginDTO = userService.checkLoginData(userLoginVO);
+        if (userLoginDTO.getInitialization()) {
+            //用户为初始化状态，引导用户进入注册页面
+            return ResultUtil.success("请先进行注册", userLoginDTO);
+        }else {
+            //用户登录成功
+            return ResultUtil.success("登录成功", userLoginDTO);
+        }
     }
 
     /**
