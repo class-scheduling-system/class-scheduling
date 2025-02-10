@@ -76,4 +76,6 @@ public class StringConstant {
             log.error("Common 不能被实例化");
         }
     }
+
+    public static final String TOKEN_ATTRIBUTION_ERROR = "令牌归属错误";
 }

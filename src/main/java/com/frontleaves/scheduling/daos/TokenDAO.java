@@ -31,6 +31,8 @@ package com.frontleaves.scheduling.daos;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.TokenDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
 import com.xlf.utility.util.UuidUtil;
 import lombok.RequiredArgsConstructor;
@@ -45,12 +47,19 @@ import java.util.UUID;
 /**
  * Token 数据访问对象
  * <p>
- * 该类用于对 Token 数据进行访问。
+ * 该类用于处理 Token 的创建、验证、刷新和删除操作。通过 Redis 存储 Token 数据，实现对用户 Token 的管理。
+ * 具体操作包括：
+ * <ul>
+ *   <li>创建 Token：生成新的 Token 和 RefreshToken，并设置相应的过期时间，将其存储在 Redis 中；</li>
+ *   <li>验证 Token：检查 Token 是否存在、是否属于当前用户、是否过期；</li>
+ *   <li>刷新 Token：更新 Token 和 RefreshToken 的过期时间；</li>
+ *   <li>删除 Token：删除 Redis 中存储的 Token 数据。</li>
+ * </ul>
  * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Slf4j
 @Repository
@@ -60,10 +69,15 @@ public class TokenDAO {
     private final Jedis jedis;
 
     /**
-     * 创建 Token
+     * 创建新的 Token 并存储到 Redis 中。
+     * <p>
+     * 生成新的 Token 和 RefreshToken，设置 Token 过期时间为 1 小时，刷新令牌过期时间为 24 小时，
+     * 并将这些信息封装在 TokenDTO 对象中。将 TokenDTO 转换成 HashMap 存入 Redis，
+     * 同时设置 Redis 键的过期时间为 86400 秒。
+     * </p>
      *
-     * @param userDO 用户信息
-     * @return TokenDTO
+     * @param userDO 用户数据对象，包含用户唯一标识，不能为空
+     * @return TokenDTO 包含生成的 Token、RefreshToken、创建时间、过期时间等信息
      */
     public TokenDTO createToken(@NotNull UserDO userDO) {
         TokenDTO tokenDTO = new TokenDTO();
@@ -76,17 +90,28 @@ public class TokenDAO {
                 .setCreatedAt(System.currentTimeMillis())
                 .setExpireTime(System.currentTimeMillis() + 3600000)
                 .setRefreshExpireTime(System.currentTimeMillis() + 86400000);
-        // TokenDTO 转为 HMap
+        // 将 TokenDTO 对象转换为 Map 格式存储在 Redis 中
         jedis.hmset(StringConstant.Redis.TOKEN + getNewTokenUuid, ConvertUtil.convertObjectToMapString(tokenDTO));
         jedis.expire(StringConstant.Redis.TOKEN + getNewTokenUuid, 86400);
         return tokenDTO;
     }
 
     /**
-     * 验证 Token
+     * 验证指定 Token 是否有效。
+     * <p>
+     * 该方法通过 Redis 获取存储的 Token 数据，并依次校验：
+     * <ul>
+     *   <li>Token 是否为空或不存在；</li>
+     *   <li>Token 是否归属于当前用户；</li>
+     *   <li>Token 是否已过期；</li>
+     *   <li>RefreshToken 是否已过期（若已过期则删除 Token）。</li>
+     * </ul>
+     * </p>
      *
-     * @param token Token
-     * @return boolean
+     * @param token  要验证的 Token 字符串
+     * @param userDO 用户数据对象，包含当前用户的唯一标识
+     * @return true 如果 Token 存在且有效；false 否则
+     * @throws BusinessException 如果 Token 不属于当前用户，则抛出异常
      */
     public boolean verifyToken(String token, UserDO userDO) {
         if (token == null || token.trim().isEmpty()) {
@@ -100,24 +125,98 @@ public class TokenDAO {
                 StringConstant.Common.EXPIRE_TIME,
                 StringConstant.Common.REFRESH_EXPIRE_TIME
         );
-        // 检查当前令牌是否有效
+        // 检查 Token 是否存在
         if (getToken == null || getToken.isEmpty()) {
             return false;
         }
-        // 检查 Token 是否是当前用户
+        // 检查 Token 是否属于传入的用户
         if (!getToken.get(0).equals(userDO.getUserUuid())) {
-            return false;
+            throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
         }
         // 检查 Token 是否过期
         if (Long.parseLong(getToken.get(4)) < System.currentTimeMillis()) {
             return false;
         }
-        // 检查 RefreshToken 是否过期
+        // 检查 RefreshToken 是否过期，若已过期则删除 Token
         if (Long.parseLong(getToken.get(5)) < System.currentTimeMillis()) {
-            // 如果 RefreshToken 过期删除 Token
             jedis.del(StringConstant.Redis.TOKEN + token);
             return false;
         }
+        return true;
+    }
+
+    /**
+     * 刷新指定 Token 的过期时间。
+     * <p>
+     * 此方法首先验证 Token 是否存在且属于当前用户，再检查 RefreshToken 是否有效。
+     * 如果 RefreshToken 未过期，则更新 Token 的过期时间（延长 1 小时）和 RefreshToken 的过期时间（延长 24 小时），
+     * 同时更新 Redis 中对应的记录，并返回更新后的 TokenDTO 对象。
+     * </p>
+     *
+     * @param token  当前的 Token 字符串
+     * @param userDO 用户数据对象，包含当前用户的唯一标识
+     * @return 更新后的 TokenDTO 对象，其中包含新的过期时间信息
+     * @throws BusinessException 如果 Token 不存在、Token 不属于当前用户，或 RefreshToken 已过期
+     */
+    public TokenDTO refreshToken(String token, UserDO userDO) {
+        List<String> getToken = jedis.hmget(StringConstant.Redis.TOKEN + token,
+                StringConstant.Common.USER_UUID,
+                StringConstant.Common.TOKEN,
+                StringConstant.Common.REFRESH_TOKEN,
+                StringConstant.Common.CREATED_AT,
+                StringConstant.Common.EXPIRE_TIME,
+                StringConstant.Common.REFRESH_EXPIRE_TIME
+        );
+        if (getToken == null || getToken.isEmpty()) {
+            throw new BusinessException("令牌不存在", ErrorCode.SERVER_INTERNAL_ERROR);
+        }
+        if (!getToken.get(0).equals(userDO.getUserUuid())) {
+            throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
+        }
+        if (Long.parseLong(getToken.get(5)) < System.currentTimeMillis()) {
+            jedis.del(StringConstant.Redis.TOKEN + token);
+            throw new BusinessException("刷新令牌已过期", ErrorCode.SERVER_INTERNAL_ERROR);
+        }
+        // 计算新的过期时间
+        long newExpireTime = System.currentTimeMillis() + 3600000;
+        long newRefreshExpireTime = System.currentTimeMillis() + 86400000;
+        // 更新 Redis 中 Token 的过期时间和刷新令牌的过期时间
+        jedis.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.EXPIRE_TIME, String.valueOf(newExpireTime));
+        jedis.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.REFRESH_EXPIRE_TIME, String.valueOf(newRefreshExpireTime));
+        jedis.expire(StringConstant.Redis.TOKEN + token, 86400);
+        return new TokenDTO()
+                .setUserUuid(userDO.getUserUuid())
+                .setToken(token)
+                .setRefreshToken(getToken.get(2))
+                .setCreatedAt(Long.parseLong(getToken.get(3)))
+                .setExpireTime(newExpireTime)
+                .setRefreshExpireTime(newRefreshExpireTime);
+    }
+
+    /**
+     * 删除指定 Token。
+     * <p>
+     * 该方法首先验证 Token 是否存在且属于当前用户，
+     * 如果验证通过，则从 Redis 中删除对应的 Token 数据，并返回 true 表示删除成功。
+     * 若 Token 不存在，则返回 false。
+     * </p>
+     *
+     * @param token  要删除的 Token 字符串
+     * @param userDO 用户数据对象，包含当前用户的唯一标识
+     * @return true 如果 Token 成功删除；false 如果 Token 不存在
+     * @throws BusinessException 如果 Token 不属于当前用户，则抛出异常
+     */
+    public boolean deleteToken(String token, UserDO userDO) throws BusinessException {
+        List<String> getToken = jedis.hmget(StringConstant.Redis.TOKEN + token,
+                StringConstant.Common.USER_UUID
+        );
+        if (getToken == null || getToken.isEmpty()) {
+            return false;
+        }
+        if (!getToken.get(0).equals(userDO.getUserUuid())) {
+            throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
+        }
+        jedis.del(StringConstant.Redis.TOKEN + token);
         return true;
     }
 }
