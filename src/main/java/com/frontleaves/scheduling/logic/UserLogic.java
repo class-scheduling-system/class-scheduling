@@ -1,9 +1,6 @@
 package com.frontleaves.scheduling.logic;
 
-import com.frontleaves.scheduling.daos.RoleDAO;
-import com.frontleaves.scheduling.daos.StudentDAO;
-import com.frontleaves.scheduling.daos.TeacherDAO;
-import com.frontleaves.scheduling.daos.UserDAO;
+import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
@@ -33,6 +30,7 @@ public class UserLogic implements UserService {
     private final StudentDAO studentDAO;
     private final TeacherDAO teacherDAO;
     private final RoleDAO roleDAO;
+    private final TokenDAO tokenDAO;
 
     /**
      * 用户登录信息交换
@@ -66,6 +64,8 @@ public class UserLogic implements UserService {
             BeanUtils.copyProperties(teacherDO, teacherDTO);
             userLoginDTO.setTeacher(teacherDTO);
         }
+        TokenDTO tokenDTO = tokenDAO.createToken(userDO);
+        userLoginDTO.setToken(tokenDTO);
         return userLoginDTO;
     }
 
