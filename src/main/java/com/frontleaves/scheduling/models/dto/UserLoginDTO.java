@@ -29,6 +29,7 @@
 package com.frontleaves.scheduling.models.dto;
 
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -52,6 +53,7 @@ public class UserLoginDTO {
     /**
      * 用户数据传输对象
      */
+    @NotNull
     private UserDTO user;
 
     /**
@@ -68,9 +70,12 @@ public class UserLoginDTO {
     /**
      * 令牌对象
      */
+    @NotNull
     private TokenDTO token;
     /**
      * 是否是初始化用户
      */
+
+    @NotNull
     private Boolean initialization;
 }
