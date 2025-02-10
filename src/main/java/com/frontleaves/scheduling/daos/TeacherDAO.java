@@ -17,4 +17,7 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements IService<TeacherDO> {
 
+    public TeacherDO getTeacherById(String id){
+        return this.lambdaQuery().eq(TeacherDO::getId,id).one();
+    }
 }

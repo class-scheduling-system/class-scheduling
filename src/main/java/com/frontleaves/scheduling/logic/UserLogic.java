@@ -4,10 +4,10 @@ import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.StudentDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.RoleDTO;
-import com.frontleaves.scheduling.models.dto.UserDTO;
-import com.frontleaves.scheduling.models.dto.UserLoginDTO;
+import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.RoleDO;
+import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.service.UserService;
@@ -50,6 +50,22 @@ public class UserLogic implements UserService {
         userDTO.setRole(roleDTO);
         userLoginDTO.setUser(userDTO);
         userLoginDTO.setInitialization(false);
+        //校验学生
+        StudentDO studentDO = studentDAO.lambdaQuery().eq(StudentDO::getUserUuid, userDO.getUserUuid()).one();
+        if (studentDO != null) {
+            userLoginDTO.setTeacher(null);
+            StudentDTO studentDTO = new StudentDTO();
+            BeanUtils.copyProperties(studentDO, studentDTO);
+            userLoginDTO.setStudent(studentDTO);
+        }
+        //校验教师
+        TeacherDO teacherDO = teacherDAO.lambdaQuery().eq(TeacherDO::getUserUuid, userDO.getUserUuid()).one();
+        if (teacherDO != null) {
+            userLoginDTO.setStudent(null);
+            TeacherDTO teacherDTO = new TeacherDTO();
+            BeanUtils.copyProperties(teacherDO, teacherDTO);
+            userLoginDTO.setTeacher(teacherDTO);
+        }
         return userLoginDTO;
     }
 
@@ -74,18 +90,66 @@ public class UserLogic implements UserService {
             if (userDO.getPassword().equals(userLoginVO.getPassword())) {
                 userLoginDTO = loginReturn(userDO);
             } else {
-                throw new BusinessException("密码错误", ErrorCode.BODY_ERROR);
+                throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
             }
         } else {
-            //检测是否为学生或者老师进行初始化操作
-            if (userLoginVO.getPassword().equals("stu" + userLoginVO.getUser())) {
-
-            } else if (userLoginVO.getPassword().equals("te" + userLoginVO.getUser())) {
-
-            } else {
-               //检测是否为通过学号或者工号进行登录（应是初始化后的）
-
+            //检测是否初始化过
+            StudentDO studentDO = studentDAO.getStudentById(userLoginVO.getUser());
+            if (studentDO != null) {
+                //校验是否初始化
+                if (studentDO.getUserUuid() != null) {
+                    UserDO userDoS = userDAO.getById(studentDO.getUserUuid());
+                    if (userDoS != null) {
+                        if (userDoS.getPassword().equals(userLoginVO.getPassword())) {
+                            //正常登录
+                            loginReturn(userDO);
+                        } else {
+                            throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
+                        }
+                    } else {
+                        throw new BusinessException("系统错误", ErrorCode.OPERATION_ERROR);
+                    }
+                } else {
+                    if (userLoginVO.getPassword().equals("stu" + userLoginVO.getUser())) {
+                        //进行初始化操作
+                        userLoginDTO.setInitialization(true);
+                        StudentDTO studentDTO = new StudentDTO();
+                        BeanUtils.copyProperties(studentDO, studentDTO);
+                        userLoginDTO.setTeacher(null);
+                        userLoginDTO.setStudent(studentDTO);
+                    } else {
+                        throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
+                    }
+                }
             }
+            TeacherDO teacherDO = teacherDAO.getTeacherById(userLoginVO.getUser());
+            if (teacherDO != null) {
+                if (teacherDO.getUserUuid() != null) {
+                    UserDO userDoS = userDAO.getById(teacherDO.getUserUuid());
+                    if (userDoS != null) {
+                        if (userDoS.getPassword().equals(userLoginVO.getPassword())) {
+                            //正常登录
+                            loginReturn(userDO);
+                        } else {
+                            throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
+                        }
+                    } else {
+                        throw new BusinessException("系统错误", ErrorCode.OPERATION_ERROR);
+                    }
+                } else {
+                    if (userLoginVO.getPassword().equals("te" + userLoginVO.getUser())) {
+                        userLoginDTO.setInitialization(true);
+                        TeacherDTO teacherDTO = new TeacherDTO();
+                        BeanUtils.copyProperties(teacherDO, teacherDTO);
+                        userLoginDTO.setStudent(null);
+                        userLoginDTO.setTeacher(teacherDTO);
+                    } else {
+                        throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
+                    }
+                }
+            }
+
+
         }
         return userLoginDTO;
     }

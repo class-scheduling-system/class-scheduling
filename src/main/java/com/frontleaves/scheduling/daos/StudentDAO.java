@@ -17,7 +17,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements IService<StudentDO> {
-
-
+    /**
+     * 通过学号获取学生信息
+     * @param id 学号
+     * @return 学生信息
+     */
+    public StudentDO getStudentById(String id){
+        return this.lambdaQuery().eq(StudentDO::getId,id).one();
+    }
 }
 
