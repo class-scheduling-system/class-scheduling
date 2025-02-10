@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.models.dto;
 
+import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -52,6 +53,18 @@ public class UserLoginDTO {
      * 用户数据传输对象
      */
     private UserDTO user;
+
+    /**
+     * 学生数据传输对象
+     */
+    @Nullable
+    private StudentDTO student;
+
+    /**
+     * 教师数据传输对象
+     */
+    @Nullable
+    private TeacherDTO teacher;
     /**
      * 令牌对象
      */

@@ -26,54 +26,32 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.dao;
 
+import com.frontleaves.scheduling.daos.TokenDAO;
+import com.frontleaves.scheduling.daos.UserDAO;
+import com.frontleaves.scheduling.models.dto.TokenDTO;
+import com.frontleaves.scheduling.models.entity.UserDO;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 
-/**
- * 系统常量
- * <p>
- * 该类用于定义系统常量;
- * 定义多处位置使用的字符串常量。
- *
- * @author xiao_lfeng
- * @version v1.0.0
- * @since v1.0.0
- */
 @Slf4j
-public class StringConstant {
+@SpringBootTest
+class TokenTest {
+    @Resource
+    private UserDAO userDAO;
+    @Resource
+    private TokenDAO tokenDAO;
 
-    private StringConstant() {
-        log.error("StringConstant 不能被实例化");
-    }
-
-    /**
-     * Redis 常量
-     */
-    public static class Redis {
-        public static final String SYSTEM = "system:";
-        public static final String TOKEN = "token:";
-        public static final String ROLE_UUID = "role:uuid:";
-        public static final String ROLE_NAME = "user:name:";
-
-        private Redis() {
-            log.error("Redis 不能被实例化");
-        }
-    }
-
-    /**
-     * 常量
-     */
-    public static class Common {
-        public static final String USER_UUID = "userUuid";
-        public static final String TOKEN = "token";
-        public static final String REFRESH_TOKEN = "refreshToken";
-        public static final String EXPIRE_TIME = "expireTime";
-        public static final String REFRESH_EXPIRE_TIME = "refreshExpireTime";
-        public static final String CREATED_AT = "createdAt";
-
-        private Common() {
-            log.error("Common 不能被实例化");
-        }
+    @Test
+    void testGetToken() {
+        UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, "test").one();
+        TokenDTO getToken = tokenDAO.createToken(userDO);
+        log.debug("getToken: {}", getToken);
+        // 验证 Token
+        Assertions.assertTrue(tokenDAO.verifyToken(getToken.getToken(), userDO));
     }
 }
