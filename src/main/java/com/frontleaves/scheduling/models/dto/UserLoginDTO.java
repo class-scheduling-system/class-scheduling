@@ -53,7 +53,7 @@ public class UserLoginDTO {
     /**
      * 用户数据传输对象
      */
-    @NotNull
+    @Nullable
     private UserDTO user;
 
     /**
@@ -62,20 +62,22 @@ public class UserLoginDTO {
     @Nullable
     private StudentDTO student;
 
+
     /**
      * 教师数据传输对象
      */
     @Nullable
     private TeacherDTO teacher;
+
     /**
      * 令牌对象
      */
-    @NotNull
+    @Nullable
     private TokenDTO token;
+
     /**
      * 是否是初始化用户
      */
-
     @NotNull
     private Boolean initialization;
 }
