@@ -26,54 +26,88 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.models.dto;
 
-import lombok.extern.slf4j.Slf4j;
+import com.baomidou.mybatisplus.annotation.TableField;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 /**
- * 系统常量
+ * Student 数据传输对象
  * <p>
- * 该类用于定义系统常量;
- * 定义多处位置使用的字符串常量。
+ * 用于在不同层之间传输学生基本信息。
+ * 该 DTO 包含学生主键、学号、学生姓名、性别、年级、学院、专业、班级、对应用户主键、
+ * 创建时间及更新时间等字段。
+ * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
-@Slf4j
-public class StringConstant {
-
-    private StringConstant() {
-        log.error("StringConstant 不能被实例化");
-    }
-
-    /**
-     * Redis 常量
-     */
-    public static class Redis {
-        public static final String SYSTEM = "system:";
-        public static final String TOKEN = "token:";
-        public static final String ROLE_UUID = "role:uuid:";
-        public static final String ROLE_NAME = "user:name:";
-
-        private Redis() {
-            log.error("Redis 不能被实例化");
-        }
-    }
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+public class StudentDTO {
 
     /**
-     * 常量
+     * 学生主键
      */
-    public static class Common {
-        public static final String USER_UUID = "userUuid";
-        public static final String TOKEN = "token";
-        public static final String REFRESH_TOKEN = "refreshToken";
-        public static final String EXPIRE_TIME = "expireTime";
-        public static final String REFRESH_EXPIRE_TIME = "refreshExpireTime";
-        public static final String CREATED_AT = "createdAt";
+    private String studentUuid;
 
-        private Common() {
-            log.error("Common 不能被实例化");
-        }
-    }
+    /**
+     * 学号
+     */
+    private String id;
+
+    /**
+     * 学生姓名
+     */
+    private String name;
+
+    /**
+     * 性别（0：女，1：男）
+     */
+    private Integer gender;
+
+    /**
+     * 年级
+     */
+    private String grade;
+
+    /**
+     * 学院
+     */
+    private String department;
+
+    /**
+     * 专业
+     */
+    private String major;
+
+    /**
+     * 班级
+     * <p>
+     * 注意：由于 class 为 Java 保留关键字，此处使用 clazz 表示班级。
+     * </p>
+     */
+    @TableField(value = "class")
+    private String clazz;
+
+    /**
+     * 对应用户主键
+     */
+    private String userUuid;
+
+    /**
+     * 创建时间（单位：毫秒时间戳）
+     */
+    private Long createdAt;
+
+    /**
+     * 更新时间（单位：毫秒时间戳）
+     */
+    private Long updatedAt;
 }

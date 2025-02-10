@@ -34,11 +34,15 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 /**
- * Token 数据传输对象
+ * Teacher 数据传输对象
  * <p>
- * 用于返回 Token 相关信息，传输的是 Token 的基本信息;
- * 包含 Token、RefreshToken、过期时间、刷新过期时间、创建时间等信息。
+ * 用于在不同层之间传输教师基本信息。该 DTO 包含教师主键、单位主键、用户主键、教师工号、
+ * 教师姓名、教师英文名、教师民族、教师性别、教师电话、教师邮箱、教师职称、教师描述、
+ * 创建时间及更新时间等字段。
  * </p>
+ *
+ * 注意：
+ * - 由于 SQL 中字段名 `desc` 可能与部分关键字冲突，此处仍采用 desc 命名，但在使用时请注意避免歧义。
  *
  * @author xiao_lfeng
  * @version v1.0.0
@@ -48,34 +52,75 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
-public class TokenDTO {
+public class TeacherDTO {
+
+    /**
+     * 教师主键
+     */
+    private String teacherUuid;
+
+    /**
+     * 单位主键
+     */
+    private String unitUuid;
+
     /**
      * 用户主键
      */
     private String userUuid;
 
     /**
-     * 用户令牌
+     * 教师工号
      */
-    private String token;
+    private String id;
 
     /**
-     * 刷新令牌
+     * 教师姓名
      */
-    private String refreshToken;
+    private String name;
 
     /**
-     * 令牌过期时间（单位：秒）
+     * 教师英文名
      */
-    private Long expireTime;
+    private String englishName;
 
     /**
-     * 刷新令牌过期时间（单位：秒）
+     * 教师民族
      */
-    private Long refreshExpireTime;
+    private String ethnic;
 
     /**
-     * 令牌创建时间（单位：「时间戳」毫秒）
+     * 教师性别（0：女，1：男）
+     */
+    private Integer sex;
+
+    /**
+     * 教师电话
+     */
+    private String phone;
+
+    /**
+     * 教师邮箱
+     */
+    private String email;
+
+    /**
+     * 教师职称
+     */
+    private String jobTitle;
+
+    /**
+     * 教师描述
+     */
+    private String desc;
+
+    /**
+     * 创建时间（单位：毫秒时间戳）
      */
     private Long createdAt;
+
+    /**
+     * 更新时间（单位：毫秒时间戳）
+     */
+    private Long updatedAt;
 }
