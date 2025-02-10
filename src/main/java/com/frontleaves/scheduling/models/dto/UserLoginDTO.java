@@ -48,6 +48,16 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Accessors(chain = true)
 public class UserLoginDTO {
+    /**
+     * 用户数据传输对象
+     */
     private UserDTO user;
+    /**
+     * 令牌对象
+     */
     private TokenDTO token;
+    /**
+     * 是否是初始化用户
+     */
+    private Boolean initialization;
 }

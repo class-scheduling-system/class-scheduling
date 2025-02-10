@@ -57,19 +57,43 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     /**
-     * 用户登录
+     * 用户登录接口。
      * <p>
-     * 该接口用于用户登录;
-     * 用户存在时，支持用户名、手机、邮箱登录;
-     * 若不存在该用户，输入学号或工号且默认密码为 {@code stu + 学号} 或者 {@code te + 工号};
-     * 检查学生表及教师表，若在该表存在则创建用户;
-     * 创建用户时候，设置默认角色为学生或者教师;
-     * 对于其余账户角色，应当在后台进行添加。
+     * 此接口用于处理用户登录逻辑，支持多种登录方式：
+     * <ul>
+     *   <li>当用户已存在时，可通过用户名、手机或邮箱登录。</li>
+     *   <li>
+     *     若用户不存在，但输入的凭据为学号或工号且密码为默认格式（{@code stu+学号} 或 {@code te+工号}），
+     *     则系统将检查学生或教师表。若在相应表中存在该记录，则自动创建用户，并分配默认角色（学生或教师）。
+     *   </li>
+     *   <li>
+     *     如果用户既不存在于用户表，也不在学生/教师表中，则响应中将包含 {@code initialization} 字段，
+     *     用于通知前端该用户为未注册状态，需要进一步完善用户信息。
+     *   </li>
+     * </ul>
      *
-     * @return 用户登录信息
+     * @param userLoginVO 包含用户登录请求信息的视图对象，已通过验证
+     * @return 返回包含用户登录信息的响应实体。若响应数据中含有 {@code initialization} 字段，则表示该用户尚未完成正式注册，
+     * 前端应引导用户进入补全信息页面
+     * @see UserLoginDTO
      */
     @PostMapping("/login")
     public ResponseEntity<BaseResponse<UserLoginDTO>> userLogin(@RequestBody @Validated UserLoginVO userLoginVO) {
+        return null;
+    }
+
+    /**
+     * 初始化用户注册接口。
+     * <p>
+     * 当登录接口返回的 {@code initialization} 字段表明用户为初始化状态时，
+     * 前端应引导用户进入此页面，补全其用户信息（如用户名、密码、邮箱等），以完成正式注册。
+     * 此接口负责接收用户补全信息后的注册请求，并将用户信息更新至数据库。
+     *
+     * @param userLoginVO 包含用户注册信息的视图对象，已通过验证
+     * @return 返回空数据的响应实体，表示注册操作已成功处理
+     */
+    @PostMapping("/registered")
+    public ResponseEntity<BaseResponse<Void>> userRegistered(@RequestBody @Validated UserLoginVO userLoginVO) {
         return null;
     }
 }

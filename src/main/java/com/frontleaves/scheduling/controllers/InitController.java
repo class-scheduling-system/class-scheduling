@@ -75,7 +75,7 @@ public class InitController {
      * 该方法用于系统初始化;
      * 用于系统在启动时进行初始化操作。
      */
-    @PostMapping("/")
+    @PostMapping("")
     public ResponseEntity<BaseResponse<Void>> systemInit(@RequestBody @Validated InitVO initVO) {
         if ("true".equals(SystemConstant.getIsInitMode())) {
             // 获取管理员角色
