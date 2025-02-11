@@ -101,16 +101,16 @@ public class UserController {
      * 前端应引导用户进入此页面，补全其用户信息（如用户名、密码、邮箱等），以完成正式注册。
      * 此接口负责接收用户补全信息后的注册请求，并将用户信息更新至数据库。
      *
-     * @param userLoginVO 包含用户注册信息的视图对象，已通过验证
+     * @param userInitializationVO 包含用户初始化信息的视图对象，已通过验证
      * @return 返回空数据的响应实体，表示注册操作已成功处理
      */
     @PostMapping("/registered")
     public ResponseEntity<BaseResponse<Void>> userRegistered(
-            @RequestBody @Validated UserLoginVO userLoginVO,
             @RequestBody @Validated UserInitializationVO userInitializationVO
     ) {
+        userService.checkPassword(userInitializationVO);
         //初始化用户注册
-        userService.userRegistered(userLoginVO, userInitializationVO);
-        return null;
+        userService.userRegistered(userInitializationVO);
+        return ResultUtil.success("注册成功");
     }
 }

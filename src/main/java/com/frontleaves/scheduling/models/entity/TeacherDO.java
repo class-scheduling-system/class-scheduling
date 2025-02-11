@@ -14,7 +14,7 @@ import java.sql.Timestamp;
  * @author FLASHLACK
  */
 @Data
-@TableName("sc_teacher")
+@TableName("cs_teacher")
 @Accessors(chain = true)
 public class TeacherDO {
     /**
@@ -75,17 +75,17 @@ public class TeacherDO {
     /**
      * 教师描述
      */
-    @TableField(value = "desc")
+    @TableField(value = "`desc`")
     private String desc;
     /**
      * 创建时间
      */
-    @TableField(value = "create_time")
-    private Timestamp createTime;
+    @TableField(value = "created_at")
+    private Timestamp createdAt;
     /**
      * 更新时间
      */
-    @TableField(value = "update_time")
-    private Timestamp updateTime;
+    @TableField(value = "updated_at")
+    private Timestamp updatedAt;
 
 }

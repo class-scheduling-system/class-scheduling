@@ -19,10 +19,15 @@ public interface UserService {
 
     /**
      * 用户注册
-     * @param userLoginVO 用户登录数据
      * @param userInitializationVO 用户初始化数据
      */
     void userRegistered(
-            UserLoginVO userLoginVO,
+            UserInitializationVO userInitializationVO);
+
+    /**
+     * 检查密码
+     * @param userInitializationVO 用户初始化数据
+     */
+    void checkPassword(
             UserInitializationVO userInitializationVO);
 }
