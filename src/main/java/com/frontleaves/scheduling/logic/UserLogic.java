@@ -113,7 +113,7 @@ public class UserLogic implements UserService {
         if (userDO != null) {
             //检查密码是否正确
             log.info("确认为邮箱，手机号，用户名登录，正则检查密码是否正确");
-            if (userDO.getPassword().equals(userLoginVO.getPassword())) {
+            if (PasswordUtil.verify(userLoginVO.getPassword(), userDO.getPassword())) {
                 userLoginDTO = loginReturn(userDO);
                 return userLoginDTO;
             } else {
@@ -196,7 +196,6 @@ public class UserLogic implements UserService {
         //查明是否为学生或者老师
         if (userInitializationVO.getPassword().startsWith("stu")) {
             log.info("确认为学生初始化");
-            log.info("旧密码: {}", userInitializationVO.getPassword());
             StudentDO studentDO = studentDAO.getStudentById(userInitializationVO.getUser());
             if (studentDO == null) {
                 throw new BusinessException("学生信息不存在", ErrorCode.BODY_ERROR);
@@ -246,9 +245,9 @@ public class UserLogic implements UserService {
             UserDO userDO = new UserDO();
             //传递了用户名，密码，邮箱，手机号
             BeanUtils.copyProperties(userInitializationVO, userDO);
-            userDO.setPassword(PasswordUtil.encrypt(userInitializationVO.getPassword()));
+            userDO.setPassword(PasswordUtil.encrypt(userInitializationVO.getNewPassword()));
             checkUser(userDO);
-            RoleDO roleDO = roleDAO.getRoleByName("教师");
+            RoleDO roleDO = roleDAO.getRoleByName("老师");
             //初始化用户
             userDO.setRoleUuid(roleDO.getRoleUuid())
                     .setPermission(roleDO.getPermission());

@@ -24,6 +24,7 @@ public class UserInitializationVO {
     private String name;
     @Pattern(regexp = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$",
             message = "强密码(必须包含大小写字母和数字的组合，可以使用特殊字符，至少6位）")
+    @NotBlank(message = "新密码不能为空")
     private String newPassword;
     @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$",
             message = "邮箱格式不正确")
