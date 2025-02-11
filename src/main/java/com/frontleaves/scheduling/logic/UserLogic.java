@@ -116,7 +116,6 @@ public class UserLogic implements UserService {
                 throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
             }
         } else {
-            //检测是否初始化过
             log.info("确认为是否为学号登录，检查是否初始化");
             StudentDO studentDO = studentDAO.getStudentById(userLoginVO.getUser());
             log.info("studentDO: {}", studentDO);
