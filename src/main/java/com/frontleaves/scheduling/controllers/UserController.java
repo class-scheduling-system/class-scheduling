@@ -109,7 +109,8 @@ public class UserController {
             @RequestBody @Validated UserLoginVO userLoginVO,
             @RequestBody @Validated UserInitializationVO userInitializationVO
     ) {
-
+        //初始化用户注册
+        userService.userRegistered(userLoginVO, userInitializationVO);
         return null;
     }
 }
