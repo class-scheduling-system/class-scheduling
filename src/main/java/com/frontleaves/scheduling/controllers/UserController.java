@@ -61,7 +61,7 @@ public class UserController {
     private final UserService userService;
 
     /**
-     * 用户登录接口。
+     * 用户登录接口
      * <p>
      * 此接口用于处理用户登录逻辑，支持多种登录方式：
      * <ul>
@@ -95,7 +95,7 @@ public class UserController {
     }
 
     /**
-     * 初始化用户注册接口。
+     * 初始化用户注册接口
      * <p>
      * 当登录接口返回的 {@code initialization} 字段表明用户为初始化状态时，
      * 前端应引导用户进入此页面，补全其用户信息（如用户名、密码、邮箱等），以完成正式注册。
