@@ -17,9 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.Objects;
-import java.util.stream.Stream;
-
 /**
  * 用户逻辑实现
  *
@@ -95,21 +92,20 @@ public class UserLogic implements UserService {
     @Override
     public UserLoginDTO checkLoginData(UserLoginVO userLoginVO) {
         UserLoginDTO userLoginDTO = new UserLoginDTO();
-        UserDO userDO;
-        // 依次查询用户名、手机号、邮箱
-        log.info("查询是否为用户名，手机号或者邮箱登录");
-        userDO = Stream.of(
-                        userDAO.lambdaQuery().eq(UserDO::getName, userLoginVO.getUser()).one(),
-                        userDAO.lambdaQuery().eq(UserDO::getPhone, userLoginVO.getUser()).one(),
-                        userDAO.lambdaQuery().eq(UserDO::getEmail, userLoginVO.getUser()).one()
-                )
-                // 过滤掉 null 值
-                .filter(Objects::nonNull)
-                // 找到第一个非空结果
-                .findFirst()
-                // 如果全部为 null，返回 null
-                .orElse(null);
-        log.info("userDO: {}", userDO);
+        UserDO userDO = new UserDO();
+        //检查是否为邮箱登录
+        if (userLoginVO.getUser().matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$")) {
+            log.info("确认为邮箱登录");
+            userDO = userDAO.lambdaQuery().eq(UserDO::getEmail, userLoginVO.getUser()).one();
+        }
+        if (userLoginVO.getUser().matches("^1[3456789]\\d{9}$")) {
+            log.info("确认为手机号登录");
+            userDO = userDAO.lambdaQuery().eq(UserDO::getPhone, userLoginVO.getUser()).one();
+        }
+        if (userLoginVO.getUser().matches("^[0-9A-Za-z_-]{4,32}$")) {
+            log.info("确认为用户名登录");
+            userDO = userDAO.lambdaQuery().eq(UserDO::getName, userLoginVO.getUser()).one();
+        }
         if (userDO != null) {
             //检查密码是否正确
             log.info("确认为邮箱，手机号，用户名登录，正则检查密码是否正确");
