@@ -227,7 +227,6 @@ public class UserLogic implements UserService {
             } else {
                 throw new BusinessException("系统错误", ErrorCode.OPERATION_ERROR);
             }
-
         } else {
             log.info("确认为老师初始化");
             TeacherDO teacherDO = teacherDAO.getTeacherById(userInitializationVO.getUser());
