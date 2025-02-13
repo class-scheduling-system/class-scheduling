@@ -71,6 +71,8 @@ public class StringConstant {
         public static final String EXPIRE_TIME = "expireTime";
         public static final String REFRESH_EXPIRE_TIME = "refreshExpireTime";
         public static final String CREATED_AT = "createdAt";
+        public static final String UPDATED_AT = "updatedAt";
+        public static final String USER_AGENT = "User-Agent";
 
         private Common() {
             log.error("Common 不能被实例化");

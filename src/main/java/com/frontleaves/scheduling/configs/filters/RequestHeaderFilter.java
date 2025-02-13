@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.configs.filters;
 
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.google.gson.Gson;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
@@ -36,6 +37,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -52,6 +54,7 @@ import java.io.IOException;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 public class RequestHeaderFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(
@@ -71,14 +74,17 @@ public class RequestHeaderFilter extends OncePerRequestFilter {
             if (!isMatch) {
                 // 检查是否是空 Referer
                 if (request.getHeader("Referer") == null || request.getHeader("Referer").isEmpty()) {
+                    log.warn("[FILT] 缺少 Referer 头，操作 「IP:{} | Agent:{}」", request.getRemoteAddr(), request.getHeader(StringConstant.Common.USER_AGENT));
                     throw new RequestHeaderNotMatchException("请求缺少 Referer 头");
                 }
                 // 检查请求头是否包含正确的 Content-Type
                 if (request.getContentType() == null) {
+                    log.warn("[FILT] Content-Type 为空，操作 「IP:{} | Agent:{}」", request.getRemoteAddr(), request.getHeader(StringConstant.Common.USER_AGENT));
                     throw new RequestHeaderNotMatchException("Content-Type 不能为空");
                 }
                 // 检查请求头是否包含正确的 User-Agent
-                if (request.getHeader("User-Agent") == null || request.getHeader("User-Agent").isEmpty()) {
+                if (request.getHeader(StringConstant.Common.USER_AGENT) == null || request.getHeader(StringConstant.Common.USER_AGENT).isEmpty()) {
+                    log.warn("[FILT] 缺少 User-Agent，操作 「IP:{}」", request.getRemoteAddr());
                     throw new RequestHeaderNotMatchException("请求头中缺少 User-Agent");
                 }
             }
