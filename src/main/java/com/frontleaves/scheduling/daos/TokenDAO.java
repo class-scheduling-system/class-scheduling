@@ -118,12 +118,12 @@ public class TokenDAO {
             return false;
         }
         List<String> getToken = jedis.hmget(StringConstant.Redis.TOKEN + token,
-                StringConstant.Common.USER_UUID,
-                StringConstant.Common.TOKEN,
-                StringConstant.Common.REFRESH_TOKEN,
-                StringConstant.Common.CREATED_AT,
-                StringConstant.Common.EXPIRE_TIME,
-                StringConstant.Common.REFRESH_EXPIRE_TIME
+                StringConstant.Common.Hump.USER_UUID,
+                StringConstant.Common.Hump.TOKEN,
+                StringConstant.Common.Hump.REFRESH_TOKEN,
+                StringConstant.Common.Hump.CREATED_AT,
+                StringConstant.Common.Hump.EXPIRE_TIME,
+                StringConstant.Common.Hump.REFRESH_EXPIRE_TIME
         );
         // 检查 Token 是否存在
         if (getToken == null || getToken.isEmpty()) {
@@ -160,12 +160,12 @@ public class TokenDAO {
      */
     public TokenDTO refreshToken(String token, UserDO userDO) {
         List<String> getToken = jedis.hmget(StringConstant.Redis.TOKEN + token,
-                StringConstant.Common.USER_UUID,
-                StringConstant.Common.TOKEN,
-                StringConstant.Common.REFRESH_TOKEN,
-                StringConstant.Common.CREATED_AT,
-                StringConstant.Common.EXPIRE_TIME,
-                StringConstant.Common.REFRESH_EXPIRE_TIME
+                StringConstant.Common.Hump.USER_UUID,
+                StringConstant.Common.Hump.TOKEN,
+                StringConstant.Common.Hump.REFRESH_TOKEN,
+                StringConstant.Common.Hump.CREATED_AT,
+                StringConstant.Common.Hump.EXPIRE_TIME,
+                StringConstant.Common.Hump.REFRESH_EXPIRE_TIME
         );
         if (getToken == null || getToken.isEmpty()) {
             throw new BusinessException("令牌不存在", ErrorCode.SERVER_INTERNAL_ERROR);
@@ -181,8 +181,8 @@ public class TokenDAO {
         long newExpireTime = System.currentTimeMillis() + 3600000;
         long newRefreshExpireTime = System.currentTimeMillis() + 86400000;
         // 更新 Redis 中 Token 的过期时间和刷新令牌的过期时间
-        jedis.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.EXPIRE_TIME, String.valueOf(newExpireTime));
-        jedis.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.REFRESH_EXPIRE_TIME, String.valueOf(newRefreshExpireTime));
+        jedis.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.Hump.EXPIRE_TIME, String.valueOf(newExpireTime));
+        jedis.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.Hump.REFRESH_EXPIRE_TIME, String.valueOf(newRefreshExpireTime));
         jedis.expire(StringConstant.Redis.TOKEN + token, 86400);
         return new TokenDTO()
                 .setUserUuid(userDO.getUserUuid())
@@ -208,7 +208,7 @@ public class TokenDAO {
      */
     public boolean deleteToken(String token, UserDO userDO) throws BusinessException {
         List<String> getToken = jedis.hmget(StringConstant.Redis.TOKEN + token,
-                StringConstant.Common.USER_UUID
+                StringConstant.Common.Hump.USER_UUID
         );
         if (getToken == null || getToken.isEmpty()) {
             return false;

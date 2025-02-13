@@ -31,10 +31,10 @@ package com.frontleaves.scheduling.constants;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 系统常量
+ * 提供字符串常量的类，包括系统错误信息、Redis相关常量及通用常量等。
  * <p>
- * 该类用于定义系统常量;
- * 定义多处位置使用的字符串常量。
+ * 本类中的常量旨在作为应用内共享的不可变值，避免硬编码字符串，提高代码可维护性。
+ * 所有常量均为静态最终成员，且构造方法私有化，防止外部实例化。
  *
  * @author xiao_lfeng
  * @version v1.0.0
@@ -42,6 +42,8 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class StringConstant {
+
+    public static final String TOKEN_ATTRIBUTION_ERROR = "令牌归属错误";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -65,19 +67,28 @@ public class StringConstant {
      * 常量
      */
     public static class Common {
-        public static final String USER_UUID = "userUuid";
-        public static final String TOKEN = "token";
-        public static final String REFRESH_TOKEN = "refreshToken";
-        public static final String EXPIRE_TIME = "expireTime";
-        public static final String REFRESH_EXPIRE_TIME = "refreshExpireTime";
-        public static final String CREATED_AT = "createdAt";
-        public static final String UPDATED_AT = "updatedAt";
+
         public static final String USER_AGENT = "User-Agent";
 
         private Common() {
             log.error("Common 不能被实例化");
         }
-    }
 
-    public static final String TOKEN_ATTRIBUTION_ERROR = "令牌归属错误";
+        /**
+         * 驼峰命名常量
+         */
+        public static class Hump {
+            public static final String USER_UUID = "userUuid";
+            public static final String TOKEN = "token";
+            public static final String REFRESH_TOKEN = "refreshToken";
+            public static final String EXPIRE_TIME = "expireTime";
+            public static final String REFRESH_EXPIRE_TIME = "refreshExpireTime";
+            public static final String CREATED_AT = "createdAt";
+            public static final String UPDATED_AT = "updatedAt";
+
+            private Hump() {
+                log.error("Hump 不能被实例化");
+            }
+        }
+    }
 }
