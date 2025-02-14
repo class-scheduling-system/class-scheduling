@@ -33,4 +33,14 @@ public interface UserService {
      */
     void checkPassword(
             UserInitializationVO userInitializationVO);
+
+    /**
+     * 检查学生或教师
+     * @param userLoginVO 用户登录数据
+     * @return 用户登录数据传输对象
+     */
+    UserLoginDTO checkStudentOrTeacher(
+            UserLoginVO userLoginVO,
+            HttpServletRequest request
+    );
 }

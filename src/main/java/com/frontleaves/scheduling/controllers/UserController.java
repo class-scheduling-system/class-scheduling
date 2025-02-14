@@ -89,6 +89,10 @@ public class UserController {
     ) {
         //检查用户登录信息（控制层已经检查是否为空）
         UserLoginDTO userLoginDTO = userService.checkLoginData(userLoginVO,request);
+        if (userLoginDTO == null) {
+            //确认为学号或者工号登录
+            userLoginDTO = userService.checkStudentOrTeacher(userLoginVO,request);
+        }
         if (Boolean.TRUE.equals(userLoginDTO.getInitialization())) {
             //用户为初始化状态，引导用户进入注册页面
             return ResultUtil.success("请先进行注册", userLoginDTO);

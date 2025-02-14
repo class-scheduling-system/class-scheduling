@@ -46,4 +46,12 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService<UserDO> {
+    /**
+     * 通过用户名获取用户信息
+     * @param name 用户名
+     * @return 用户信息
+     */
+    public UserDO getUserByName(String name) {
+        return this.lambdaQuery().eq(UserDO::getName, name).one();
+    }
 }
