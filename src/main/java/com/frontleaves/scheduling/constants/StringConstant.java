@@ -91,4 +91,17 @@ public class StringConstant {
             }
         }
     }
+
+    /**
+     * 正则表达式常量类。
+     */
+    public static class Regular {
+        public static final String EMAIL_REGULAR_EXPRESSION ="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
+        public static final String PHONE_REGULAR_EXPRESSION ="^1[3456789]\\d{9}$";
+        public static final String USER_NAME_REGULAR_EXPRESSION ="^[0-9A-Za-z_-]{4,32}$";
+
+        private Regular() {
+            log.error("Regular 不能被实例化");
+        }
+    }
 }
