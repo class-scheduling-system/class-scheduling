@@ -106,9 +106,10 @@ public class UserLogic implements UserService {
 
     /**
      * 学号或工号登录
-     * @param userDoS 用户实体
+     *
+     * @param userDoS     用户实体
      * @param userLoginVO 用户登录视图对象
-     * @param request 请求
+     * @param request     请求
      * @return 用户登录数据传输对象
      */
     private UserLoginDTO idLogin(UserDO userDoS, UserLoginVO userLoginVO, HttpServletRequest request) {
@@ -121,6 +122,13 @@ public class UserLogic implements UserService {
         }
         throw new BusinessException("意料之外的错误", ErrorCode.OPERATION_ERROR);
     }
+
+    /**
+     * 注册用户信息交换
+     * @param userInitializationVO 用户初始化视图对象
+     * @param type 用户类型
+     * @return 用户实体
+     */
     private UserDO registerUserDataExchange(UserInitializationVO userInitializationVO, String type) {
         UserDO userDO = new UserDO();
         //传递了用户名，密码，邮箱，手机号
@@ -133,6 +141,7 @@ public class UserLogic implements UserService {
                 .setPermission(roleDO.getPermission());
         return userDO;
     }
+
     /**
      * 用户注册信息检查
      *
@@ -150,6 +159,7 @@ public class UserLogic implements UserService {
             throw new BusinessException("手机号已存在", ErrorCode.BODY_ERROR);
         }
     }
+
     @Override
     public UserLoginDTO checkLoginData(@NotNull UserLoginVO userLoginVO, HttpServletRequest request) {
         UserDO userDO = null;
@@ -158,11 +168,13 @@ public class UserLogic implements UserService {
             log.debug(LogConstant.SERVICE + "确认为邮箱登录");
             userDO = userDAO.getUserByMail(userLoginVO.getUser());
         }
-        if (userLoginVO.getUser().matches(StringConstant.Regular.PHONE_REGULAR_EXPRESSION)) {
+        if (userLoginVO.getUser().matches(StringConstant.Regular.PHONE_REGULAR_EXPRESSION)
+                && userDO == null) {
             log.debug(LogConstant.SERVICE + "确认为手机号登录");
             userDO = userDAO.getUserByTel(userLoginVO.getUser());
         }
-        if (userLoginVO.getUser().matches(StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION)) {
+        if (userLoginVO.getUser().matches(StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION
+        ) && userDO == null) {
             log.debug(LogConstant.SERVICE + "确认为用户名登录");
             userDO = userDAO.getUserByName(userLoginVO.getUser());
         }
@@ -173,8 +185,7 @@ public class UserLogic implements UserService {
                         UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
             }
             return this.loginReturn(userDO);
-        }
-        else{
+        } else {
             log.debug("确认为学号或工号登录");
             return null;
         }
@@ -194,31 +205,28 @@ public class UserLogic implements UserService {
             }
             UserDO userDO = registerUserDataExchange(userInitializationVO, "学生");
             //检查用户是否创建成功
-            if (userDAO.save(userDO)) {
-                //查询用户UUID
-                log.info("确认学号用户是否创建成功");
-                UserDO userNewDO = userDAO.getUserByName(userDO.getName());
-                if (userNewDO == null) {
-                    throw new BusinessException("查询对应用户失败", ErrorCode.OPERATION_ERROR);
-                }
-                log.info("更新学生表");
-                studentDO.setUserUuid(userNewDO.getUserUuid());
-                studentDAO.updateById(studentDO);
+            userDAO.save(userDO);
+            //查询用户UUID
+            log.info("确认学号用户是否创建成功");
+            UserDO userNewDO = userDAO.getUserByName(userDO.getName());
+            if (userNewDO == null) {
+                throw new BusinessException("查询对应用户失败", ErrorCode.OPERATION_ERROR);
             }
-            throw new BusinessException("创建对应用户失败", ErrorCode.OPERATION_ERROR);
-
-        }
-        log.info("确认为老师初始化");
-        TeacherDO teacherDO = teacherDAO.getTeacherById(userInitializationVO.getUser());
-        if (teacherDO == null) {
-            throw new BusinessException("教师信息不存在", ErrorCode.BODY_ERROR);
-        }
-        if (teacherDO.getUserUuid() != null) {
-            throw new BusinessException("用户已注册", ErrorCode.BODY_ERROR);
-        }
-        UserDO userDO = registerUserDataExchange(userInitializationVO, "老师");
-        //检测用户是否创建成功
-        if (userDAO.save(userDO)) {
+            log.info("更新学生表");
+            studentDO.setUserUuid(userNewDO.getUserUuid());
+            studentDAO.updateById(studentDO);
+        } else {
+            log.info("确认为老师初始化");
+            TeacherDO teacherDO = teacherDAO.getTeacherById(userInitializationVO.getUser());
+            if (teacherDO == null) {
+                throw new BusinessException("教师信息不存在", ErrorCode.BODY_ERROR);
+            }
+            if (teacherDO.getUserUuid() != null) {
+                throw new BusinessException("用户已注册", ErrorCode.BODY_ERROR);
+            }
+            UserDO userDO = registerUserDataExchange(userInitializationVO, "老师");
+            //检测用户是否创建成功
+            userDAO.save(userDO);
             //查询用户UUID
             log.debug("确认用户是否创建成功");
             UserDO userNewDO = userDAO.getUserByName(userDO.getName());
@@ -229,7 +237,6 @@ public class UserLogic implements UserService {
             teacherDO.setUserUuid(userNewDO.getUserUuid());
             teacherDAO.updateById(teacherDO);
         }
-        throw new BusinessException("创建对应用户失败", ErrorCode.OPERATION_ERROR);
     }
 
     @Override
