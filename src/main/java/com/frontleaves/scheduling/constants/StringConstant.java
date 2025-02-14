@@ -71,6 +71,9 @@ public class StringConstant {
         public static final String EXPIRE_TIME = "expireTime";
         public static final String REFRESH_EXPIRE_TIME = "refreshExpireTime";
         public static final String CREATED_AT = "createdAt";
+        public static final String EMAIL_REGRLAR_EXPRESSION ="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
+        public static final String PHONE_REGRLAR_EXPRESSION ="^1[3456789]\\d{9}$";
+        public static final String USER_NAME_REGRLAR_EXPRESSION ="^[0-9A-Za-z_-]{4,32}$";
 
         private Common() {
             log.error("Common 不能被实例化");

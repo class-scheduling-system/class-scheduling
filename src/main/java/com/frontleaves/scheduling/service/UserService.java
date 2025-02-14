@@ -3,6 +3,7 @@ package com.frontleaves.scheduling.service;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 用户服务接口
@@ -15,7 +16,9 @@ public interface UserService {
      * @return 用户登录数据传输对象
      */
     UserLoginDTO checkLoginData(
-            UserLoginVO userLoginVO);
+            UserLoginVO userLoginVO,
+            HttpServletRequest request
+    );
 
     /**
      * 用户注册

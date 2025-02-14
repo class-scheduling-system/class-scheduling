@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.logic;
 
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.RoleDO;
@@ -11,7 +12,9 @@ import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.service.UserService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.exception.library.UserAuthenticationException;
 import com.xlf.utility.util.PasswordUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -90,100 +93,96 @@ public class UserLogic implements UserService {
     }
 
     @Override
-    public UserLoginDTO checkLoginData(UserLoginVO userLoginVO) {
+    public UserLoginDTO checkLoginData(UserLoginVO userLoginVO, HttpServletRequest request) {
         UserLoginDTO userLoginDTO = new UserLoginDTO();
         UserDO userDO = new UserDO();
         //检查是否为邮箱登录
-        if (userLoginVO.getUser().matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$")) {
+        if (userLoginVO.getUser().matches(StringConstant.Common.EMAIL_REGRLAR_EXPRESSION)) {
             log.info("确认为邮箱登录");
             userDO = userDAO.lambdaQuery().eq(UserDO::getEmail, userLoginVO.getUser()).one();
         }
-        if (userLoginVO.getUser().matches("^1[3456789]\\d{9}$")) {
+        if (userLoginVO.getUser().matches(StringConstant.Common.PHONE_REGRLAR_EXPRESSION)) {
             log.info("确认为手机号登录");
             userDO = userDAO.lambdaQuery().eq(UserDO::getPhone, userLoginVO.getUser()).one();
         }
-        if (userLoginVO.getUser().matches("^[0-9A-Za-z_-]{4,32}$")) {
+        if (userLoginVO.getUser().matches(StringConstant.Common.USER_NAME_REGRLAR_EXPRESSION)) {
             log.info("确认为用户名登录");
             userDO = userDAO.lambdaQuery().eq(UserDO::getName, userLoginVO.getUser()).one();
         }
         if (userDO != null) {
             //检查密码是否正确
-            log.info("确认为邮箱，手机号，用户名登录，正则检查密码是否正确");
-            if (PasswordUtil.verify(userLoginVO.getPassword(), userDO.getPassword())) {
-                userLoginDTO = loginReturn(userDO);
+            if (!PasswordUtil.verify(userLoginVO.getPassword(), userDO.getPassword())) {
+                throw new UserAuthenticationException(
+                        UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
+            }
+            userLoginDTO = loginReturn(userDO);
+            return userLoginDTO;
+        }
+        log.debug("确认为是否为学号登录，检查是否初始化");
+        StudentDO studentDO = studentDAO.getStudentById(userLoginVO.getUser());
+        if (studentDO != null) {
+            //校验是否初始化
+            log.debug("确认为学号登录，检查是否初始化");
+            if (studentDO.getUserUuid() != null) {
+                log.debug("学号登录已经初始化过");
+                UserDO userDoS = userDAO.getById(studentDO.getUserUuid());
+                if (userDoS != null) {
+                    if (PasswordUtil.verify(userLoginVO.getPassword(), userDoS.getPassword())) {
+                        return loginReturn(userDoS);
+                    }
+                    throw new UserAuthenticationException(
+                            UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
+                }
+                throw new BusinessException("意料之外的错误", ErrorCode.OPERATION_ERROR);
+            }
+            log.info("检查密码是否符合初始化标准");
+            if (userLoginVO.getPassword().equals("stu" + userLoginVO.getUser())) {
+                //进行初始化操作
+                log.info("确认为学号登录的初始化");
+                userLoginDTO.setInitialization(true);
+                StudentDTO studentDTO = new StudentDTO();
+                BeanUtils.copyProperties(studentDO, studentDTO);
+                userLoginDTO.setTeacher(null);
+                userLoginDTO.setStudent(studentDTO);
                 return userLoginDTO;
             } else {
-                throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
+                throw new UserAuthenticationException(
+                        UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
             }
-        } else {
-            log.info("确认为是否为学号登录，检查是否初始化");
-            StudentDO studentDO = studentDAO.getStudentById(userLoginVO.getUser());
-            log.info("studentDO: {}", studentDO);
-            if (studentDO != null) {
-                //校验是否初始化
-                log.info("确认为学号登录，检查是否初始化");
-                if (studentDO.getUserUuid() != null) {
-                    log.info("学号登录已经初始化过");
-                    UserDO userDoS = userDAO.getById(studentDO.getUserUuid());
-                    if (userDoS != null) {
-                        if (PasswordUtil.verify(userLoginVO.getPassword(), userDoS.getPassword())) {
-                            //正常登录
-                            return loginReturn(userDoS);
-                        } else {
-                            throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
-                        }
-                    } else {
-                        throw new BusinessException("系统错误", ErrorCode.OPERATION_ERROR);
-                    }
-                } else {
-                    log.info("检查密码是否符合初始化标准");
-                    if (userLoginVO.getPassword().equals("stu" + userLoginVO.getUser())) {
-                        //进行初始化操作
-                        log.info("确认为学号登录的初始化");
-                        userLoginDTO.setInitialization(true);
-                        StudentDTO studentDTO = new StudentDTO();
-                        BeanUtils.copyProperties(studentDO, studentDTO);
-                        userLoginDTO.setTeacher(null);
-                        userLoginDTO.setStudent(studentDTO);
-                        return userLoginDTO;
-                    } else {
-                        throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
-                    }
-                }
-            }
-            TeacherDO teacherDO = teacherDAO.getTeacherById(userLoginVO.getUser());
-            if (teacherDO != null) {
-                log.info("确认为工号登录，检查是否初始化");
-                if (teacherDO.getUserUuid() != null) {
-                    log.info("工号登录已经初始化过");
-                    UserDO userDoS = userDAO.getById(teacherDO.getUserUuid());
-                    if (userDoS != null) {
-                        if (PasswordUtil.verify(userLoginVO.getPassword(), userDoS.getPassword())) {
-                            //正常登录
-                            return loginReturn(userDoS);
-                        } else {
-                            throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
-                        }
-                    } else {
-                        throw new BusinessException("系统错误", ErrorCode.OPERATION_ERROR);
-                    }
-                } else {
-                    log.info("检查密码是否符合初始化要求");
-                    if (userLoginVO.getPassword().equals("te" + userLoginVO.getUser())) {
-                        log.info("确认为工号登录的初始化");
-                        userLoginDTO.setInitialization(true);
-                        TeacherDTO teacherDTO = new TeacherDTO();
-                        BeanUtils.copyProperties(teacherDO, teacherDTO);
-                        userLoginDTO.setStudent(null);
-                        userLoginDTO.setTeacher(teacherDTO);
-                        return userLoginDTO;
-                    } else {
-                        throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
-                    }
-                }
-            }
-            throw new BusinessException("用户名或密码错误", ErrorCode.BODY_ERROR);
+
         }
+        TeacherDO teacherDO = teacherDAO.getTeacherById(userLoginVO.getUser());
+        if (teacherDO != null) {
+            log.debug("确认为工号登录，检查是否初始化");
+            if (teacherDO.getUserUuid() != null) {
+                log.debug("工号登录已经初始化过");
+                UserDO userDoS = userDAO.getById(teacherDO.getUserUuid());
+                if (userDoS != null) {
+                    if (PasswordUtil.verify(userLoginVO.getPassword(), userDoS.getPassword())) {
+                        //正常登录
+                        return loginReturn(userDoS);
+                    }
+                    throw new UserAuthenticationException(
+                            UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
+                }
+                throw new BusinessException("意料之外的错误", ErrorCode.OPERATION_ERROR);
+            }
+            log.debug("检查密码是否符合初始化要求");
+            if (userLoginVO.getPassword().equals("te" + userLoginVO.getUser())) {
+                log.debug("确认为工号登录的初始化");
+                userLoginDTO.setInitialization(true);
+                TeacherDTO teacherDTO = new TeacherDTO();
+                BeanUtils.copyProperties(teacherDO, teacherDTO);
+                userLoginDTO.setStudent(null);
+                userLoginDTO.setTeacher(teacherDTO);
+                return userLoginDTO;
+            }
+            throw new UserAuthenticationException(
+                    UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
+        }
+        throw new UserAuthenticationException(
+                UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
+
     }
 
     @Override
