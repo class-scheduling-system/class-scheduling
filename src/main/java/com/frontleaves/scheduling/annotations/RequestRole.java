@@ -28,30 +28,19 @@
 
 package com.frontleaves.scheduling.annotations;
 
-import com.frontleaves.scheduling.configs.aspect.DataWranglingAspect;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 数据处理注解。
+ * 需要角色注解。
  *
  * <p>
- * 此注解用于标记需要在执行前进行数据访问参数记录的方法。当一个方法被此注解标记时，
- * 数据处理切面（如 {@link DataWranglingAspect}）将在方法调用之前介入，记录下方法的参数信息，
- * 有助于监控和调试数据处理流程中的参数使用情况。
+ * 此注解用于标识方法执行前需要验证调用者是否具备指定的角色与权限。它通常与安全框架结合使用，
+ * 例如在Spring Security中，以确保方法访问前用户已通过角色和权限的校验。这有助于实现细粒度的权限控制，
+ * 确保只有拥有相应权限的角色能够访问受保护的方法。
  * </p>
- * 使用示例：
- * <pre>
- * {@code
- * @DataWrangling
- * public void processData(Object data) {
- *     // 方法实现细节
- * }
- * }
- * </pre>
  *
  * @since v1.0.0
  * @version v1.0.0
@@ -59,5 +48,30 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface DataWrangling {
+public @interface RequestRole {
+
+    /**
+     * 获取角色标识符。
+     * <p>
+     *     获取信息为角色标识符，位于数据表 `cs_role` 中的 `role_name` 字段。
+     * </p>
+     *
+     * @return 角色所需的标识符，用于匹配系统安全框架中的角色定义，确保调用者具备相应的权限和角色。
+     */
+    String value();
+
+    /**
+     * 获取方法执行所需的权限标识。
+     * <p>
+     *   此属性用于定义方法调用时额外需要的权限字符串。若为空，默认不检查额外权限。
+     *   这可以与角色注解结合使用，提供更细粒度的访问控制机制，确保方法不仅受限于角色，
+     *   同时也受限于特定的权限标识符。
+     * </p>
+     * <p>
+     *     例如：{@code "user:unit:type:edit"} 表示需要用户读取权限。
+     * </p>
+     *
+     * @return 返回一个字符串，表示执行该方法需要的权限标识符，为空则默认不做额外权限检查。
+     */
+    String permission() default "";
 }

@@ -28,30 +28,24 @@
 
 package com.frontleaves.scheduling.annotations;
 
-import com.frontleaves.scheduling.configs.aspect.DataWranglingAspect;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 数据处理注解。
+ * 需要登录注解。
  *
  * <p>
- * 此注解用于标记需要在执行前进行数据访问参数记录的方法。当一个方法被此注解标记时，
- * 数据处理切面（如 {@link DataWranglingAspect}）将在方法调用之前介入，记录下方法的参数信息，
- * 有助于监控和调试数据处理流程中的参数使用情况。
+ * 该注解用于标记只有在用户登录后才能执行的方法。当一个方法被此注解装饰时，
+ * 意味着在调用该方法前需要验证用户是否已经完成了登录操作。这通常用于控制对受保护资源的访问权限，
+ * 确保安全性和数据的私密性。
  * </p>
- * 使用示例：
- * <pre>
- * {@code
- * @DataWrangling
- * public void processData(Object data) {
- *     // 方法实现细节
- * }
- * }
- * </pre>
+ *
+ * <p>
+ * 应用此注解的方法可以通过登录状态检查逻辑或AOP（面向切面编程）来实现访问控制，
+ * 在实际应用中结合具体的安全框架使用，如Spring Security等，以实现自动的登录状态验证。
+ * </p>
  *
  * @since v1.0.0
  * @version v1.0.0
@@ -59,5 +53,14 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface DataWrangling {
+public @interface RequestLogin {
+    /**
+     * 获取权限标识符。
+     * <p>
+     *     例如：{@code "user:unit:type:edit"} 表示需要用户读取权限。
+     * </p>
+     *
+     * @return 权限所需的标识符，用于匹配系统权限管理系统中的权限定义。
+     */
+    String value();
 }

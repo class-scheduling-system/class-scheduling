@@ -39,16 +39,18 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Parameter;
 
 /**
- * 数据处理切面
- * <p>
- * 该类用于定义数据处理切面;
- * 该类使用 {@link Aspect} 注解标记;
- * 该类使用 {@link Component} 注解标记;
- * 该类未实现任何方法;
+ * 数据处理切面类，用于在带有@DataWrangling注解的方法执行前记录数据访问参数。
+ * 该切面通过AOP机制实现在方法调用前自动记录日志，帮助监控和调试数据处理过程中的参数情况。
  *
- * @author xiao_lfeng
- * @version v1.0.0
+ * <p>
+ * 功能包括：
+ * - 在标注了{@link com.frontleaves.scheduling.annotations.DataWrangling}的方法被调用前，
+ *   通过日志系统记录下即将被处理的数据参数信息。
+ * </p>
+ *
  * @since v1.0.0
+ * @version v1.0.0
+ * @author xiao_lfeng
  */
 @Slf4j
 @Aspect
@@ -56,11 +58,11 @@ import java.lang.reflect.Parameter;
 public class DataWranglingAspect {
 
     /**
-     * 数据读取前访问
-     * <p>
-     * 该方法用于在数据读取前访问.
+     * 在带有@DataWrangling注解的方法执行前，记录方法访问所需的数据参数。
+     * 此切面确保在数据处理操作开始前，相关参数会被记录到日志中，便于跟踪和调试。
      *
-     * @param joinPoint 连接点
+     * @param joinPoint 连接点对象，提供对当前执行方法的信息访问。
+     *                  通过此对象可以获取方法签名、参数等详细信息。
      */
     @Before("@annotation(com.frontleaves.scheduling.annotations.DataWrangling)")
     public void dataReadsBeforeAccess(@NotNull JoinPoint joinPoint) {

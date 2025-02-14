@@ -55,6 +55,7 @@ public class StringConstant {
     public static class Redis {
         public static final String SYSTEM = "system:";
         public static final String TOKEN = "token:";
+        public static final String PERMISSION = "permission:";
         public static final String ROLE_UUID = "role:uuid:";
         public static final String ROLE_NAME = "user:name:";
 

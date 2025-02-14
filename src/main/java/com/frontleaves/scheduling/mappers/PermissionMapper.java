@@ -26,38 +26,23 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.annotations;
+package com.frontleaves.scheduling.mappers;
 
-import com.frontleaves.scheduling.configs.aspect.DataWranglingAspect;
-
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.frontleaves.scheduling.models.entity.PermissionDO;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
- * 数据处理注解。
- *
+ * 权限表映射器接口
  * <p>
- * 此注解用于标记需要在执行前进行数据访问参数记录的方法。当一个方法被此注解标记时，
- * 数据处理切面（如 {@link DataWranglingAspect}）将在方法调用之前介入，记录下方法的参数信息，
- * 有助于监控和调试数据处理流程中的参数使用情况。
+ * 该接口继承自 BaseMapper，专为 {@link PermissionDO} 设计，
+ * 用于实现权限相关数据的 CRUD 操作。
  * </p>
- * 使用示例：
- * <pre>
- * {@code
- * @DataWrangling
- * public void processData(Object data) {
- *     // 方法实现细节
- * }
- * }
- * </pre>
  *
- * @since v1.0.0
  * @version v1.0.0
+ * @since v1.0.0
  * @author xiao_lfeng
  */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface DataWrangling {
+@Mapper
+public interface PermissionMapper extends BaseMapper<PermissionDO> {
 }

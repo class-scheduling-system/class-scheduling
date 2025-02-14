@@ -28,11 +28,19 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UserMapper;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.xlf.utility.util.ConvertUtil;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Transaction;
+
+import java.util.Map;
 
 /**
  * 用户数据访问对象
@@ -45,5 +53,119 @@ import org.springframework.stereotype.Repository;
  * @author xiao_lfeng
  */
 @Repository
+@RequiredArgsConstructor
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService<UserDO> {
+    private final Jedis jedis;
+
+    /**
+     * 根据用户UUID获取用户数据对象
+     * <p>
+     * 本方法首先尝试从Redis缓存中通过用户UUID查找用户信息。如果缓存中没有找到，
+     * 则查询数据库并将查询到的数据存入Redis，同时返回该用户数据对象。
+     * 如果缓存中存在用户信息，则直接转换为UserDO对象并返回。
+     * </p>
+     *
+     * @param userUuid 用户的UUID字符串，用于唯一标识用户
+     * @return 匹配用户UUID的UserDO对象，如果没有找到则返回null
+     */
+    public UserDO getUserByUuid(String userUuid) {
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.USER_UUID + userUuid);
+        if (map.isEmpty()) {
+            UserDO userDO = this.lambdaQuery().eq(UserDO::getUserUuid, userUuid).one();
+            if (userDO != null) {
+                Transaction transaction = jedis.multi();
+                transaction.hset(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), ConvertUtil.convertObjectToMapString(userDO));
+                transaction.expire(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), 86400);
+                transaction.exec();
+                return userDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, UserDO.class);
+        }
+        return null;
+    }
+
+    /**
+     * 根据用户名获取用户数据对象
+     * <p>
+     * 本方法首先尝试从Redis缓存中通过用户名查找用户信息。如果缓存中没有找到，
+     * 则查询数据库并将查询到的数据存入Redis，同时返回该用户数据对象。
+     * 如果缓存中存在用户信息，则直接转换为UserDO对象并返回。
+     * </p>
+     *
+     * @param name 用户名
+     * @return 匹配用户名的UserDO对象，如果没有找到则返回null
+     */
+    public UserDO getUserByName(String name) {
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.USER_NAME + name);
+        if (map.isEmpty()) {
+            UserDO userDO = this.lambdaQuery().eq(UserDO::getName, name).one();
+            if (userDO != null) {
+                Transaction transaction = jedis.multi();
+                transaction.hset(StringConstant.Redis.USER_NAME + userDO.getName(), ConvertUtil.convertObjectToMapString(userDO));
+                transaction.expire(StringConstant.Redis.USER_NAME + userDO.getName(), 86400);
+                transaction.exec();
+                return userDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, UserDO.class);
+        }
+        return null;
+    }
+
+    /**
+     * 根据用户邮箱获取用户数据对象
+     * <p>
+     * 本方法首先尝试从Redis缓存中通过用户邮箱查找用户信息。如果缓存中没有找到，
+     * 则查询数据库并将查询到的数据存入Redis，同时返回该用户数据对象。
+     * 如果缓存中存在用户信息，则直接转换为UserDO对象并返回。
+     * </p>
+     *
+     * @param mail 用户邮箱
+     * @return 匹配用户邮箱的UserDO对象，如果没有找到则返回null
+     */
+    public UserDO getUserByMail(String mail) {
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.USER_MAIL + mail);
+        if (map.isEmpty()) {
+            UserDO userDO = this.lambdaQuery().eq(UserDO::getEmail, mail).one();
+            if (userDO != null) {
+                Transaction transaction = jedis.multi();
+                transaction.hset(StringConstant.Redis.USER_MAIL + userDO.getEmail(), ConvertUtil.convertObjectToMapString(userDO));
+                transaction.expire(StringConstant.Redis.USER_MAIL + userDO.getEmail(), 86400);
+                transaction.exec();
+                return userDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, UserDO.class);
+        }
+        return null;
+    }
+
+    /**
+     * 根据用户电话号码获取用户数据对象
+     * <p>
+     * 本方法首先尝试从Redis缓存中通过用户电话号码查找用户信息。如果缓存中没有找到，
+     * 则查询数据库并将查询到的数据存入Redis，同时返回该用户数据对象。
+     * 如果缓存中存在用户信息，则直接转换为UserDO对象并返回。
+     * </p>
+     *
+     * @param tel 用户电话号码
+     * @return 匹配用户电话号码的UserDO对象，如果没有找到则返回null
+     */
+    public UserDO getUserByTel(String tel) {
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.USER_TEL + tel);
+        if (map.isEmpty()) {
+            UserDO userDO = this.lambdaQuery().eq(UserDO::getPhone, tel).one();
+            if (userDO != null) {
+                Transaction transaction = jedis.multi();
+                transaction.hset(StringConstant.Redis.USER_TEL + userDO.getPhone(), ConvertUtil.convertObjectToMapString(userDO));
+                transaction.expire(StringConstant.Redis.USER_TEL + userDO.getPhone(), 86400);
+                transaction.exec();
+                return userDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, UserDO.class);
+        }
+        return null;
+    }
 }
