@@ -54,7 +54,11 @@ public class StringConstant {
         public static final String SYSTEM = "system:";
         public static final String TOKEN = "token:";
         public static final String ROLE_UUID = "role:uuid:";
-        public static final String ROLE_NAME = "user:name:";
+        public static final String ROLE_NAME = "role:name:";
+        public static final String USER_UUID = "user:uuid:";
+        public static final String USER_NAME = "user:name:";
+        public static final String USER_MAIL = "user:mail:";
+        public static final String USER_TEL = "user:TEL:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
