@@ -31,10 +31,10 @@ package com.frontleaves.scheduling.constants;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 提供字符串常量的类，包括系统错误信息、Redis相关常量及通用常量等。
+ * 系统常量
  * <p>
- * 本类中的常量旨在作为应用内共享的不可变值，避免硬编码字符串，提高代码可维护性。
- * 所有常量均为静态最终成员，且构造方法私有化，防止外部实例化。
+ * 该类用于定义系统常量;
+ * 定义多处位置使用的字符串常量。
  *
  * @author xiao_lfeng
  * @version v1.0.0
@@ -42,8 +42,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class StringConstant {
-
-    public static final String TOKEN_ATTRIBUTION_ERROR = "令牌归属错误";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -85,6 +83,10 @@ public class StringConstant {
             public static final String REFRESH_EXPIRE_TIME = "refreshExpireTime";
             public static final String CREATED_AT = "createdAt";
             public static final String UPDATED_AT = "updatedAt";
+            public static final String EMAIL_REGULAR_EXPRESSION = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
+            public static final String PHONE_REGULAR_EXPRESSION = "^(13\\d|14[01456879]|15[0-35-9]|16[2567]|17[0-8]|18\\d|19[0-35-9])\\d{8}$";
+            public static final String USER_NAME_REGULAR_EXPRESSION = "^(?=.*[0-9])(?=.*[A-Za-z])[0-9A-Za-z_-]{4,32}$";
+            public static final String PASSWORD_REGULAR_EXPRESSION = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$";
 
             private Hump() {
                 log.error("Hump 不能被实例化");
@@ -92,16 +94,6 @@ public class StringConstant {
         }
     }
 
-    /**
-     * 正则表达式常量类。
-     */
-    public static class Regular {
-        public static final String EMAIL_REGULAR_EXPRESSION ="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
-        public static final String PHONE_REGULAR_EXPRESSION ="^1[3456789]\\d{9}$";
-        public static final String USER_NAME_REGULAR_EXPRESSION ="^[0-9A-Za-z_-]{4,32}$";
 
-        private Regular() {
-            log.error("Regular 不能被实例化");
-        }
-    }
 }
+
