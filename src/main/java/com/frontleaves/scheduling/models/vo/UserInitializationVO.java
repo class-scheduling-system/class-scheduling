@@ -59,16 +59,16 @@ public class UserInitializationVO {
     private String user;
     @NotBlank(message = "密码不能为空")
     private String password;
-    @Pattern(regexp = StringConstant.Common.Hump.USER_NAME_REGULAR_EXPRESSION,
+    @Pattern(regexp = StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION,
             message = "用户名格式不正确，应为4-32位的字母、数字、下划线或短横线")
     private String name;
-    @Pattern(regexp = StringConstant.Common.Hump.PASSWORD_REGULAR_EXPRESSION,
+    @Pattern(regexp = StringConstant.Regular.PASSWORD_REGULAR_EXPRESSION,
             message = "强密码(必须包含大小写字母和数字的组合，可以使用特殊字符，至少6位）")
     @NotBlank(message = "新密码不能为空")
     private String newPassword;
     @Email(message = "邮箱格式不正确")
     private String email;
-    @Pattern(regexp = StringConstant.Common.Hump.PHONE_REGULAR_EXPRESSION,
+    @Pattern(regexp = StringConstant.Regular.PHONE_REGULAR_EXPRESSION,
             message = "手机号格式不正确")
     private String phone;
 
