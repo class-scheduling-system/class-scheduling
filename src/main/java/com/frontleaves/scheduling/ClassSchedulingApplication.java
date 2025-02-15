@@ -31,6 +31,7 @@ package com.frontleaves.scheduling;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -55,6 +56,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         com.xlf.utility.config.app.MybatisPlusConfiguration.class
 }, value = "com.frontleaves.scheduling")
 @EnableTransactionManagement
+@EnableCaching
 public class ClassSchedulingApplication {
 
     public static void main(String[] args) {

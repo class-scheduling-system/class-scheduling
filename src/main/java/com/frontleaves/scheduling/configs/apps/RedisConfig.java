@@ -30,6 +30,7 @@ package com.frontleaves.scheduling.configs.apps;
 
 import cn.hutool.db.nosql.redis.RedisDS;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import redis.clients.jedis.Jedis;
@@ -46,6 +47,7 @@ import redis.clients.jedis.Jedis;
  */
 @Slf4j
 @Configuration
+@EnableCaching
 public class RedisConfig {
 
     @Bean

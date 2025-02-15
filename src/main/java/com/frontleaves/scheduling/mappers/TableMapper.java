@@ -29,8 +29,11 @@
 package com.frontleaves.scheduling.mappers;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.frontleaves.scheduling.models.entity.SiteDO;
 import com.frontleaves.scheduling.models.entity.TableDO;
 import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
 
 /**
  * 表映射器
@@ -43,4 +46,5 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface TableMapper extends BaseMapper<TableDO> {
+    List<SiteDO> getSiteInfo();
 }
