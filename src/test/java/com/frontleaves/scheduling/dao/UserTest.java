@@ -28,30 +28,43 @@
 
 package com.frontleaves.scheduling.dao;
 
-import com.frontleaves.scheduling.daos.TokenDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.TokenDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @Slf4j
 @SpringBootTest
-class TokenTest {
+class UserTest {
     @Resource
     private UserDAO userDAO;
-    @Resource
-    private TokenDAO tokenDAO;
 
     @Test
-    void testVerifyToken() {
-        UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, "test").one();
-        TokenDTO getToken = tokenDAO.createToken(userDO);
-        log.debug("testVerifyToken - getToken: {}", getToken);
-        // 验证 Token
-        Assertions.assertTrue(tokenDAO.verifyToken(getToken.getToken(), userDO));
+    void testGetUserByName() {
+        log.debug("测试获取用户信息(USERNAME)");
+        UserDO test = userDAO.getUserByName("test");
+        log.debug("testGetUserByName - SQL: {}", test);
+        UserDO test1 = userDAO.getUserByName("test");
+        log.debug("testGetUserByName - Redis: {}", test1);
+    }
+
+    @Test
+    void testGetUserByTel() {
+        log.debug("测试获取用户信息(TEL)");
+        UserDO test = userDAO.getUserByTel("13388888880");
+        log.debug("testGetUserByTel - SQL: {}", test);
+        UserDO test1 = userDAO.getUserByTel("13388888880");
+        log.debug("testGetUserByTel - Redis: {}", test1);
+    }
+
+    @Test
+    void testGetUserByEmail() {
+        log.debug("测试获取用户信息(EMAIL)");
+        UserDO test = userDAO.getUserByMail("test@x-lf.cn");
+        log.debug("testGetUserByEmail - SQL: {}", test);
+        UserDO test1 = userDAO.getUserByMail("test@x-lf.cn");
+        log.debug("testGetUserByEmail - Redis: {}", test1);
     }
 }

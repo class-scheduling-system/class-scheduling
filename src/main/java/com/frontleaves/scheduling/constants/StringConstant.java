@@ -57,7 +57,11 @@ public class StringConstant {
         public static final String TOKEN = "token:";
         public static final String PERMISSION = "permission:";
         public static final String ROLE_UUID = "role:uuid:";
-        public static final String ROLE_NAME = "user:name:";
+        public static final String ROLE_NAME = "role:name:";
+        public static final String USER_UUID = "user:uuid:";
+        public static final String USER_NAME = "user:name:";
+        public static final String USER_MAIL = "user:mail:";
+        public static final String USER_TEL = "user:tel:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
@@ -90,6 +94,20 @@ public class StringConstant {
             private Hump() {
                 log.error("Hump 不能被实例化");
             }
+        }
+    }
+
+    /**
+     * 正则表达式常量类。
+     */
+    public static class Regular {
+        public static final String EMAIL_REGULAR_EXPRESSION ="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
+        public static final String PHONE_REGULAR_EXPRESSION ="^1[3456789]\\d{9}$";
+        public static final String USER_NAME_REGULAR_EXPRESSION ="^[0-9A-Za-z_-]{4,32}$";
+        public static final String PASSWORD_REGULAR_EXPRESSION = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$";
+
+        private Regular() {
+            log.error("Regular 不能被实例化");
         }
     }
 }

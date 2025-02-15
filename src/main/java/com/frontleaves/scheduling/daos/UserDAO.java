@@ -36,6 +36,7 @@ import com.frontleaves.scheduling.mappers.UserMapper;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
@@ -45,28 +46,28 @@ import java.util.Map;
 /**
  * 用户数据访问对象
  * <p>
- * 该类用于对用户数据进行访问。
+ * 该类提供了对用户数据的基本操作，包括通过 UUID、用户名、邮箱和电话号码获取用户信息。
+ * 所有方法都优先尝试从 Redis 缓存中读取数据，如果缓存中没有，则从数据库中查询，并将结果缓存到 Redis 中以提高性能。
  * </p>
  *
- * @version v1.0.0
  * @since v1.0.0
+ * @version v1.0.0
  * @author xiao_lfeng
  */
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService<UserDO> {
     private final Jedis jedis;
 
     /**
-     * 根据用户UUID获取用户数据对象
+     * 通过用户 UUID 获取用户信息。
      * <p>
-     * 本方法首先尝试从Redis缓存中通过用户UUID查找用户信息。如果缓存中没有找到，
-     * 则查询数据库并将查询到的数据存入Redis，同时返回该用户数据对象。
-     * 如果缓存中存在用户信息，则直接转换为UserDO对象并返回。
-     * </p>
+     * 该方法首先尝试从 Redis 中获取用户信息，如果 Redis 中不存在，则从数据库中查询用户信息并将其存入 Redis。
+     * 如果在 Redis 和数据库中都未找到用户信息，则返回 null。
      *
-     * @param userUuid 用户的UUID字符串，用于唯一标识用户
-     * @return 匹配用户UUID的UserDO对象，如果没有找到则返回null
+     * @param userUuid 用户的 UUID
+     * @return 返回用户信息，如果未找到则返回 null
      */
     public UserDO getUserByUuid(String userUuid) {
         Map<String, String> map = jedis.hgetAll(StringConstant.Redis.USER_UUID + userUuid);
@@ -86,85 +87,85 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
     }
 
     /**
-     * 根据用户名获取用户数据对象
+     * 通过用户名获取用户信息。
      * <p>
-     * 本方法首先尝试从Redis缓存中通过用户名查找用户信息。如果缓存中没有找到，
-     * 则查询数据库并将查询到的数据存入Redis，同时返回该用户数据对象。
-     * 如果缓存中存在用户信息，则直接转换为UserDO对象并返回。
-     * </p>
+     * 该方法首先尝试从 Redis 中获取用户的 UUID，如果 Redis 中不存在，则从数据库中查询用户信息。
+     * 如果在数据库中找到了用户信息，则将其存入 Redis 并设置过期时间为 24 小时，最后返回用户信息。
+     * 如果在 Redis 中找到了用户的 UUID，则直接通过 UUID 获取用户信息并返回。
+     * 如果用户不存在，则返回 null。
      *
      * @param name 用户名
-     * @return 匹配用户名的UserDO对象，如果没有找到则返回null
+     * @return 用户信息，如果用户不存在则返回 null
      */
     public UserDO getUserByName(String name) {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.USER_NAME + name);
-        if (map.isEmpty()) {
+        String tryGetUuid = jedis.get(StringConstant.Redis.USER_NAME + name);
+        if (tryGetUuid == null) {
             UserDO userDO = this.lambdaQuery().eq(UserDO::getName, name).one();
             if (userDO != null) {
                 Transaction transaction = jedis.multi();
-                transaction.hset(StringConstant.Redis.USER_NAME + userDO.getName(), ConvertUtil.convertObjectToMapString(userDO));
+                transaction.set(StringConstant.Redis.USER_NAME + userDO.getName(), userDO.getUserUuid());
                 transaction.expire(StringConstant.Redis.USER_NAME + userDO.getName(), 86400);
                 transaction.exec();
                 return userDO;
             }
         } else {
-            return BeanUtil.toBean(map, UserDO.class);
+            return this.getUserByUuid(tryGetUuid);
         }
         return null;
     }
 
     /**
-     * 根据用户邮箱获取用户数据对象
+     * 通过邮箱获取用户信息。
      * <p>
-     * 本方法首先尝试从Redis缓存中通过用户邮箱查找用户信息。如果缓存中没有找到，
-     * 则查询数据库并将查询到的数据存入Redis，同时返回该用户数据对象。
-     * 如果缓存中存在用户信息，则直接转换为UserDO对象并返回。
-     * </p>
+     * 该方法首先尝试从 Redis 中获取用户的 UUID，如果 Redis 中存在该用户的 UUID，则直接返回该用户的信息。
+     * 如果 Redis 中不存在该用户的 UUID，则从数据库中查询该用户的信息，并将查询结果缓存到 Redis 中，缓存有效期为 24 小时。
+     * 如果在数据库中也未找到该用户，则返回 null。
      *
-     * @param mail 用户邮箱
-     * @return 匹配用户邮箱的UserDO对象，如果没有找到则返回null
+     * @param mail 用户的邮箱地址
+     * @return 返回用户信息，如果未找到用户则返回 null
      */
     public UserDO getUserByMail(String mail) {
+        String tryGetUuid = jedis.get(StringConstant.Redis.USER_MAIL + mail);
         Map<String, String> map = jedis.hgetAll(StringConstant.Redis.USER_MAIL + mail);
         if (map.isEmpty()) {
             UserDO userDO = this.lambdaQuery().eq(UserDO::getEmail, mail).one();
             if (userDO != null) {
                 Transaction transaction = jedis.multi();
-                transaction.hset(StringConstant.Redis.USER_MAIL + userDO.getEmail(), ConvertUtil.convertObjectToMapString(userDO));
+                transaction.set(StringConstant.Redis.USER_MAIL + userDO.getEmail(), userDO.getUserUuid());
                 transaction.expire(StringConstant.Redis.USER_MAIL + userDO.getEmail(), 86400);
                 transaction.exec();
                 return userDO;
             }
         } else {
-            return BeanUtil.toBean(map, UserDO.class);
+            return this.getUserByUuid(tryGetUuid);
         }
         return null;
     }
 
     /**
-     * 根据用户电话号码获取用户数据对象
+     * 通过电话号码获取用户信息。
      * <p>
-     * 本方法首先尝试从Redis缓存中通过用户电话号码查找用户信息。如果缓存中没有找到，
-     * 则查询数据库并将查询到的数据存入Redis，同时返回该用户数据对象。
-     * 如果缓存中存在用户信息，则直接转换为UserDO对象并返回。
+     * 该方法首先尝试从 Redis 中获取用户的 UUID，如果未找到，则通过数据库查询用户信息。
+     * 如果在数据库中找到了用户信息，会将用户信息缓存到 Redis 中，并设置过期时间为一天。
      * </p>
      *
-     * @param tel 用户电话号码
-     * @return 匹配用户电话号码的UserDO对象，如果没有找到则返回null
+     * @param tel 用户的电话号码
+     * @return 用户信息，如果未找到则返回 null
      */
     public UserDO getUserByTel(String tel) {
+        String tryGetUuid = jedis.get(StringConstant.Redis.USER_MAIL + tel);
         Map<String, String> map = jedis.hgetAll(StringConstant.Redis.USER_TEL + tel);
         if (map.isEmpty()) {
             UserDO userDO = this.lambdaQuery().eq(UserDO::getPhone, tel).one();
             if (userDO != null) {
                 Transaction transaction = jedis.multi();
-                transaction.hset(StringConstant.Redis.USER_TEL + userDO.getPhone(), ConvertUtil.convertObjectToMapString(userDO));
+                transaction.set(StringConstant.Redis.USER_TEL + userDO.getPhone(), userDO.getUserUuid());
                 transaction.expire(StringConstant.Redis.USER_TEL + userDO.getPhone(), 86400);
                 transaction.exec();
                 return userDO;
             }
         } else {
-            return BeanUtil.toBean(map, UserDO.class);
+            return this.getUserByUuid(tryGetUuid);
         }
         return null;
     }
