@@ -126,8 +126,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      */
     public UserDO getUserByMail(String mail) {
         String tryGetUuid = jedis.get(StringConstant.Redis.USER_MAIL + mail);
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.USER_MAIL + mail);
-        if (map.isEmpty()) {
+        if (tryGetUuid == null) {
             UserDO userDO = this.lambdaQuery().eq(UserDO::getEmail, mail).one();
             if (userDO != null) {
                 Transaction transaction = jedis.multi();
@@ -153,9 +152,8 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @return 用户信息，如果未找到则返回 null
      */
     public UserDO getUserByTel(String tel) {
-        String tryGetUuid = jedis.get(StringConstant.Redis.USER_MAIL + tel);
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.USER_TEL + tel);
-        if (map.isEmpty()) {
+        String tryGetUuid = jedis.get(StringConstant.Redis.USER_TEL + tel);
+        if (tryGetUuid == null) {
             UserDO userDO = this.lambdaQuery().eq(UserDO::getPhone, tel).one();
             if (userDO != null) {
                 Transaction transaction = jedis.multi();
