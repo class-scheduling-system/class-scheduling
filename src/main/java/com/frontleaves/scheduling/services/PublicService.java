@@ -26,38 +26,32 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.configs.apps;
+package com.frontleaves.scheduling.services;
 
-import cn.hutool.db.nosql.redis.RedisDS;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import redis.clients.jedis.Jedis;
+import com.frontleaves.scheduling.models.dto.SiteDTO;
 
 /**
- * Redis 配置
- * <p>
- * 该类用于配置 Hutool 的 Redis 连接。
- * </p>
+ * 公共服务接口，提供站点信息的获取功能。
+ * 该接口主要用于对外暴露站点的基本信息、备案与版权信息、联系方式以及高级元数据等。
+ * 实现类应当通过适当的方式（如从数据库或缓存中）获取这些信息，并封装成 {@link SiteDTO} 对象返回。
  *
+ * <p>此接口的主要目的是为前端或其他需要访问站点信息的服务提供一个统一的数据访问点。</p>
+ *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-@Configuration
-public class RedisConfig {
+public interface PublicService {
 
-    @Bean
-    public Jedis jedis() {
-        log.info("[INIT] Redis 配置初始化");
-
-        try (RedisDS redisDs = RedisDS.create()) {
-            return redisDs.getJedis();
-        } catch (Exception e) {
-            log.error("[NOSQL] Redis 连接失败: {}", e.getMessage());
-            System.exit(1);
-            return null;
-        }
-    }
+    /**
+     * 获取网站的基本信息。
+     * <p>
+     * 该方法从系统数据库中获取网站的详细信息，并将其封装到一个 {@code SiteDTO} 对象中返回。
+     * 返回的信息包括网站名称、标题、副标题、描述、关键词、图标URL、Logo URL、ICP备案号、
+     * ICP备案链接、公安备案号、公安备案链接、版权状态、开源许可证、联系邮箱、联系电话、办公地址、
+     * 微博URL、微信公众号、所有者、创始人、上线日期和技术栈等。
+     *
+     * @return 包含网站详细信息的 {@code SiteDTO} 对象
+     */
+    SiteDTO getSiteInfo();
 }

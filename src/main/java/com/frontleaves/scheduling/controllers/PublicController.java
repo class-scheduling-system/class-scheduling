@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.models.dto.SiteDTO;
-import com.frontleaves.scheduling.service.SiteInfoService;
+import com.frontleaves.scheduling.services.PublicService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PublicController {
 
-    private final SiteInfoService siteInfoService;
+    private final PublicService publicService;
 
     /**
      * 获取站点基础信息接口
@@ -39,7 +39,7 @@ public class PublicController {
     @GetMapping("/info")
     @Transactional
     public @NotNull ResponseEntity<BaseResponse<SiteDTO>> getSiteInfo() {
-        SiteDTO siteDTO = siteInfoService.getSiteInfo();
+        SiteDTO siteDTO = publicService.getSiteInfo();
         return ResultUtil.success("成功", siteDTO);
     }
 }
