@@ -29,7 +29,9 @@
 package com.frontleaves.scheduling.configs.aspect;
 
 import cn.hutool.json.JSONUtil;
+import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestPermission;
+import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.daos.PermissionDAO;
 import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.TokenDAO;
@@ -141,7 +143,82 @@ public class PermissionAspect {
         }
     }
 
-    public void checkLogin() {
+    /**
+     * 在方法执行前检查请求的登录状态。
+     * 该方法作为切面逻辑，用于验证调用者是否已经登录。
+     *
+     * <p>登录检查的流程如下：</p>
+     * <ol>
+     *     <li>从当前请求上下文中获取 {@link HttpServletRequest} 对象。</li>
+     *     <li>从请求头中提取用户Token。</li>
+     *     <li>通过用户Token查询数据库，获取用户信息。</li>
+     *     <li>如果未找到对应用户，则抛出未登录异常 {@link UserAuthenticationException}。</li>
+     * </ol>
+     *
+     * <p><strong>注意事项：</strong></p>
+     * <ul>
+     *     <li>确保调用该方法的前置条件是请求上下文已建立，且 {@link RequestLogin} 注解已正确应用在目标方法上。</li>
+     *     <li>方法内部实现了详细的登录状态检查逻辑。</li>
+     * </ul>
+     *
+     * @throws UserAuthenticationException 如果用户未登录，抛出此异常。
+     */
+    @Before("@annotation(com.frontleaves.scheduling.annotations.RequestLogin)")
+    public void requestLoginCheck() {
+        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
+        String userToken = HeaderUtil.getAuthorizeUserUuidString(request);
+        UserDO getUser = tokenDAO.getTokenUser(userToken);
+        if (getUser == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_LOGIN, request);
+        }
+    }
 
+    /**
+     * 在方法执行前检查请求的角色权限。
+     * 该方法作为切面逻辑，用于验证调用者是否具备执行特定方法所需的角色权限。
+     *
+     * <p>角色权限检查的流程如下：</p>
+     * <ol>
+     *     <li>从连接点获取方法签名，并读取 {@link RequestRole} 注解的值，即所需角色的标识。</li>
+     *     <li>根据角色标识查询数据库确认角色存在。</li>
+     *     <li>获取当前请求的用户 Token，进而获取用户信息。</li>
+     *     <li>验证用户的角色是否与所需角色匹配。</li>
+     *     <li>若用户角色不匹配，则抛出权限拒绝异常 {@link UserAuthenticationException}。</li>
+     * </ol>
+     *
+     * <p><strong>注意事项：</strong></p>
+     * <ul>
+     *     <li>确保调用该方法的前置条件是请求上下文已建立，且 {@link RequestRole} 注解已正确应用在目标方法上。</li>
+     *     <li>方法内部实现了详细的角色权限检查逻辑。</li>
+     * </ul>
+     *
+     * @param joinPoint 连接点对象，包含正在执行的方法信息。
+     *                  通过此参数可以获取到注解 {@link RequestRole} 配置的角色标识符。
+     *
+     * @throws ServerInternalErrorException 如果所需角色在数据库中不存在，抛出此异常。
+     * @throws UserAuthenticationException   如果用户未登录或没有足够的角色权限，抛出此异常。
+     */
+    @Before("@annotation(com.frontleaves.scheduling.annotations.RequestRole)")
+    public void requestRoleCheck(@NotNull JoinPoint joinPoint) {
+        // 获取方法签名
+        MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
+        String role = methodSignature.getMethod().getAnnotation(RequestRole.class).value();
+
+        // 可以继续后续的权限检查逻辑，如查询数据库等
+        RoleDO foundRole = roleDAO.getRoleByName(role);
+        if (foundRole == null) {
+            throw new ServerInternalErrorException("角色 " + role + " 不存在，请检查接口" + methodSignature.getName() + "的角色配置");
+        }
+        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
+        String userToken = HeaderUtil.getAuthorizeUserUuidString(request);
+        UserDO getUser = tokenDAO.getTokenUser(userToken);
+        if (getUser == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_LOGIN, request);
+        } else {
+            // 获取权限信息
+            if (!getUser.getRoleUuid().equals(foundRole.getRoleUuid())) {
+                throw new UserAuthenticationException(UserAuthenticationException.ErrorType.PERMISSION_DENIED, request);
+            }
+        }
     }
 }

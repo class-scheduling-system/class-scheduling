@@ -42,9 +42,9 @@ import java.lang.annotation.Target;
  * 确保只有拥有相应权限的角色能够访问受保护的方法。
  * </p>
  *
- * @since v1.0.0
- * @version v1.0.0
  * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
@@ -53,25 +53,10 @@ public @interface RequestRole {
     /**
      * 获取角色标识符。
      * <p>
-     *     获取信息为角色标识符，位于数据表 `cs_role` 中的 `role_name` 字段。
+     * 获取信息为角色标识符，位于数据表 `cs_role` 中的 `role_name` 字段。
      * </p>
      *
      * @return 角色所需的标识符，用于匹配系统安全框架中的角色定义，确保调用者具备相应的权限和角色。
      */
     String value();
-
-    /**
-     * 获取方法执行所需的权限标识。
-     * <p>
-     *   此属性用于定义方法调用时额外需要的权限字符串。若为空，默认不检查额外权限。
-     *   这可以与角色注解结合使用，提供更细粒度的访问控制机制，确保方法不仅受限于角色，
-     *   同时也受限于特定的权限标识符。
-     * </p>
-     * <p>
-     *     例如：{@code "user:unit:type:edit"} 表示需要用户读取权限。
-     * </p>
-     *
-     * @return 返回一个字符串，表示执行该方法需要的权限标识符，为空则默认不做额外权限检查。
-     */
-    String permission() default "";
 }

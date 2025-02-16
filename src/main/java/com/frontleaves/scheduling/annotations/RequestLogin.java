@@ -47,20 +47,11 @@ import java.lang.annotation.Target;
  * 在实际应用中结合具体的安全框架使用，如Spring Security等，以实现自动的登录状态验证。
  * </p>
  *
- * @since v1.0.0
- * @version v1.0.0
  * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RequestLogin {
-    /**
-     * 获取权限标识符。
-     * <p>
-     *     例如：{@code "user:unit:type:edit"} 表示需要用户读取权限。
-     * </p>
-     *
-     * @return 权限所需的标识符，用于匹配系统权限管理系统中的权限定义。
-     */
-    String value();
 }
