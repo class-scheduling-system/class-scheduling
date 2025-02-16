@@ -1,10 +1,13 @@
 package com.frontleaves.scheduling.controllers;
 
-import com.frontleaves.scheduling.daos.SystemDAO;
-import com.frontleaves.scheduling.models.entity.SiteDO;
-import com.frontleaves.scheduling.models.vo.ResponseWrapperVO;
+import com.frontleaves.scheduling.models.dto.SiteDTO;
+import com.frontleaves.scheduling.service.SiteInfoService;
+import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ResultUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,29 +27,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PublicController {
 
-    //注入SystemDAO，用于获取系统信息
-    private final SystemDAO systemDAO;
+    private final SiteInfoService siteInfoService;
 
-    @Cacheable(value = "siteInfo", key = "'web_info'")
+    //获取站点信息接口
     @GetMapping("/info")
-    public ResponseWrapperVO<SiteDO> getSiteInfo() {
-        try {
-            // 从 Redis 或数据库中获取系统信息
-            String name = systemDAO.getSystemInfo("name");
-            String description = systemDAO.getSystemInfo("description");
-            String icp = systemDAO.getSystemInfo("icp");
-            String securityRecord = systemDAO.getSystemInfo("security-record");
-
-            if (name == null || description == null || icp == null || securityRecord == null) {
-                return new ResponseWrapperVO<>("Error", 500, "站点信息获取失败", null);
-            }
-
-            SiteDO siteDO = new SiteDO(name, description, icp, securityRecord);
-            return new ResponseWrapperVO<>("Success", 200, "站点信息获取成功", siteDO);
-        } catch (Exception e) {
-            // 错误处理，保持响应结构一致
-            return new ResponseWrapperVO<>("Error", 500, "站点信息获取失败", null);
-        }
+    @Transactional
+    public @NotNull ResponseEntity<BaseResponse<SiteDTO>> getSiteInfo() {
+        SiteDTO siteDTO = siteInfoService.getSiteInfo();
+        return ResultUtil.success("成功", siteDTO);
     }
 }
 
