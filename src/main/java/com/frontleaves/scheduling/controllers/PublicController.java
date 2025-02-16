@@ -29,7 +29,13 @@ public class PublicController {
 
     private final SiteInfoService siteInfoService;
 
-    //获取站点信息接口
+    /**
+     * 获取站点基础信息接口
+     * <p>
+     * 该接口用于获取站点基本信息
+     *
+     * @return 包含站点数据的响应
+     */
     @GetMapping("/info")
     @Transactional
     public @NotNull ResponseEntity<BaseResponse<SiteDTO>> getSiteInfo() {
