@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -58,4 +59,20 @@ public interface UserService {
      * @throws UserAuthenticationException 如果Token过期或用户不存在时抛出
      */
     UserDO getUserByRequest(HttpServletRequest request);
+
+    /**
+     *获取当前登录用户的三方信息
+     * <p>
+     * 该方法首先通过用户信息(如用户UUID)获取用户详细信息，
+     * 然后根据用户信息查询并返回用户对应的角色信息。
+     * 如果用户信息有效且角色存在，则返回用户的完整信息（包括角色信息）。
+     * 如果用户信息无效或角色不存在，则抛出相应的异常。
+     * </p>
+     *
+     * @param userByRequest 用户信息对象，包含当前用户的详细信息
+     * @return UserInfoDTO 返回包含用户详细信息及角色信息的DTO对象
+     * @throws UserAuthenticationException 如果用户信息无效或角色不存在时抛出
+     */
+    UserInfoDTO getUserInfoWithRole(UserDO userByRequest);
+
 }

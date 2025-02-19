@@ -28,17 +28,19 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.logic.UserLogic;
+import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
+import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ResultUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 用户控制器
@@ -55,6 +57,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/user")
 public class UserController {
+
+    private final UserLogic userLogic;
+    private final UserService userService;
 
     /**
      * 用户登录接口。
@@ -95,5 +100,20 @@ public class UserController {
     @PostMapping("/registered")
     public ResponseEntity<BaseResponse<Void>> userRegistered(@RequestBody @Validated UserLoginVO userLoginVO) {
         return null;
+    }
+
+    /**
+     * 获取当前登录用户信息接口
+     * <p>
+     * 该接口用于获取当前登录的用户的三方信息;
+     * 并针对不同身份用户返回对应的DTO
+     *
+     * @return 用户信息(DTO)
+     */
+    @GetMapping("/current")
+    public ResponseEntity<BaseResponse<UserInfoDTO>> getCurrentUserInfo(HttpServletRequest request) {
+        //从请求中获取当前用户
+        UserInfoDTO userInfo = userService.getUserInfoWithRole(userLogic.getUserByRequest(request));
+        return ResultUtil.success("用户信息获取成功", userInfo);
     }
 }

@@ -28,7 +28,10 @@
 
 package com.frontleaves.scheduling.logic;
 
+import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.TokenDAO;
+import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.exception.library.UserAuthenticationException;
@@ -53,6 +56,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UserLogic implements UserService {
     private final TokenDAO tokenDAO;
+    private final RoleDAO roleDAO;
+    private final HttpServletRequest request;
 
     /**
      * 根据请求中的用户Token获取用户信息。
@@ -78,5 +83,54 @@ public class UserLogic implements UserService {
         } else {
             throw new UserAuthenticationException(UserAuthenticationException.ErrorType.TOKEN_EXPIRED, request);
         }
+    }
+
+    /**
+     * 根据用户角色聚合三方信息(学生、教师或普通用户)
+     *
+     * @param userByRequest 当前登录用户实体
+     * @return UserInfoDTO聚合后的用户信息
+     */
+    @Override
+    public UserInfoDTO getUserInfoWithRole(UserDO userByRequest) {
+        // 获取用户的角色信息
+        RoleDO role = roleDAO.getRoleByUuid(userByRequest.getRoleUuid());
+        if (role == null) {
+            throw new UserAuthenticationException(
+                    UserAuthenticationException.ErrorType.USER_NOT_EXIST,
+                    request
+            );
+        }
+
+        // 创建 UserInfoDTO，返回基础的用户信息
+        UserInfoDTO userInfoDTO = new UserInfoDTO();
+        // 填充基础用户信息
+        userInfoDTO.setUser(new UserDTO()
+                .setUserUuid(userByRequest.getUserUuid())
+                .setName(userByRequest.getName())
+                .setEmail(userByRequest.getEmail())
+                .setPhone(userByRequest.getPhone())
+                .setStatus(userByRequest.getStatus())
+                .setBan(userByRequest.getBan())
+                // 填充角色信息
+                .setRole(new RoleDTO()
+                        .setRoleUuid(role.getRoleUuid())
+                        .setRoleName(role.getRoleName())
+                        .setRoleStatus(role.getRoleStatus())
+                        .setPermission(role.getPermission())
+                        .setCreatedAt(role.getCreatedAt())
+                        .setUpdatedAt(role.getUpdatedAt()))
+                .setPermission(userByRequest.getPermission())
+                .setCreatedAt(userByRequest.getCreatedAt())
+                .setUpdatedAt(userByRequest.getUpdatedAt()));
+
+        // 判断角色类型并填充对应的角色信息
+        if ("学生".equals(role.getRoleName())) {
+            userInfoDTO.setStudent(new StudentDTO());
+        } else if ("教师".equals(role.getRoleName())) {
+            userInfoDTO.setTeacher(new TeacherDTO());
+        }
+
+        return userInfoDTO;
     }
 }
