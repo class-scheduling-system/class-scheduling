@@ -70,6 +70,7 @@ public class StringConstant {
         public static final String BUILDING_LIST = "building:list";
         public static final String BUILDING_UUID = "building:uuid:";
         public static final String BUILDING_NAME = "building:name:";
+        public static final String BUILDING_CAMPUS = "building:campus:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

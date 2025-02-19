@@ -117,4 +117,26 @@ public class BuildingLogic implements BuildingService {
         }
         return BeanUtil.toBean(buildingDTO, BuildingDTO.class);
     }
+
+    /**
+     * 根据校区获取教学楼列表
+     * <p>
+     * 该方法通过给定的校区唯一标识符 {@code campusUuid} 获取指定页数和每页大小的教学楼信息。支持按照是否降序排列返回结果。
+     * 返回的数据结构是 {@code PageDTO<BuildingDTO>} 类型，包含了分页信息以及转换后的教学楼数据对象列表。
+     *
+     * @param campusUuid 校区的唯一标识符
+     * @param page 请求的页码，从1开始
+     * @param size 每页显示的条目数量
+     * @param isDesc 是否按降序排列查询结果，默认为false表示升序
+     * @return 包含了请求页码中的教学楼信息及其分页详情的PageDTO对象
+     */
+    @Override
+    public PageDTO<BuildingDTO> getBuildingByCampus(String campusUuid, int page, int size, boolean isDesc) {
+        Page<BuildingDO> buildingList = buildingDAO.getBuildingByCampus(campusUuid, page, size, isDesc);
+        if (buildingList.getTotal() == 0) {
+            return new PageDTO<>();
+        } else {
+            return ProjectUtil.convertPageToPageDTO(buildingList, BuildingDTO.class);
+        }
+    }
 }

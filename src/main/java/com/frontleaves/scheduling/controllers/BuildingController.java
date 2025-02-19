@@ -39,15 +39,12 @@ import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 教学楼控制器
  * <p>
- * 该类提供了处理建筑相关请求的 RESTful API，包括获取建筑列表等功能。
+ * 该类提供了处理教学楼相关请求的 RESTful API，包括获取教学楼列表等功能。
  *
  * @author xiao_lfeng
  * @version v1.0.0
@@ -62,9 +59,9 @@ public class BuildingController {
     private final BuildingService buildingService;
 
     /**
-     * 获取建筑列表
+     * 获取教学楼列表
      * <p>
-     * 该方法用于根据分页参数和可选的关键词获取教学楼建筑列表。如果提供了关键词，则会根据关键词进行模糊搜索。
+     * 该方法用于根据分页参数和可选的关键词获取教学楼教学楼列表。如果提供了关键词，则会根据关键词进行模糊搜索。
      *
      * @param page    当前页码，默认值为 1
      * @param size    每页显示的条目数，默认值为 20，最大值为 200
@@ -83,7 +80,7 @@ public class BuildingController {
         if (size > 200) {
             throw new BusinessException("单页查询不允许超过 200", ErrorCode.PARAMETER_INVALID);
         }
-        log.debug(LogConstant.CONTROLLER + "获取建筑列表，page: {}, size: {}, keyword: {}", page, size, keyword);
+        log.debug(LogConstant.CONTROLLER + "获取教学楼列表，page: {}, size: {}, keyword: {}", page, size, keyword);
         if (keyword == null || keyword.isBlank()) {
             PageDTO<BuildingDTO> buildingList = buildingService.getBuildingList(page, size, isDesc);
             return ResultUtil.success("教学楼建筑列表成功", buildingList);
@@ -110,5 +107,30 @@ public class BuildingController {
         }
         BuildingDTO getBuildingDTO = buildingService.getBuilding(building);
         return ResultUtil.success("获取教学楼信息成功", getBuildingDTO);
+    }
+
+    /**
+     * 根据校区获取教学楼列表
+     * <p>
+     * 该方法用于根据指定的校区UUID来获取其下的教学楼信息。支持分页查询，同时允许设置是否降序排列结果。
+     *
+     * @param campusUuid 校区的唯一标识符，不能为空或空白字符串
+     * @param page 请求的页码，默认为1
+     * @param size 每页显示的教学楼数量，默认为20
+     * @param isDesc 是否按照降序排列，默认为true表示降序
+     * @return 包含请求状态和数据响应体的ResponseEntity对象，其中数据部分是包含分页信息的教学楼列表
+     */
+    @GetMapping("/campus/{campus_uuid}")
+    public ResponseEntity<BaseResponse<PageDTO<BuildingDTO>>> getBuildByCampus(
+            @PathVariable("campus_uuid") String campusUuid,
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "20") Integer size,
+            @RequestParam(value = "is_desc", defaultValue = "true") Boolean isDesc
+    ) {
+        if (campusUuid == null || campusUuid.isBlank()) {
+            throw new BusinessException("校区不能为空", ErrorCode.PARAMETER_INVALID);
+        }
+        PageDTO<BuildingDTO> buildingList = buildingService.getBuildingByCampus(campusUuid, page, size, isDesc);
+        return ResultUtil.success("获取教学楼列表成功", buildingList);
     }
 }

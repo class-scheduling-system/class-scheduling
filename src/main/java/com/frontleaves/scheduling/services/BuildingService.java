@@ -38,9 +38,9 @@ import com.frontleaves.scheduling.models.dto.PageDTO;
  * 返回的数据封装在 {@code PageDTO<BuildingDTO>} 中，其中包含分页信息和教学楼的基本信息。
  * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 public interface BuildingService {
     /**
@@ -66,9 +66,9 @@ public interface BuildingService {
      * 如教学楼主键、名称、校区主键、状态、创建时间和更新时间等。
      * </p>
      *
-     * @param page 当前页码
-     * @param size 每页显示的数量
-     * @param isDesc 是否降序排列
+     * @param page    当前页码
+     * @param size    每页显示的数量
+     * @param isDesc  是否降序排列
      * @param keyword 搜索关键词，用于匹配教学楼名称或其他相关信息
      * @return 分页的教学楼数据传输对象 {@code PageDTO<BuildingDTO>}
      */
@@ -87,4 +87,21 @@ public interface BuildingService {
      * @return 包含指定教学楼详细信息的数据传输对象 {@code BuildingDTO}；如果找不到对应的教学楼，行为依据具体实现而定
      */
     BuildingDTO getBuilding(String building);
+
+    /**
+     * 根据校区获取教学楼列表
+     * <p>
+     * 该方法用于根据指定的校区唯一标识 {@code campusUuid} 分页查询系统中所有属于该校区的教学楼信息。
+     * 通过传入的页码、每页显示的数量以及是否降序排列来控制返回的数据量和排序方式。
+     * 返回的是一个包含教学楼数据传输对象 {@code BuildingDTO} 的分页结果，其中包含了教学楼的基本信息，
+     * 如教学楼主键、名称、校区主键、状态、创建时间和更新时间等。
+     * </p>
+     *
+     * @param campusUuid 校区的唯一标识符，用于定位特定的校区
+     * @param page       当前页码，从1开始
+     * @param size       每页显示的记录数
+     * @param isDesc     排序方式，true 表示降序，false 表示升序
+     * @return 包含分页信息和教学楼数据的 {@code PageDTO<BuildingDTO>}
+     */
+    PageDTO<BuildingDTO> getBuildingByCampus(String campusUuid, int page, int size, boolean isDesc);
 }
