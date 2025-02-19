@@ -44,6 +44,7 @@ import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
 
@@ -119,7 +120,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
                 if (isDesc) {
                     queryWrapper.orderByDesc(BuildingDO::getCreatedAt);
                 } else {
-                    queryWrapper.orderByAsc(BuildingDO::getCampusUuid);
+                    queryWrapper.orderByAsc(BuildingDO::getCreatedAt);
                 }
                 queryWrapper.like(BuildingDO::getBuildingName, keyword);
                 this.queryAndCache(queryWrapper, page, size, transaction, cacheKey);
@@ -218,7 +219,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
                 if (isDesc) {
                     queryWrapper.orderByDesc(BuildingDO::getCreatedAt);
                 } else {
-                    queryWrapper.orderByAsc(BuildingDO::getBuildingUuid);
+                    queryWrapper.orderByAsc(BuildingDO::getCreatedAt);
                 }
                 return this.queryAndCache(queryWrapper, page, size, transaction, cacheKey);
             } else {
@@ -259,5 +260,29 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             return buildingPage;
         }
         return null;
+    }
+
+    /**
+     * 更新教学楼信息
+     * <p>
+     * 该方法用于更新给定的教学楼信息，并清除与该教学楼相关的所有 Redis 缓存。如果操作成功，将更新数据库中的记录并删除相关的缓存键。
+     * 如果在执行过程中发生异常，则会抛出 {@code ServerInternalErrorException} 异常。
+     * </p>
+     *
+     * @param buildingDO 包含要更新的教学楼信息的对象
+     * @throws ServerInternalErrorException 如果在更新过程中发生异常
+     */
+    @Transactional
+    public void updateBuilding(BuildingDO buildingDO) throws ServerInternalErrorException {
+        try (Transaction transaction = jedis.multi()) {
+            transaction.del(StringConstant.Redis.BUILDING_LIST + "*");
+            transaction.del(StringConstant.Redis.BUILDING_UUID + buildingDO.getBuildingUuid());
+            transaction.del(StringConstant.Redis.BUILDING_NAME + buildingDO.getBuildingName());
+            transaction.del(StringConstant.Redis.BUILDING_CAMPUS + buildingDO.getCampusUuid() + "*");
+
+            this.updateById(buildingDO);
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
     }
 }

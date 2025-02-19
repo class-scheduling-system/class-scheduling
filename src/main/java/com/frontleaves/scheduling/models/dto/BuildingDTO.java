@@ -70,9 +70,9 @@ public class BuildingDTO {
     private String campusUuid;
 
     /**
-     * 教学楼状态（0:禁用，1:启用）
+     * 教学楼状态
      */
-    private Boolean isStatus;
+    private Boolean status;
 
     /**
      * 创建时间

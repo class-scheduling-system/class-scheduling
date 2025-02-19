@@ -26,60 +26,72 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.models.dto;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
 
 /**
- * 专业表实体类
+ * 校区数据传输对象
  * <p>
- * 对应数据库表：`cs_major`
- * 主键为 major_uuid，类型为 UUID 自动生成。
+ * 该类用于传输校区相关的信息，包括校区的唯一标识符、名称、编码、描述、状态、地址以及创建和更新时间。
+ * 通过此 DTO 可以方便地在不同层之间传递校区信息。
  * </p>
  *
  * @since v1.0.0
  * @version v1.0.0
- * @author FLASHLACK
+ * @author xiao_lfeng
  */
 @Data
-@TableName("cs_major")
+@NoArgsConstructor
+@AllArgsConstructor
 @Accessors(chain = true)
-public class MajorDO {
+public class CampusDTO {
+
     /**
-     * 专业主键，自增
+     * 校区主键
      */
-    @TableId(value = "major_uuid", type = IdType.ASSIGN_UUID)
-    private String majorUuid;
+    private String campusUuid;
+
     /**
-     * 专业名词
+     * 校区名称
      */
-    private String majorName;
+    private String campusName;
+
     /**
-     * 专业描述
+     * 校区编码
      */
-    private String majorDescription;
+    private String campusCode;
+
     /**
-     * 专业代码
+     * 校区描述
      */
-    private String majorCode;
+    private String campusDesc;
+
     /**
-     * 专业状态，0：禁用，1：启用
+     * 校区状态 0:禁用 1:启用
      */
-    private Integer majorStatus;
+    private Integer campusStatus;
+
+    /**
+     * 校区地址
+     */
+    private String campusAddress;
+
     /**
      * 创建时间
      */
-    @TableField(value = "created_at", fill = FieldFill.INSERT)
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp createdAt;
 
     /**
      * 更新时间
      */
-    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp updatedAt;
-
 }

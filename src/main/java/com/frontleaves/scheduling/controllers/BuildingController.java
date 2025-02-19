@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.models.dto.BuildingDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.vo.BuildingOperateVO;
 import com.frontleaves.scheduling.services.BuildingService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
@@ -39,6 +40,7 @@ import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -115,13 +117,13 @@ public class BuildingController {
      * 该方法用于根据指定的校区UUID来获取其下的教学楼信息。支持分页查询，同时允许设置是否降序排列结果。
      *
      * @param campusUuid 校区的唯一标识符，不能为空或空白字符串
-     * @param page 请求的页码，默认为1
-     * @param size 每页显示的教学楼数量，默认为20
-     * @param isDesc 是否按照降序排列，默认为true表示降序
+     * @param page       请求的页码，默认为1
+     * @param size       每页显示的教学楼数量，默认为20
+     * @param isDesc     是否按照降序排列，默认为true表示降序
      * @return 包含请求状态和数据响应体的ResponseEntity对象，其中数据部分是包含分页信息的教学楼列表
      */
     @GetMapping("/campus/{campus_uuid}")
-    public ResponseEntity<BaseResponse<PageDTO<BuildingDTO>>> getBuildByCampus(
+    public ResponseEntity<BaseResponse<PageDTO<BuildingDTO>>> getBuildingByCampus(
             @PathVariable("campus_uuid") String campusUuid,
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "20") Integer size,
@@ -132,5 +134,47 @@ public class BuildingController {
         }
         PageDTO<BuildingDTO> buildingList = buildingService.getBuildingByCampus(campusUuid, page, size, isDesc);
         return ResultUtil.success("获取教学楼列表成功", buildingList);
+    }
+
+    /**
+     * 添加教学楼
+     * <p>
+     * 该方法用于向系统中添加一个新的教学楼信息。通过传入的 {@code BuildingOperateVO} 对象，可以指定教学楼所属的校区UUID、教学楼名称以及其状态。
+     * 成功添加后，返回一个包含成功消息的响应实体。
+     *
+     * @param buildingVO 包含新增教学楼信息的对象，包括校区UUID、教学楼名称和状态
+     * @return 返回一个表示操作结果的响应实体，如果添加成功，则携带相应的成功消息
+     */
+    @PostMapping("")
+    public ResponseEntity<BaseResponse<Void>> addBuilding(
+            @RequestBody @Validated BuildingOperateVO buildingVO
+    ) {
+        buildingService.addBuilding(buildingVO.getCampusUuid(), buildingVO.getBuildingName(), buildingVO.getStatus());
+        return ResultUtil.success("添加教学楼成功");
+    }
+
+    /**
+     * 更新教学楼信息
+     * <p>
+     * 该方法用于根据提供的教学楼 UUID 更新教学楼的相关信息。更新的信息包括所属校区 UUID、教学楼名称以及状态。
+     * 方法接收两个参数：一个是表示教学楼的唯一标识符 {@code buildingUuid}，另一个是包含待更新数据的对象 {@code BuildingOperateVO}。
+     * 成功执行后，将返回一个成功响应。
+     *
+     * @param buildingUuid 教学楼的唯一标识符
+     * @param buildingVO 包含更新所需数据的对象，具体包括校区 UUID、教学楼名称和状态
+     * @return 包含操作结果的消息，如果更新成功，则返回成功提示
+     */
+    @PutMapping("/{building_uuid}")
+    public ResponseEntity<BaseResponse<Void>> updateBuilding(
+            @PathVariable("building_uuid") String buildingUuid,
+            @RequestBody @Validated BuildingOperateVO buildingVO
+    ) {
+        buildingService.updateBuilding(
+                buildingUuid,
+                buildingVO.getCampusUuid(),
+                buildingVO.getBuildingName(),
+                buildingVO.getStatus()
+        );
+        return ResultUtil.success("更新教学楼成功");
     }
 }

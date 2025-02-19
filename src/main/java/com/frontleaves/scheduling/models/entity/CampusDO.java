@@ -35,41 +35,57 @@ import lombok.experimental.Accessors;
 import java.sql.Timestamp;
 
 /**
- * 专业表实体类
+ * 校区表实体类
  * <p>
- * 对应数据库表：`cs_major`
- * 主键为 major_uuid，类型为 UUID 自动生成。
+ * 对应数据库表：`cs_campus`
+ * 该类用于表示校区的相关信息，包括校区的唯一标识、名称、编码、描述、状态、地址以及创建和更新时间。
  * </p>
  *
  * @since v1.0.0
  * @version v1.0.0
- * @author FLASHLACK
+ * @author xiao_lfeng
  */
 @Data
-@TableName("cs_major")
+@TableName("cs_campus")
 @Accessors(chain = true)
-public class MajorDO {
+public class CampusDO {
+
     /**
-     * 专业主键，自增
+     * 校区主键
      */
-    @TableId(value = "major_uuid", type = IdType.ASSIGN_UUID)
-    private String majorUuid;
+    @TableId(value = "campus_uuid", type = IdType.INPUT)
+    private String campusUuid;
+
     /**
-     * 专业名词
+     * 校区名称
      */
-    private String majorName;
+    @TableField("campus_name")
+    private String campusName;
+
     /**
-     * 专业描述
+     * 校区编码
      */
-    private String majorDescription;
+    @TableField("campus_code")
+    private String campusCode;
+
     /**
-     * 专业代码
+     * 校区描述
      */
-    private String majorCode;
+    @TableField("campus_desc")
+    private String campusDesc;
+
     /**
-     * 专业状态，0：禁用，1：启用
+     * 校区状态 0:禁用 1:启用
      */
-    private Integer majorStatus;
+    @TableField("campus_status")
+    private Integer campusStatus;
+
+    /**
+     * 校区地址
+     */
+    @TableField("campus_address")
+    private String campusAddress;
+
     /**
      * 创建时间
      */
@@ -81,5 +97,4 @@ public class MajorDO {
      */
     @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Timestamp updatedAt;
-
 }

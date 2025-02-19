@@ -91,17 +91,45 @@ public interface BuildingService {
     /**
      * 根据校区获取教学楼列表
      * <p>
-     * 该方法用于根据指定的校区唯一标识 {@code campusUuid} 分页查询系统中所有属于该校区的教学楼信息。
-     * 通过传入的页码、每页显示的数量以及是否降序排列来控制返回的数据量和排序方式。
-     * 返回的是一个包含教学楼数据传输对象 {@code BuildingDTO} 的分页结果，其中包含了教学楼的基本信息，
-     * 如教学楼主键、名称、校区主键、状态、创建时间和更新时间等。
-     * </p>
+     * 该方法通过给定的校区唯一标识符 {@code campusUuid} 获取指定页数和每页大小的教学楼信息。支持按照是否降序排列返回结果。
+     * 返回的数据结构是 {@code PageDTO<BuildingDTO>} 类型，包含了分页信息以及转换后的教学楼数据对象列表。
      *
-     * @param campusUuid 校区的唯一标识符，用于定位特定的校区
-     * @param page       当前页码，从1开始
-     * @param size       每页显示的记录数
-     * @param isDesc     排序方式，true 表示降序，false 表示升序
-     * @return 包含分页信息和教学楼数据的 {@code PageDTO<BuildingDTO>}
+     * @param campusUuid 校区的唯一标识符
+     * @param page       请求的页码，从1开始
+     * @param size       每页显示的条目数量
+     * @param isDesc     是否按降序排列查询结果，默认为false表示升序
+     * @return 包含了请求页码中的教学楼信息及其分页详情的PageDTO对象
      */
     PageDTO<BuildingDTO> getBuildingByCampus(String campusUuid, int page, int size, boolean isDesc);
+
+    /**
+     * 添加新的教学楼
+     * <p>
+     * 该方法用于向系统中添加一个新的教学楼记录。通过传入校区的唯一标识符 {@code campusUuid}、教学楼名称 {@code buildingName} 和状态 {@code status}，
+     * 可以创建一条新的教学楼信息。其中，{@code campusUuid} 用于指定新教学楼所属的校区；{@code buildingName} 是新增教学楼的名称；
+     * 而 {@code status} 则表示教学楼当前的状态（启用或禁用）。成功调用此方法后，新的教学楼将被保存到数据库中。
+     * </p>
+     *
+     * @param campusUuid   校区的唯一标识符，用于确定新教学楼所在的地理位置
+     * @param buildingName 新增教学楼的名称
+     * @param status       教学楼的状态，true 表示启用，false 表示禁用
+     */
+    void addBuilding(String campusUuid, String buildingName, boolean status);
+
+    /**
+     * 更新教学楼信息
+     * <p>
+     * 该方法用于更新系统中已存在的教学楼信息。通过传入教学楼的唯一标识符 {@code buildingUuid}，校区的唯一标识符 {@code campusUuid}，
+     * 新的教学楼名称 {@code buildingName} 和新的状态 {@code status}，可以修改指定教学楼的相关数据。
+     * 其中，{@code buildingUuid} 用于定位要更新的具体教学楼记录；{@code campusUuid} 用于重新指定或确认教学楼所属的校区；
+     * {@code buildingName} 是更新后的教学楼名称；而 {@code status} 则表示教学楼更新后的状态（启用或禁用）。
+     * 成功调用此方法后，指定的教学楼信息将在数据库中被更新。
+     * </p>
+     *
+     * @param buildingUuid 教学楼的唯一标识符，用于定位特定的教学楼记录
+     * @param campusUuid   校区的唯一标识符，用于确定教学楼所在的地理位置
+     * @param buildingName 更新后的教学楼名称
+     * @param status       教学楼的状态，true 表示启用，false 表示禁用
+     */
+    void updateBuilding(String buildingUuid, String campusUuid, String buildingName, Boolean status);
 }

@@ -32,11 +32,15 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.BuildingDAO;
+import com.frontleaves.scheduling.daos.CampusDAO;
 import com.frontleaves.scheduling.models.dto.BuildingDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.entity.BuildingDO;
+import com.frontleaves.scheduling.models.entity.CampusDO;
 import com.frontleaves.scheduling.services.BuildingService;
 import com.frontleaves.scheduling.utils.ProjectUtil;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
@@ -56,6 +60,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class BuildingLogic implements BuildingService {
     private final BuildingDAO buildingDAO;
+    private final CampusDAO campusDAO;
 
     /**
      * 获取教学楼列表
@@ -125,9 +130,9 @@ public class BuildingLogic implements BuildingService {
      * 返回的数据结构是 {@code PageDTO<BuildingDTO>} 类型，包含了分页信息以及转换后的教学楼数据对象列表。
      *
      * @param campusUuid 校区的唯一标识符
-     * @param page 请求的页码，从1开始
-     * @param size 每页显示的条目数量
-     * @param isDesc 是否按降序排列查询结果，默认为false表示升序
+     * @param page       请求的页码，从1开始
+     * @param size       每页显示的条目数量
+     * @param isDesc     是否按降序排列查询结果，默认为false表示升序
      * @return 包含了请求页码中的教学楼信息及其分页详情的PageDTO对象
      */
     @Override
@@ -137,6 +142,67 @@ public class BuildingLogic implements BuildingService {
             return new PageDTO<>();
         } else {
             return ProjectUtil.convertPageToPageDTO(buildingList, BuildingDTO.class);
+        }
+    }
+
+    /**
+     * 添加新的教学楼
+     * <p>
+     * 该方法用于向系统中添加一个新的教学楼记录。通过传入校区的唯一标识符 {@code campusUuid}、教学楼名称 {@code buildingName} 和状态 {@code status}，
+     * 可以创建一条新的教学楼信息。其中，{@code campusUuid} 用于指定新教学楼所属的校区；{@code buildingName} 是新增教学楼的名称；
+     * 而 {@code status} 则表示教学楼当前的状态（启用或禁用）。成功调用此方法后，新的教学楼将被保存到数据库中。
+     * </p>
+     *
+     * @param campusUuid   校区的唯一标识符，用于确定新教学楼所在的地理位置
+     * @param buildingName 新增教学楼的名称
+     * @param status       教学楼的状态，true 表示启用，false 表示禁用
+     */
+    @Override
+    public void addBuilding(String campusUuid, String buildingName, boolean status) {
+        CampusDO getCampus = campusDAO.getCampusByUuid(campusUuid);
+        if (getCampus != null) {
+            BuildingDO buildingDO = new BuildingDO();
+            buildingDO
+                    .setBuildingName(buildingName)
+                    .setCampusUuid(campusUuid)
+                    .setStatus(status);
+            buildingDAO.save(buildingDO);
+        } else {
+            throw new BusinessException("校区不存在", ErrorCode.NOT_EXIST);
+        }
+    }
+
+    /**
+     * 更新教学楼信息
+     * <p>
+     * 该方法用于更新系统中已存在的教学楼信息。通过传入教学楼的唯一标识符 {@code buildingUuid}，校区的唯一标识符 {@code campusUuid}，
+     * 新的教学楼名称 {@code buildingName} 和新的状态 {@code status}，可以修改指定教学楼的相关数据。
+     * 其中，{@code buildingUuid} 用于定位要更新的具体教学楼记录；{@code campusUuid} 用于重新指定或确认教学楼所属的校区；
+     * {@code buildingName} 是更新后的教学楼名称；而 {@code status} 则表示教学楼更新后的状态（启用或禁用）。
+     * 成功调用此方法后，指定的教学楼信息将在数据库中被更新。
+     * </p>
+     *
+     * @param buildingUuid 教学楼的唯一标识符，用于定位特定的教学楼记录
+     * @param campusUuid   校区的唯一标识符，用于确定教学楼所在的地理位置
+     * @param buildingName 更新后的教学楼名称
+     * @param status       教学楼的状态，true 表示启用，false 表示禁用
+     */
+    @Override
+    public void updateBuilding(String buildingUuid, String campusUuid, String buildingName, Boolean status) {
+        CampusDO getCampus = campusDAO.getCampusByUuid(campusUuid);
+        if (getCampus != null) {
+            BuildingDO buildingDO = buildingDAO.getBuildingByUuid(buildingUuid);
+            if (buildingDO != null) {
+                buildingDO
+                        .setCampusUuid(campusUuid)
+                        .setBuildingName(buildingName)
+                        .setStatus(status);
+                buildingDAO.updateBuilding(buildingDO);
+            } else {
+                throw new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST);
+            }
+        } else {
+            throw new BusinessException("校区不存在", ErrorCode.NOT_EXIST);
         }
     }
 }

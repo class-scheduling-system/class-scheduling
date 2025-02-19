@@ -26,60 +26,49 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.models.vo;
 
-import com.baomidou.mybatisplus.annotation.*;
-import lombok.Data;
-import lombok.experimental.Accessors;
-
-import java.sql.Timestamp;
+import com.frontleaves.scheduling.constants.StringConstant;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
- * 专业表实体类
+ * 教学楼操作视图对象
  * <p>
- * 对应数据库表：`cs_major`
- * 主键为 major_uuid，类型为 UUID 自动生成。
- * </p>
+ * 该类用于表示教学楼操作相关的数据，主要用于前端与后端的数据交互。它包含了教学楼名称、校区主键以及教学楼状态等信息。
+ * <p>
+ * 通过使用 {@code @Getter} 注解，自动为所有字段生成 getter 方法；通过使用 {@code @NoArgsConstructor} 和 {@code @AllArgsConstructor} 注解，
+ * 分别提供了无参构造函数和全参数构造函数，方便不同场景下的对象创建。
  *
- * @since v1.0.0
+ * @author xiao_lfeng
  * @version v1.0.0
- * @author FLASHLACK
+ * @since v1.0.0
  */
-@Data
-@TableName("cs_major")
-@Accessors(chain = true)
-public class MajorDO {
-    /**
-     * 专业主键，自增
-     */
-    @TableId(value = "major_uuid", type = IdType.ASSIGN_UUID)
-    private String majorUuid;
-    /**
-     * 专业名词
-     */
-    private String majorName;
-    /**
-     * 专业描述
-     */
-    private String majorDescription;
-    /**
-     * 专业代码
-     */
-    private String majorCode;
-    /**
-     * 专业状态，0：禁用，1：启用
-     */
-    private Integer majorStatus;
-    /**
-     * 创建时间
-     */
-    @TableField(value = "created_at", fill = FieldFill.INSERT)
-    private Timestamp createdAt;
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class BuildingOperateVO {
 
     /**
-     * 更新时间
+     * 教学楼名称
      */
-    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
-    private Timestamp updatedAt;
+    @NotBlank(message = "教学楼名称不能为空")
+    private String buildingName;
 
+    /**
+     * 校区主键
+     */
+    @NotBlank(message = "校区不能为空")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "校区输入有误")
+    private String campusUuid;
+
+    /**
+     * 教学楼状态（0:禁用，1:启用）
+     */
+    @NotNull(message = "教学楼状态不能为空")
+    private Boolean status;
 }

@@ -71,6 +71,9 @@ public class StringConstant {
         public static final String BUILDING_UUID = "building:uuid:";
         public static final String BUILDING_NAME = "building:name:";
         public static final String BUILDING_CAMPUS = "building:campus:";
+        public static final String CAMPUS_UUID = "campus:uuid:";
+        public static final String CAMPUS_NAME = "campus:name:";
+        public static final String CAMPUS_CODE = "campus:code:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

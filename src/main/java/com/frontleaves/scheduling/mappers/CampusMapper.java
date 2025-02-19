@@ -26,60 +26,23 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.mappers;
 
-import com.baomidou.mybatisplus.annotation.*;
-import lombok.Data;
-import lombok.experimental.Accessors;
-
-import java.sql.Timestamp;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.frontleaves.scheduling.models.entity.CampusDO;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
- * 专业表实体类
+ * 校区表映射器
  * <p>
- * 对应数据库表：`cs_major`
- * 主键为 major_uuid，类型为 UUID 自动生成。
+ * 该类用于定义校区表的映射器，继承自 MyBatis-Plus 的 {@code BaseMapper} 接口。
+ * 通过此接口可以实现对 {@code CampusDO} 实体类的数据库操作，包括增删改查等基本操作。
  * </p>
  *
- * @since v1.0.0
  * @version v1.0.0
- * @author FLASHLACK
+ * @since v1.0.0
+ * @author xiao_lfeng
  */
-@Data
-@TableName("cs_major")
-@Accessors(chain = true)
-public class MajorDO {
-    /**
-     * 专业主键，自增
-     */
-    @TableId(value = "major_uuid", type = IdType.ASSIGN_UUID)
-    private String majorUuid;
-    /**
-     * 专业名词
-     */
-    private String majorName;
-    /**
-     * 专业描述
-     */
-    private String majorDescription;
-    /**
-     * 专业代码
-     */
-    private String majorCode;
-    /**
-     * 专业状态，0：禁用，1：启用
-     */
-    private Integer majorStatus;
-    /**
-     * 创建时间
-     */
-    @TableField(value = "created_at", fill = FieldFill.INSERT)
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
-    private Timestamp updatedAt;
-
+@Mapper
+public interface CampusMapper extends BaseMapper<CampusDO> {
 }
