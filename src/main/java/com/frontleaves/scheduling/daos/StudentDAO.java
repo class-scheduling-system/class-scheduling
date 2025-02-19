@@ -28,13 +28,24 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.StudentMapper;
 import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
+import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Repository;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Transaction;
+
+import java.util.Map;
 
 /**
  * 学生数据访问对象类
@@ -53,14 +64,99 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements IService<StudentDO> {
+    private final Jedis jedis;
+
     /**
-     * 通过学号获取学生信息
+     * 根据学生ID获取学生信息
+     * <p>
+     * 该方法根据传入的学生ID从Redis缓存中查找学生信息，如果在Redis中未找到，则从数据库查询并将结果存入Redis。
+     * 如果在数据库中也未找到对应的学生信息，则返回null。此方法可能会抛出{@code ServerInternalErrorException}异常，
+     * 表示在执行过程中遇到了服务器内部错误。
      *
-     * @param id 学号
-     * @return 学生信息
+     * @param id 学生的唯一标识符
+     * @return 返回与给定ID匹配的学生信息，如果没有找到则返回null
+     * @throws ServerInternalErrorException 当操作数据库或Redis时发生异常
      */
-    public StudentDO getStudentById(String id) {
-        return this.lambdaQuery().eq(StudentDO::getId, id).one();
+    @Nullable
+    public StudentDO getStudentById(String id) throws ServerInternalErrorException {
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.STUDENT_ID + id);
+        if (map.isEmpty()) {
+            StudentDO studentDO = this.lambdaQuery().eq(StudentDO::getId, id).one();
+            if (studentDO != null) {
+                try (Transaction transaction = jedis.multi()) {
+                    transaction.hmset(StringConstant.Redis.STUDENT_ID + id, ConvertUtil.convertObjectToMapString(studentDO));
+                    transaction.expire(StringConstant.Redis.STUDENT_ID + id, 86400);
+                    transaction.exec();
+                } catch (Exception e) {
+                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+                }
+            }
+        } else {
+            return BeanUtil.toBean(map, StudentDO.class);
+        }
+        return null;
+    }
+
+    /**
+     * 根据学生唯一标识获取学生信息
+     * <p>
+     * 该方法通过传入的学生 UUID 来查询对应的学生信息。首先尝试从 Redis 缓存中获取数据，如果缓存中没有找到，则会从数据库中查询。
+     * 如果从数据库中成功查询到学生信息，会将该信息存入 Redis 缓存，并设置过期时间为一天（86400 秒）。
+     * 如果在整个过程中发生任何异常，将会抛出 {@code ServerInternalErrorException} 异常。
+     *
+     * @param studentUuid 学生的唯一标识符 {@code String}
+     * @return 返回与给定 UUID 对应的学生信息 {@code StudentDO}，如果没有找到则返回 null
+     * @throws ServerInternalErrorException 在执行数据库操作或 Redis 操作时出现错误
+     */
+    @Nullable
+    public StudentDO getStudentByUuid(String studentUuid) throws ServerInternalErrorException {
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.STUDENT_UUID + studentUuid);
+        if (map.isEmpty()) {
+            StudentDO studentDO = this.getById(studentUuid);
+            if (studentDO != null) {
+                try (Transaction transaction = jedis.multi()) {
+                    transaction.hmset(StringConstant.Redis.STUDENT_UUID + studentUuid, ConvertUtil.convertObjectToMapString(studentDO));
+                    transaction.expire(StringConstant.Redis.STUDENT_UUID + studentUuid, 86400);
+                    transaction.exec();
+                } catch (Exception e) {
+                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+                }
+            }
+        } else {
+            return BeanUtil.toBean(map, StudentDO.class);
+        }
+        return null;
+    }
+
+    /**
+     * 更新学生信息中的用户 UUID
+     * <p>
+     * 该方法用于根据给定的学生 ID 更新其对应的用户 UUID。更新操作包括在 Redis 中删除与旧 UUID 相关的键，并在数据库中更新新的 UUID。
+     * 如果找不到对应的学生信息，将抛出业务异常。如果在执行过程中发生任何其他错误，将抛出服务器内部错误异常。
+     *
+     * @param userUuid  新的用户 UUID
+     * @param studentId 学生 ID
+     * @throws ServerInternalErrorException 如果在更新过程中发生服务器内部错误
+     * @throws BusinessException            如果未找到对应的学生信息
+     */
+    public void updateUserUuid(String userUuid, String studentId) throws BusinessException, ServerInternalErrorException {
+        try (Transaction transaction = jedis.multi()) {
+            StudentDO studentDO = this.getStudentById(studentId);
+            if (studentDO != null) {
+                transaction.del(StringConstant.Redis.STUDENT_ID + studentDO.getId());
+                transaction.del(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
+                this.lambdaUpdate()
+                        .eq(StudentDO::getStudentUuid, studentDO.getStudentUuid())
+                        .set(StudentDO::getUserUuid, userUuid)
+                        .update();
+                transaction.exec();
+            } else {
+                throw new BusinessException("未找到对应的教师信息", ErrorCode.NOT_EXIST);
+            }
+        } catch (Exception e) {
+            log.error("更新学生信息中的用户 UUID 失败", e);
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
     }
 }
 

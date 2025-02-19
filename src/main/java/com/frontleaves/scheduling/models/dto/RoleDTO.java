@@ -34,6 +34,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 /**
  * 角色数据传输对象
@@ -70,7 +71,7 @@ public class RoleDTO {
     /**
      * 角色权限，JSON 格式
      */
-    private String permission;
+    private List<String> permission;
 
     /**
      * 创建时间

@@ -34,6 +34,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.PermissionMapper;
 import com.frontleaves.scheduling.models.entity.PermissionDO;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -61,21 +62,27 @@ public class PermissionDAO extends ServiceImpl<PermissionMapper, PermissionDO> i
     private final Jedis jedis;
 
     /**
-     * 根据权限键获取权限信息。
+     * 根据权限键获取权限信息
      * <p>
-     * 首先尝试从 Redis 缓存中读取权限信息，如果缓存中没有，则查询数据库并将数据写入 Redis。
+     * 该方法首先尝试从 Redis 中获取指定权限键的权限信息。如果 Redis 中不存在该权限键的信息，
+     * 则从数据库中查询并将其存入 Redis，最后返回对应的 {@code PermissionDO} 对象。
+     * 如果在操作过程中出现异常，将抛出 {@code ServerInternalErrorException}。
      * </p>
      *
-     * @param permissionKey 权限的唯一标识键
-     * @return 权限实体对象 {@link PermissionDO}，包含权限的详细信息。如果未找到，则返回 null。
+     * @param permissionKey 权限键，用于唯一标识一个权限
+     * @return 返回与给定权限键关联的 {@code PermissionDO} 对象；如果未找到，则返回 {@code null}
+     * @throws ServerInternalErrorException 如果在执行数据库或 Redis 操作时发生错误
      */
-    public PermissionDO getPermissionKey(String permissionKey) {
+    public PermissionDO getPermissionKey(String permissionKey) throws ServerInternalErrorException {
         Map<String, String> map = jedis.hgetAll(StringConstant.Redis.PERMISSION + permissionKey);
         if (map.isEmpty()) {
             PermissionDO permissionDO = this.lambdaQuery().eq(PermissionDO::getPermissionKey, permissionKey).one();
-            Transaction transaction = jedis.multi();
-            transaction.hmset(StringConstant.Redis.PERMISSION + permissionKey, ConvertUtil.convertObjectToMapString(permissionDO));
-            transaction.exec();
+            try (Transaction transaction = jedis.multi()) {
+                transaction.hmset(StringConstant.Redis.PERMISSION + permissionKey, ConvertUtil.convertObjectToMapString(permissionDO));
+                transaction.exec();
+            } catch (Exception e) {
+                throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+            }
         } else {
             return BeanUtil.toBean(map, PermissionDO.class);
         }

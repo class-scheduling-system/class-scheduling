@@ -44,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 public class StringConstant {
 
     public static final String TOKEN_ATTRIBUTION_ERROR = "令牌归属错误";
+    public static final String DATABASE_OPERATION_FAILED = "数据库操作失败";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -62,6 +63,10 @@ public class StringConstant {
         public static final String USER_NAME = "user:name:";
         public static final String USER_MAIL = "user:mail:";
         public static final String USER_TEL = "user:tel:";
+        public static final String STUDENT_ID = "stu:id:";
+        public static final String STUDENT_UUID = "stu:uuid:";
+        public static final String TEACHER_ID = "tea:id:";
+        public static final String TEACHER_UUID = "tea:uuid:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

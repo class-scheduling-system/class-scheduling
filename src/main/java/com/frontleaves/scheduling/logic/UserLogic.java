@@ -28,25 +28,41 @@
 
 package com.frontleaves.scheduling.logic;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.json.JSONUtil;
+import com.frontleaves.scheduling.constants.LogConstant;
+import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.vo.UserInitializationVO;
+import com.frontleaves.scheduling.models.vo.UserLoginVO;
+import com.frontleaves.scheduling.services.UserService;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import com.xlf.utility.util.HeaderUtil;
+import com.xlf.utility.util.PasswordUtil;
+import com.xlf.utility.util.UuidUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 用户逻辑处理类，实现了 {@link UserService} 接口，提供了用户相关的业务逻辑。
+ * 用户逻辑处理服务类，实现了 {@code UserService} 接口。该类主要负责处理用户登录验证、注册等核心业务逻辑。
+ * 通过与多个 DAO 层对象协作，完成数据的存取操作，并基于这些数据构建响应体或进行有效性检查。
  * <p>
- * 该类主要用于处理与用户相关的操作，如根据请求中的Token获取用户信息等。
- * 具体的实现细节包括从请求头中提取Token，并通过Token在数据库中查找对应的用户信息。
- * 如果Token有效且用户存在，则返回用户信息；如果Token无效或用户不存在，则抛出相应的异常。
- * </p>
+ * 此服务类使用了依赖注入来获取必要的 DAO 对象实例，确保能够访问到用户、学生、教师以及角色等相关信息。
+ * 在执行具体业务时，会调用 DAO 提供的方法读写数据库，并根据需要转换实体间的数据格式以满足前端请求的需求。
  *
- * @author xiao_lfeng
+ * @author FLASHLACK | xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
@@ -61,102 +77,90 @@ public class UserLogic implements UserService {
     private final TokenDAO tokenDAO;
 
     /**
-     * 用户登录信息交换
+     * 根据用户数据对象（UserDO）生成一个包含登录信息的 DTO 对象。
+     * <p>
+     * 该方法首先将传入的 UserDO 对象转换为 UserDTO 对象，并设置其角色信息。然后，它会检查用户是否关联有学生或教师的身份，
+     * 如果存在，则相应的 StudentDO 或 TeacherDO 对象会被转换成对应的 DTO 并设置到返回的 UserLoginDTO 中。最后，为用户创建一个新的 Token，
+     * 并将其添加到最终返回的 UserLoginDTO 中。此过程有助于构建完整的用户登录响应体。
      *
-     * @param userDO 用户实体
-     * @return 用户登录信息
+     * @param userDO 用户的数据传输对象，包含了用户的详细信息如用户名、密码等基本信息以及角色 UUID 等。
+     * @return 包含了登录后的用户信息、可能的学生或教师身份信息及新生成的访问令牌的 UserLoginDTO 对象。
      */
-    private UserLoginDTO loginReturn(UserDO userDO) {
+    private @NotNull UserLoginDTO buildLoginData(@NotNull UserDO userDO) {
+        RoleDTO roleDTO = roleDAO.getRoleByUuid(userDO.getRoleUuid());
+        UserDTO userDTO = BeanUtil.toBean(userDO, UserDTO.class)
+                .setPermission(JSONUtil.parseArray(userDO.getPermission()).toList(String.class))
+                .setRole(BeanUtil.toBean(roleDTO, RoleDTO.class));
         UserLoginDTO userLoginDTO = new UserLoginDTO();
-        UserDTO userDTO = new UserDTO();
-        BeanUtils.copyProperties(userDO, userDTO);
-        RoleDO roleDO = roleDAO.lambdaQuery().eq(RoleDO::getRoleUuid, userDO.getRoleUuid()).one();
-        RoleDTO roleDTO = new RoleDTO();
-        BeanUtils.copyProperties(roleDO, roleDTO);
-        userDTO.setRole(roleDTO);
-        userLoginDTO.setUser(userDTO);
-        userLoginDTO.setInitialization(false);
-        //校验学生
-        StudentDO studentDO = studentDAO.lambdaQuery().eq(StudentDO::getUserUuid,
-                userDO.getUserUuid()).one();
+        // 学生教师验证「确认信息后将信息填入」
+        StudentDO studentDO = studentDAO.getStudentByUuid(userDO.getUserUuid());
         if (studentDO != null) {
-            userLoginDTO.setTeacher(null);
-            StudentDTO studentDTO = new StudentDTO();
-            BeanUtils.copyProperties(studentDO, studentDTO);
-            userLoginDTO.setStudent(studentDTO);
+            userLoginDTO.setStudent(BeanUtil.toBean(studentDO, StudentDTO.class));
         }
-        //校验教师
-        TeacherDO teacherDO = teacherDAO.lambdaQuery().eq(TeacherDO::getUserUuid,
-                userDO.getUserUuid()).one();
+        TeacherDO teacherDO = teacherDAO.getTeacherByUuid(userDO.getUserUuid());
         if (teacherDO != null) {
-            userLoginDTO.setStudent(null);
-            TeacherDTO teacherDTO = new TeacherDTO();
-            BeanUtils.copyProperties(teacherDO, teacherDTO);
-            userLoginDTO.setTeacher(teacherDTO);
+            userLoginDTO.setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class));
         }
-        TokenDTO tokenDTO = tokenDAO.createToken(userDO);
-        userLoginDTO.setToken(tokenDTO);
+        userLoginDTO
+                .setUser(userDTO)
+                .setToken(tokenDAO.createToken(userDO))
+                .setInitialization(false);
         return userLoginDTO;
     }
 
     /**
-     * 学号或工号登录
+     * 验证用户登录信息。
+     * <p>
+     * 此方法用于验证传入的用户登录信息是否正确。首先检查用户对象是否存在，如果存在，则使用
+     * {@code PasswordUtil.verify} 方法对比传入的密码和数据库中存储的密码哈希值是否匹配。如果密码验证成功，
+     * 则调用 {@code buildLoginData} 方法生成并返回一个包含登录信息的 {@code UserLoginDTO} 对象。若用户不存在或密码不匹配，
+     * 则抛出相应的异常。
      *
-     * @param userDoS     用户实体
-     * @param userLoginVO 用户登录视图对象
-     * @param request     请求
-     * @return 用户登录数据传输对象
+     * @param user        从数据库获取到的用户数据对象
+     * @param userLoginVO 包含用户登录时提供的用户名和密码的视图对象
+     * @param request     当前HTTP请求的对象，主要用于在抛出异常时记录请求上下文信息
+     * @return 如果登录验证成功，返回一个包含用户登录后所需信息的数据传输对象
+     * @throws ServerInternalErrorException 当遇到未预料的错误情况（如用户对象为null但按逻辑不应为空）时抛出
+     * @throws UserAuthenticationException  当提供的密码与数据库中存储的密码不匹配时抛出
      */
-    private UserLoginDTO idLogin(UserDO userDoS, UserLoginVO userLoginVO, HttpServletRequest request) {
-        if (userDoS != null) {
-            if (PasswordUtil.verify(userLoginVO.getPassword(), userDoS.getPassword())) {
-                return loginReturn(userDoS);
+    @Contract("null, _, _ -> fail")
+    private @NotNull UserLoginDTO verifyLogin(UserDO user, UserLoginVO userLoginVO, HttpServletRequest request)
+            throws ServerInternalErrorException, UserAuthenticationException {
+        if (user != null) {
+            if (PasswordUtil.verify(userLoginVO.getPassword(), user.getPassword())) {
+                return this.buildLoginData(user);
             }
             throw new UserAuthenticationException(
-                    UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
+                    UserAuthenticationException.ErrorType.WRONG_PASSWORD, request);
         }
-        throw new BusinessException("意料之外的错误", ErrorCode.OPERATION_ERROR);
+        throw new ServerInternalErrorException("意料之外的错误");
     }
 
     /**
-     * 注册用户信息交换
-     * @param userInitializationVO 用户初始化视图对象
-     * @param type 用户类型
-     * @return 用户实体
-     */
-    private UserDO registerUserDataExchange(UserInitializationVO userInitializationVO, String type) {
-        UserDO userDO = new UserDO();
-        //传递了用户名，密码，邮箱，手机号
-        BeanUtils.copyProperties(userInitializationVO, userDO);
-        userDO.setPassword(PasswordUtil.encrypt(userInitializationVO.getNewPassword()));
-        checkUser(userDO);
-        RoleDO roleDO = roleDAO.getRoleByName(type);
-        //初始化用户
-        userDO.setRoleUuid(roleDO.getRoleUuid())
-                .setPermission(roleDO.getPermission());
-        return userDO;
-    }
-
-    /**
-     * 用户注册信息检查
+     * 检查用户信息是否已经存在于系统中。
+     * <p>
+     * 该方法通过用户名、邮箱和手机号来检测用户是否存在。如果任意一项已存在，则抛出 {@link BusinessException} 异常。
      *
-     * @param userDO 用户实体
+     * @param username 用户名
+     * @param email    邮箱地址
+     * @param phone    手机号码
+     * @throws BusinessException 如果用户名、邮箱或手机号已存在，则抛出此异常
      */
-    private void checkUser(UserDO userDO) {
-        log.info("检测用户信息是否重复");
-        if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
+    private void checkUserExist(String username, String email, String phone) throws BusinessException {
+        log.debug(LogConstant.SERVICE + "检测用户信息是否重复");
+        if (userDAO.getUserByName(username) != null) {
             throw new BusinessException("用户名已存在", ErrorCode.BODY_ERROR);
         }
-        if (userDAO.lambdaQuery().eq(UserDO::getEmail, userDO.getEmail()).one() != null) {
+        if (userDAO.getUserByMail(email) != null) {
             throw new BusinessException("邮箱已存在", ErrorCode.BODY_ERROR);
         }
-        if (userDAO.lambdaQuery().eq(UserDO::getPhone, userDO.getPhone()).one() != null) {
+        if (userDAO.getUserByTel(phone) != null) {
             throw new BusinessException("手机号已存在", ErrorCode.BODY_ERROR);
         }
     }
 
     @Override
-    public UserLoginDTO checkLoginData(@NotNull UserLoginVO userLoginVO, HttpServletRequest request) {
+    public UserLoginDTO checkLoginForUser(@NotNull UserLoginVO userLoginVO, HttpServletRequest request) {
         UserDO userDO = null;
         //检查是否为邮箱登录
         if (userLoginVO.getUser().matches(StringConstant.Regular.EMAIL_REGULAR_EXPRESSION)) {
@@ -168,143 +172,150 @@ public class UserLogic implements UserService {
             log.debug(LogConstant.SERVICE + "确认为手机号登录");
             userDO = userDAO.getUserByTel(userLoginVO.getUser());
         }
-        if (userLoginVO.getUser().matches(StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION
-        ) && userDO == null) {
+        if (userLoginVO.getUser().matches(StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION)
+                && userDO == null) {
             log.debug(LogConstant.SERVICE + "确认为用户名登录");
             userDO = userDAO.getUserByName(userLoginVO.getUser());
         }
         if (userDO != null) {
-            //检查密码是否正确
-            if (!PasswordUtil.verify(userLoginVO.getPassword(), userDO.getPassword())) {
-                throw new UserAuthenticationException(
-                        UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
-            }
-            return this.loginReturn(userDO);
-        } else {
-            log.debug("确认为学号或工号登录");
-            return null;
+            return this.verifyLogin(userDO, userLoginVO, request);
         }
+        log.debug(LogConstant.SERVICE + "确认为学号或工号登录");
+        return null;
     }
 
     @Override
-    public void userRegistered(UserInitializationVO userInitializationVO) {
-        //查明是否为学生或者老师
-        if (userInitializationVO.getPassword().startsWith("stu")) {
-            log.info("确认为学生初始化");
+    @Transactional
+    public void userRegistered(@NotNull UserInitializationVO userInitializationVO, HttpServletRequest request)
+            throws BusinessException {
+        // 检查用户是否存在
+        this.checkUserExist(
+                userInitializationVO.getName(),
+                userInitializationVO.getEmail(),
+                userInitializationVO.getPhone()
+        );
+        // 尝试获取教师或学生「TRUE 为学生/FALSE 为教师」
+        UserDO userDO;
+        if (userInitializationVO.isType()) {
             StudentDO studentDO = studentDAO.getStudentById(userInitializationVO.getUser());
             if (studentDO == null) {
-                throw new BusinessException("学生信息不存在", ErrorCode.BODY_ERROR);
+                throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
             }
-            if (studentDO.getUserUuid() != null) {
-                throw new BusinessException("用户已注册", ErrorCode.BODY_ERROR);
+            if (studentDO.getUserUuid() != null && !studentDO.getUserUuid().isEmpty()) {
+                throw new BusinessException("学生已注册", ErrorCode.BODY_ERROR);
             }
-            UserDO userDO = registerUserDataExchange(userInitializationVO, "学生");
-            //检查用户是否创建成功
-            userDAO.save(userDO);
-            //查询用户UUID
-            log.info("确认学号用户是否创建成功");
-            UserDO userNewDO = userDAO.getUserByName(userDO.getName());
-            if (userNewDO == null) {
-                throw new BusinessException("查询对应用户失败", ErrorCode.OPERATION_ERROR);
-            }
-            log.info("更新学生表");
-            studentDO.setUserUuid(userNewDO.getUserUuid());
-            studentDAO.updateById(studentDO);
+            userDO = BeanUtil.toBean(userInitializationVO, UserDO.class)
+                    .setRoleUuid(roleDAO.getRoleByName("学生").getRoleUuid());
+            log.debug(LogConstant.SERVICE + "构造用户信息: {}", userDO);
         } else {
-            log.info("确认为老师初始化");
             TeacherDO teacherDO = teacherDAO.getTeacherById(userInitializationVO.getUser());
             if (teacherDO == null) {
-                throw new BusinessException("教师信息不存在", ErrorCode.BODY_ERROR);
+                throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
             }
-            if (teacherDO.getUserUuid() != null) {
-                throw new BusinessException("用户已注册", ErrorCode.BODY_ERROR);
+            if (teacherDO.getUserUuid() != null && !teacherDO.getUserUuid().isEmpty()) {
+                throw new BusinessException("教师已注册", ErrorCode.BODY_ERROR);
             }
-            UserDO userDO = registerUserDataExchange(userInitializationVO, "老师");
-            //检测用户是否创建成功
-            userDAO.save(userDO);
-            //查询用户UUID
-            log.debug("确认用户是否创建成功");
-            UserDO userNewDO = userDAO.getUserByName(userDO.getName());
-            if (userNewDO == null) {
-                throw new BusinessException("查询对应用户失败", ErrorCode.OPERATION_ERROR);
-            }
-            //更新教师表
-            teacherDO.setUserUuid(userNewDO.getUserUuid());
-            teacherDAO.updateById(teacherDO);
+            userDO = BeanUtil.toBean(userInitializationVO, UserDO.class)
+                    .setRoleUuid(roleDAO.getRoleByName("教师").getRoleUuid());
+            log.debug(LogConstant.SERVICE + "构造用户信息: {}", userDO);
         }
-    }
-
-    @Override
-    public void checkPassword(UserInitializationVO userInitializationVO) {
-        log.info("检查新密码是否为初始化密码");
-        log.info("userInitializationVO: {}", userInitializationVO);
-        if (userInitializationVO.getPassword().equals(userInitializationVO.getNewPassword())) {
-            throw new BusinessException("密码不能为初始化密码", ErrorCode.BODY_ERROR);
+        // 构造信息
+        String userUuid = UuidUtil.generateUuidNoDash();
+        userDO
+                .setUserUuid(userUuid)
+                .setPassword(PasswordUtil.encrypt(userInitializationVO.getNewPassword()));
+        userDAO.save(userDO);
+        if (userInitializationVO.isType()) {
+            studentDAO.updateUserUuid(userUuid, userInitializationVO.getUser());
+        } else {
+            teacherDAO.updateUserUuid(userUuid, userInitializationVO.getUser());
         }
-    }
-
-    @Override
-    public UserLoginDTO checkStudentOrTeacher(UserLoginVO userLoginVO, HttpServletRequest request) {
-        UserLoginDTO userLoginDTO = new UserLoginDTO();
-        log.debug("确认为是否为学号登录，检查是否初始化");
-        StudentDO studentDO = studentDAO.getStudentById(userLoginVO.getUser());
-        if (studentDO != null) {
-            //校验是否初始化
-            log.debug("确认为学号登录，检查是否初始化");
-            if (studentDO.getUserUuid() != null) {
-                log.debug("学号登录已经初始化过");
-                UserDO userDoS = userDAO.getById(studentDO.getUserUuid());
-                return idLogin(userDoS, userLoginVO, request);
-            }
-            log.debug("检查密码是否符合初始化标准");
-            if (userLoginVO.getPassword().equals("stu" + userLoginVO.getUser())) {
-                //进行初始化操作
-                log.info("确认为学号登录的初始化");
-                userLoginDTO.setInitialization(true);
-                StudentDTO studentDTO = new StudentDTO();
-                BeanUtils.copyProperties(studentDO, studentDTO);
-                userLoginDTO.setTeacher(null);
-                userLoginDTO.setStudent(studentDTO);
-                return userLoginDTO;
-            }
-            throw new UserAuthenticationException(
-                    UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
-        }
-        TeacherDO teacherDO = teacherDAO.getTeacherById(userLoginVO.getUser());
-        if (teacherDO != null) {
-            log.debug("确认为工号登录，检查是否初始化");
-            if (teacherDO.getUserUuid() != null) {
-                log.debug("工号登录已经初始化过");
-                UserDO userDoT = userDAO.getById(teacherDO.getUserUuid());
-                return idLogin(userDoT, userLoginVO, request);
-            }
-            log.debug("检查密码是否符合初始化要求");
-            if (userLoginVO.getPassword().equals("te" + userLoginVO.getUser())) {
-                log.info("确认为工号登录的初始化");
-                userLoginDTO.setInitialization(true);
-                TeacherDTO teacherDTO = new TeacherDTO();
-                BeanUtils.copyProperties(teacherDO, teacherDTO);
-                userLoginDTO.setStudent(null);
-                userLoginDTO.setTeacher(teacherDTO);
-                return userLoginDTO;
-            }
-            throw new UserAuthenticationException(
-                    UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
-        }
-        throw new UserAuthenticationException(
-                UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
     }
 
     /**
-     * 根据请求中的用户Token获取用户信息。
+     * 检查用户是否使用了默认密码。
      * <p>
-     * 该方法首先从请求头中提取用户Token，然后通过Token在数据库中查找对应的用户信息。
-     * 如果Token有效且用户存在，则返回用户信息；如果Token无效或用户不存在，则抛出相应的异常。
-     * </p>
+     * 该方法用于验证用户设置的新密码是否为系统生成的默认密码。如果新密码与默认密码相同，则抛出 {@code BusinessException} 异常。
      *
-     * @param request HTTP请求对象，用于从中提取用户Token
-     * @return UserDO 用户信息对象，包含用户的详细信息
-     * @throws UserAuthenticationException 如果Token过期或用户不存在时抛出
+     * @param stuOrTeId   学生或教师的唯一标识符，用于生成默认密码
+     * @param newPassword 用户尝试设置的新密码
+     * @throws BusinessException 如果新密码是默认密码，则抛出此异常
+     */
+    @Override
+    public void checkUserNotUseDefaultPassword(@NotNull String stuOrTeId, @NotNull String newPassword)
+            throws BusinessException {
+        String studentPassword = "stu" + stuOrTeId;
+        String teacherPassword = "te" + stuOrTeId;
+        if (newPassword.equals(studentPassword) || newPassword.equals(teacherPassword)) {
+            throw new BusinessException("新密码不能为初始密码", ErrorCode.BODY_ERROR);
+        }
+    }
+
+    /**
+     * 检查新用户的登录信息。
+     * <p>
+     * 该方法首先根据提供的 {@code userLoginVO} 中的用户ID查找学生或教师信息。如果找到的学生或教师已经关联了用户UUID，
+     * 则调用 {@code verifyLogin} 方法进行进一步验证。如果未关联用户UUID，则直接检查密码是否符合默认格式。
+     * 如果密码不匹配，抛出 {@code UserAuthenticationException} 异常。如果所有检查都通过，则返回包含初始化状态的
+     * {@code UserLoginDTO} 对象。
+     *
+     * @param userLoginVO 包含用户登录信息的对象，包括用户ID和密码
+     * @param request     当前HTTP请求对象，用于异常处理时记录请求上下文
+     * @return 包含学生或教师信息以及初始化状态的 {@code UserLoginDTO} 对象
+     * @throws UserAuthenticationException 如果用户不存在、密码错误或其他认证问题发生时抛出
+     */
+    @Override
+    public UserLoginDTO checkLoginForNewUser(@NotNull UserLoginVO userLoginVO, HttpServletRequest request)
+            throws UserAuthenticationException {
+        StudentDO studentDO = studentDAO.getStudentById(userLoginVO.getUser());
+        UserLoginDTO userLoginDTO = new UserLoginDTO();
+        if (studentDO != null) {
+            if (studentDO.getUserUuid() != null && !studentDO.getUserUuid().isEmpty()) {
+                UserDO userDO = userDAO.getUserByUuid(studentDO.getUserUuid());
+                return this.verifyLogin(userDO, userLoginVO, request);
+            }
+            if (!userLoginVO.getPassword().equals("stu" + userLoginVO.getUser())) {
+                throw new UserAuthenticationException(
+                        UserAuthenticationException.ErrorType.WRONG_PASSWORD,
+                        request
+                );
+            }
+            userLoginDTO
+                    .setStudent(BeanUtil.toBean(studentDO, StudentDTO.class))
+                    .setInitialization(true);
+            return userLoginDTO;
+        } else {
+            TeacherDO teacherDO = teacherDAO.getTeacherById(userLoginVO.getUser());
+            if (teacherDO != null) {
+                if (teacherDO.getUserUuid() != null && !teacherDO.getUserUuid().isEmpty()) {
+                    UserDO userDO = userDAO.getUserByUuid(teacherDO.getUserUuid());
+                    return verifyLogin(userDO, userLoginVO, request);
+                }
+                if (!userLoginVO.getPassword().equals("te" + userLoginVO.getUser())) {
+                    throw new UserAuthenticationException(
+                            UserAuthenticationException.ErrorType.WRONG_PASSWORD,
+                            request
+                    );
+                }
+                userLoginDTO
+                        .setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class))
+                        .setInitialization(true);
+                return userLoginDTO;
+            } else {
+                throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+            }
+        }
+    }
+
+    /**
+     * 根据传入的 {@code HttpServletRequest} 请求对象获取对应的用户信息。
+     * <p>
+     * 该方法首先通过请求头中的特定字段（如Authorization）获取用户的Token，然后使用这个Token从数据库中查询对应用户的信息。
+     * 如果Token有效且存在对应的用户，则返回该用户信息；如果Token无效或没有找到对应的用户，则抛出相应的异常。
+     *
+     * @param request 包含用户认证信息的HTTP请求对象
+     * @return 返回与请求中的Token关联的用户信息
+     * @throws UserAuthenticationException 当Token过期或不存在对应的用户时抛出此异常
      */
     @Override
     public UserDO getUserByRequest(HttpServletRequest request) {

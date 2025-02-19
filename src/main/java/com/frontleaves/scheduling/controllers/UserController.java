@@ -31,12 +31,13 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
-import com.frontleaves.scheduling.service.UserService;
+import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -65,7 +66,7 @@ public class UserController {
      * 用户登录接口
      * <p>
      * 此接口用于处理用户登录逻辑，支持多种登录方式：
-     * <ul>
+     * <ol>
      *   <li>当用户已存在时，可通过用户名、手机或邮箱登录。</li>
      *   <li>
      *     若用户不存在，但输入的凭据为学号或工号且密码为默认格式（{@code stu+学号} 或 {@code te+工号}），
@@ -75,7 +76,7 @@ public class UserController {
      *     如果用户既不存在于用户表，也不在学生/教师表中，则响应中将包含 {@code initialization} 字段，
      *     用于通知前端该用户为未注册状态，需要进一步完善用户信息。
      *   </li>
-     * </ul>
+     * </ol>
      *
      * @param userLoginVO 包含用户登录请求信息的视图对象，已通过验证
      * @return 返回包含用户登录信息的响应实体。若响应数据中含有 {@code initialization} 字段，则表示该用户尚未完成正式注册，
@@ -87,18 +88,12 @@ public class UserController {
             @RequestBody @Validated UserLoginVO userLoginVO,
             HttpServletRequest request
     ) {
-        //检查用户登录信息（控制层已经检查是否为空）
-        UserLoginDTO userLoginDTO = userService.checkLoginData(userLoginVO,request);
-        if (userLoginDTO == null) {
-            //确认为学号或者工号登录
-            userLoginDTO = userService.checkStudentOrTeacher(userLoginVO,request);
-        }
-        if (Boolean.TRUE.equals(userLoginDTO.getInitialization())) {
-            //用户为初始化状态，引导用户进入注册页面
-            return ResultUtil.success("请先进行注册", userLoginDTO);
-        } else {
-            //用户登录成功
+        UserLoginDTO userLoginDTO = userService.checkLoginForUser(userLoginVO, request);
+        if (userLoginDTO != null) {
             return ResultUtil.success("登录成功", userLoginDTO);
+        } else {
+            UserLoginDTO newUserLoginDTO = userService.checkLoginForNewUser(userLoginVO, request);
+            return ResultUtil.success("登录成功", newUserLoginDTO);
         }
     }
 
@@ -114,11 +109,14 @@ public class UserController {
      */
     @PostMapping("/registered")
     public ResponseEntity<BaseResponse<Void>> userRegistered(
-            @RequestBody @Validated UserInitializationVO userInitializationVO
+            @RequestBody @Validated UserInitializationVO userInitializationVO,
+            @NotNull HttpServletRequest request
     ) {
-        userService.checkPassword(userInitializationVO);
-        //初始化用户注册
-        userService.userRegistered(userInitializationVO);
+        userService.checkUserNotUseDefaultPassword(
+                userInitializationVO.getUser(),
+                userInitializationVO.getNewPassword()
+        );
+        userService.userRegistered(userInitializationVO, request);
         return ResultUtil.success("注册成功");
     }
 }

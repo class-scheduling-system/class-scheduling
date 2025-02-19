@@ -28,17 +28,24 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.RoleMapper;
+import com.frontleaves.scheduling.models.dto.RoleDTO;
 import com.frontleaves.scheduling.models.entity.RoleDO;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Repository;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Transaction;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -58,34 +65,98 @@ public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> implements IService
     private final Jedis jedis;
 
     /**
-     * 通过角色 UUID 获取角色信息
+     * 通过角色 UUID 获取角色信息。
+     * <p>
+     * 该方法首先尝试从 Redis 中获取角色信息，如果 Redis 中不存在，则从数据库中查询角色信息并将其存入 Redis。
+     * 如果在 Redis 和数据库中都未找到角色信息，则返回 null。
      *
-     * @param roleUuid 角色 UUID
-     * @return 角色信息
+     * @param roleUuid 角色的 UUID
+     * @return 返回角色信息，如果未找到则返回 null
+     * @throws ServerInternalErrorException 如果数据库操作失败
      */
-    public RoleDO getRoleByUuid(String roleUuid) {
-        RoleDO roleDO = this.getById(roleUuid);
-        if (roleDO != null) {
-            Map<String, String> getMap = ConvertUtil.convertObjectToMapString(roleDO);
-            log.debug("[DAO] getRoleByUuid: \n{}", getMap);
-            jedis.hset(StringConstant.Redis.ROLE_UUID + roleUuid, getMap);
+    public RoleDTO getRoleByUuid(String roleUuid) throws ServerInternalErrorException {
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.ROLE_UUID + roleUuid);
+        if (map.isEmpty()) {
+            RoleDO roleDO = this.lambdaQuery().eq(RoleDO::getRoleUuid, roleUuid).one();
+            if (roleDO != null) {
+                try (Transaction transaction = jedis.multi()) {
+                    transaction.hset(StringConstant.Redis.ROLE_UUID + roleUuid, ConvertUtil.convertObjectToMapString(roleDO));
+                    transaction.exec();
+                } catch (Exception e) {
+                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+                }
+                return reorganizePermissions(roleDO);
+            }
+        } else {
+            return reorganizePermissionsRedis(map);
         }
-        return roleDO;
+        return null;
     }
 
     /**
      * 通过角色名称获取角色信息
+     * <p>
+     * 该方法首先尝试从 Redis 中获取角色信息，如果 Redis 中不存在，则从数据库中查询角色信息并将其存入 Redis。
+     * 如果在 Redis 和数据库中都未找到角色信息，则返回 null。如果在 Redis 或数据库中找到了角色信息，则将其转换为 {@code RoleDTO} 对象并返回。
      *
      * @param roleName 角色名称
-     * @return 角色信息
+     * @return 返回角色信息的 DTO 对象，如果未找到则返回 null
+     * @throws ServerInternalErrorException 如果在操作数据库或 Redis 时发生异常
      */
-    public RoleDO getRoleByName(String roleName) {
-        RoleDO roleDO = this.lambdaQuery().eq(RoleDO::getRoleName, roleName).one();
-        if (roleDO != null) {
-            Map<String, String> getMap = ConvertUtil.convertObjectToMapString(roleDO);
-            log.debug("[DAO] getRoleByName: \n{}", getMap);
-            jedis.hset(StringConstant.Redis.ROLE_NAME + roleName, getMap);
+    public RoleDTO getRoleByName(String roleName) throws ServerInternalErrorException {
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.ROLE_NAME + roleName);
+        if (map.isEmpty()) {
+            RoleDO roleDO = this.lambdaQuery().eq(RoleDO::getRoleName, roleName).one();
+            if (roleDO != null) {
+                try (Transaction transaction = jedis.multi()) {
+                    transaction.hset(StringConstant.Redis.ROLE_NAME + roleName, ConvertUtil.convertObjectToMapString(roleDO));
+                    transaction.exec();
+                } catch (Exception e) {
+                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+                }
+                return reorganizePermissions(roleDO);
+            }
+        } else {
+            return reorganizePermissionsRedis(map);
         }
-        return roleDO;
+        return null;
+    }
+
+    /**
+     * 重新组织权限信息并转换为 RoleDTO 对象
+     * <p>
+     * 该方法接收一个包含权限信息的 Map，并将其转换为 {@code RoleDTO} 对象。如果 Map 中包含 "permission" 键且其值不为空，
+     * 则将该键对应的值解析为字符串列表，并设置到返回的 {@code RoleDTO} 对象中。如果 "permission" 键不存在或其值为空，则直接将 Map 转换为 {@code RoleDTO} 对象。
+     * </p>
+     *
+     * @param map 包含角色和权限信息的映射，其中 "permission" 键用于存储权限信息
+     * @return 返回包含角色和权限信息的 RoleDTO 对象
+     */
+    private RoleDTO reorganizePermissionsRedis(@NotNull Map<String, String> map) {
+        if (map.get("permission").isEmpty()) {
+            return BeanUtil.toBean(map, RoleDTO.class);
+        } else {
+            List<String> permissionDOList = JSONUtil.parseArray(map.get("permission")).toList(String.class);
+            return BeanUtil.toBean(map, RoleDTO.class).setPermission(permissionDOList);
+        }
+    }
+
+    /**
+     * 重新组织权限信息
+     * <p>
+     * 该方法用于将 {@code RoleDO} 对象转换为 {@code RoleDTO} 对象，并处理权限信息。
+     * 如果 {@code RoleDO} 中的权限信息为空或不存在，则直接进行对象转换；否则，将权限信息解析为字符串列表并设置到 {@code RoleDTO} 中。
+     * </p>
+     *
+     * @param roleDO 角色数据对象，包含角色的基本信息和权限信息
+     * @return 转换后的角色传输对象，包含重新组织的权限信息
+     */
+    private RoleDTO reorganizePermissions(@NotNull RoleDO roleDO) {
+        if (roleDO.getPermission() == null || roleDO.getPermission().isEmpty()) {
+            return BeanUtil.toBean(roleDO, RoleDTO.class);
+        } else {
+            List<String> permissionList = JSONUtil.parseArray(roleDO.getPermission()).toList(String.class);
+            return BeanUtil.toBean(roleDO, RoleDTO.class).setPermission(permissionList);
+        }
     }
 }

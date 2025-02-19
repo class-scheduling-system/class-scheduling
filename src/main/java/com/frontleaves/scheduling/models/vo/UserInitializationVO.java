@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.models.vo;
 import com.frontleaves.scheduling.constants.StringConstant;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -55,19 +56,23 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserInitializationVO {
-    @NotBlank(message = "用户名不能为空")
+    @NotNull(message = "类型只能为学生「TRUE」或老师「FALSE」")
+    private boolean type;
+    @NotBlank(message = "学号/工号不能为空")
+    @NotNull
     private String user;
-    @NotBlank(message = "密码不能为空")
-    private String password;
     @Pattern(regexp = StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION,
             message = "用户名格式不正确，应为4-32位的字母、数字、下划线或短横线")
+    @NotNull
     private String name;
     @Pattern(regexp = StringConstant.Regular.PASSWORD_REGULAR_EXPRESSION,
             message = "强密码(必须包含大小写字母和数字的组合，可以使用特殊字符，至少6位）")
-    @NotBlank(message = "新密码不能为空")
+    @NotNull
     private String newPassword;
     @Email(message = "邮箱格式不正确")
+    @NotNull
     private String email;
+    @NotNull
     @Pattern(regexp = StringConstant.Regular.PHONE_REGULAR_EXPRESSION,
             message = "手机号格式不正确")
     private String phone;
