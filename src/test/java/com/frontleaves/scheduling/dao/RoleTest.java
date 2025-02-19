@@ -29,6 +29,7 @@
 package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.daos.RoleDAO;
+import com.frontleaves.scheduling.models.dto.RoleDTO;
 import com.frontleaves.scheduling.models.entity.RoleDO;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +54,7 @@ class RoleTest {
     @Test
     void testGetRoleByName() {
         // 测试角色
-        RoleDO roleDO = roleDAO.getRoleByName("管理员");
+        RoleDTO roleDO = roleDAO.getRoleByName("管理员");
         Assertions.assertNotNull(roleDO);
     }
 
@@ -62,14 +63,14 @@ class RoleTest {
         RoleDO roleDO = roleDAO.lambdaQuery().eq(RoleDO::getRoleName, "管理员").one();
         assert roleDO != null;
         // 测试角色
-        RoleDO getRole = roleDAO.getRoleByUuid(roleDO.getRoleUuid());
+        RoleDTO getRole = roleDAO.getRoleByUuid(roleDO.getRoleUuid());
         Assertions.assertNotNull(getRole);
     }
 
     @Test
     void testGetNullRoleByUuid() {
         // 测试角色
-        RoleDO getRole = roleDAO.getRoleByUuid("null");
+        RoleDTO getRole = roleDAO.getRoleByUuid("null");
         Assertions.assertNull(getRole);
     }
 }

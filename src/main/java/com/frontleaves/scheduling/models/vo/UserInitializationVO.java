@@ -26,60 +26,55 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.models.vo;
 
+import com.frontleaves.scheduling.constants.StringConstant;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
-
-import java.sql.Timestamp;
-import java.util.List;
 
 /**
- * 角色数据传输对象
+ * 用户初始化视图对象
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
+ * 此类用于封装用户在初始化时所需提供的信息，
+ * 包括用户名、密码以及验证相关的信息如新密码、
+ * 姓名、邮箱和手机号。数据校验规则通过注解实现，
+ * 确保接收到的数据符合系统要求。
  * </p>
  *
+ * @author FLASHLACK
  * @version v1.0.0
+ * @see InitVO 初始化视图对象参考
+ * @see UserLoginVO 用户登录视图对象参考
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Accessors(chain = true)
-public class RoleDTO {
+public class UserInitializationVO {
+    @NotNull(message = "类型只能为学生「TRUE」或老师「FALSE」")
+    private boolean type;
+    @NotBlank(message = "学号/工号不能为空")
+    @NotNull
+    private String user;
+    @Pattern(regexp = StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION,
+            message = "用户名格式不正确，应为4-32位的字母、数字、下划线或短横线")
+    @NotNull
+    private String name;
+    @Pattern(regexp = StringConstant.Regular.PASSWORD_REGULAR_EXPRESSION,
+            message = "强密码(必须包含大小写字母和数字的组合，可以使用特殊字符，至少6位）")
+    @NotNull
+    private String newPassword;
+    @Email(message = "邮箱格式不正确")
+    @NotNull
+    private String email;
+    @NotNull
+    @Pattern(regexp = StringConstant.Regular.PHONE_REGULAR_EXPRESSION,
+            message = "手机号格式不正确")
+    private String phone;
 
-    /**
-     * 角色主键，采用 UUID 自动生成
-     */
-    private String roleUuid;
-
-    /**
-     * 角色名
-     */
-    private String roleName;
-
-    /**
-     * 角色状态 0: 禁用 1: 启用
-     */
-    private Integer roleStatus;
-
-    /**
-     * 角色权限，JSON 格式
-     */
-    private List<String> permission;
-
-    /**
-     * 创建时间
-     */
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    private Timestamp updatedAt;
 }

@@ -26,60 +26,66 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.models.entity;
 
-import lombok.AllArgsConstructor;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
-import java.util.List;
 
 /**
- * 角色数据传输对象
+ * 专业表实体类
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
+ * 对应数据库表：`cs_major`
+ * 主键为 major_uuid，类型为 UUID 自动生成。
  * </p>
  *
- * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
+ * @version v1.0.0
+ * @author FLASHLACK
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@TableName("cs_major")
 @Accessors(chain = true)
-public class RoleDTO {
-
+public class MajorDO {
     /**
-     * 角色主键，采用 UUID 自动生成
+     * 专业主键，自增
      */
-    private String roleUuid;
-
+    @TableId(value = "major_uuid", type = IdType.ASSIGN_UUID)
+    private String majorUuid;
     /**
-     * 角色名
+     * 专业名词
      */
-    private String roleName;
-
+    @TableField(value = "major_name")
+    private String majorName;
     /**
-     * 角色状态 0: 禁用 1: 启用
+     * 专业描述
      */
-    private Integer roleStatus;
-
+    @TableField(value = "major_description")
+    private String majorDescription;
     /**
-     * 角色权限，JSON 格式
+     * 专业代码
      */
-    private List<String> permission;
-
+    @TableField(value = "major_code")
+    private String majorCode;
+    /**
+     * 专业状态，0：禁用，1：启用
+     */
+    @TableField(value = "majorStatus")
+    private Integer majorStatus;
     /**
      * 创建时间
      */
+    @TableField(value = "created_at")
     private Timestamp createdAt;
-
     /**
      * 更新时间
      */
+    @TableField(value = "updated_at")
     private Timestamp updatedAt;
+
 }

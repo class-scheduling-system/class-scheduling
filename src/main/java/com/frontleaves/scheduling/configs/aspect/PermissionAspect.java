@@ -35,8 +35,8 @@ import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.daos.PermissionDAO;
 import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.TokenDAO;
+import com.frontleaves.scheduling.models.dto.RoleDTO;
 import com.frontleaves.scheduling.models.entity.PermissionDO;
-import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
@@ -132,10 +132,13 @@ public class PermissionAspect {
                             permissionDO -> {},
                             () -> {
                                 // 不具备权限获取所在角色
-                                RoleDO roleDO = roleDAO.getRoleByUuid(getUser.getRoleUuid());
-                                assert roleDO != null;
-                                JSONUtil.toList(JSONUtil.parseArray(roleDO.getPermission()), PermissionDO.class).stream()
-                                        .filter(permissionDO -> permissionDO.getPermissionKey().equals(permission))
+                                RoleDTO roleDTO = roleDAO.getRoleByUuid(getUser.getRoleUuid());
+                                assert roleDTO != null;
+                                roleDTO.getPermission().stream()
+                                        .filter(permissionDO -> {
+                                            PermissionDO rolePermissionDO = permissionDAO.getPermissionKey(permission);
+                                            return rolePermissionDO != null && rolePermissionDO.getPermissionKey().equals(permission);
+                                        })
                                         .findFirst()
                                         .orElseThrow(() -> new UserAuthenticationException(UserAuthenticationException.ErrorType.PERMISSION_DENIED, request));
                             }
@@ -205,7 +208,7 @@ public class PermissionAspect {
         String role = methodSignature.getMethod().getAnnotation(RequestRole.class).value();
 
         // 可以继续后续的权限检查逻辑，如查询数据库等
-        RoleDO foundRole = roleDAO.getRoleByName(role);
+        RoleDTO foundRole = roleDAO.getRoleByName(role);
         if (foundRole == null) {
             throw new ServerInternalErrorException("角色 " + role + " 不存在，请检查接口" + methodSignature.getName() + "的角色配置");
         }

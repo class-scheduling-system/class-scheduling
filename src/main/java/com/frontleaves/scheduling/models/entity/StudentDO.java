@@ -26,60 +26,88 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.models.entity;
 
-import lombok.AllArgsConstructor;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
-import java.util.List;
 
 /**
- * 角色数据传输对象
+ * 学生信息实体类
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
+ * 对应数据库表：`cs_student`
+ * 本类用于描述学生的基本信息，包括学号、姓名、性别、年级、学院、专业、班级等，
+ * 并关联了用户主键。主键(student_uuid)采用 UUID 自动生成。
  * </p>
  *
+ * @author FLASHLACK
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@TableName(value = "cs_student")
 @Accessors(chain = true)
-public class RoleDTO {
-
+public class StudentDO {
     /**
-     * 角色主键，采用 UUID 自动生成
+     * 学生主键，采用 UUID 自动生成
      */
-    private String roleUuid;
-
+    @TableId(value = "student_uuid", type = IdType.ASSIGN_UUID)
+    private String studentUuid;
     /**
-     * 角色名
+     * 学号
      */
-    private String roleName;
-
+    @TableField(value = "id")
+    private String id;
     /**
-     * 角色状态 0: 禁用 1: 启用
+     * 姓名
      */
-    private Integer roleStatus;
-
+    @TableField(value = "name")
+    private String name;
     /**
-     * 角色权限，JSON 格式
+     * 性别 0:女 1:男
      */
-    private List<String> permission;
-
+    @TableField(value = "gender")
+    private Integer gender;
+    /**
+     * 年级
+     */
+    @TableField(value = "grade")
+    private String grade;
+    /**
+     * 学院
+     */
+    @TableField(value = "department")
+    private String department;
+    /**
+     * 专业
+     */
+    @TableField(value = "major")
+    private String major;
+    /**
+     * 班级
+     */
+    @TableField(value = "class")
+    private String clazz;
+    /**
+     * 对应用户主键
+     */
+    @TableField(value = "user_uuid")
+    private String userUuid;
     /**
      * 创建时间
      */
+    @TableField(value = "created_at")
     private Timestamp createdAt;
-
     /**
      * 更新时间
      */
+    @TableField(value = "updated_at")
     private Timestamp updatedAt;
+
+
 }
