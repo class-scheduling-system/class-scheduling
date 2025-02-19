@@ -32,7 +32,6 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -106,12 +105,10 @@ public class TeacherDO {
     /**
      * 创建时间
      */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp createdAt;
     /**
      * 更新时间
      */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp updatedAt;
 
 }
