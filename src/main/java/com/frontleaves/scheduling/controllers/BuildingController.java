@@ -177,4 +177,21 @@ public class BuildingController {
         );
         return ResultUtil.success("更新教学楼成功");
     }
+
+    /**
+     * 删除教学楼
+     * <p>
+     * 该方法通过提供的教学楼唯一标识符 {@code buildingUuid} 来删除指定的教学楼。
+     * 成功删除后，返回一个包含成功信息的响应实体。
+     *
+     * @param buildingUuid 教学楼的唯一标识符
+     * @return 包含操作结果的响应实体，成功时返回成功信息
+     */
+    @DeleteMapping("/{building_uuid}")
+    public ResponseEntity<BaseResponse<Void>> deleteBuilding(
+            @PathVariable("building_uuid") String buildingUuid
+    ) {
+        buildingService.deleteBuilding(buildingUuid);
+        return ResultUtil.success("删除教学楼成功");
+    }
 }

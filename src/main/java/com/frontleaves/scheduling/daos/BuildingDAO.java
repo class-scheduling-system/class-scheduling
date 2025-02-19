@@ -285,4 +285,28 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
+
+    /**
+     * 删除教学楼信息
+     * <p>
+     * 该方法用于删除给定的教学楼信息，并清除与该教学楼相关的所有 Redis 缓存。如果操作成功，将从数据库中删除记录并删除相关的缓存键。
+     * 如果在执行过程中发生异常，则会抛出 {@code ServerInternalErrorException} 异常。
+     * </p>
+     *
+     * @param buildingDO 包含要删除的教学楼信息的对象
+     * @throws ServerInternalErrorException 如果在删除过程中发生异常
+     */
+    @Transactional
+    public void deleteBuilding(BuildingDO buildingDO) {
+        try (Transaction transaction = jedis.multi()) {
+            transaction.del(StringConstant.Redis.BUILDING_LIST + "*");
+            transaction.del(StringConstant.Redis.BUILDING_UUID + buildingDO.getBuildingUuid());
+            transaction.del(StringConstant.Redis.BUILDING_NAME + buildingDO.getBuildingName());
+            transaction.del(StringConstant.Redis.BUILDING_CAMPUS + buildingDO.getCampusUuid() + "*");
+
+            this.removeById(buildingDO.getBuildingUuid());
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
 }
