@@ -89,6 +89,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
                 } catch (Exception e) {
                     throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
                 }
+                return teacherDO;
             }
         } else {
             return BeanUtil.toBean(map, TeacherDO.class);
@@ -120,6 +121,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
                 } catch (Exception e) {
                     throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
                 }
+                return teacherDO;
             }
         } else {
             return BeanUtil.toBean(map, TeacherDO.class);
@@ -139,8 +141,8 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
      * @throws ServerInternalErrorException 如果更新过程中发生其他异常
      */
     public void updateUserUuid(String userUuid, String teacherId) throws BusinessException, ServerInternalErrorException {
+        TeacherDO teacherDO = this.getTeacherById(teacherId);
         try (Transaction transaction = jedis.multi()) {
-            TeacherDO teacherDO = this.getTeacherById(teacherId);
             if (teacherDO != null) {
                 transaction.del(StringConstant.Redis.TEACHER_ID + teacherDO.getId());
                 transaction.del(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid());

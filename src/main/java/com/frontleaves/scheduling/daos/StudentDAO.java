@@ -90,6 +90,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
                 } catch (Exception e) {
                     throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
                 }
+                return studentDO;
             }
         } else {
             return BeanUtil.toBean(map, StudentDO.class);
@@ -121,6 +122,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
                 } catch (Exception e) {
                     throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
                 }
+                return studentDO;
             }
         } else {
             return BeanUtil.toBean(map, StudentDO.class);
@@ -140,8 +142,8 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
      * @throws BusinessException            如果未找到对应的学生信息
      */
     public void updateUserUuid(String userUuid, String studentId) throws BusinessException, ServerInternalErrorException {
+        StudentDO studentDO = this.getStudentById(studentId);
         try (Transaction transaction = jedis.multi()) {
-            StudentDO studentDO = this.getStudentById(studentId);
             if (studentDO != null) {
                 transaction.del(StringConstant.Redis.STUDENT_ID + studentDO.getId());
                 transaction.del(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());

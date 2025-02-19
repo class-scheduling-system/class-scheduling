@@ -55,6 +55,8 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+
 /**
  * 用户逻辑处理服务类，实现了 {@code UserService} 接口。该类主要负责处理用户登录验证、注册等核心业务逻辑。
  * 通过与多个 DAO 层对象协作，完成数据的存取操作，并基于这些数据构建响应体或进行有效性检查。
@@ -76,6 +78,70 @@ public class UserLogic implements UserService {
     private final RoleDAO roleDAO;
     private final TokenDAO tokenDAO;
 
+
+    /**
+     * 检查新用户通过学生信息登录
+     * <p>
+     * 该方法用于检查新用户是否可以通过提供的学生信息进行登录。如果学生已关联用户，则使用关联的用户信息验证登录。
+     * 如果学生未关联用户，则检查密码是否符合特定格式，如果符合则初始化一个新的用户登录信息。
+     *
+     * @param studentDO   学生数据对象 {@code StudentDO}，包含学生的详细信息
+     * @param userLoginVO 用户登录视图对象 {@code UserLoginVO}，包含用户的登录信息
+     * @param request     HTTP 请求对象 {@code HttpServletRequest}，包含请求的相关信息
+     * @return 返回一个包含登录结果的 {@code UserLoginDTO} 对象
+     * @throws UserAuthenticationException 如果密码不正确或验证失败，抛出用户认证异常
+     */
+    @NotNull
+    private UserLoginDTO checkLoginForNewUserByStudent(@NotNull StudentDO studentDO, UserLoginVO userLoginVO, HttpServletRequest request) {
+        UserLoginDTO userLoginDTO = new UserLoginDTO();
+        if (studentDO.getUserUuid() != null && !studentDO.getUserUuid().isEmpty()) {
+            UserDO userDO = userDAO.getUserByUuid(studentDO.getUserUuid());
+            return this.verifyLogin(userDO, userLoginVO, request);
+        }
+        if (!userLoginVO.getPassword().equals("stu" + userLoginVO.getUser())) {
+            throw new UserAuthenticationException(
+                    UserAuthenticationException.ErrorType.WRONG_PASSWORD,
+                    request
+            );
+        }
+        userLoginDTO
+                .setStudent(BeanUtil.toBean(studentDO, StudentDTO.class))
+                .setInitialization(true);
+        return userLoginDTO;
+    }
+
+    /**
+     * 检查新用户登录并初始化用户信息
+     * <p>
+     * 该方法用于教师角色下的新用户登录验证。首先检查教师对象是否关联了有效的用户UUID，如果存在则直接调用验证登录方法。
+     * 如果不存在，则通过比对 {@code userLoginVO} 中的密码与特定规则（"te" + 用户名）来验证登录信息。如果密码验证失败，
+     * 则抛出 {@code UserAuthenticationException} 异常。若验证成功，则创建一个新的 {@code UserLoginDTO} 对象，并设置其为初始化状态。
+     *
+     * @param teacherDO   教师数据对象，包含教师相关信息
+     * @param userLoginVO 用户登录视图对象，包含用户名和密码等登录信息
+     * @param request     HTTP请求对象，用于传递请求上下文信息
+     * @return 返回一个包含教师信息和初始化标志的 {@code UserLoginDTO} 对象
+     * @throws UserAuthenticationException 当密码验证失败时抛出此异常
+     */
+    @NotNull
+    private UserLoginDTO checkLoginForNewUserByTeacher(@NotNull TeacherDO teacherDO, UserLoginVO userLoginVO, HttpServletRequest request) {
+        UserLoginDTO userLoginDTO = new UserLoginDTO();
+        if (teacherDO.getUserUuid() != null && !teacherDO.getUserUuid().isEmpty()) {
+            UserDO userDO = userDAO.getUserByUuid(teacherDO.getUserUuid());
+            return this.verifyLogin(userDO, userLoginVO, request);
+        }
+        if (!userLoginVO.getPassword().equals("te" + userLoginVO.getUser())) {
+            throw new UserAuthenticationException(
+                    UserAuthenticationException.ErrorType.WRONG_PASSWORD,
+                    request
+            );
+        }
+        userLoginDTO
+                .setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class))
+                .setInitialization(true);
+        return userLoginDTO;
+    }
+
     /**
      * 根据用户数据对象（UserDO）生成一个包含登录信息的 DTO 对象。
      * <p>
@@ -89,8 +155,12 @@ public class UserLogic implements UserService {
     private @NotNull UserLoginDTO buildLoginData(@NotNull UserDO userDO) {
         RoleDTO roleDTO = roleDAO.getRoleByUuid(userDO.getRoleUuid());
         UserDTO userDTO = BeanUtil.toBean(userDO, UserDTO.class)
-                .setPermission(JSONUtil.parseArray(userDO.getPermission()).toList(String.class))
                 .setRole(BeanUtil.toBean(roleDTO, RoleDTO.class));
+        if (userDO.getPermission() != null && !userDO.getPermission().isEmpty()) {
+            userDTO.setPermission(JSONUtil.parseArray(userDO.getPermission()).toList(String.class));
+        } else {
+            userDTO.setPermission(new ArrayList<>());
+        }
         UserLoginDTO userLoginDTO = new UserLoginDTO();
         // 学生教师验证「确认信息后将信息填入」
         StudentDO studentDO = studentDAO.getStudentByUuid(userDO.getUserUuid());
@@ -206,7 +276,6 @@ public class UserLogic implements UserService {
             }
             userDO = BeanUtil.toBean(userInitializationVO, UserDO.class)
                     .setRoleUuid(roleDAO.getRoleByName("学生").getRoleUuid());
-            log.debug(LogConstant.SERVICE + "构造用户信息: {}", userDO);
         } else {
             TeacherDO teacherDO = teacherDAO.getTeacherById(userInitializationVO.getUser());
             if (teacherDO == null) {
@@ -217,7 +286,6 @@ public class UserLogic implements UserService {
             }
             userDO = BeanUtil.toBean(userInitializationVO, UserDO.class)
                     .setRoleUuid(roleDAO.getRoleByName("教师").getRoleUuid());
-            log.debug(LogConstant.SERVICE + "构造用户信息: {}", userDO);
         }
         // 构造信息
         String userUuid = UuidUtil.generateUuidNoDash();
@@ -268,39 +336,12 @@ public class UserLogic implements UserService {
     public UserLoginDTO checkLoginForNewUser(@NotNull UserLoginVO userLoginVO, HttpServletRequest request)
             throws UserAuthenticationException {
         StudentDO studentDO = studentDAO.getStudentById(userLoginVO.getUser());
-        UserLoginDTO userLoginDTO = new UserLoginDTO();
         if (studentDO != null) {
-            if (studentDO.getUserUuid() != null && !studentDO.getUserUuid().isEmpty()) {
-                UserDO userDO = userDAO.getUserByUuid(studentDO.getUserUuid());
-                return this.verifyLogin(userDO, userLoginVO, request);
-            }
-            if (!userLoginVO.getPassword().equals("stu" + userLoginVO.getUser())) {
-                throw new UserAuthenticationException(
-                        UserAuthenticationException.ErrorType.WRONG_PASSWORD,
-                        request
-                );
-            }
-            userLoginDTO
-                    .setStudent(BeanUtil.toBean(studentDO, StudentDTO.class))
-                    .setInitialization(true);
-            return userLoginDTO;
+            return this.checkLoginForNewUserByStudent(studentDO, userLoginVO, request);
         } else {
             TeacherDO teacherDO = teacherDAO.getTeacherById(userLoginVO.getUser());
             if (teacherDO != null) {
-                if (teacherDO.getUserUuid() != null && !teacherDO.getUserUuid().isEmpty()) {
-                    UserDO userDO = userDAO.getUserByUuid(teacherDO.getUserUuid());
-                    return verifyLogin(userDO, userLoginVO, request);
-                }
-                if (!userLoginVO.getPassword().equals("te" + userLoginVO.getUser())) {
-                    throw new UserAuthenticationException(
-                            UserAuthenticationException.ErrorType.WRONG_PASSWORD,
-                            request
-                    );
-                }
-                userLoginDTO
-                        .setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class))
-                        .setInitialization(true);
-                return userLoginDTO;
+                return this.checkLoginForNewUserByTeacher(teacherDO, userLoginVO, request);
             } else {
                 throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
             }
