@@ -26,32 +26,36 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.dao;
+package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.daos.TokenDAO;
-import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.TokenDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
-import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import com.xlf.utility.exception.library.UserAuthenticationException;
+import jakarta.servlet.http.HttpServletRequest;
 
-@Slf4j
-@SpringBootTest
-class TokenTest {
-    @Resource
-    private UserDAO userDAO;
-    @Resource
-    private TokenDAO tokenDAO;
+/**
+ * 用户服务接口，定义了与用户相关的操作方法。
+ * 该接口可以被具体实现类继承，以提供具体的业务逻辑。
+ * <p>
+ * 本接口中的方法主要用于处理用户的增删改查等基本操作，
+ * 以及可能的其他扩展功能。具体实现细节由实现类决定。
+ * </p>
+ *
+ * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
+ */
+public interface UserService {
 
-    @Test
-    void testVerifyToken() {
-        UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, "test").one();
-        TokenDTO getToken = tokenDAO.createToken(userDO);
-        log.debug("testVerifyToken - getToken: {}", getToken);
-        // 验证 Token
-        Assertions.assertTrue(tokenDAO.verifyToken(getToken.getToken(), userDO));
-    }
+    /**
+     * 根据请求中的用户Token获取用户信息。
+     * <p>
+     * 该方法首先从请求头中提取用户Token，然后通过Token在数据库中查找对应的用户信息。
+     * 如果Token有效且用户存在，则返回用户信息；如果Token无效或用户不存在，则抛出相应的异常。
+     * </p>
+     *
+     * @param request HTTP请求对象，用于从中提取用户Token
+     * @return UserDO 用户信息对象，包含用户的详细信息
+     * @throws UserAuthenticationException 如果Token过期或用户不存在时抛出
+     */
+    UserDO getUserByRequest(HttpServletRequest request);
 }

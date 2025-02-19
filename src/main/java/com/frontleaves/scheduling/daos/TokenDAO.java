@@ -67,6 +67,7 @@ import java.util.UUID;
 public class TokenDAO {
 
     private final Jedis jedis;
+    private final UserDAO userDAO;
 
     /**
      * 创建新的 Token 并存储到 Redis 中。
@@ -218,5 +219,21 @@ public class TokenDAO {
         }
         jedis.del(StringConstant.Redis.TOKEN + token);
         return true;
+    }
+
+    /**
+     * 根据用户Token获取用户信息
+     *
+     * @param userToken 用户Token，用于在Redis中查询用户UUID
+     * @return UserDO 用户信息对象，如果根据Token未查询到用户，则返回null
+     */
+    public UserDO getTokenUser(String userToken) {
+        List<String> getToken = jedis.hmget(StringConstant.Redis.TOKEN + userToken,
+                StringConstant.Common.Hump.USER_UUID
+        );
+        if (getToken == null || getToken.isEmpty()) {
+            return null;
+        }
+        return userDAO.getUserByUuid(getToken.get(0));
     }
 }

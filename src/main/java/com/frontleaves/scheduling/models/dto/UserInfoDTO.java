@@ -26,32 +26,50 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.dao;
+package com.frontleaves.scheduling.models.dto;
 
-import com.frontleaves.scheduling.daos.TokenDAO;
-import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.TokenDTO;
-import com.frontleaves.scheduling.models.entity.UserDO;
-import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
-@Slf4j
-@SpringBootTest
-class TokenTest {
-    @Resource
-    private UserDAO userDAO;
-    @Resource
-    private TokenDAO tokenDAO;
+/**
+ * 用户信息数据传输对象。
+ * <p>
+ * 该类用于在不同层之间传输用户的基本信息以及其对应的身份信息（如学生或教师）。
+ * 具体来说，它包含了用户的通用信息、学生信息和教师信息。根据登录用户的不同身份，
+ * 相应的属性会被填充，而其他身份的信息则为 {@code null}。
+ * </p>
+ *
+ * @author xiao_lfeng
+ * @version v1.0.0
+ * @see UserDTO 用户数据传输对象
+ * @see StudentDTO 学生数据传输对象
+ * @see TeacherDTO 教师数据传输对象
+ * @since v1.0.0
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+public class UserInfoDTO {
+    /**
+     * 用户数据传输对象，若用户未注册则为 {@code null}
+     */
+    @NotNull
+    private UserDTO user;
 
-    @Test
-    void testVerifyToken() {
-        UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, "test").one();
-        TokenDTO getToken = tokenDAO.createToken(userDO);
-        log.debug("testVerifyToken - getToken: {}", getToken);
-        // 验证 Token
-        Assertions.assertTrue(tokenDAO.verifyToken(getToken.getToken(), userDO));
-    }
+    /**
+     * 学生数据传输对象，仅在学生登录时有效，其他身份登录则为 {@code null}
+     */
+    @Nullable
+    private StudentDTO student;
+
+    /**
+     * 教师数据传输对象，仅在教师登录时有效，其他身份登录则为 {@code null}
+     */
+    @Nullable
+    private TeacherDTO teacher;
 }

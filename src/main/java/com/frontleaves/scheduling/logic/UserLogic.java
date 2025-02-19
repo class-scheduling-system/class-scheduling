@@ -28,21 +28,9 @@
 
 package com.frontleaves.scheduling.logic;
 
-import com.frontleaves.scheduling.constants.LogConstant;
-import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.RoleDO;
-import com.frontleaves.scheduling.models.entity.StudentDO;
-import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
-import com.frontleaves.scheduling.models.vo.UserInitializationVO;
-import com.frontleaves.scheduling.models.vo.UserLoginVO;
-import com.frontleaves.scheduling.service.UserService;
-import com.xlf.utility.ErrorCode;
-import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
-import com.xlf.utility.util.PasswordUtil;
+import com.xlf.utility.util.HeaderUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,9 +39,16 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 /**
- * 用户逻辑实现
+ * 用户逻辑处理类，实现了 {@link UserService} 接口，提供了用户相关的业务逻辑。
+ * <p>
+ * 该类主要用于处理与用户相关的操作，如根据请求中的Token获取用户信息等。
+ * 具体的实现细节包括从请求头中提取Token，并通过Token在数据库中查找对应的用户信息。
+ * 如果Token有效且用户存在，则返回用户信息；如果Token无效或用户不存在，则抛出相应的异常。
+ * </p>
  *
- * @author FLASHLACK
+ * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
  */
 @Slf4j
 @Service
@@ -298,5 +293,31 @@ public class UserLogic implements UserService {
         }
         throw new UserAuthenticationException(
                 UserAuthenticationException.ErrorType.LOGIN_WRONG, request);
+    }
+
+    /**
+     * 根据请求中的用户Token获取用户信息。
+     * <p>
+     * 该方法首先从请求头中提取用户Token，然后通过Token在数据库中查找对应的用户信息。
+     * 如果Token有效且用户存在，则返回用户信息；如果Token无效或用户不存在，则抛出相应的异常。
+     * </p>
+     *
+     * @param request HTTP请求对象，用于从中提取用户Token
+     * @return UserDO 用户信息对象，包含用户的详细信息
+     * @throws UserAuthenticationException 如果Token过期或用户不存在时抛出
+     */
+    @Override
+    public UserDO getUserByRequest(HttpServletRequest request) {
+        String getUserToken = HeaderUtil.getAuthorizeUserUuidString(request);
+        if (getUserToken != null) {
+            UserDO getUser = tokenDAO.getTokenUser(getUserToken);
+            if (getUser != null) {
+                return getUser;
+            } else {
+                throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+            }
+        } else {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.TOKEN_EXPIRED, request);
+        }
     }
 }

@@ -26,32 +26,32 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.dao;
+package com.frontleaves.scheduling.annotations;
 
-import com.frontleaves.scheduling.daos.TokenDAO;
-import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.TokenDTO;
-import com.frontleaves.scheduling.models.entity.UserDO;
-import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Slf4j
-@SpringBootTest
-class TokenTest {
-    @Resource
-    private UserDAO userDAO;
-    @Resource
-    private TokenDAO tokenDAO;
-
-    @Test
-    void testVerifyToken() {
-        UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, "test").one();
-        TokenDTO getToken = tokenDAO.createToken(userDO);
-        log.debug("testVerifyToken - getToken: {}", getToken);
-        // 验证 Token
-        Assertions.assertTrue(tokenDAO.verifyToken(getToken.getToken(), userDO));
-    }
+/**
+ * 需要登录注解。
+ *
+ * <p>
+ * 该注解用于标记只有在用户登录后才能执行的方法。当一个方法被此注解装饰时，
+ * 意味着在调用该方法前需要验证用户是否已经完成了登录操作。这通常用于控制对受保护资源的访问权限，
+ * 确保安全性和数据的私密性。
+ * </p>
+ *
+ * <p>
+ * 应用此注解的方法可以通过登录状态检查逻辑或AOP（面向切面编程）来实现访问控制，
+ * 在实际应用中结合具体的安全框架使用，如Spring Security等，以实现自动的登录状态验证。
+ * </p>
+ *
+ * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
+ */
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface RequestLogin {
 }

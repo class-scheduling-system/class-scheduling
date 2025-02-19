@@ -26,32 +26,23 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.dao;
+package com.frontleaves.scheduling.mappers;
 
-import com.frontleaves.scheduling.daos.TokenDAO;
-import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.TokenDTO;
-import com.frontleaves.scheduling.models.entity.UserDO;
-import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.frontleaves.scheduling.models.entity.PermissionDO;
+import org.apache.ibatis.annotations.Mapper;
 
-@Slf4j
-@SpringBootTest
-class TokenTest {
-    @Resource
-    private UserDAO userDAO;
-    @Resource
-    private TokenDAO tokenDAO;
-
-    @Test
-    void testVerifyToken() {
-        UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, "test").one();
-        TokenDTO getToken = tokenDAO.createToken(userDO);
-        log.debug("testVerifyToken - getToken: {}", getToken);
-        // 验证 Token
-        Assertions.assertTrue(tokenDAO.verifyToken(getToken.getToken(), userDO));
-    }
+/**
+ * 权限表映射器接口
+ * <p>
+ * 该接口继承自 BaseMapper，专为 {@link PermissionDO} 设计，
+ * 用于实现权限相关数据的 CRUD 操作。
+ * </p>
+ *
+ * @version v1.0.0
+ * @since v1.0.0
+ * @author xiao_lfeng
+ */
+@Mapper
+public interface PermissionMapper extends BaseMapper<PermissionDO> {
 }

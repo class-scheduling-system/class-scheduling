@@ -26,32 +26,37 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.dao;
+package com.frontleaves.scheduling.annotations;
 
-import com.frontleaves.scheduling.daos.TokenDAO;
-import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.TokenDTO;
-import com.frontleaves.scheduling.models.entity.UserDO;
-import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Slf4j
-@SpringBootTest
-class TokenTest {
-    @Resource
-    private UserDAO userDAO;
-    @Resource
-    private TokenDAO tokenDAO;
+/**
+ * 需要角色注解。
+ *
+ * <p>
+ * 此注解用于标识方法执行前需要验证调用者是否具备指定的角色与权限。它通常与安全框架结合使用，
+ * 例如在Spring Security中，以确保方法访问前用户已通过角色和权限的校验。这有助于实现细粒度的权限控制，
+ * 确保只有拥有相应权限的角色能够访问受保护的方法。
+ * </p>
+ *
+ * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
+ */
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface RequestRole {
 
-    @Test
-    void testVerifyToken() {
-        UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, "test").one();
-        TokenDTO getToken = tokenDAO.createToken(userDO);
-        log.debug("testVerifyToken - getToken: {}", getToken);
-        // 验证 Token
-        Assertions.assertTrue(tokenDAO.verifyToken(getToken.getToken(), userDO));
-    }
+    /**
+     * 获取角色标识符。
+     * <p>
+     * 获取信息为角色标识符，位于数据表 `cs_role` 中的 `role_name` 字段。
+     * </p>
+     *
+     * @return 角色所需的标识符，用于匹配系统安全框架中的角色定义，确保调用者具备相应的权限和角色。
+     */
+    String value();
 }
