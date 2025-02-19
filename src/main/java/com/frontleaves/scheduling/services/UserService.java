@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.services;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.xlf.utility.exception.BusinessException;
@@ -120,4 +121,20 @@ public interface UserService {
     UserInfoDTO getUserInfo(
             String userUuid,
             HttpServletRequest request);
+
+    /**
+     * 检查添加用户
+     * @param userAddVO 用户添加数据
+     */
+    void checkAddUser(
+            UserAddVO userAddVO);
+
+    /**
+     * 添加用户
+     * @param userAddVO 用户添加数据
+     * @return 用户信息数据传输对象
+     */
+    UserInfoDTO addUser(
+            UserAddVO userAddVO
+            );
 }

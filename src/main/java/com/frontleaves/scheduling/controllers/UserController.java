@@ -30,6 +30,7 @@ package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
+import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.UserService;
@@ -136,5 +137,19 @@ public class UserController {
         }
         UserInfoDTO userInfoDTO = userService.getUserInfo(userUuid,request);
         return ResultUtil.success("获取用户信息成功", userInfoDTO);
+    }
+
+    /**
+     * 添加用户
+     * @param userAddVO 用户添加视图对象
+     * @return  用户信息数据传输对象
+     */
+    @PostMapping("/addUser")
+    public ResponseEntity<BaseResponse<UserInfoDTO>> addUser(
+            @RequestBody UserAddVO userAddVO
+    ){
+        userService.checkAddUser(userAddVO);
+        UserInfoDTO userInfoDTO = userService.addUser(userAddVO);
+        return ResultUtil.success("添加用户成功",userInfoDTO);
     }
 }

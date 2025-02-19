@@ -29,14 +29,17 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.UserService;
@@ -412,6 +415,53 @@ public class UserLogic implements UserService {
                 .setPermission(ProjectUtil.convertUserDoToUserDTO(userDO).getPermission())
                 .setRole(BeanUtil.toBean(roleDTO, RoleDTO.class));
         log.debug("UserDTO: {}", userDTO);
+        userInfoDTO.setUser(userDTO);
+        return userInfoDTO;
+    }
+
+    /**
+     * 检查用户登录数据
+     *
+     * @param userAddVO 用户添加数据
+     */
+    @Override
+    public void checkAddUser(UserAddVO userAddVO) {
+        if ("学生".equals(userAddVO.getRoleName()) || "老师".equals(userAddVO.getRoleName())) {
+            throw new BusinessException("此类角色禁止手动添加", ErrorCode.BODY_ERROR);
+        }
+        if (roleDAO.lambdaQuery().eq(RoleDO::getRoleName, userAddVO.getRoleName()).one() == null) {
+            throw new BusinessException("角色不存在", ErrorCode.BODY_ERROR);
+        }
+        log.debug("检查用户是否存在开始前");
+        checkUserExist(userAddVO.getName(), userAddVO.getEmail(), userAddVO.getPhone());
+        log.debug("检查用户是否存在结束");
+    }
+
+    @Override
+    public UserInfoDTO addUser(UserAddVO userAddVO) {
+        RoleDTO roleDTO = roleDAO.getRoleByName(userAddVO.getRoleName());
+        if (roleDTO == null) {
+            throw new BusinessException("获取角色数据失败", ErrorCode.BODY_ERROR);
+        }
+        UserDO userDO = BeanUtil.toBean(userAddVO, UserDO.class);
+        if (userDO.getPassword() == null || userDO.getPassword().isEmpty()) {
+            userDO.setPassword(PasswordUtil.encrypt(RandomUtil.randomString(8)));
+        }else {
+            userDO.setPassword(PasswordUtil.encrypt(userDO.getPassword()));
+        }
+        userDO.setRoleUuid(roleDTO.getRoleUuid())
+                .setPermission(JSONUtil.toJsonStr(roleDTO.getPermission()));
+        log.debug("添加用户UserDO: {}", userDO);
+        userDAO.save(userDO);
+        //构造信息
+        UserDO newUserDO = userDAO.lambdaQuery().eq(UserDO::getPhone, userDO.getPhone()).one();
+        if (newUserDO == null) {
+            throw new BusinessException("添加用户失败", ErrorCode.OPERATION_ERROR);
+        }
+        UserDTO userDTO = ProjectUtil.convertUserDoToUserDTO(newUserDO)
+                .setRole(BeanUtil.toBean(roleDTO, RoleDTO.class));
+        UserInfoDTO userInfoDTO = new UserInfoDTO();
+        log.debug("添加用户最后的UserDTO: {}", userDTO);
         userInfoDTO.setUser(userDTO);
         return userInfoDTO;
     }
