@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
@@ -109,4 +110,14 @@ public interface UserService {
             UserLoginVO userLoginVO,
             HttpServletRequest request
     );
+
+    /**
+     * 获取用户信息
+     * @param userUuid 用户唯一标识符
+     * @param request HTTP请求对象
+     * @return 用户信息数据传输对象
+     */
+    UserInfoDTO getUserInfo(
+            String userUuid,
+            HttpServletRequest request);
 }

@@ -40,6 +40,7 @@ import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
@@ -348,6 +349,7 @@ public class UserLogic implements UserService {
         }
     }
 
+
     /**
      * 根据传入的 {@code HttpServletRequest} 请求对象获取对应的用户信息。
      * <p>
@@ -371,5 +373,46 @@ public class UserLogic implements UserService {
         } else {
             throw new UserAuthenticationException(UserAuthenticationException.ErrorType.TOKEN_EXPIRED, request);
         }
+    }
+
+    /**
+     * 获取用户信息
+     *
+     * @param userUuid 用户唯一标识符
+     * @param request  HTTP请求对象
+     * @return 用户信息数据传输对象
+     */
+    @Override
+    public UserInfoDTO getUserInfo(String userUuid, HttpServletRequest request) {
+        UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userUuid).one();
+        if (userDO == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+        }
+        RoleDTO roleDTO = roleDAO.getRoleByUuid(userDO.getRoleUuid());
+        if (roleDTO == null) {
+            throw new BusinessException("角色不存在", ErrorCode.OPERATION_ERROR);
+        }
+        //检查是否为学生或者老师
+        UserInfoDTO userInfoDTO = new UserInfoDTO();
+        if ("学生".equals(roleDTO.getRoleName())) {
+            StudentDO studentDO = studentDAO.lambdaQuery().eq(StudentDO::getUserUuid, userUuid).one();
+            if (studentDO == null) {
+                throw new BusinessException("学生信息不存在", ErrorCode.OPERATION_ERROR);
+            }
+            userInfoDTO.setStudent(BeanUtil.toBean(studentDO, StudentDTO.class));
+        }
+        if ("老师".equals(roleDTO.getRoleName())) {
+            TeacherDO teacherDO = teacherDAO.lambdaQuery().eq(TeacherDO::getUserUuid, userUuid).one();
+            if (teacherDO == null) {
+                throw new BusinessException("教师信息不存在", ErrorCode.OPERATION_ERROR);
+            }
+            userInfoDTO.setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class));
+        }
+        UserDTO userDTO = BeanUtil.toBean(userDO, UserDTO.class)
+                .setPermission(ProjectUtil.convertUserDoToUserDTO(userDO).getPermission())
+                .setRole(BeanUtil.toBean(roleDTO, RoleDTO.class));
+        log.debug("UserDTO: {}", userDTO);
+        userInfoDTO.setUser(userDTO);
+        return userInfoDTO;
     }
 }

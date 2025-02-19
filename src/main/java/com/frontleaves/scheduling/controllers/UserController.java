@@ -28,22 +28,22 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 用户控制器
@@ -118,5 +118,23 @@ public class UserController {
         );
         userService.userRegistered(userInitializationVO, request);
         return ResultUtil.success("注册成功");
+    }
+
+    /**
+     * 获取用户信息接口
+     * @param userUuid 用户唯一标识符
+     * @param request HTTP请求对象，用于从中提取用户Token
+     * @return UserDO 用户信息对象，包含用户的详细信息
+     */
+    @GetMapping("/getUserInfo")
+    public ResponseEntity<BaseResponse<UserInfoDTO>> userGetInfo(
+            @RequestParam("user_uuid")String userUuid,
+            HttpServletRequest request
+    ) {
+        if (userUuid == null || userUuid.isEmpty()) {
+            throw new BusinessException("丢失用户主键", ErrorCode.PARAMETER_ERROR);
+        }
+        UserInfoDTO userInfoDTO = userService.getUserInfo(userUuid,request);
+        return ResultUtil.success("获取用户信息成功", userInfoDTO);
     }
 }
