@@ -28,7 +28,9 @@
 
 package com.frontleaves.scheduling.logic;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.BuildingDAO;
 import com.frontleaves.scheduling.models.dto.BuildingDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
@@ -56,6 +58,25 @@ public class BuildingLogic implements BuildingService {
     private final BuildingDAO buildingDAO;
 
     /**
+     * 获取教学楼列表
+     * <p>
+     * 该方法用于分页查询系统中所有的教学楼信息。通过指定的页码、每页大小以及排序方式，返回符合条件的教学楼数据。
+     * 返回的数据封装在 {@code PageDTO<BuildingDTO>} 中，其中包含分页信息和教学楼的基本信息。
+     * </p>
+     *
+     * @param page   当前页码，从1开始
+     * @param size   每页显示的记录数
+     * @param isDesc 排序方式，true 表示降序，false 表示升序
+     * @return 包含分页信息和教学楼数据的 {@code PageDTO<BuildingDTO>}
+     */
+    @Override
+    @NotNull
+    public PageDTO<BuildingDTO> getBuildingList(int page, int size, boolean isDesc) {
+        Page<BuildingDO> buildingList = buildingDAO.getBuildingList(page, size, isDesc);
+        return ProjectUtil.convertPageToPageDTO(buildingList, BuildingDTO.class);
+    }
+
+    /**
      * 获取包含关键词的教学楼列表
      * <p>
      * 该方法用于分页查询系统中所有名称或相关信息包含指定关键词的教学楼信息。
@@ -78,21 +99,22 @@ public class BuildingLogic implements BuildingService {
     }
 
     /**
-     * 获取教学楼列表
+     * 获取教学楼信息
      * <p>
-     * 该方法用于分页查询系统中所有的教学楼信息。通过指定的页码、每页大小以及排序方式，返回符合条件的教学楼数据。
-     * 返回的数据封装在 {@code PageDTO<BuildingDTO>} 中，其中包含分页信息和教学楼的基本信息。
-     * </p>
+     * 根据传入的教学楼标识符，从数据库中查询对应的教学楼信息。如果传入的 {@code building} 参数符合 UUID 的格式，
+     * 则通过 UUID 查询教学楼；否则，通过名称查询教学楼。最后将查询到的 {@code BuildingDO} 对象转换为 {@code BuildingDTO} 返回。
      *
-     * @param page   当前页码，从1开始
-     * @param size   每页显示的记录数
-     * @param isDesc 排序方式，true 表示降序，false 表示升序
-     * @return 包含分页信息和教学楼数据的 {@code PageDTO<BuildingDTO>}
+     * @param building 教学楼标识符，可以是 UUID 或名称
+     * @return 查询到的教学楼信息，以 {@code BuildingDTO} 形式返回
      */
     @Override
-    @NotNull
-    public PageDTO<BuildingDTO> getBuildingList(int page, int size, boolean isDesc) {
-        Page<BuildingDO> buildingList = buildingDAO.getBuildingList(page, size, isDesc);
-        return ProjectUtil.convertPageToPageDTO(buildingList, BuildingDTO.class);
+    public BuildingDTO getBuilding(@NotNull String building) {
+        BuildingDO buildingDTO;
+        if (building.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+            buildingDTO = buildingDAO.getBuildingByUuid(building);
+        } else {
+            buildingDTO = buildingDAO.getBuildingByName(building);
+        }
+        return BeanUtil.toBean(buildingDTO, BuildingDTO.class);
     }
 }

@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -38,7 +39,10 @@ import com.frontleaves.scheduling.mappers.BuildingMapper;
 import com.frontleaves.scheduling.models.entity.BuildingDO;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
+import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Repository;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
@@ -148,5 +152,69 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
         } catch (Exception e) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+    }
+
+    /**
+     * 根据 UUID 获取教学楼信息
+     * <p>
+     * 该方法用于根据给定的 {@code buildingUuid} 从 Redis 或数据库中获取教学楼信息。
+     * 如果 Redis 中存在对应的数据，则直接返回；否则，从数据库中查询数据，并将结果存入 Redis 中以便后续快速访问。
+     * </p>
+     *
+     * @param building 教学楼的 UUID
+     * @return 返回一个包含教学楼信息的对象 {@code BuildingDO}，如果未找到则返回 null
+     */
+    @Nullable
+    public BuildingDO getBuildingByUuid(@NotNull String building) {
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.BUILDING_UUID + building);
+        if (map.isEmpty()) {
+            BuildingDO buildingDO = this.lambdaQuery().eq(BuildingDO::getBuildingUuid, building).one();
+            if (buildingDO != null) {
+                try (Transaction transaction = jedis.multi()) {
+                    transaction.hset(StringConstant.Redis.BUILDING_UUID + building, ConvertUtil.convertObjectToMapString(buildingDO));
+                    transaction.expire(StringConstant.Redis.BUILDING_UUID + building, 86400);
+                    transaction.exec();
+                } catch (Exception e) {
+                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+                }
+                return buildingDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, BuildingDO.class);
+        }
+        return null;
+    }
+
+    /**
+     * 根据教学楼名称获取教学楼信息
+     * <p>
+     * 该方法首先尝试从 Redis 中获取指定名称的教学楼 UUID。如果 Redis 中存在对应的值，则直接调用 {@code getBuildingByUuid} 方法返回教学楼信息。
+     * 如果 Redis 中不存在对应的值，则从数据库中查询教学楼信息，并将查询结果存入 Redis 中以便后续快速访问。如果在数据库中也未找到对应的教学楼信息，则返回 null。
+     * </p>
+     *
+     * @param building 教学楼名称
+     * @return 返回与给定名称匹配的 {@code BuildingDO} 对象，如果未找到则返回 null
+     */
+    @Nullable
+    public BuildingDO getBuildingByName(@NotNull String building) {
+        String value = jedis.get(StringConstant.Redis.BUILDING_NAME + building);
+        if (value == null) {
+            BuildingDO buildingDO = this.lambdaQuery().eq(BuildingDO::getBuildingName, building).one();
+            if (buildingDO != null) {
+                try (Transaction transaction = jedis.multi()) {
+                    transaction.set(StringConstant.Redis.BUILDING_NAME + building, buildingDO.getBuildingUuid());
+                    transaction.expire(StringConstant.Redis.BUILDING_NAME + building, 86400);
+                    transaction.hset(StringConstant.Redis.BUILDING_UUID + buildingDO.getBuildingUuid(), ConvertUtil.convertObjectToMapString(buildingDO));
+                    transaction.expire(StringConstant.Redis.BUILDING_UUID + building, 86400);
+                    transaction.exec();
+                } catch (Exception e) {
+                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+                }
+                return buildingDO;
+            }
+        } else {
+            return this.getBuildingByUuid(value);
+        }
+        return null;
     }
 }

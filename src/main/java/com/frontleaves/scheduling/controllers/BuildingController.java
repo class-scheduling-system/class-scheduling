@@ -92,4 +92,23 @@ public class BuildingController {
             return ResultUtil.success("教学楼建筑列表成功", buildingListHasKeyword);
         }
     }
+
+    /**
+     * 获取教学楼信息
+     * <p>
+     * 通过提供的教学楼 UUID 或名称获取教学楼的详细信息。如果传入的教学楼标识为空或无效，则会抛出异常。
+     *
+     * @param building 教学楼的 UUID 或名称
+     * @return 包含教学楼信息的 {@code ResponseEntity} 对象，其中包含一个 {@code BaseResponse<BuildingDTO>} 对象
+     */
+    @GetMapping("")
+    public ResponseEntity<BaseResponse<BuildingDTO>> getBuilding(
+            @RequestParam String building
+    ) {
+        if (building == null || building.isBlank()) {
+            throw new BusinessException("教学楼UUID/名称不能为空", ErrorCode.PARAMETER_INVALID);
+        }
+        BuildingDTO getBuildingDTO = buildingService.getBuilding(building);
+        return ResultUtil.success("获取教学楼信息成功", getBuildingDTO);
+    }
 }

@@ -73,4 +73,18 @@ public interface BuildingService {
      * @return 分页的教学楼数据传输对象 {@code PageDTO<BuildingDTO>}
      */
     PageDTO<BuildingDTO> getBuildingListHasKeyword(int page, int size, boolean isDesc, String keyword);
+
+    /**
+     * 根据教学楼标识获取教学楼信息
+     * <p>
+     * 该方法通过传入的教学楼唯一标识 {@code building} 来查询系统中对应的单个教学楼信息。
+     * 如果找到匹配的教学楼，则返回包含该教学楼基本信息的 {@code BuildingDTO} 对象；
+     * 若未找到匹配项，则可能抛出异常或返回空对象，具体行为取决于实现细节。
+     * 返回的 {@code BuildingDTO} 包含了如教学楼主键、名称、校区主键、状态、创建时间和更新时间等字段。
+     * </p>
+     *
+     * @param building 教学楼的唯一标识符，用于定位特定的教学楼记录
+     * @return 包含指定教学楼详细信息的数据传输对象 {@code BuildingDTO}；如果找不到对应的教学楼，行为依据具体实现而定
+     */
+    BuildingDTO getBuilding(String building);
 }
