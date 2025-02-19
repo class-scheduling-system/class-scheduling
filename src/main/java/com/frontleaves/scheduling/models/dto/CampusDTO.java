@@ -35,44 +35,53 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
-import java.util.List;
 
 /**
- * 角色数据传输对象
+ * 校区数据传输对象
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
+ * 该类用于传输校区相关的信息，包括校区的唯一标识符、名称、编码、描述、状态、地址以及创建和更新时间。
+ * 通过此 DTO 可以方便地在不同层之间传递校区信息。
  * </p>
  *
- * @version v1.0.0
  * @since v1.0.0
+ * @version v1.0.0
  * @author xiao_lfeng
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
-public class RoleDTO {
+public class CampusDTO {
 
     /**
-     * 角色主键，采用 UUID 自动生成
+     * 校区主键
      */
-    private String roleUuid;
+    private String campusUuid;
 
     /**
-     * 角色名
+     * 校区名称
      */
-    private String roleName;
+    private String campusName;
 
     /**
-     * 角色状态 0: 禁用 1: 启用
+     * 校区编码
      */
-    private Integer roleStatus;
+    private String campusCode;
 
     /**
-     * 角色权限，JSON 格式
+     * 校区描述
      */
-    private List<String> permission;
+    private String campusDesc;
+
+    /**
+     * 校区状态 0:禁用 1:启用
+     */
+    private Integer campusStatus;
+
+    /**
+     * 校区地址
+     */
+    private String campusAddress;
 
     /**
      * 创建时间

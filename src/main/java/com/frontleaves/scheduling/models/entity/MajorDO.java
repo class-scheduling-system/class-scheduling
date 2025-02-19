@@ -28,10 +28,7 @@
 
 package com.frontleaves.scheduling.models.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -60,32 +57,29 @@ public class MajorDO {
     /**
      * 专业名词
      */
-    @TableField(value = "major_name")
     private String majorName;
     /**
      * 专业描述
      */
-    @TableField(value = "major_description")
     private String majorDescription;
     /**
      * 专业代码
      */
-    @TableField(value = "major_code")
     private String majorCode;
     /**
      * 专业状态，0：禁用，1：启用
      */
-    @TableField(value = "majorStatus")
     private Integer majorStatus;
     /**
      * 创建时间
      */
-    @TableField(value = "created_at")
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Timestamp createdAt;
+
     /**
      * 更新时间
      */
-    @TableField(value = "updated_at")
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Timestamp updatedAt;
 
 }

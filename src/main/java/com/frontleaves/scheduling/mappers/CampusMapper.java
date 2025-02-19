@@ -26,63 +26,23 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.mappers;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
-
-import java.sql.Timestamp;
-import java.util.List;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.frontleaves.scheduling.models.entity.CampusDO;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
- * 角色数据传输对象
+ * 校区表映射器
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
+ * 该类用于定义校区表的映射器，继承自 MyBatis-Plus 的 {@code BaseMapper} 接口。
+ * 通过此接口可以实现对 {@code CampusDO} 实体类的数据库操作，包括增删改查等基本操作。
  * </p>
  *
  * @version v1.0.0
  * @since v1.0.0
  * @author xiao_lfeng
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Accessors(chain = true)
-public class RoleDTO {
-
-    /**
-     * 角色主键，采用 UUID 自动生成
-     */
-    private String roleUuid;
-
-    /**
-     * 角色名
-     */
-    private String roleName;
-
-    /**
-     * 角色状态 0: 禁用 1: 启用
-     */
-    private Integer roleStatus;
-
-    /**
-     * 角色权限，JSON 格式
-     */
-    private List<String> permission;
-
-    /**
-     * 创建时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp updatedAt;
+@Mapper
+public interface CampusMapper extends BaseMapper<CampusDO> {
 }

@@ -110,6 +110,8 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
                 try (Transaction transaction = jedis.multi()) {
                     transaction.set(StringConstant.Redis.USER_NAME + userDO.getName(), userDO.getUserUuid());
                     transaction.expire(StringConstant.Redis.USER_NAME + userDO.getName(), 86400);
+                    transaction.hset(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), ConvertUtil.convertObjectToMapString(userDO));
+                    transaction.expire(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), 86400);
                     transaction.exec();
                 } catch (Exception e) {
                     throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
@@ -141,6 +143,8 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
                 try (Transaction transaction = jedis.multi()) {
                     transaction.set(StringConstant.Redis.USER_MAIL + userDO.getEmail(), userDO.getUserUuid());
                     transaction.expire(StringConstant.Redis.USER_MAIL + userDO.getEmail(), 86400);
+                    transaction.hset(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), ConvertUtil.convertObjectToMapString(userDO));
+                    transaction.expire(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), 86400);
                     transaction.exec();
                 } catch (Exception e) {
                     throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
@@ -172,6 +176,8 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
                 try (Transaction transaction = jedis.multi()) {
                     transaction.set(StringConstant.Redis.USER_TEL + userDO.getPhone(), userDO.getUserUuid());
                     transaction.expire(StringConstant.Redis.USER_TEL + userDO.getPhone(), 86400);
+                    transaction.hset(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), ConvertUtil.convertObjectToMapString(userDO));
+                    transaction.expire(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), 86400);
                     transaction.exec();
                 } catch (Exception e) {
                     log.error("数据库操作失败");

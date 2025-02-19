@@ -26,63 +26,75 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.models.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.AllArgsConstructor;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
-import java.util.List;
 
 /**
- * 角色数据传输对象
+ * 校区表实体类
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
+ * 对应数据库表：`cs_campus`
+ * 该类用于表示校区的相关信息，包括校区的唯一标识、名称、编码、描述、状态、地址以及创建和更新时间。
  * </p>
  *
- * @version v1.0.0
  * @since v1.0.0
+ * @version v1.0.0
  * @author xiao_lfeng
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@TableName("cs_campus")
 @Accessors(chain = true)
-public class RoleDTO {
+public class CampusDO {
 
     /**
-     * 角色主键，采用 UUID 自动生成
+     * 校区主键
      */
-    private String roleUuid;
+    @TableId(value = "campus_uuid", type = IdType.INPUT)
+    private String campusUuid;
 
     /**
-     * 角色名
+     * 校区名称
      */
-    private String roleName;
+    @TableField("campus_name")
+    private String campusName;
 
     /**
-     * 角色状态 0: 禁用 1: 启用
+     * 校区编码
      */
-    private Integer roleStatus;
+    @TableField("campus_code")
+    private String campusCode;
 
     /**
-     * 角色权限，JSON 格式
+     * 校区描述
      */
-    private List<String> permission;
+    @TableField("campus_desc")
+    private String campusDesc;
+
+    /**
+     * 校区状态 0:禁用 1:启用
+     */
+    @TableField("campus_status")
+    private Integer campusStatus;
+
+    /**
+     * 校区地址
+     */
+    @TableField("campus_address")
+    private String campusAddress;
 
     /**
      * 创建时间
      */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Timestamp createdAt;
 
     /**
      * 更新时间
      */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Timestamp updatedAt;
 }
