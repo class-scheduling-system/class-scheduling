@@ -32,6 +32,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -60,52 +61,42 @@ public class TeacherDO {
     /**
      * 单位主键
      */
-    @TableField(value = "unit_uuid")
     private String unitUuid;
     /**
      * 用户主键
      */
-    @TableField(value = "user_uuid")
     private String userUuid;
     /**
      * 教师工号
      */
-    @TableField(value = "id")
     private String id;
     /**
      * 教师姓名
      */
-    @TableField(value = "name")
     private String name;
     /**
      * 教师英文名
      */
-    @TableField(value = "english_name")
     private String englishName;
     /**
      * 教师名族
      */
-    @TableField(value = "ethnic")
     private String ethnic;
     /**
      * 教师性别 0：女 1：男
      */
-    @TableField(value = "sex")
     private Integer sex;
     /**
      * 教师电话
      */
-    @TableField(value = "phone")
     private String phone;
     /**
      * 教师邮箱
      */
-    @TableField(value = "email")
     private String email;
     /**
      * 教师职称
      */
-    @TableField(value = "job_title")
     private String jobTitle;
     /**
      * 教师描述
@@ -115,12 +106,12 @@ public class TeacherDO {
     /**
      * 创建时间
      */
-    @TableField(value = "created_at")
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp createdAt;
     /**
      * 更新时间
      */
-    @TableField(value = "updated_at")
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp updatedAt;
 
 }
