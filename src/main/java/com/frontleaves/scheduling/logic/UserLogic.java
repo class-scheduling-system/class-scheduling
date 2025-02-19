@@ -35,7 +35,6 @@ import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
@@ -426,11 +425,12 @@ public class UserLogic implements UserService {
      */
     @Override
     public void checkAddUser(UserAddVO userAddVO) {
-        if ("学生".equals(userAddVO.getRoleName()) || "老师".equals(userAddVO.getRoleName())) {
-            throw new BusinessException("此类角色禁止手动添加", ErrorCode.BODY_ERROR);
+        RoleDTO roleDTO = roleDAO.getRoleByUuid(userAddVO.getRoleUuid());
+        if (roleDTO == null) {
+            throw new BusinessException("此类用户数据不存在", ErrorCode.BODY_ERROR);
         }
-        if (roleDAO.lambdaQuery().eq(RoleDO::getRoleName, userAddVO.getRoleName()).one() == null) {
-            throw new BusinessException("角色不存在", ErrorCode.BODY_ERROR);
+        if ("学生".equals(roleDTO.getRoleName()) || "老师".equals(roleDTO.getRoleName())) {
+            throw new BusinessException("此类用户数据不允许添加", ErrorCode.BODY_ERROR);
         }
         log.debug("检查用户是否存在开始前");
         checkUserExist(userAddVO.getName(), userAddVO.getEmail(), userAddVO.getPhone());
@@ -439,14 +439,11 @@ public class UserLogic implements UserService {
 
     @Override
     public UserInfoDTO addUser(UserAddVO userAddVO) {
-        RoleDTO roleDTO = roleDAO.getRoleByName(userAddVO.getRoleName());
-        if (roleDTO == null) {
-            throw new BusinessException("获取角色数据失败", ErrorCode.BODY_ERROR);
-        }
+        RoleDTO roleDTO = roleDAO.getRoleByUuid(userAddVO.getRoleUuid());
         UserDO userDO = BeanUtil.toBean(userAddVO, UserDO.class);
         if (userDO.getPassword() == null || userDO.getPassword().isEmpty()) {
             userDO.setPassword(PasswordUtil.encrypt(RandomUtil.randomString(8)));
-        }else {
+        } else {
             userDO.setPassword(PasswordUtil.encrypt(userDO.getPassword()));
         }
         userDO.setRoleUuid(roleDTO.getRoleUuid())

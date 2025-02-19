@@ -22,9 +22,9 @@ import java.util.List;
 @AllArgsConstructor
 public class UserAddVO {
     /**
-     * 用户角色除了学生和老师
+     * 用户角色除了学生和老师的UUID
      */
-    private String roleName;
+    private String roleUuid;
     @Pattern(regexp = StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION,
             message = "用户名格式不正确，应为4-32位的字母、数字、下划线或短横线")
     @NotNull
