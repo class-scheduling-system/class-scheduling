@@ -114,8 +114,9 @@ public interface UserService {
 
     /**
      * 获取用户信息
+     *
      * @param userUuid 用户唯一标识符
-     * @param request HTTP请求对象
+     * @param request  HTTP请求对象
      * @return 用户信息数据传输对象
      */
     UserInfoDTO getUserInfo(
@@ -124,6 +125,7 @@ public interface UserService {
 
     /**
      * 检查添加用户
+     *
      * @param userAddVO 用户添加数据
      */
     void checkAddUser(
@@ -131,10 +133,29 @@ public interface UserService {
 
     /**
      * 添加用户
+     *
      * @param userAddVO 用户添加数据
      * @return 用户信息数据传输对象
      */
     UserInfoDTO addUser(
             UserAddVO userAddVO
-            );
+    );
+
+    /**
+     * 检查用户UUID
+     *
+     * @param userUuid 用户唯一标识符
+     */
+    void checkUuid(
+            String userUuid);
+
+    /**
+     * 删除用户
+     *
+     * @param userUuid 用户唯一标识符
+     * @param request  HTTP请求对象
+     */
+    void deleteUser(
+            String userUuid,
+            HttpServletRequest request);
 }

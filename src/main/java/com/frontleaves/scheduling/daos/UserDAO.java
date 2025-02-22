@@ -59,6 +59,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService<UserDO> {
     private final Jedis jedis;
+    private final TokenDAO tokenDAO;
 
     /**
      * 通过用户 UUID 获取用户信息。
@@ -166,5 +167,14 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
             return this.getUserByUuid(tryGetUuid);
         }
         return null;
+    }
+
+    /**
+     * 删除用户并且删除token
+     * @param userDO 用户实体
+     */
+    public void deleteUser(UserDO userDO){
+        this.lambdaUpdate().eq(UserDO::getUserUuid,userDO.getUserUuid()).remove();
+        tokenDAO.clearUserToken(userDO);
     }
 }

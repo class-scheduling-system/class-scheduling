@@ -35,9 +35,7 @@ import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.BaseResponse;
-import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
-import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -123,33 +121,49 @@ public class UserController {
 
     /**
      * 获取用户信息接口
+     *
      * @param userUuid 用户唯一标识符
-     * @param request HTTP请求对象，用于从中提取用户Token
+     * @param request  HTTP请求对象，用于从中提取用户Token
      * @return UserDO 用户信息对象，包含用户的详细信息
      */
     @GetMapping("/getUserInfo")
     public ResponseEntity<BaseResponse<UserInfoDTO>> userGetInfo(
-            @RequestParam("user_uuid")String userUuid,
+            @RequestParam("user_uuid") String userUuid,
             HttpServletRequest request
     ) {
-        if (userUuid == null || userUuid.isEmpty()) {
-            throw new BusinessException("丢失用户主键", ErrorCode.PARAMETER_ERROR);
-        }
-        UserInfoDTO userInfoDTO = userService.getUserInfo(userUuid,request);
+        userService.checkUuid(userUuid);
+        UserInfoDTO userInfoDTO = userService.getUserInfo(userUuid, request);
         return ResultUtil.success("获取用户信息成功", userInfoDTO);
     }
 
     /**
      * 添加用户
+     *
      * @param userAddVO 用户添加视图对象
-     * @return  用户信息数据传输对象
+     * @return 用户信息数据传输对象
      */
     @PostMapping("/addUser")
     public ResponseEntity<BaseResponse<UserInfoDTO>> addUser(
             @RequestBody UserAddVO userAddVO
-    ){
+    ) {
         userService.checkAddUser(userAddVO);
         UserInfoDTO userInfoDTO = userService.addUser(userAddVO);
-        return ResultUtil.success("添加用户成功",userInfoDTO);
+        return ResultUtil.success("添加用户成功", userInfoDTO);
+    }
+
+    /**
+     * 删除用户
+     *
+     * @param userUuid 用户唯一标识符
+     * @return 空数据的响应实体，表示删除操作已成功处理
+     */
+    @DeleteMapping("/deleteUser")
+    public ResponseEntity<BaseResponse<Void>> deleteUser(
+            @RequestParam("user_uuid") String userUuid,
+            HttpServletRequest request
+    ) {
+        userService.checkUuid(userUuid);
+        userService.deleteUser(userUuid, request);
+        return ResultUtil.success("删除用户成功");
     }
 }

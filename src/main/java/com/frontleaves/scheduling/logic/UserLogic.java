@@ -437,6 +437,12 @@ public class UserLogic implements UserService {
         log.debug("检查用户是否存在结束");
     }
 
+    /**
+     * 添加用户
+     *
+     * @param userAddVO 用户添加数据
+     * @return 用户信息数据传输对象
+     */
     @Override
     public UserInfoDTO addUser(UserAddVO userAddVO) {
         RoleDTO roleDTO = roleDAO.getRoleByUuid(userAddVO.getRoleUuid());
@@ -447,7 +453,7 @@ public class UserLogic implements UserService {
             userDO.setPassword(PasswordUtil.encrypt(userDO.getPassword()));
         }
         userDO.setRoleUuid(roleDTO.getRoleUuid())
-                .setPermission(JSONUtil.toJsonStr(roleDTO.getPermission()));
+                .setPermission(JSONUtil.toJsonStr(userAddVO.getPermission()));
         log.debug("添加用户UserDO: {}", userDO);
         userDAO.save(userDO);
         //构造信息
@@ -461,5 +467,56 @@ public class UserLogic implements UserService {
         log.debug("添加用户最后的UserDTO: {}", userDTO);
         userInfoDTO.setUser(userDTO);
         return userInfoDTO;
+    }
+
+    /**
+     * 检查用户唯一标识符
+     *
+     * @param userUuid 用户唯一标识符
+     */
+    @Override
+    public void checkUuid(String userUuid) {
+        if (userUuid == null || userUuid.isEmpty()) {
+            throw new BusinessException("丢失用户主键", ErrorCode.PARAMETER_ERROR);
+        }
+    }
+
+    /**
+     * 删除用户
+     *
+     * @param userUuid 用户唯一标识符
+     * @param request  HTTP请求对象
+     */
+    @Override
+    public void deleteUser(String userUuid, HttpServletRequest request) {
+        UserDO userDO = userDAO.getUserByUuid(userUuid);
+        if (userDO == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+        }
+        //检查是否为学生还是老师
+        RoleDTO roleDTO = roleDAO.getRoleByUuid(userDO.getRoleUuid());
+        if (roleDTO == null) {
+            throw new BusinessException("角色不存在，意料之外的错误", ErrorCode.OPERATION_ERROR);
+        }
+        if ("学生".equals(roleDTO.getRoleName())) {
+            StudentDO studentDO = studentDAO.getStudentByUuid(userUuid);
+            if (studentDO == null) {
+                throw new BusinessException("学生信息不存在", ErrorCode.OPERATION_ERROR);
+            }
+            log.info("删除学生信息");
+            studentDAO.lambdaUpdate().eq(StudentDO::getUserUuid, userUuid).remove();
+            userDAO.deleteUser(userDO);
+        } else if ("老师".equals(roleDTO.getRoleName())) {
+            TeacherDO teacherDO = teacherDAO.getTeacherByUuid(userUuid);
+            if (teacherDO == null) {
+                throw new BusinessException("教师信息不存在", ErrorCode.OPERATION_ERROR);
+            }
+            log.info("删除教师信息");
+            teacherDAO.lambdaUpdate().eq(TeacherDO::getUserUuid, userUuid).remove();
+            userDAO.deleteUser(userDO);
+        } else {
+            log.info("删除用户信息");
+            userDAO.deleteUser(userDO);
+        }
     }
 }

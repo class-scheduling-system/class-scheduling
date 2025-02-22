@@ -40,7 +40,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Repository;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.params.ScanParams;
+import redis.clients.jedis.resps.ScanResult;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -236,4 +239,41 @@ public class TokenDAO {
         }
         return userDAO.getUserByUuid(getToken.get(0));
     }
+
+    public void clearUserToken(UserDO userDO) {
+        // 从 UserDO 中获取 userUuid
+        String userUuid = userDO.getUserUuid();
+        if (userUuid == null || userUuid.trim().isEmpty()) {
+            throw new BusinessException("userUuid 不能为空", ErrorCode.OPERATION_ERROR);
+        }
+        // 构建 Redis 键名前缀
+        String keyPrefix = "user:uuid:" + userUuid;
+        // 使用 SCAN 命令查找所有以 keyPrefix 开头的键
+        String cursor = "0";
+        // 每次扫描 100 个键
+        ScanParams scanParams = new ScanParams().match(keyPrefix + "*").count(100);
+        List<String> keysToDelete = new ArrayList<>();
+        do {
+            // 将匹配的键添加到待删除列表
+            ScanResult<String> scanResult = jedis.scan(cursor, scanParams);
+            keysToDelete.addAll(scanResult.getResult());
+            cursor = scanResult.getCursor();
+        } while (!"0".equals(cursor));
+
+        // 如果没有找到匹配的键，返回 false
+        if (keysToDelete.isEmpty()) {
+            log.info("并未找到匹配的缓存键");
+        }
+        // 验证键是否属于当前用户
+        for (String key : keysToDelete) {
+            List<String> tokenData = jedis.hmget(key, StringConstant.Common.Hump.USER_UUID);
+            if (tokenData == null || tokenData.isEmpty() || !tokenData.get(0).equals(userUuid)) {
+                throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
+            }
+        }
+        // 删除所有匹配的键
+        jedis.del(keysToDelete.toArray(new String[0]));
+    }
+
 }
+
