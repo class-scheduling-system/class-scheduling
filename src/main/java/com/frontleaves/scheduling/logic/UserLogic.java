@@ -500,15 +500,15 @@ public class UserLogic implements UserService {
             throw new BusinessException("角色不存在，意料之外的错误", ErrorCode.OPERATION_ERROR);
         }
         if ("学生".equals(roleDTO.getRoleName())) {
-            StudentDO studentDO = studentDAO.getStudentByUuid(userUuid);
+            StudentDO studentDO = studentDAO.lambdaQuery().eq(StudentDO::getUserUuid, userUuid).one();
             if (studentDO == null) {
                 throw new BusinessException("学生信息不存在", ErrorCode.OPERATION_ERROR);
             }
             log.info("删除学生信息");
-            studentDAO.lambdaUpdate().eq(StudentDO::getUserUuid, userUuid).remove();
+            studentDAO.deleteStudent(userDO, studentDO);
             userDAO.deleteUser(userDO);
         } else if ("老师".equals(roleDTO.getRoleName())) {
-            TeacherDO teacherDO = teacherDAO.getTeacherByUuid(userUuid);
+            TeacherDO teacherDO = teacherDAO.lambdaQuery().eq(TeacherDO::getUserUuid, userUuid).one();
             if (teacherDO == null) {
                 throw new BusinessException("教师信息不存在", ErrorCode.OPERATION_ERROR);
             }

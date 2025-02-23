@@ -172,9 +172,14 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
 
     /**
      * 删除用户并且删除token
+     * <p>
+     *     该方法用于删除用户信息，首先通过用户 UUID 获取用户信息，然后删除用户信息。
+     *     如果用户信息存在，则删除 Redis 中与用户相关的所有数据。
+     *     如果用户信息不存在或者删除失败，则抛出 {@code ServerInternalErrorException} 异常。
+     * </p>
      * @param userDO 用户实体
      */
-    public void deleteUser(UserDO userDO){
+    public void deleteUser(UserDO userDO) throws ServerInternalErrorException {
         try (Transaction transaction = jedis.multi()) {
             this.lambdaUpdate().eq(UserDO::getUserUuid,userDO.getUserUuid()).remove();
             transaction.del(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
