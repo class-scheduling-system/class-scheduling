@@ -60,7 +60,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService<UserDO> {
     private final Jedis jedis;
-    private final TokenDAO tokenDAO;
+
 
     /**
      * 通过用户 UUID 获取用户信息。
