@@ -488,6 +488,7 @@ public class UserLogic implements UserService {
      * @param request  HTTP请求对象
      */
     @Override
+    @Transactional
     public void deleteUser(String userUuid, HttpServletRequest request) {
         UserDO userDO = userDAO.getUserByUuid(userUuid);
         if (userDO == null) {

@@ -34,6 +34,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UserMapper;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -174,7 +175,15 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @param userDO 用户实体
      */
     public void deleteUser(UserDO userDO){
-        this.lambdaUpdate().eq(UserDO::getUserUuid,userDO.getUserUuid()).remove();
-        tokenDAO.clearUserToken(userDO);
+        try (Transaction transaction = jedis.multi()) {
+            this.lambdaUpdate().eq(UserDO::getUserUuid,userDO.getUserUuid()).remove();
+            transaction.del(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+            transaction.del(StringConstant.Redis.USER_NAME + userDO.getName());
+            transaction.del(StringConstant.Redis.USER_MAIL + userDO.getEmail());
+            transaction.del(StringConstant.Redis.USER_TEL + userDO.getPhone());
+            transaction.exec();
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
     }
 }
