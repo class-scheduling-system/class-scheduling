@@ -28,11 +28,13 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.TokenDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import com.xlf.utility.util.UuidUtil;
 import lombok.RequiredArgsConstructor;
@@ -40,8 +42,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Repository;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Transaction;
 
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -70,170 +73,172 @@ public class TokenDAO {
     private final UserDAO userDAO;
 
     /**
-     * 创建新的 Token 并存储到 Redis 中。
+     * 生成新的令牌
      * <p>
-     * 生成新的 Token 和 RefreshToken，设置 Token 过期时间为 1 小时，刷新令牌过期时间为 24 小时，
-     * 并将这些信息封装在 TokenDTO 对象中。将 TokenDTO 转换成 HashMap 存入 Redis，
-     * 同时设置 Redis 键的过期时间为 86400 秒。
-     * </p>
+     * 该方法接收一个用户对象 {@code UserDO}，并为其生成一个新的访问令牌和刷新令牌。
+     * 生成的令牌信息将被存储在一个 {@code TokenDTO} 对象中，并将其保存在 Redis 数据库中。
+     * 访问令牌的有效期为 1 小时，刷新令牌的有效期为 24 小时。
+     * 如果操作过程中出现异常，将抛出 {@code ServerInternalErrorException}。
      *
-     * @param userDO 用户数据对象，包含用户唯一标识，不能为空
-     * @return TokenDTO 包含生成的 Token、RefreshToken、创建时间、过期时间等信息
+     * @param userDO 用户对象，不能为空
+     * @return 包含新生成的令牌信息的 {@code TokenDTO} 对象
+     * @throws ServerInternalErrorException 如果在操作过程中发生错误
      */
-    public TokenDTO createToken(@NotNull UserDO userDO) {
-        TokenDTO tokenDTO = new TokenDTO();
-        String getNewTokenUuid = UuidUtil.generateStringUuid();
-        String newRefreshToken = UUID.randomUUID().toString();
-        tokenDTO
-                .setUserUuid(userDO.getUserUuid())
-                .setToken(getNewTokenUuid)
-                .setRefreshToken(newRefreshToken)
-                .setCreatedAt(System.currentTimeMillis())
-                .setExpireTime(System.currentTimeMillis() + 3600000)
-                .setRefreshExpireTime(System.currentTimeMillis() + 86400000);
-        // 将 TokenDTO 对象转换为 Map 格式存储在 Redis 中
-        jedis.hmset(StringConstant.Redis.TOKEN + getNewTokenUuid, ConvertUtil.convertObjectToMapString(tokenDTO));
-        jedis.expire(StringConstant.Redis.TOKEN + getNewTokenUuid, 86400);
-        return tokenDTO;
+    public TokenDTO createToken(@NotNull UserDO userDO) throws ServerInternalErrorException {
+        try (Transaction transaction = jedis.multi()) {
+            TokenDTO tokenDTO = new TokenDTO();
+            String getNewTokenUuid = UuidUtil.generateStringUuid();
+            String newRefreshToken = UUID.randomUUID().toString();
+            tokenDTO
+                    .setUserUuid(userDO.getUserUuid())
+                    .setToken(getNewTokenUuid)
+                    .setRefreshToken(newRefreshToken)
+                    .setCreatedAt(System.currentTimeMillis())
+                    .setExpireTime(System.currentTimeMillis() + 3600000)
+                    .setRefreshExpireTime(System.currentTimeMillis() + 86400000);
+            // 将 TokenDTO 对象转换为 Map 格式存储在 Redis 中
+            transaction.hmset(StringConstant.Redis.TOKEN + getNewTokenUuid, ConvertUtil.convertObjectToMapString(tokenDTO));
+            transaction.expire(StringConstant.Redis.TOKEN + getNewTokenUuid, 86400);
+            transaction.exec();
+            return tokenDTO;
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
     }
 
     /**
-     * 验证指定 Token 是否有效。
+     * 验证令牌有效性
      * <p>
-     * 该方法通过 Redis 获取存储的 Token 数据，并依次校验：
-     * <ul>
-     *   <li>Token 是否为空或不存在；</li>
-     *   <li>Token 是否归属于当前用户；</li>
-     *   <li>Token 是否已过期；</li>
-     *   <li>RefreshToken 是否已过期（若已过期则删除 Token）。</li>
-     * </ul>
-     * </p>
+     * 该方法用于验证给定的令牌是否有效，并且是否属于指定用户。如果令牌为空或无效，将返回 {@code false}。
+     * 如果令牌有效但已过期，或者刷新时间已过期，则从 Redis 中删除该令牌并返回 {@code false}。
+     * 如果令牌有效且未过期，则返回 {@code true}。
+     * <p>
+     * 在处理过程中，如果遇到任何异常，将抛出 {@link ServerInternalErrorException}。
      *
-     * @param token  要验证的 Token 字符串
-     * @param userDO 用户数据对象，包含当前用户的唯一标识
-     * @return true 如果 Token 存在且有效；false 否则
-     * @throws BusinessException 如果 Token 不属于当前用户，则抛出异常
+     * @param token  要验证的令牌字符串
+     * @param userDO 用户对象，包含用户唯一标识符等信息
+     * @return 如果令牌有效且未过期，返回 {@code true}；否则返回 {@code false}
+     * @throws ServerInternalErrorException 如果在处理过程中发生内部服务器错误
      */
-    public boolean verifyToken(String token, UserDO userDO) {
+    public boolean verifyToken(String token, UserDO userDO) throws ServerInternalErrorException {
         if (token == null || token.trim().isEmpty()) {
             return false;
         }
-        List<String> getToken = jedis.hmget(StringConstant.Redis.TOKEN + token,
-                StringConstant.Common.Hump.USER_UUID,
-                StringConstant.Common.Hump.TOKEN,
-                StringConstant.Common.Hump.REFRESH_TOKEN,
-                StringConstant.Common.Hump.CREATED_AT,
-                StringConstant.Common.Hump.EXPIRE_TIME,
-                StringConstant.Common.Hump.REFRESH_EXPIRE_TIME
-        );
-        // 检查 Token 是否存在
-        if (getToken == null || getToken.isEmpty()) {
-            return false;
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.TOKEN + token);
+        try (Transaction transaction = jedis.multi()) {
+            if (!map.isEmpty()) {
+                TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
+                if (tokenDTO.getUserUuid() == null || !tokenDTO.getUserUuid().equals(userDO.getUserUuid())) {
+                    throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
+                }
+                if (Long.parseLong(map.get(StringConstant.Common.Hump.EXPIRE_TIME)) < System.currentTimeMillis()) {
+                    return false;
+                }
+                if (Long.parseLong(map.get(StringConstant.Common.Hump.REFRESH_EXPIRE_TIME)) < System.currentTimeMillis()) {
+                    transaction.del(StringConstant.Redis.TOKEN + token);
+                    transaction.exec();
+                    return false;
+                }
+                return true;
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
-        // 检查 Token 是否属于传入的用户
-        if (!getToken.get(0).equals(userDO.getUserUuid())) {
-            throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
-        }
-        // 检查 Token 是否过期
-        if (Long.parseLong(getToken.get(4)) < System.currentTimeMillis()) {
-            return false;
-        }
-        // 检查 RefreshToken 是否过期，若已过期则删除 Token
-        if (Long.parseLong(getToken.get(5)) < System.currentTimeMillis()) {
-            jedis.del(StringConstant.Redis.TOKEN + token);
-            return false;
-        }
-        return true;
     }
 
     /**
-     * 刷新指定 Token 的过期时间。
+     * 刷新访问令牌
      * <p>
-     * 此方法首先验证 Token 是否存在且属于当前用户，再检查 RefreshToken 是否有效。
-     * 如果 RefreshToken 未过期，则更新 Token 的过期时间（延长 1 小时）和 RefreshToken 的过期时间（延长 24 小时），
-     * 同时更新 Redis 中对应的记录，并返回更新后的 TokenDTO 对象。
+     * 该方法用于刷新给定的访问令牌。如果令牌存在且未过期，并且与指定用户关联，则会更新其过期时间并返回更新后的令牌信息。
+     * 如果令牌不存在、已过期或不与指定用户关联，则抛出相应的异常。
+     *
+     * @param token  待刷新的访问令牌字符串
+     * @param userDO 用户数据对象，包含用户唯一标识符等信息
+     * @return 更新后的令牌数据传输对象，包含新的过期时间和刷新过期时间
+     * @throws ServerInternalErrorException 如果在执行数据库操作时发生内部错误
+     * @throws BusinessException            如果令牌不存在、已过期或不与指定用户关联
+     */
+    public TokenDTO refreshToken(String token, UserDO userDO) throws ServerInternalErrorException, BusinessException {
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.TOKEN + token);
+        try (Transaction transaction = jedis.multi()) {
+            if (!map.isEmpty()) {
+                TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
+                if (tokenDTO.getUserUuid() == null || !tokenDTO.getUserUuid().equals(userDO.getUserUuid())) {
+                    throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
+                }
+                if (Long.parseLong(map.get(StringConstant.Common.Hump.EXPIRE_TIME)) < System.currentTimeMillis()) {
+                    transaction.del(StringConstant.Redis.TOKEN + token);
+                    throw new BusinessException("刷新令牌已过期", ErrorCode.SERVER_INTERNAL_ERROR);
+                }
+                long newExpireTime = System.currentTimeMillis() + 3600000;
+                long newRefreshExpireTime = System.currentTimeMillis() + 86400000;
+                transaction.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.Hump.EXPIRE_TIME, String.valueOf(newExpireTime));
+                transaction.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.Hump.REFRESH_EXPIRE_TIME, String.valueOf(newRefreshExpireTime));
+                transaction.expire(StringConstant.Redis.TOKEN + token, 86400);
+                transaction.exec();
+                return tokenDTO.setExpireTime(newExpireTime)
+                        .setRefreshExpireTime(newRefreshExpireTime);
+            } else {
+                throw new BusinessException("令牌不存在", ErrorCode.SERVER_INTERNAL_ERROR);
+            }
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
+
+    /**
+     * 删除用户令牌
+     * <p>
+     * 该方法用于删除指定用户的令牌。首先，通过提供的令牌 {@code token} 从 Redis 中获取与之关联的令牌数据。
+     * 如果令牌存在且其所属用户 UUID 与传入的用户对象 {@code userDO} 的 UUID 匹配，则删除该令牌。
+     * 若令牌不存在或不匹配，则抛出相应的业务异常。整个操作在一个事务中进行以确保数据的一致性。
+     * <p>
+     *
+     * @param token  待删除的令牌字符串
+     * @param userDO 用户对象，包含用户的 UUID 等信息
+     * @throws BusinessException            当令牌归属错误、令牌不存在或内部服务器错误时抛出
+     * @throws ServerInternalErrorException 当发生未预期的内部服务器错误时抛出
+     */
+    public void deleteToken(String token, UserDO userDO) throws BusinessException, ServerInternalErrorException {
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.TOKEN + token);
+        try (Transaction transaction = jedis.multi()) {
+            if (!map.isEmpty()) {
+                TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
+                if (tokenDTO.getUserUuid() == null || !tokenDTO.getUserUuid().equals(userDO.getUserUuid())) {
+                    throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
+                } else {
+                    transaction.del(StringConstant.Redis.TOKEN + token);
+                    transaction.exec();
+                }
+            } else {
+                throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.NOT_EXIST);
+            }
+        } catch (Exception e) {
+            throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
+        }
+    }
+
+    /**
+     * 通过用户令牌获取用户信息
+     * <p>
+     * 该方法首先尝试从 Redis 中获取与给定用户令牌关联的用户信息。如果在 Redis 中找到相关信息，
+     * 则将其转换为 {@code TokenDTO} 对象，并使用其中的用户 UUID 从数据库中查询对应的用户信息。
+     * 如果在 Redis 或数据库中未找到相关信息，则返回 null。
      * </p>
      *
-     * @param token  当前的 Token 字符串
-     * @param userDO 用户数据对象，包含当前用户的唯一标识
-     * @return 更新后的 TokenDTO 对象，其中包含新的过期时间信息
-     * @throws BusinessException 如果 Token 不存在、Token 不属于当前用户，或 RefreshToken 已过期
-     */
-    public TokenDTO refreshToken(String token, UserDO userDO) {
-        List<String> getToken = jedis.hmget(StringConstant.Redis.TOKEN + token,
-                StringConstant.Common.Hump.USER_UUID,
-                StringConstant.Common.Hump.TOKEN,
-                StringConstant.Common.Hump.REFRESH_TOKEN,
-                StringConstant.Common.Hump.CREATED_AT,
-                StringConstant.Common.Hump.EXPIRE_TIME,
-                StringConstant.Common.Hump.REFRESH_EXPIRE_TIME
-        );
-        if (getToken == null || getToken.isEmpty()) {
-            throw new BusinessException("令牌不存在", ErrorCode.SERVER_INTERNAL_ERROR);
-        }
-        if (!getToken.get(0).equals(userDO.getUserUuid())) {
-            throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
-        }
-        if (Long.parseLong(getToken.get(5)) < System.currentTimeMillis()) {
-            jedis.del(StringConstant.Redis.TOKEN + token);
-            throw new BusinessException("刷新令牌已过期", ErrorCode.SERVER_INTERNAL_ERROR);
-        }
-        // 计算新的过期时间
-        long newExpireTime = System.currentTimeMillis() + 3600000;
-        long newRefreshExpireTime = System.currentTimeMillis() + 86400000;
-        // 更新 Redis 中 Token 的过期时间和刷新令牌的过期时间
-        jedis.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.Hump.EXPIRE_TIME, String.valueOf(newExpireTime));
-        jedis.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.Hump.REFRESH_EXPIRE_TIME, String.valueOf(newRefreshExpireTime));
-        jedis.expire(StringConstant.Redis.TOKEN + token, 86400);
-        return new TokenDTO()
-                .setUserUuid(userDO.getUserUuid())
-                .setToken(token)
-                .setRefreshToken(getToken.get(2))
-                .setCreatedAt(Long.parseLong(getToken.get(3)))
-                .setExpireTime(newExpireTime)
-                .setRefreshExpireTime(newRefreshExpireTime);
-    }
-
-    /**
-     * 删除指定 Token。
-     * <p>
-     * 该方法首先验证 Token 是否存在且属于当前用户，
-     * 如果验证通过，则从 Redis 中删除对应的 Token 数据，并返回 true 表示删除成功。
-     * 若 Token 不存在，则返回 false。
-     * </p>
-     *
-     * @param token  要删除的 Token 字符串
-     * @param userDO 用户数据对象，包含当前用户的唯一标识
-     * @return true 如果 Token 成功删除；false 如果 Token 不存在
-     * @throws BusinessException 如果 Token 不属于当前用户，则抛出异常
-     */
-    public boolean deleteToken(String token, UserDO userDO) throws BusinessException {
-        List<String> getToken = jedis.hmget(StringConstant.Redis.TOKEN + token,
-                StringConstant.Common.Hump.USER_UUID
-        );
-        if (getToken == null || getToken.isEmpty()) {
-            return false;
-        }
-        if (!getToken.get(0).equals(userDO.getUserUuid())) {
-            throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
-        }
-        jedis.del(StringConstant.Redis.TOKEN + token);
-        return true;
-    }
-
-    /**
-     * 根据用户Token获取用户信息
-     *
-     * @param userToken 用户Token，用于在Redis中查询用户UUID
-     * @return UserDO 用户信息对象，如果根据Token未查询到用户，则返回null
+     * @param userToken 用户令牌
+     * @return 返回与令牌关联的用户信息，如果未找到则返回 null
      */
     public UserDO getTokenUser(String userToken) {
-        List<String> getToken = jedis.hmget(StringConstant.Redis.TOKEN + userToken,
-                StringConstant.Common.Hump.USER_UUID
-        );
-        if (getToken == null || getToken.isEmpty()) {
-            return null;
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.TOKEN + userToken);
+        if (!map.isEmpty()) {
+            TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
+            if (tokenDTO.getUserUuid() != null && !tokenDTO.getUserUuid().isEmpty()) {
+                return userDAO.getUserByUuid(tokenDTO.getUserUuid());
+            }
         }
-        return userDAO.getUserByUuid(getToken.get(0));
+        return null;
     }
 }
