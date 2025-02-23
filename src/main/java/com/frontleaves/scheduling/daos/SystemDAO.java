@@ -30,6 +30,7 @@ package com.frontleaves.scheduling.daos;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.annotations.IgnoreLog;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.SystemMapper;
 import com.frontleaves.scheduling.models.entity.SystemDO;
@@ -67,6 +68,7 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
      * @param key 系统键
      * @return 系统值
      */
+    @IgnoreLog
     public String getSystemInfo(String key) {
         String getValue = jedis.get(StringConstant.Redis.SYSTEM + key);
         if (getValue != null) {

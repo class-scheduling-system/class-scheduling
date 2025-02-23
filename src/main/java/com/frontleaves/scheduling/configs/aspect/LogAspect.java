@@ -28,12 +28,14 @@
 
 package com.frontleaves.scheduling.configs.aspect;
 
+import com.frontleaves.scheduling.annotations.IgnoreLog;
 import com.xlf.utility.aspect.BusinessLogAspect;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -52,21 +54,55 @@ import org.springframework.stereotype.Component;
 @Aspect
 @Component
 public class LogAspect extends BusinessLogAspect {
+
     @Override
     @Before("execution(* com.frontleaves.scheduling.controllers..*.*(..))")
     public void beforeControllerLog(@NotNull JoinPoint joinPoint) {
+        if (joinPoint.getTarget().getClass().isAnnotationPresent(IgnoreLog.class)) {
+            return;
+        }
+        try {
+            if (joinPoint.getSignature() instanceof MethodSignature signature
+                    && signature.getMethod().isAnnotationPresent(IgnoreLog.class)) {
+                return;
+            }
+        } catch (Exception ignored) {
+            super.beforeControllerLog(joinPoint);
+        }
         super.beforeControllerLog(joinPoint);
     }
 
     @Override
     @Before("execution(* com.frontleaves.scheduling.logic..*.*(..))")
     public void beforeServiceLog(@NotNull JoinPoint joinPoint) {
+        if (joinPoint.getTarget().getClass().isAnnotationPresent(IgnoreLog.class)) {
+            return;
+        }
+        try {
+            if (joinPoint.getSignature() instanceof MethodSignature signature
+                    && signature.getMethod().isAnnotationPresent(IgnoreLog.class)) {
+                return;
+            }
+        } catch (Exception ignored) {
+            super.beforeServiceLog(joinPoint);
+        }
         super.beforeServiceLog(joinPoint);
     }
 
     @Override
     @Around("execution(* com.frontleaves.scheduling.daos..*.*(..))")
     public Object beforeDaoLog(@NotNull ProceedingJoinPoint pjp) throws Throwable {
+        if (pjp.getTarget().getClass().isAnnotationPresent(IgnoreLog.class)) {
+            return pjp.proceed();
+        }
+        try {
+            if (pjp.getSignature() instanceof MethodSignature signature
+                    && signature.getMethod().isAnnotationPresent(IgnoreLog.class)) {
+                return pjp.proceed();
+            }
+        } catch (Exception ignored) {
+            return super.beforeDaoLog(pjp);
+        }
         return super.beforeDaoLog(pjp);
     }
 }
