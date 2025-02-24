@@ -29,6 +29,7 @@
 package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.SiteDTO;
+import com.frontleaves.scheduling.models.dto.SystemDTO;
 
 /**
  * 公共服务接口，提供站点信息的获取功能。
@@ -54,4 +55,6 @@ public interface PublicService {
      * @return 包含网站详细信息的 {@code SiteDTO} 对象
      */
     SiteDTO getSiteInfo();
+
+    SystemDTO getSystemInfo();
 }
