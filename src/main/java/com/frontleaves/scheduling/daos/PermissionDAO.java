@@ -34,14 +34,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.PermissionMapper;
 import com.frontleaves.scheduling.models.entity.PermissionDO;
-import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Transaction;
-
-import java.util.Map;
 
 /**
  * 权限数据访问对象
@@ -59,33 +56,27 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PermissionDAO extends ServiceImpl<PermissionMapper, PermissionDO> implements IService<PermissionDO> {
 
-    private final Jedis jedis;
+    private final RedissonClient redisson;
 
     /**
      * 根据权限键获取权限信息
      * <p>
-     * 该方法首先尝试从 Redis 中获取指定权限键的权限信息。如果 Redis 中不存在该权限键的信息，
-     * 则从数据库中查询并将其存入 Redis，最后返回对应的 {@code PermissionDO} 对象。
-     * 如果在操作过程中出现异常，将抛出 {@code ServerInternalErrorException}。
+     * 该方法首先尝试从 Redis 缓存中获取指定 {@code permissionKey} 的权限信息。
+     * 如果缓存中不存在，则从数据库中查询并将其存储到 Redis 中，以便后续快速访问。
      * </p>
      *
      * @param permissionKey 权限键，用于唯一标识一个权限
-     * @return 返回与给定权限键关联的 {@code PermissionDO} 对象；如果未找到，则返回 {@code null}
-     * @throws ServerInternalErrorException 如果在执行数据库或 Redis 操作时发生错误
+     * @return 返回与给定 {@code permissionKey} 对应的 {@link PermissionDO} 对象，
+     *         如果找不到则返回 null
      */
-    public PermissionDO getPermissionKey(String permissionKey) throws ServerInternalErrorException {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.PERMISSION + permissionKey);
-        if (map.isEmpty()) {
+    public PermissionDO getPermissionKey(String permissionKey) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.PERMISSION + permissionKey);
+        if (!map.isExists()) {
             PermissionDO permissionDO = this.lambdaQuery().eq(PermissionDO::getPermissionKey, permissionKey).one();
-            try (Transaction transaction = jedis.multi()) {
-                transaction.hmset(StringConstant.Redis.PERMISSION + permissionKey, ConvertUtil.convertObjectToMapString(permissionDO));
-                transaction.exec();
-            } catch (Exception e) {
-                throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-            }
+            map.putAll(ConvertUtil.convertObjectToMapString(permissionDO));
+            return permissionDO;
         } else {
             return BeanUtil.toBean(map, PermissionDO.class);
         }
-        return null;
     }
 }

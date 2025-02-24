@@ -41,9 +41,9 @@ import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Transaction;
 
 import java.util.List;
 import java.util.Map;
@@ -62,7 +62,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> implements IService<RoleDO> {
 
-    private final Jedis jedis;
+    private final RedissonClient redisson;
 
     /**
      * 通过角色 UUID 获取角色信息。
@@ -75,16 +75,11 @@ public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> implements IService
      * @throws ServerInternalErrorException 如果数据库操作失败
      */
     public RoleDTO getRoleByUuid(String roleUuid) throws ServerInternalErrorException {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.ROLE_UUID + roleUuid);
-        if (map.isEmpty()) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.ROLE_UUID + roleUuid);
+        if (!map.isExists()) {
             RoleDO roleDO = this.lambdaQuery().eq(RoleDO::getRoleUuid, roleUuid).one();
             if (roleDO != null) {
-                try (Transaction transaction = jedis.multi()) {
-                    transaction.hset(StringConstant.Redis.ROLE_UUID + roleUuid, ConvertUtil.convertObjectToMapString(roleDO));
-                    transaction.exec();
-                } catch (Exception e) {
-                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-                }
+                map.putAll(ConvertUtil.convertObjectToMapString(roleDO));
                 return reorganizePermissions(roleDO);
             }
         } else {
@@ -104,16 +99,11 @@ public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> implements IService
      * @throws ServerInternalErrorException 如果在操作数据库或 Redis 时发生异常
      */
     public RoleDTO getRoleByName(String roleName) throws ServerInternalErrorException {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.ROLE_NAME + roleName);
-        if (map.isEmpty()) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.ROLE_NAME + roleName);
+        if (!map.isExists()) {
             RoleDO roleDO = this.lambdaQuery().eq(RoleDO::getRoleName, roleName).one();
             if (roleDO != null) {
-                try (Transaction transaction = jedis.multi()) {
-                    transaction.hset(StringConstant.Redis.ROLE_NAME + roleName, ConvertUtil.convertObjectToMapString(roleDO));
-                    transaction.exec();
-                } catch (Exception e) {
-                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-                }
+                map.putAll(ConvertUtil.convertObjectToMapString(roleDO));
                 return reorganizePermissions(roleDO);
             }
         } else {

@@ -41,11 +41,13 @@ import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
+import org.redisson.api.RMap;
+import org.redisson.api.RTransaction;
+import org.redisson.api.RedissonClient;
+import org.redisson.api.TransactionOptions;
 import org.springframework.stereotype.Repository;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Transaction;
 
-import java.util.Map;
+import java.time.Duration;
 
 /**
  * 学生数据访问对象类
@@ -64,7 +66,7 @@ import java.util.Map;
 @Repository
 @RequiredArgsConstructor
 public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements IService<StudentDO> {
-    private final Jedis jedis;
+    private final RedissonClient redisson;
 
     /**
      * 根据学生ID获取学生信息
@@ -79,17 +81,12 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
      */
     @Nullable
     public StudentDO getStudentById(String id) throws ServerInternalErrorException {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.STUDENT_ID + id);
-        if (map.isEmpty()) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_ID + id);
+        if (!map.isExists()) {
             StudentDO studentDO = this.lambdaQuery().eq(StudentDO::getId, id).one();
             if (studentDO != null) {
-                try (Transaction transaction = jedis.multi()) {
-                    transaction.hmset(StringConstant.Redis.STUDENT_ID + id, ConvertUtil.convertObjectToMapString(studentDO));
-                    transaction.expire(StringConstant.Redis.STUDENT_ID + id, 86400);
-                    transaction.exec();
-                } catch (Exception e) {
-                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-                }
+                map.putAll(ConvertUtil.convertObjectToMapString(studentDO));
+                map.expire(Duration.ofSeconds(86400));
                 return studentDO;
             }
         } else {
@@ -111,17 +108,12 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
      */
     @Nullable
     public StudentDO getStudentByUuid(String studentUuid) throws ServerInternalErrorException {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.STUDENT_UUID + studentUuid);
-        if (map.isEmpty()) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_UUID + studentUuid);
+        if (!map.isExists()) {
             StudentDO studentDO = this.getById(studentUuid);
             if (studentDO != null) {
-                try (Transaction transaction = jedis.multi()) {
-                    transaction.hmset(StringConstant.Redis.STUDENT_UUID + studentUuid, ConvertUtil.convertObjectToMapString(studentDO));
-                    transaction.expire(StringConstant.Redis.STUDENT_UUID + studentUuid, 86400);
-                    transaction.exec();
-                } catch (Exception e) {
-                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-                }
+                map.putAll(ConvertUtil.convertObjectToMapString(studentDO));
+                map.expire(Duration.ofSeconds(86400));
                 return studentDO;
             }
         } else {
@@ -143,19 +135,21 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
      */
     public void updateUserUuid(String userUuid, String studentId) throws BusinessException, ServerInternalErrorException {
         StudentDO studentDO = this.getStudentById(studentId);
-        try (Transaction transaction = jedis.multi()) {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
             if (studentDO != null) {
-                transaction.del(StringConstant.Redis.STUDENT_ID + studentDO.getId());
-                transaction.del(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
+                transaction.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
+                transaction.getBucket(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
                 this.lambdaUpdate()
                         .eq(StudentDO::getStudentUuid, studentDO.getStudentUuid())
                         .set(StudentDO::getUserUuid, userUuid)
                         .update();
-                transaction.exec();
+                transaction.commit();
             } else {
                 throw new BusinessException("未找到对应的教师信息", ErrorCode.NOT_EXIST);
             }
         } catch (Exception e) {
+            transaction.rollback();
             log.error("更新学生信息中的用户 UUID 失败", e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }

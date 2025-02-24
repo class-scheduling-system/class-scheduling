@@ -41,20 +41,22 @@ import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RMap;
+import org.redisson.api.RTransaction;
+import org.redisson.api.RedissonClient;
+import org.redisson.api.TransactionOptions;
 import org.springframework.stereotype.Repository;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Transaction;
 
-import java.util.Map;
+import java.time.Duration;
 
 /**
  * 教师数据访问对象
  * <p>
- * 此类继承自IService接口，专门用于实现对TeacherDO实体的数据库操作。
- * 通过使用MyBatis-Plus的ServiceImpl简化了对教师信息的CRUD操作。
- * 实现了获取单个教师信息的方法，根据教师编号查询教师详细资料。
+ * 该类提供了对教师数据的操作方法，包括从 Redis 或数据库中获取教师信息、更新教师的用户 UUID 等。
+ * 通过继承 {@code ServiceImpl} 类并实现 {@code IService} 接口，提供了基础的 CRUD 操作，并扩展了特定的业务逻辑。
+ * </p>
  *
- * @author FLASHLACK
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
@@ -62,33 +64,19 @@ import java.util.Map;
 @Repository
 @RequiredArgsConstructor
 public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements IService<TeacherDO> {
-    private final Jedis jedis;
+    private final RedissonClient redisson;
 
     /**
-     * 根据教师ID获取教师信息
-     * <p>
-     * 该方法首先尝试从Redis缓存中根据提供的教师ID获取教师信息。如果缓存中没有找到，则从数据库中查询，并将查询结果存入Redis缓存中以提高后续访问的速度。
-     * 如果在数据库中也未找到对应的教师记录，返回 {@code null}。此过程可能抛出 {@link ServerInternalErrorException} 异常，表示服务器内部错误。
-     * <p>
-     * 缓存中的数据有效期为一天（86400秒）。
      *
-     * @param id 教师的唯一标识符
-     * @return 返回与给定ID匹配的 {@code TeacherDO} 对象，若不存在则返回 {@code null}
-     * @throws ServerInternalErrorException 当操作数据库或Redis时发生异常
      */
     @Nullable
     public TeacherDO getTeacherById(String id) throws ServerInternalErrorException {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.TEACHER_ID + id);
-        if (map.isEmpty()) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TEACHER_ID + id);
+        if (!map.isExists()) {
             TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getId, id).one();
             if (teacherDO != null) {
-                try (Transaction transaction = jedis.multi()) {
-                    transaction.hset(StringConstant.Redis.TEACHER_ID + id, ConvertUtil.convertObjectToMapString(teacherDO));
-                    transaction.expire(StringConstant.Redis.TEACHER_ID + id, 86400);
-                    transaction.exec();
-                } catch (Exception e) {
-                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-                }
+                map.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
+                map.expire(Duration.ofSeconds(86400));
                 return teacherDO;
             }
         } else {
@@ -98,29 +86,24 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     }
 
     /**
-     * 根据教师UUID获取教师信息
+     * 通过教师 UUID 获取教师信息
      * <p>
-     * 该方法通过给定的教师UUID从Redis缓存中查找教师信息。如果在Redis中未找到，则会尝试从数据库中查询。
-     * 如果数据库中有对应的记录，会将该记录添加到Redis缓存中，并设置过期时间为24小时。如果在整个过程中发生任何异常，
-     * 将抛出{@code ServerInternalErrorException}。
+     * 该方法首先尝试从 Redis 中获取教师信息，如果 Redis 中不存在，则从数据库中查询教师信息并将其存入 Redis。
+     * 如果在 Redis 和数据库中都未找到教师信息，则返回 null。
+     * </p>
      *
-     * @param teacherUuid 教师的唯一标识符 {@code String}
-     * @return 返回与给定UUID匹配的教师信息，如果没有找到则返回null
-     * @throws ServerInternalErrorException 当操作数据库或Redis时发生内部错误
+     * @param teacherUuid 教师的 UUID
+     * @return 返回教师信息，如果未找到则返回 null
+     * @throws ServerInternalErrorException 如果数据库操作失败
      */
     @Nullable
-    public TeacherDO getTeacherByUuid(String teacherUuid) throws ServerInternalErrorException{
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.TEACHER_UUID + teacherUuid);
+    public TeacherDO getTeacherByUuid(String teacherUuid) throws ServerInternalErrorException {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TEACHER_UUID + teacherUuid);
         if (map.isEmpty()) {
             TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getTeacherUuid, teacherUuid).one();
             if (teacherDO != null) {
-                try (Transaction transaction = jedis.multi()) {
-                    transaction.hset(StringConstant.Redis.TEACHER_UUID + teacherUuid, ConvertUtil.convertObjectToMapString(teacherDO));
-                    transaction.expire(StringConstant.Redis.TEACHER_UUID + teacherUuid, 86400);
-                    transaction.exec();
-                } catch (Exception e) {
-                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-                }
+                map.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
+                map.expire(Duration.ofSeconds(86400));
                 return teacherDO;
             }
         } else {
@@ -132,30 +115,34 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     /**
      * 更新教师的用户 UUID
      * <p>
-     * 该方法用于更新指定教师的用户 UUID。首先通过教师 ID 获取教师信息，如果找到对应的教师，则在 Redis 中删除与该教师关联的旧数据，并更新数据库中教师的用户 UUID。
-     * 如果未找到对应的教师信息，则抛出 {@code BusinessException} 异常。任何其他异常将被捕获并抛出 {@code ServerInternalErrorException} 异常。
+     * 该方法用于更新指定教师的用户 UUID。首先，通过 {@code teacherId} 获取教师信息。
+     * 如果教师信息存在，则删除 Redis 中与该教师相关的缓存数据，并更新数据库中的用户 UUID。
+     * 最后，提交事务以确保数据一致性。如果在操作过程中发生异常，将回滚事务并抛出相应的异常。
+     * </p>
      *
-     * @param userUuid 新的用户 UUID
-     * @param teacherId 教师 ID
-     * @throws BusinessException 如果未找到对应的教师信息
-     * @throws ServerInternalErrorException 如果更新过程中发生其他异常
+     * @param userUuid  新的用户 UUID
+     * @param teacherId 教师的 ID
+     * @throws BusinessException            如果未找到对应的教师信息
+     * @throws ServerInternalErrorException 如果更新教师信息失败
      */
     public void updateUserUuid(String userUuid, String teacherId) throws BusinessException, ServerInternalErrorException {
         TeacherDO teacherDO = this.getTeacherById(teacherId);
-        try (Transaction transaction = jedis.multi()) {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
             if (teacherDO != null) {
-                transaction.del(StringConstant.Redis.TEACHER_ID + teacherDO.getId());
-                transaction.del(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid());
+                transaction.getSet(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
+                transaction.getSet(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
                 this.lambdaUpdate()
                         .eq(TeacherDO::getTeacherUuid, teacherDO.getTeacherUuid())
                         .set(TeacherDO::getUserUuid, userUuid)
                         .update();
-                transaction.exec();
+                transaction.commit();
             } else {
                 throw new BusinessException("未找到对应的教师信息", ErrorCode.NOT_EXIST);
             }
         } catch (Exception e) {
             log.error("更新教师信息失败", e);
+            transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }

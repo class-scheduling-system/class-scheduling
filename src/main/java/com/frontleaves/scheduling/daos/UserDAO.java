@@ -38,11 +38,10 @@ import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Transaction;
 
-import java.util.Map;
+import java.time.Duration;
 
 /**
  * 用户数据访问对象
@@ -51,15 +50,15 @@ import java.util.Map;
  * 所有方法都优先尝试从 Redis 缓存中读取数据，如果缓存中没有，则从数据库中查询，并将结果缓存到 Redis 中以提高性能。
  * </p>
  *
- * @since v1.0.0
- * @version v1.0.0
  * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
  */
 @Slf4j
 @Repository
 @RequiredArgsConstructor
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService<UserDO> {
-    private final Jedis jedis;
+    private final RedissonClient redisson;
 
     /**
      * 根据用户 UUID 获取用户信息
@@ -71,18 +70,13 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @return 返回与给定 UUID 对应的 {@code UserDO} 对象，如果未找到则返回 null
      * @throws ServerInternalErrorException 当数据库操作失败时抛出此异常
      */
-    public UserDO getUserByUuid(String userUuid) throws ServerInternalErrorException {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.USER_UUID + userUuid);
+    public UserDO getUserByUuid(String userUuid) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.USER_UUID + userUuid);
         if (map.isEmpty()) {
             UserDO userDO = this.lambdaQuery().eq(UserDO::getUserUuid, userUuid).one();
             if (userDO != null) {
-                try (Transaction transaction = jedis.multi()) {
-                    transaction.hmset(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), ConvertUtil.convertObjectToMapString(userDO));
-                    transaction.expire(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), 86400);
-                    transaction.exec();
-                } catch (Exception e) {
-                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-                }
+                map.putAll(ConvertUtil.convertObjectToMapString(userDO));
+                map.expire(Duration.ofSeconds(86400));
                 return userDO;
             }
         } else {
@@ -103,25 +97,28 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @throws ServerInternalErrorException 如果在操作过程中发生服务器内部错误
      */
     public UserDO getUserByName(String name) throws ServerInternalErrorException {
-        String tryGetUuid = jedis.get(StringConstant.Redis.USER_NAME + name);
-        if (tryGetUuid == null) {
-            UserDO userDO = this.lambdaQuery().eq(UserDO::getName, name).one();
-            if (userDO != null) {
-                try (Transaction transaction = jedis.multi()) {
-                    transaction.set(StringConstant.Redis.USER_NAME + userDO.getName(), userDO.getUserUuid());
-                    transaction.expire(StringConstant.Redis.USER_NAME + userDO.getName(), 86400);
-                    transaction.hset(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), ConvertUtil.convertObjectToMapString(userDO));
-                    transaction.expire(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), 86400);
-                    transaction.exec();
-                } catch (Exception e) {
-                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            RBucket<String> tryGetUuid = transaction.getBucket(StringConstant.Redis.USER_NAME + name);
+            if (!tryGetUuid.isExists()) {
+                UserDO userDO = this.lambdaQuery().eq(UserDO::getName, name).one();
+                if (userDO != null) {
+                    tryGetUuid.set(userDO.getUserUuid());
+                    tryGetUuid.expire(Duration.ofSeconds(86400));
+                    RMap<String, String> map = transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+                    map.putAll(ConvertUtil.convertObjectToMapString(userDO));
+                    map.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
+                    return userDO;
                 }
-                return userDO;
+            } else {
+                return this.getUserByUuid(tryGetUuid.get());
             }
-        } else {
-            return this.getUserByUuid(tryGetUuid);
+            return null;
+        } catch (Exception e) {
+            transaction.rollback();
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
-        return null;
     }
 
     /**
@@ -136,25 +133,28 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @throws ServerInternalErrorException 在数据库操作或 Redis 操作失败时抛出
      */
     public UserDO getUserByMail(String mail) throws ServerInternalErrorException {
-        String tryGetUuid = jedis.get(StringConstant.Redis.USER_MAIL + mail);
-        if (tryGetUuid == null) {
-            UserDO userDO = this.lambdaQuery().eq(UserDO::getEmail, mail).one();
-            if (userDO != null) {
-                try (Transaction transaction = jedis.multi()) {
-                    transaction.set(StringConstant.Redis.USER_MAIL + userDO.getEmail(), userDO.getUserUuid());
-                    transaction.expire(StringConstant.Redis.USER_MAIL + userDO.getEmail(), 86400);
-                    transaction.hset(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), ConvertUtil.convertObjectToMapString(userDO));
-                    transaction.expire(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), 86400);
-                    transaction.exec();
-                } catch (Exception e) {
-                    throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            RBucket<String> tryGetUuid = transaction.getBucket(StringConstant.Redis.USER_MAIL + mail);
+            if (!tryGetUuid.isExists()) {
+                UserDO userDO = this.lambdaQuery().eq(UserDO::getEmail, mail).one();
+                if (userDO != null) {
+                    tryGetUuid.set(userDO.getUserUuid());
+                    tryGetUuid.expire(Duration.ofSeconds(86400));
+                    RMap<String, String> map = transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+                    map.putAll(ConvertUtil.convertObjectToMapString(userDO));
+                    map.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
+                    return userDO;
                 }
-                return userDO;
+            } else {
+                return this.getUserByUuid(tryGetUuid.get());
             }
-        } else {
-            return this.getUserByUuid(tryGetUuid);
+            return null;
+        } catch (Exception e) {
+            transaction.rollback();
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
-        return null;
     }
 
     /**
@@ -169,24 +169,27 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @throws ServerInternalErrorException 如果在操作过程中发生服务器内部错误
      */
     public UserDO getUserByTel(String tel) throws ServerInternalErrorException {
-        String tryGetUuid = jedis.get(StringConstant.Redis.USER_TEL + tel);
-        if (tryGetUuid == null) {
-            UserDO userDO = this.lambdaQuery().eq(UserDO::getPhone, tel).one();
-            if (userDO != null) {
-                try (Transaction transaction = jedis.multi()) {
-                    transaction.set(StringConstant.Redis.USER_TEL + userDO.getPhone(), userDO.getUserUuid());
-                    transaction.expire(StringConstant.Redis.USER_TEL + userDO.getPhone(), 86400);
-                    transaction.hset(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), ConvertUtil.convertObjectToMapString(userDO));
-                    transaction.expire(StringConstant.Redis.USER_UUID + userDO.getUserUuid(), 86400);
-                    transaction.exec();
-                } catch (Exception e) {
-                    log.error("数据库操作失败");
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            RBucket<String> tryGetUuid = transaction.getBucket(StringConstant.Redis.USER_TEL + tel);
+            if (!tryGetUuid.isExists()) {
+                UserDO userDO = this.lambdaQuery().eq(UserDO::getPhone, tel).one();
+                if (userDO != null) {
+                    tryGetUuid.set(userDO.getUserUuid());
+                    tryGetUuid.expire(Duration.ofSeconds(86400));
+                    RMap<String, String> map = transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+                    map.putAll(ConvertUtil.convertObjectToMapString(userDO));
+                    map.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
+                    return userDO;
                 }
-                return userDO;
+            } else {
+                return this.getUserByUuid(tryGetUuid.get());
             }
-        } else {
-            return this.getUserByUuid(tryGetUuid);
+            return null;
+        } catch (Exception e) {
+            transaction.rollback();
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
-        return null;
     }
 }

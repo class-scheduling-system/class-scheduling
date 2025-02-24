@@ -37,7 +37,7 @@ import com.frontleaves.scheduling.models.entity.SystemDO;
 import com.frontleaves.scheduling.models.entity.TableDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import redis.clients.jedis.Jedis;
+import org.redisson.api.RedissonClient;
 
 /**
  * 初始化方法类
@@ -55,7 +55,7 @@ class FunctionInit {
     private final TableDAO tableDAO;
     private final SystemDAO systemDAO;
     private final RoleDAO roleDAO;
-    private final Jedis jedis;
+    private final RedissonClient redisson;
 
     /**
      * 检查数据表是否完整
@@ -90,13 +90,15 @@ class FunctionInit {
             } else {
                 log.debug("[INIT] 系统表 {} 创建成功", key);
                 // 数据存入 Redis
-                jedis.hset(StringConstant.Redis.SYSTEM + "info", key, newSystemDO.getSystemVal());
+                redisson.getMap(StringConstant.Redis.SYSTEM + "info")
+                        .put(key, newSystemDO.getSystemVal());
                 return newSystemDO.getSystemVal();
             }
         } else {
             log.debug("[INIT] 系统表 {} 存在", key);
             // 数据存入 Redis
-            jedis.hset(StringConstant.Redis.SYSTEM + "info", key, systemDO.getSystemVal());
+            redisson.getMap(StringConstant.Redis.SYSTEM + "info")
+                    .put(key, systemDO.getSystemVal());
             return systemDO.getSystemVal();
         }
     }
