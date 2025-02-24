@@ -5,9 +5,7 @@ import com.frontleaves.scheduling.services.PublicService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
 import lombok.RequiredArgsConstructor;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,8 +38,7 @@ public class PublicController {
      * @return 包含站点详细信息的响应实体，其中数据部分为 {@code BaseResponse<SiteDTO>} 类型
      */
     @GetMapping("/info")
-    @Transactional
-    public @NotNull ResponseEntity<BaseResponse<SiteDTO>> getSiteInfo() {
+    public ResponseEntity<BaseResponse<SiteDTO>> getSiteInfo() {
         SiteDTO siteDTO = publicService.getSiteInfo();
         return ResultUtil.success("成功", siteDTO);
     }

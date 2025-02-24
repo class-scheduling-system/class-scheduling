@@ -39,6 +39,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 import redis.clients.jedis.Jedis;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * 系统表数据访问对象
  * <p>
@@ -70,15 +73,15 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
      */
     @IgnoreLog
     public String getSystemInfo(String key) {
-        String getValue = jedis.get(StringConstant.Redis.SYSTEM + key);
-        if (getValue != null) {
-            return getValue;
+        List<String> getValue = jedis.hmget(StringConstant.Redis.SYSTEM + "info", key);
+        if (!getValue.isEmpty()) {
+            return getValue.get(0);
         } else {
             SystemDO systemDO = this.lambdaQuery()
                     .eq(SystemDO::getSystemKey, key)
                     .one();
             if (systemDO != null) {
-                jedis.set(StringConstant.Redis.SYSTEM + key, systemDO.getSystemVal());
+                jedis.hset(StringConstant.Redis.SYSTEM + "info", systemDO.getSystemKey(), systemDO.getSystemVal());
                 return systemDO.getSystemVal();
             } else {
                 return null;
@@ -102,7 +105,7 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
                 .eq(SystemDO::getSystemKey, key)
                 .set(SystemDO::getSystemVal, value)
                 .update();
-        jedis.set(StringConstant.Redis.SYSTEM + key, value);
+        jedis.hset(StringConstant.Redis.SYSTEM + "info", key, value);
         return value;
     }
 
@@ -122,6 +125,25 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
                 .setSystemKey(key)
                 .setSystemVal(value);
         this.save(systemDO);
-        jedis.set(StringConstant.Redis.SYSTEM + key, value);
+        jedis.hset(StringConstant.Redis.SYSTEM + "info", key, value);
+    }
+
+    /**
+     * 获取系统信息列表
+     * <p>
+     * 该方法用于获取系统表中的所有系统信息。首先从 Redis 缓存中查询，如果缓存中不存在数据，则从数据库中查询并将结果存入 Redis 缓存中。
+     * 返回的列表包含所有的系统值。
+     * </p>
+     *
+     * @return 系统值的列表
+     */
+    public Map<String, String> getSystemInfoList() {
+        if (!jedis.exists(StringConstant.Redis.SYSTEM + "info")) {
+            List<SystemDO> systemDOList = this.list();
+            for (SystemDO systemDO : systemDOList) {
+                jedis.hset(StringConstant.Redis.SYSTEM + "info", systemDO.getSystemKey(), systemDO.getSystemVal());
+            }
+        }
+        return jedis.hgetAll(StringConstant.Redis.SYSTEM + "info");
     }
 }

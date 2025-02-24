@@ -81,20 +81,16 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
     public Page<BuildingDO> getBuildingList(int page, int size, boolean isDesc) {
         String cacheKey = StringConstant.Redis.BUILDING_LIST + ":" + page + ":" + size + ":" + isDesc;
         Map<String, String> map = jedis.hgetAll(cacheKey);
-        try (Transaction transaction = jedis.multi()) {
-            if (map.isEmpty()) {
-                LambdaQueryChainWrapper<BuildingDO> queryWrapper = this.lambdaQuery();
-                if (isDesc) {
-                    queryWrapper.orderByDesc(BuildingDO::getCreatedAt);
-                } else {
-                    queryWrapper.orderByAsc(BuildingDO::getCampusUuid);
-                }
-                return this.queryAndCache(queryWrapper, page, size, transaction, cacheKey);
+        if (map.isEmpty()) {
+            LambdaQueryChainWrapper<BuildingDO> queryWrapper = this.lambdaQuery();
+            if (isDesc) {
+                queryWrapper.orderByDesc(BuildingDO::getCreatedAt);
             } else {
-                return ProjectUtil.getPageForMap(map, BuildingDO.class);
+                queryWrapper.orderByAsc(BuildingDO::getCampusUuid);
             }
-        } catch (Exception e) {
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+            return this.queryAndCache(queryWrapper, page, size, cacheKey);
+        } else {
+            return ProjectUtil.getPageForMap(map, BuildingDO.class);
         }
     }
 
@@ -114,23 +110,19 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
     public Page<BuildingDO> getBuildingListHasKeyword(int page, int size, boolean isDesc, String keyword) {
         String cacheKey = StringConstant.Redis.BUILDING_LIST + ":" + page + ":" + size + ":" + isDesc + ":" + keyword;
         Map<String, String> map = jedis.hgetAll(cacheKey);
-        try (Transaction transaction = jedis.multi()) {
-            if (map.isEmpty()) {
-                LambdaQueryChainWrapper<BuildingDO> queryWrapper = this.lambdaQuery();
-                if (isDesc) {
-                    queryWrapper.orderByDesc(BuildingDO::getCreatedAt);
-                } else {
-                    queryWrapper.orderByAsc(BuildingDO::getCreatedAt);
-                }
-                queryWrapper.like(BuildingDO::getBuildingName, keyword);
-                this.queryAndCache(queryWrapper, page, size, transaction, cacheKey);
+        if (map.isEmpty()) {
+            LambdaQueryChainWrapper<BuildingDO> queryWrapper = this.lambdaQuery();
+            if (isDesc) {
+                queryWrapper.orderByDesc(BuildingDO::getCreatedAt);
             } else {
-                return ProjectUtil.getPageForMap(map, BuildingDO.class);
+                queryWrapper.orderByAsc(BuildingDO::getCreatedAt);
             }
-            return null;
-        } catch (Exception e) {
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+            queryWrapper.like(BuildingDO::getBuildingName, keyword);
+            this.queryAndCache(queryWrapper, page, size, cacheKey);
+        } else {
+            return ProjectUtil.getPageForMap(map, BuildingDO.class);
         }
+        return null;
     }
 
     /**
@@ -213,20 +205,16 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
     public Page<BuildingDO> getBuildingByCampus(String campusUuid, int page, int size, boolean isDesc) {
         String cacheKey = StringConstant.Redis.BUILDING_CAMPUS + campusUuid + ":" + page + ":" + size + ":" + isDesc;
         Map<String, String> map = jedis.hgetAll(cacheKey);
-        try (Transaction transaction = jedis.multi()) {
-            if (map.isEmpty()) {
-                LambdaQueryChainWrapper<BuildingDO> queryWrapper = this.lambdaQuery().eq(BuildingDO::getCampusUuid, campusUuid);
-                if (isDesc) {
-                    queryWrapper.orderByDesc(BuildingDO::getCreatedAt);
-                } else {
-                    queryWrapper.orderByAsc(BuildingDO::getCreatedAt);
-                }
-                return this.queryAndCache(queryWrapper, page, size, transaction, cacheKey);
+        if (map.isEmpty()) {
+            LambdaQueryChainWrapper<BuildingDO> queryWrapper = this.lambdaQuery().eq(BuildingDO::getCampusUuid, campusUuid);
+            if (isDesc) {
+                queryWrapper.orderByDesc(BuildingDO::getCreatedAt);
             } else {
-                return ProjectUtil.getPageForMap(map, BuildingDO.class);
+                queryWrapper.orderByAsc(BuildingDO::getCreatedAt);
             }
-        } catch (Exception e) {
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+            return this.queryAndCache(queryWrapper, page, size, cacheKey);
+        } else {
+            return ProjectUtil.getPageForMap(map, BuildingDO.class);
         }
     }
 
@@ -244,22 +232,26 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      * @return 返回一个包含查询结果的分页对象 {@code Page<T>}
      */
     @Nullable
-    private <T> Page<T> queryAndCache(@NotNull LambdaQueryChainWrapper<T> queryWrapper, int page, int size, Transaction transaction, String cacheKey) {
-        // 执行分页查询
-        Page<T> buildingPage = queryWrapper.page(new Page<>(page, size));
+    private <T> Page<T> queryAndCache(@NotNull LambdaQueryChainWrapper<T> queryWrapper, int page, int size, String cacheKey) {
+        try (Transaction transaction = jedis.multi()) {
+            // 执行分页查询
+            Page<T> buildingPage = queryWrapper.page(new Page<>(page, size));
 
-        // 如果查询有结果，则将分页数据存入 Redis
-        if (buildingPage.getCurrent() != 0) {
-            transaction.hset(cacheKey, "records", JSONUtil.toJsonStr(buildingPage.getRecords()));
-            transaction.hset(cacheKey, "current", String.valueOf(buildingPage.getCurrent()));
-            transaction.hset(cacheKey, "size", String.valueOf(buildingPage.getSize()));
-            transaction.hset(cacheKey, "total", String.valueOf(buildingPage.getTotal()));
-            transaction.hset(cacheKey, "pages", String.valueOf(buildingPage.getPages()));
-            transaction.expire(cacheKey, 3600);
-            transaction.exec();
-            return buildingPage;
+            // 如果查询有结果，则将分页数据存入 Redis
+            if (buildingPage.getCurrent() != 0) {
+                transaction.hset(cacheKey, "records", JSONUtil.toJsonStr(buildingPage.getRecords()));
+                transaction.hset(cacheKey, "current", String.valueOf(buildingPage.getCurrent()));
+                transaction.hset(cacheKey, "size", String.valueOf(buildingPage.getSize()));
+                transaction.hset(cacheKey, "total", String.valueOf(buildingPage.getTotal()));
+                transaction.hset(cacheKey, "pages", String.valueOf(buildingPage.getPages()));
+                transaction.expire(cacheKey, 3600);
+                transaction.exec();
+                return buildingPage;
+            }
+            return null;
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
-        return null;
     }
 
     /**

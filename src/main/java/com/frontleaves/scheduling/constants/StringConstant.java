@@ -45,6 +45,7 @@ public class StringConstant {
 
     public static final String TOKEN_ATTRIBUTION_ERROR = "令牌归属错误";
     public static final String DATABASE_OPERATION_FAILED = "数据库操作失败";
+    public static final String REDIS_OPERATION_FAILED = "缓存操作失败";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");

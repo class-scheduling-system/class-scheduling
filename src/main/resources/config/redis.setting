@@ -14,3 +14,7 @@ soTimeout = 2000
 database = 0
 clientName = classSchedule
 ssl = false;
+maxIdle = 20
+minIdle = 5
+maxWaitMillis = -1
+maxTotal = 100
