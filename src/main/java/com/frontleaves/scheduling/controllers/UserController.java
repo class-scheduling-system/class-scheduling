@@ -31,11 +31,14 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
+import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -85,8 +88,7 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<BaseResponse<UserLoginDTO>> userLogin(
             @RequestBody @Validated UserLoginVO userLoginVO,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         UserLoginDTO userLoginDTO = userService.checkLoginForUser(userLoginVO, request);
         if (userLoginDTO != null) {
             return ResultUtil.success("登录成功", userLoginDTO);
@@ -109,12 +111,9 @@ public class UserController {
     @PostMapping("/registered")
     public ResponseEntity<BaseResponse<Void>> userRegistered(
             @RequestBody @Validated UserInitializationVO userInitializationVO,
-            @NotNull HttpServletRequest request
-    ) {
-        userService.checkUserNotUseDefaultPassword(
-                userInitializationVO.getUser(),
-                userInitializationVO.getNewPassword()
-        );
+            @NotNull HttpServletRequest request) {
+        userService.checkUserNotUseDefaultPassword(userInitializationVO.getUser(),
+                userInitializationVO.getNewPassword());
         userService.userRegistered(userInitializationVO, request);
         return ResultUtil.success("注册成功");
     }
@@ -129,8 +128,7 @@ public class UserController {
     @GetMapping("/getUserInfo")
     public ResponseEntity<BaseResponse<UserInfoDTO>> userGetInfo(
             @RequestParam("user_uuid") String userUuid,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         userService.checkUuid(userUuid);
         UserInfoDTO userInfoDTO = userService.getUserInfo(userUuid, request);
         return ResultUtil.success("获取用户信息成功", userInfoDTO);
@@ -144,8 +142,7 @@ public class UserController {
      */
     @PostMapping("/addUser")
     public ResponseEntity<BaseResponse<UserInfoDTO>> addUser(
-            @RequestBody UserAddVO userAddVO
-    ) {
+            @RequestBody UserAddVO userAddVO) {
         userService.checkAddUser(userAddVO);
         UserInfoDTO userInfoDTO = userService.addUser(userAddVO);
         return ResultUtil.success("添加用户成功", userInfoDTO);
@@ -160,10 +157,30 @@ public class UserController {
     @DeleteMapping("/deleteUser")
     public ResponseEntity<BaseResponse<Void>> deleteUser(
             @RequestParam("user_uuid") String userUuid,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         userService.checkUuid(userUuid);
         userService.deleteUser(userUuid, request);
         return ResultUtil.success("删除用户成功");
     }
+
+    /**
+     * 更新用户
+     * @param userUuid 用户唯一标识符
+     * @param userEditVO 用户编辑视图对象
+     * @param request HTTP请求对象
+     * @return 用户信息数据传输对象
+     */
+    @PutMapping("/updateUser")
+    public ResponseEntity<BaseResponse<UserInfoDTO>> updateUser(
+            @RequestParam("user_uuid")String userUuid,
+            @Validated @RequestBody UserEditVO userEditVO,
+            HttpServletRequest request) {
+        userService.checkUuid(userUuid);
+        UserInfoDTO userInfoDTO = userService.updateUser(userUuid,userEditVO,request);
+        if (userInfoDTO == null) {
+            throw new BusinessException("更新用户失败", ErrorCode.OPERATION_ERROR);
+        }
+        return ResultUtil.success("更新用户成功",userInfoDTO);
+    }
 }
+

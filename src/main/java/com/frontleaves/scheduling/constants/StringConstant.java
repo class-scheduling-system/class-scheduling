@@ -110,6 +110,10 @@ public class StringConstant {
         public static final String PHONE_REGULAR_EXPRESSION ="^1[3456789]\\d{9}$";
         public static final String USER_NAME_REGULAR_EXPRESSION ="^[0-9A-Za-z_-]{4,32}$";
         public static final String PASSWORD_REGULAR_EXPRESSION = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$";
+        public static final String EMAIL_REGULAR_EXPRESSION_ABLE_EMPTY ="^(|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6})$";
+        public static final String USER_NAME_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^[0-9A-Za-z_-]{4,32}$)";
+        public static final String PHONE_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^1[3456789]\\d{9}$)";
+        public static final String PASSWORD_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$)";
 
         private Regular() {
             log.error("Regular 不能被实例化");

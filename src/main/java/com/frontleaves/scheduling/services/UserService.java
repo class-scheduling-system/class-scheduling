@@ -32,6 +32,7 @@ import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
+import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.xlf.utility.exception.BusinessException;
@@ -157,5 +158,18 @@ public interface UserService {
      */
     void deleteUser(
             String userUuid,
+            HttpServletRequest request);
+
+    /**
+     * 检查编辑用户数据合规性
+     *
+     * @param userUuid   用户唯一标识符
+     * @param userEditVO 用户编辑数据
+     * @param request    HTTP请求对象
+     * @return UserInfoDTO
+     */
+    UserInfoDTO updateUser(
+            String userUuid,
+            UserEditVO userEditVO,
             HttpServletRequest request);
 }

@@ -39,6 +39,7 @@ import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
+import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.UserService;
@@ -221,13 +222,13 @@ public class UserLogic implements UserService {
      */
     private void checkUserExist(String username, String email, String phone) throws BusinessException {
         log.debug(LogConstant.SERVICE + "检测用户信息是否重复");
-        if (userDAO.getUserByName(username) != null) {
+        if (!username.isEmpty() && userDAO.getUserByName(username) != null) {
             throw new BusinessException("用户名已存在", ErrorCode.BODY_ERROR);
         }
-        if (userDAO.getUserByMail(email) != null) {
+        if (!email.isEmpty() && userDAO.getUserByMail(email) != null) {
             throw new BusinessException("邮箱已存在", ErrorCode.BODY_ERROR);
         }
-        if (userDAO.getUserByTel(phone) != null) {
+        if (!phone.isEmpty() && userDAO.getUserByTel(phone) != null) {
             throw new BusinessException("手机号已存在", ErrorCode.BODY_ERROR);
         }
     }
@@ -513,11 +514,102 @@ public class UserLogic implements UserService {
                 throw new BusinessException("教师信息不存在", ErrorCode.OPERATION_ERROR);
             }
             log.info("删除教师信息");
-            teacherDAO.deleteTeacher( teacherDO);
+            teacherDAO.deleteTeacher(teacherDO);
             userDAO.deleteUser(userDO);
         } else {
             log.info("删除用户信息");
             userDAO.deleteUser(userDO);
         }
+    }
+
+    @Override
+    @Transactional
+    public UserInfoDTO updateUser(@NotNull String userUuid, UserEditVO userEditVO, HttpServletRequest request) {
+        UserDO userOldDO = userDAO.getUserByUuid(userUuid);
+        if (userEditVO == null) {
+            throw new BusinessException("用户编辑数据为空", ErrorCode.BODY_ERROR);
+        }
+        if (userOldDO == null) {
+            throw new UserAuthenticationException(
+                    UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+        }
+        if (!userEditVO.getName().isEmpty()
+                && !userEditVO.getName().equals(userOldDO.getName())
+                && userDAO.getUserByName(userEditVO.getName()) != null) {
+            throw new BusinessException("用户名已存在", ErrorCode.BODY_ERROR);
+        }
+        if (!userEditVO.getEmail().isEmpty()
+                && !userEditVO.getEmail().equals(userOldDO.getEmail())
+                && userDAO.getUserByMail(userEditVO.getEmail()) != null) {
+
+            throw new BusinessException("邮箱已存在", ErrorCode.BODY_ERROR);
+        }
+        if (!userEditVO.getPhone().isEmpty()
+                && !userEditVO.getPhone().equals(userOldDO.getPhone())
+                && userDAO.getUserByTel(userEditVO.getPhone()) != null) {
+            throw new BusinessException("手机号已存在", ErrorCode.BODY_ERROR);
+        }
+        //检查原先是否为学生或者老师
+        RoleDTO roleOldDTO = roleDAO.getRoleByUuid(userOldDO.getRoleUuid());
+        if (roleOldDTO == null) {
+            throw new BusinessException("角色不存在意料之外的错误", ErrorCode.OPERATION_ERROR);
+        }
+        if ("学生".equals(roleOldDTO.getRoleName()) || "老师".equals(roleOldDTO.getRoleName())) {
+            throw new BusinessException("此类用户数据不允许编辑", ErrorCode.BODY_ERROR);
+        }
+        log.debug("更新用户信息开始");
+        UserDO userNewDO = exchangeOfUserData(userEditVO, userOldDO);
+        userDAO.updateUser(userOldDO, userNewDO);
+        log.debug("更新用户信息结束");
+        UserInfoDTO userInfoDTO = new UserInfoDTO();
+        UserDTO userDTO = ProjectUtil.convertUserDoToUserDTO(userNewDO);
+        if (userEditVO.getRoleUuid() != null && !userEditVO.getRoleUuid().isEmpty()) {
+            RoleDTO roleNewDTO = roleDAO.getRoleByUuid(userEditVO.getRoleUuid());
+            userDTO.setRole(BeanUtil.toBean(roleNewDTO, RoleDTO.class));
+        } else {
+            userDTO.setRole(BeanUtil.toBean(roleOldDTO, RoleDTO.class));
+        }
+        userInfoDTO.setUser(userDTO);
+        return userInfoDTO;
+    }
+
+    /**
+     * 交换用户数据
+     *
+     * @param userEditVO 用户编辑数据
+     * @param userDO     用户数据对象
+     * @return 用户数据对象
+     */
+    private UserDO exchangeOfUserData(UserEditVO userEditVO, UserDO userDO) {
+        if (!userEditVO.getName().isEmpty()) {
+            userDO.setName(userEditVO.getName());
+        }
+        if (!userEditVO.getPassword().isEmpty()) {
+            userDO.setPassword(PasswordUtil.encrypt(userEditVO.getPassword()));
+        }
+        if (!userEditVO.getEmail().isEmpty()) {
+            userDO.setEmail(userEditVO.getEmail());
+        }
+        if (!userEditVO.getPhone().isEmpty()) {
+            userDO.setPhone(userEditVO.getPhone());
+        }
+        if (!userEditVO.getRoleUuid().isEmpty()) {
+            log.debug("用户角色：{}", userEditVO.getRoleUuid());
+            log.debug("改变用户角色");
+            RoleDTO roleNewDTO = roleDAO.getRoleByUuid(userEditVO.getRoleUuid());
+            if (roleNewDTO == null) {
+                throw new BusinessException("此类用户数据不存在", ErrorCode.BODY_ERROR);
+            }
+            if ("学生".equals(roleNewDTO.getRoleName()) || "老师".equals(roleNewDTO.getRoleName())) {
+                throw new BusinessException("不允许将角色编辑为学生或者老师", ErrorCode.BODY_ERROR);
+            }
+            userDO.setRoleUuid(userEditVO.getRoleUuid());
+        }
+        if (!userEditVO.getPermission().isEmpty()) {
+            userDO.setPermission(JSONUtil.toJsonStr(userEditVO.getPermission()));
+        }
+        log.debug("更改对象：{}", userEditVO.getName());
+        log.debug("用户数据对象：{}", userDO);
+        return userDO;
     }
 }

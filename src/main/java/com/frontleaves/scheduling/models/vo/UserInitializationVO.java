@@ -34,7 +34,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
@@ -52,7 +52,7 @@ import lombok.NoArgsConstructor;
  * @see UserLoginVO 用户登录视图对象参考
  * @since v1.0.0
  */
-@Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserInitializationVO {

@@ -51,9 +51,9 @@ import java.util.Map;
  * 所有方法都优先尝试从 Redis 缓存中读取数据，如果缓存中没有，则从数据库中查询，并将结果缓存到 Redis 中以提高性能。
  * </p>
  *
- * @since v1.0.0
- * @version v1.0.0
  * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
  */
 @Slf4j
 @Repository
@@ -173,22 +173,49 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
     /**
      * 删除用户并且删除token
      * <p>
-     *     该方法用于删除用户信息，首先通过用户 UUID 获取用户信息，然后删除用户信息。
-     *     如果用户信息存在，则删除 Redis 中与用户相关的所有数据。
-     *     如果用户信息不存在或者删除失败，则抛出 {@code ServerInternalErrorException} 异常。
+     * 该方法用于删除用户信息，首先通过用户 UUID 获取用户信息，然后删除用户信息。
+     * 如果用户信息存在，则删除 Redis 中与用户相关的所有数据。
+     * 如果用户信息不存在或者删除失败，则抛出 {@code ServerInternalErrorException} 异常。
      * </p>
+     *
      * @param userDO 用户实体
      */
     public void deleteUser(UserDO userDO) throws ServerInternalErrorException {
         try (Transaction transaction = jedis.multi()) {
-            this.lambdaUpdate().eq(UserDO::getUserUuid,userDO.getUserUuid()).remove();
-            transaction.del(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
-            transaction.del(StringConstant.Redis.USER_NAME + userDO.getName());
-            transaction.del(StringConstant.Redis.USER_MAIL + userDO.getEmail());
-            transaction.del(StringConstant.Redis.USER_TEL + userDO.getPhone());
-            transaction.exec();
+            this.lambdaUpdate().eq(UserDO::getUserUuid, userDO.getUserUuid()).remove();
+            deleteRedis(userDO, transaction);
         } catch (Exception e) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+    }
+
+    /**
+     * 更新用户信息
+     *
+     * @param userOldDO 旧的用户实体
+     *                  用于删除 Redis 中的旧数据
+     * @param userNewDO 新的用户实体
+     * @throws ServerInternalErrorException 如果更新过程中发生服务器内部错误
+     */
+    public void updateUser(UserDO userOldDO, UserDO userNewDO) throws ServerInternalErrorException {
+        try (Transaction transaction = jedis.multi()) {
+            this.updateById(userNewDO);
+            deleteRedis(userOldDO, transaction);
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
+
+    /**
+     * 删除 Redis 中的用户信息
+     * @param userOldDO 用户实体
+     * @param transaction  事务
+     */
+    private void deleteRedis(UserDO userOldDO, Transaction transaction) {
+        transaction.del(StringConstant.Redis.USER_UUID + userOldDO.getUserUuid());
+        transaction.del(StringConstant.Redis.USER_NAME + userOldDO.getName());
+        transaction.del(StringConstant.Redis.USER_MAIL + userOldDO.getEmail());
+        transaction.del(StringConstant.Redis.USER_TEL + userOldDO.getPhone());
+        transaction.exec();
     }
 }
