@@ -51,6 +51,8 @@ public class LogConstant {
     public static final String ERROR = "[ERRO] ";
     public static final String DEBUG = "[DEBG] ";
     public static final String TRACE = "[TRAC] ";
+    public static final String ASPECT = "[ASPT] ";
+
 
     private LogConstant() {
         log.error("LogConstant 不能被实例化");

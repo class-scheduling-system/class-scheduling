@@ -26,39 +26,46 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.annotations;
+package com.frontleaves.scheduling.services;
 
-import java.lang.annotation.*;
+import com.frontleaves.scheduling.models.entity.UserDO;
+
+import java.util.List;
 
 /**
- * 需要权限注解。
- *
+ * 权限服务接口，定义了与权限相关的操作方法。
+ * 该接口可以被具体实现类继承，以提供具体的业务逻辑。
  * <p>
- * 此注解用于指示方法执行前需要验证特定的权限。被此注解标记的方法表示在调用时，
- * 必须检查调用者是否具备指定的权限才能继续执行，这是实现系统权限控制的一种方式。
- * 通常与权限检查逻辑或AOP（面向切面编程）结合使用，以确保对受限功能的合法访问。
+ * 本接口中的方法主要用于处理权限的拆分和验证等基本操作，
+ * 以及可能的其他扩展功能。具体实现细节由实现类决定。
  * </p>
  *
- * <p>
- * 参数 {@code value} 指定所需的权限标识符，该标识符应与系统的权限管理系统中的权限定义相匹配。
- * </p>
- *
- * @since v1.0.0
- * @version v1.0.0
  * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
  */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-@Documented
-public @interface RequestPermission {
+public interface PermissionService {
 
     /**
-     * 获取权限标识符。
+     * 将权限字符串拆分为权限列表
      * <p>
-     *     例如：{@code "user:unit:type:edit"} 表示需要用户读取权限。
+     * 该方法接收一个权限字符串，并将其按照点号（{@code .}）进行拆分，返回一个包含各个权限部分的列表。如果输入的权限字符串为空或为 {@code null}，则返回一个空列表。
      * </p>
      *
-     * @return 权限所需的标识符，用于匹配系统权限管理系统中的权限定义。
+     * @param permissions 权限字符串
+     * @return 拆分后的权限列表
      */
-    String value();
+    List<String> dismantlingPermissions(String permissions);
+
+    /**
+     * 检查用户是否具有指定权限
+     * <p>
+     * 该方法用于验证给定的用户是否拥有特定的权限。如果用户拥有该权限，则返回 {@code true}；否则返回 {@code false}。
+     * </p>
+     *
+     * @param permission 要检查的权限字符串
+     * @param userDO     用户对象，包含用户的详细信息
+     * @return 如果用户拥有指定的权限则返回 {@code true}，否则返回 {@code false}
+     */
+    boolean checkPermission(String permission, UserDO userDO);
 }
