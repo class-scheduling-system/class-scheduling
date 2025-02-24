@@ -505,7 +505,7 @@ public class UserLogic implements UserService {
                 throw new BusinessException("学生信息不存在", ErrorCode.OPERATION_ERROR);
             }
             log.info("删除学生信息");
-            studentDAO.deleteStudent(userDO, studentDO);
+            studentDAO.deleteStudent(studentDO);
             userDAO.deleteUser(userDO);
         } else if ("老师".equals(roleDTO.getRoleName())) {
             TeacherDO teacherDO = teacherDAO.lambdaQuery().eq(TeacherDO::getUserUuid, userUuid).one();
@@ -513,7 +513,7 @@ public class UserLogic implements UserService {
                 throw new BusinessException("教师信息不存在", ErrorCode.OPERATION_ERROR);
             }
             log.info("删除教师信息");
-            teacherDAO.lambdaUpdate().eq(TeacherDO::getUserUuid, userUuid).remove();
+            teacherDAO.deleteTeacher( teacherDO);
             userDAO.deleteUser(userDO);
         } else {
             log.info("删除用户信息");

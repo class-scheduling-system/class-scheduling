@@ -34,7 +34,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.StudentMapper;
 import com.frontleaves.scheduling.models.entity.StudentDO;
-import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
@@ -165,16 +164,17 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
     /**
      * 删除学生并删除token
      * <p>
-     *     该方法用于删除学生信息，首先通过学生 UUID 获取学生信息，然后删除学生信息。
-     *     如果学生信息存在，则删除 Redis 中与学生相关的所有数据。
-     *     如果学生信息不存在或者删除失败，则抛出 {@code ServerInternalErrorException} 异常。
+     * 该方法用于删除学生信息，首先通过学生 UUID 获取学生信息，然后删除学生信息。
+     * 如果学生信息存在，则删除 Redis 中与学生相关的所有数据。
+     * 如果学生信息不存在或者删除失败，则抛出 {@code ServerInternalErrorException} 异常。
      * </p>
-     * @param userDO 用户实体
+     *
      * @param studentDO 学生实体
+     * @throws ServerInternalErrorException 如果删除过程中发生服务器内部错误
      */
-    public void deleteStudent(UserDO userDO, StudentDO studentDO) throws ServerInternalErrorException {
+    public void deleteStudent(StudentDO studentDO) throws ServerInternalErrorException {
         try (Transaction transaction = jedis.multi()) {
-            this.lambdaUpdate().eq(StudentDO::getUserUuid, userDO.getUserUuid()).remove();
+            this.lambdaUpdate().eq(StudentDO::getId, studentDO.getId()).remove();
             transaction.del(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
             transaction.del(StringConstant.Redis.STUDENT_ID + studentDO.getId());
             transaction.exec();
