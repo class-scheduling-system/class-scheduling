@@ -73,7 +73,7 @@ public class MajorDO {
     /**
      * 专业所属学院UUID
      */
-    private String majorDepartmentUuid;
+    private String departmentUuid;
     /**
      * 学制（年）
      */

@@ -32,6 +32,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.mappers.MajorMapper;
 import com.frontleaves.scheduling.models.entity.MajorDO;
+import org.springframework.stereotype.Repository;
 
 /**
  * 专业数据访问对象
@@ -45,5 +46,6 @@ import com.frontleaves.scheduling.models.entity.MajorDO;
  * @version v1.0.0
  * @author FLASHLACK
  */
+@Repository
 public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IService<MajorDO> {
 }
