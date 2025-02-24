@@ -180,7 +180,6 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
             transaction.exec();
         } catch (Exception e) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-
         }
     }
 }

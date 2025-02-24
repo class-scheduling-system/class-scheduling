@@ -71,17 +71,20 @@ class StudentTest {
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
                 .setClazz("1班");
+        if (studentDAO.lambdaQuery().eq(StudentDO::getName, studentDO.getName()).one() != null) {
+            studentDAO.lambdaUpdate().eq(StudentDO::getName, studentDO.getName()).remove();
+        }
         studentDAO.save(studentDO);
-        jedis.hmset(StringConstant.Redis.STUDENT_ID+studentDO.getId(),
+        jedis.hmset(StringConstant.Redis.STUDENT_ID + studentDO.getId(),
                 ConvertUtil.convertObjectToMapString(studentDO));
-        jedis.expire(StringConstant.Redis.STUDENT_ID+studentDO.getId(), 86400);
-        jedis.hmset(StringConstant.Redis.STUDENT_UUID+studentDO.getStudentUuid(),
+        jedis.expire(StringConstant.Redis.STUDENT_ID + studentDO.getId(), 86400);
+        jedis.hmset(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid(),
                 ConvertUtil.convertObjectToMapString(studentDO));
-        jedis.expire(StringConstant.Redis.STUDENT_UUID+studentDO.getStudentUuid(), 86400);
+        jedis.expire(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid(), 86400);
         studentDAO.deleteStudent(studentDO);
         StudentDO studentDO1 = studentDAO.lambdaQuery().eq(StudentDO::getId, studentDO.getId()).one();
         Assertions.assertNull(studentDO1);
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.STUDENT_ID+studentDO.getId());
+        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.STUDENT_ID + studentDO.getId());
         Assertions.assertTrue(map.isEmpty());
     }
 }
