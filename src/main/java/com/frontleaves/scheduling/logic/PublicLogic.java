@@ -35,6 +35,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 /**
  * 提供公共逻辑处理的类，实现了 {@code PublicService} 接口。
  * <p>
@@ -68,28 +70,30 @@ public class PublicLogic implements PublicService {
      */
     @Override
     public SiteDTO getSiteInfo() {
-        return new SiteDTO()
-                .setName(systemDAO.getSystemInfo("web_name"))
-                .setTitle(systemDAO.getSystemInfo("web_title"))
-                .setSubTitle(systemDAO.getSystemInfo("web_subtitle"))
-                .setDescription(systemDAO.getSystemInfo("web_description"))
-                .setKeywords(systemDAO.getSystemInfo("web_keywords"))
-                .setIconUrl(systemDAO.getSystemInfo("web_icon_url"))
-                .setLogoUrl(systemDAO.getSystemInfo("web_logo"))
-                .setIcpNumber(systemDAO.getSystemInfo("web_icp"))
-                .setIcpLink(systemDAO.getSystemInfo("web_icp_link"))
-                .setSecurityRecord(systemDAO.getSystemInfo("web_security_record"))
-                .setSecurityRecordLink(systemDAO.getSystemInfo("web_security_record_link"))
-                .setCopyrightStatus(systemDAO.getSystemInfo("web_copyright_status"))
-                .setOpenSourceLicense(systemDAO.getSystemInfo("web_open_source_license"))
-                .setContactEmail(systemDAO.getSystemInfo("web_contact_email"))
-                .setContactPhone(systemDAO.getSystemInfo("web_contact_phone"))
-                .setOfficeAddress(systemDAO.getSystemInfo("web_office_address"))
-                .setWeiboUrl(systemDAO.getSystemInfo("web_weibo_url"))
-                .setWechatOfficeAccount(systemDAO.getSystemInfo("web_wechat_office_account"))
-                .setOwner(systemDAO.getSystemInfo("web_owner"))
-                .setFounder(systemDAO.getSystemInfo("web_founder"))
-                .setLaunchDate(systemDAO.getSystemInfo("web_launch_date"))
-                .setTechnologyStack(systemDAO.getSystemInfo("web_technology_stack"));
+        SiteDTO siteDTO = new SiteDTO();
+        Map<String, String> systemInfoList = systemDAO.getSystemInfoList();
+        siteDTO.setName(systemInfoList.get("web_name"))
+                .setTitle(systemInfoList.get("web_title"))
+                .setSubTitle(systemInfoList.get("web_subtitle"))
+                .setDescription(systemInfoList.get("web_description"))
+                .setKeywords(systemInfoList.get("web_keywords"))
+                .setIconUrl(systemInfoList.get("web_icon_url"))
+                .setLogoUrl(systemInfoList.get("web_logo"))
+                .setIcpNumber(systemInfoList.get("web_icp"))
+                .setIcpLink(systemInfoList.get("web_icp_link"))
+                .setSecurityRecord(systemInfoList.get("web_security_record"))
+                .setSecurityRecordLink(systemInfoList.get("web_security_record_link"))
+                .setCopyrightStatus(systemInfoList.get("web_copyright_status"))
+                .setOpenSourceLicense(systemInfoList.get("web_open_source_license"))
+                .setContactEmail(systemInfoList.get("web_contact_email"))
+                .setContactPhone(systemInfoList.get("web_contact_phone"))
+                .setOfficeAddress(systemInfoList.get("web_office_address"))
+                .setWeiboUrl(systemInfoList.get("web_weibo_url"))
+                .setWechatOfficeAccount(systemInfoList.get("web_wechat_office_account"))
+                .setOwner(systemInfoList.get("web_owner"))
+                .setFounder(systemInfoList.get("web_founder"))
+                .setLaunchDate(systemInfoList.get("web_launch_date"))
+                .setTechnologyStack(systemInfoList.get("web_technology_stack"));
+        return siteDTO;
     }
 }

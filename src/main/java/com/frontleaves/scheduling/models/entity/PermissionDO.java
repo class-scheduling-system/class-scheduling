@@ -43,5 +43,4 @@ public class PermissionDO implements Serializable {
      * 权限描述
      */
     private String desc;
-
 }

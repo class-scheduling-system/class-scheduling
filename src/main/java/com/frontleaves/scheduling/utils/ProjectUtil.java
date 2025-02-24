@@ -30,9 +30,14 @@ package com.frontleaves.scheduling.utils;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 项目工具类
@@ -40,11 +45,15 @@ import org.jetbrains.annotations.NotNull;
  * 提供了一系列的静态方法，用于在项目中进行一些通用的操作。该类中的方法主要用于对象之间的转换、数据处理等。
  * </p>
  *
- * @since v1.0.0
- * @version v1.0.0
  * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
  */
 public class ProjectUtil {
+
+    private ProjectUtil() {
+        throw new IllegalStateException("Utility class");
+    }
 
     /**
      * 将用户实体对象转换为用户数据传输对象
@@ -66,5 +75,56 @@ public class ProjectUtil {
             userDTO.setPermission(null);
         }
         return userDTO;
+    }
+
+    /**
+     * 将分页对象转换为分页数据传输对象
+     * <p>
+     * 该方法接收一个 {@code Page<T>} 对象，并将其转换为对应的 {@code PageDTO<T>} 对象。
+     * 转换过程中，如果当前页码不为0，则会创建一个新的 {@code PageDTO<T>} 对象，并设置总记录数、每页大小、当前页码和记录列表。
+     * 如果当前页码为0，则返回一个默认的空 {@code PageDTO<T>} 对象。
+     * </p>
+     *
+     * @param page 分页对象，不能为空
+     * @param <T>  记录的类型
+     * @return 转换后的分页数据传输对象
+     */
+    @NotNull
+    public static <T, E> PageDTO<E> convertPageToPageDTO(@NotNull Page<T> page, Class<E> clazz) {
+        if (page.getCurrent() != 0) {
+            PageDTO<E> pageDTO = new PageDTO<>(page.getTotal(), page.getSize());
+            pageDTO
+                    .setRecords(JSONUtil.toJsonStr(page.getRecords()), clazz)
+                    .setCurrent(page.getCurrent());
+            return pageDTO;
+        } else {
+            return new PageDTO<>();
+        }
+    }
+
+    /**
+     * 根据传入的映射创建分页对象
+     * <p>
+     * 该方法接收一个包含分页信息的映射和记录类型的类，根据映射中的数据创建并返回一个分页对象。
+     * 映射中应包含以下键值对："current" 表示当前页码，默认为1；"size" 表示每页大小，默认为20；
+     * "records" 表示记录列表的 JSON 字符串，默认为空列表；"total" 表示总记录数，默认为0。
+     * </p>
+     *
+     * @param map   包含分页信息的映射，不能为空
+     * @param clazz 记录的类型
+     * @param <T>   记录的泛型类型
+     * @return 创建的分页对象
+     */
+    @NotNull
+    public static <T> Page<T> getPageForMap(@NotNull Map<String, String> map, Class<T> clazz) {
+        Page<T> pageResult = new Page<>(
+                Long.parseLong(map.getOrDefault("current", "1")),
+                Long.parseLong(map.getOrDefault("size", "20"))
+        );
+        List<T> records = JSONUtil.toList(map.getOrDefault("records", "[]"), clazz);
+        pageResult
+                .setRecords(records)
+                .setTotal(Long.parseLong(map.getOrDefault("total", "0")));
+        return pageResult;
     }
 }

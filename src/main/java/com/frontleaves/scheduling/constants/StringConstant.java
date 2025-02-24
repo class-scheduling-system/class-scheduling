@@ -45,6 +45,7 @@ public class StringConstant {
 
     public static final String TOKEN_ATTRIBUTION_ERROR = "令牌归属错误";
     public static final String DATABASE_OPERATION_FAILED = "数据库操作失败";
+    public static final String REDIS_OPERATION_FAILED = "缓存操作失败";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -67,6 +68,13 @@ public class StringConstant {
         public static final String STUDENT_UUID = "stu:uuid:";
         public static final String TEACHER_ID = "tea:id:";
         public static final String TEACHER_UUID = "tea:uuid:";
+        public static final String BUILDING_LIST = "building:list";
+        public static final String BUILDING_UUID = "building:uuid:";
+        public static final String BUILDING_NAME = "building:name:";
+        public static final String BUILDING_CAMPUS = "building:campus:";
+        public static final String CAMPUS_UUID = "campus:uuid:";
+        public static final String CAMPUS_NAME = "campus:name:";
+        public static final String CAMPUS_CODE = "campus:code:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
@@ -110,6 +118,8 @@ public class StringConstant {
         public static final String PHONE_REGULAR_EXPRESSION ="^1[3456789]\\d{9}$";
         public static final String USER_NAME_REGULAR_EXPRESSION ="^[0-9A-Za-z_-]{4,32}$";
         public static final String PASSWORD_REGULAR_EXPRESSION = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$";
+        public static final String UUID_NO_DASH_REGULAR_EXPRESSION = "^[a-f0-9]{8}[a-f0-9]{4}4[a-f0-9]{3}[89ab][a-f0-9]{3}[a-f0-9]{12}$";
+        public static final String UUID_REGULAR_EXPRESSION = "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$";
         public static final String EMAIL_REGULAR_EXPRESSION_ABLE_EMPTY ="^(|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6})$";
         public static final String USER_NAME_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^[0-9A-Za-z_-]{4,32}$)";
         public static final String PHONE_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^1[3456789]\\d{9}$)";

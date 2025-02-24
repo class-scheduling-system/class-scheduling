@@ -26,63 +26,32 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.annotations;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
-
-import java.sql.Timestamp;
-import java.util.List;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * 角色数据传输对象
+ * 忽略日志注解。
+ *
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
+ * 该注解用于标记那些不需要记录日志的方法。当一个方法被此注解装饰时，
+ * 意味着在执行该方法的过程中不会生成任何日志信息。这通常用于减少不必要的日志记录，
+ * 提高系统的性能和可读性，尤其是在处理大量请求或频繁调用的方法中。
+ * </p>
+ *
+ * <p>
+ * 应用此注解的方法将不会触发日志记录机制，因此在调试或监控过程中需要注意这一点。
+ * 此注解可以与日志框架（如SLF4J、Log4j等）结合使用，通过配置来实现自动忽略特定方法的日志记录。
  * </p>
  *
  * @version v1.0.0
  * @since v1.0.0
  * @author xiao_lfeng
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Accessors(chain = true)
-public class RoleDTO {
-
-    /**
-     * 角色主键，采用 UUID 自动生成
-     */
-    private String roleUuid;
-
-    /**
-     * 角色名
-     */
-    private String roleName;
-
-    /**
-     * 角色状态 0: 禁用 1: 启用
-     */
-    private Integer roleStatus;
-
-    /**
-     * 角色权限，JSON 格式
-     */
-    private List<String> permission;
-
-    /**
-     * 创建时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp updatedAt;
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface IgnoreLog {
 }

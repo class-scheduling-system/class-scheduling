@@ -28,9 +28,7 @@
 
 package com.frontleaves.scheduling.models.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -101,10 +99,12 @@ public class UserDO {
     /**
      * 创建时间
      */
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Timestamp createdAt;
 
     /**
      * 更新时间
      */
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Timestamp updatedAt;
 }

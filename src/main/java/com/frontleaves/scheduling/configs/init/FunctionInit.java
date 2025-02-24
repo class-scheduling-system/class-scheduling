@@ -90,13 +90,13 @@ class FunctionInit {
             } else {
                 log.debug("[INIT] 系统表 {} 创建成功", key);
                 // 数据存入 Redis
-                jedis.setGet(StringConstant.Redis.SYSTEM + key, newSystemDO.getSystemVal());
+                jedis.hset(StringConstant.Redis.SYSTEM + "info", key, newSystemDO.getSystemVal());
                 return newSystemDO.getSystemVal();
             }
         } else {
             log.debug("[INIT] 系统表 {} 存在", key);
             // 数据存入 Redis
-            jedis.setGet(StringConstant.Redis.SYSTEM + key, systemDO.getSystemVal());
+            jedis.hset(StringConstant.Redis.SYSTEM + "info", key, systemDO.getSystemVal());
             return systemDO.getSystemVal();
         }
     }

@@ -88,6 +88,7 @@ public class MajorDO {
      * 创建时间
      */
     private Timestamp createdAt;
+
     /**
      * 更新时间
      */

@@ -28,10 +28,7 @@
 
 package com.frontleaves.scheduling.models.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -61,32 +58,26 @@ public class StudentDO {
     /**
      * 学号
      */
-    @TableField(value = "id")
     private String id;
     /**
      * 姓名
      */
-    @TableField(value = "name")
     private String name;
     /**
      * 性别 0:女 1:男
      */
-    @TableField(value = "gender")
     private Integer gender;
     /**
      * 年级
      */
-    @TableField(value = "grade")
     private String grade;
     /**
      * 学院
      */
-    @TableField(value = "department")
     private String department;
     /**
      * 专业
      */
-    @TableField(value = "major")
     private String major;
     /**
      * 班级
@@ -96,18 +87,16 @@ public class StudentDO {
     /**
      * 对应用户主键
      */
-    @TableField(value = "user_uuid")
     private String userUuid;
     /**
      * 创建时间
      */
-    @TableField(value = "created_at")
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private Timestamp createdAt;
+
     /**
      * 更新时间
      */
-    @TableField(value = "updated_at")
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private Timestamp updatedAt;
-
-
 }
