@@ -28,14 +28,9 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
-import com.frontleaves.scheduling.models.vo.UserInitializationVO;
-import com.frontleaves.scheduling.models.vo.UserLoginVO;
-import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 用户服务接口，定义了与用户相关的操作方法。
@@ -50,7 +45,6 @@ import org.jetbrains.annotations.NotNull;
  * @since v1.0.0
  */
 public interface UserService {
-
     /**
      * 根据请求中的用户Token获取用户信息。
      * <p>
@@ -63,50 +57,4 @@ public interface UserService {
      * @throws UserAuthenticationException 如果Token过期或用户不存在时抛出
      */
     UserDO getUserByRequest(HttpServletRequest request);
-
-    /**
-     * 检查登录数据
-     *
-     * @param userLoginVO 用户登录数据
-     * @return 用户登录数据传输对象
-     */
-    UserLoginDTO checkLoginForUser(
-            UserLoginVO userLoginVO,
-            HttpServletRequest request
-    );
-
-    /**
-     * 用户注册
-     *
-     * @param userInitializationVO 用户初始化数据
-     */
-    void userRegistered(
-            UserInitializationVO userInitializationVO,
-            HttpServletRequest request
-    );
-
-    /**
-     * 检查用户是否使用了默认密码。
-     * <p>
-     * 该方法用于验证用户提供的新密码是否为系统默认生成的初始密码。如果用户的新密码与系统生成的默认密码相同，则抛出异常。
-     *
-     * @param stuOrTeId   学生或教师的唯一标识符，用于生成默认密码
-     * @param newPassword 用户提供的新密码
-     * @throws BusinessException 如果新密码与默认密码相同，则抛出此异常
-     */
-    void checkUserNotUseDefaultPassword(
-            @NotNull String stuOrTeId,
-            @NotNull String newPassword
-    ) throws BusinessException;
-
-    /**
-     * 检查学生或教师
-     *
-     * @param userLoginVO 用户登录数据
-     * @return 用户登录数据传输对象
-     */
-    UserLoginDTO checkLoginForNewUser(
-            UserLoginVO userLoginVO,
-            HttpServletRequest request
-    );
 }

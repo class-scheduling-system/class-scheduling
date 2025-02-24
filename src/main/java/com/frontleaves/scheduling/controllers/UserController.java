@@ -28,20 +28,9 @@
 
 package com.frontleaves.scheduling.controllers;
 
-import com.frontleaves.scheduling.models.dto.UserLoginDTO;
-import com.frontleaves.scheduling.models.vo.UserInitializationVO;
-import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.UserService;
-import com.xlf.utility.BaseResponse;
-import com.xlf.utility.ResultUtil;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -61,62 +50,4 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/user")
 public class UserController {
     private final UserService userService;
-
-    /**
-     * 用户登录接口
-     * <p>
-     * 此接口用于处理用户登录逻辑，支持多种登录方式：
-     * <ol>
-     *   <li>当用户已存在时，可通过用户名、手机或邮箱登录。</li>
-     *   <li>
-     *     若用户不存在，但输入的凭据为学号或工号且密码为默认格式（{@code stu+学号} 或 {@code te+工号}），
-     *     则系统将检查学生或教师表。若在相应表中存在该记录，则自动创建用户，并分配默认角色（学生或教师）。
-     *   </li>
-     *   <li>
-     *     如果用户既不存在于用户表，也不在学生/教师表中，则响应中将包含 {@code initialization} 字段，
-     *     用于通知前端该用户为未注册状态，需要进一步完善用户信息。
-     *   </li>
-     * </ol>
-     *
-     * @param userLoginVO 包含用户登录请求信息的视图对象，已通过验证
-     * @return 返回包含用户登录信息的响应实体。若响应数据中含有 {@code initialization} 字段，则表示该用户尚未完成正式注册，
-     * 前端应引导用户进入补全信息页面
-     * @see UserLoginDTO
-     */
-    @PostMapping("/login")
-    public ResponseEntity<BaseResponse<UserLoginDTO>> userLogin(
-            @RequestBody @Validated UserLoginVO userLoginVO,
-            HttpServletRequest request
-    ) {
-        UserLoginDTO userLoginDTO = userService.checkLoginForUser(userLoginVO, request);
-        if (userLoginDTO != null) {
-            return ResultUtil.success("登录成功", userLoginDTO);
-        } else {
-            UserLoginDTO newUserLoginDTO = userService.checkLoginForNewUser(userLoginVO, request);
-            return ResultUtil.success("登录成功", newUserLoginDTO);
-        }
-    }
-
-    /**
-     * 初始化用户注册接口
-     * <p>
-     * 当登录接口返回的 {@code initialization} 字段表明用户为初始化状态时，
-     * 前端应引导用户进入此页面，补全其用户信息（如用户名、密码、邮箱等），以完成正式注册。
-     * 此接口负责接收用户补全信息后的注册请求，并将用户信息更新至数据库。
-     *
-     * @param userInitializationVO 包含用户初始化信息的视图对象，已通过验证
-     * @return 返回空数据的响应实体，表示注册操作已成功处理
-     */
-    @PostMapping("/registered")
-    public ResponseEntity<BaseResponse<Void>> userRegistered(
-            @RequestBody @Validated UserInitializationVO userInitializationVO,
-            @NotNull HttpServletRequest request
-    ) {
-        userService.checkUserNotUseDefaultPassword(
-                userInitializationVO.getUser(),
-                userInitializationVO.getNewPassword()
-        );
-        userService.userRegistered(userInitializationVO, request);
-        return ResultUtil.success("注册成功");
-    }
 }

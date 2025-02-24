@@ -38,7 +38,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @Slf4j
 @SpringBootTest
-class UserTest {
+class AuthTest {
     @Resource
     private UserDAO userDAO;
 

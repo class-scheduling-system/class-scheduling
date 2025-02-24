@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.services;
 import com.frontleaves.scheduling.models.dto.BuildingDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.xlf.utility.exception.BusinessException;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 教学楼服务接口
@@ -56,6 +57,7 @@ public interface BuildingService {
      * @param isDesc 排序方式，true 表示降序，false 表示升序
      * @return 包含分页信息和教学楼数据的 {@code PageDTO<BuildingDTO>}
      */
+    @NotNull
     PageDTO<BuildingDTO> getBuildingList(int page, int size, boolean isDesc);
 
     /**
@@ -73,6 +75,7 @@ public interface BuildingService {
      * @param keyword 搜索关键词，用于匹配教学楼名称或其他相关信息
      * @return 分页的教学楼数据传输对象 {@code PageDTO<BuildingDTO>}
      */
+    @NotNull
     PageDTO<BuildingDTO> getBuildingListHasKeyword(int page, int size, boolean isDesc, String keyword);
 
     /**
