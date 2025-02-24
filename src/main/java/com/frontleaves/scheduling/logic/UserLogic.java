@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.*;
@@ -571,6 +572,11 @@ public class UserLogic implements UserService {
         }
         userInfoDTO.setUser(userDTO);
         return userInfoDTO;
+    }
+
+    @Override
+    public PageDTO<UserInfoDTO> getUserList(Integer page, Integer size, HttpServletRequest request) {
+        return null;
     }
 
     /**

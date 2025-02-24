@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
@@ -181,6 +182,15 @@ public class UserController {
             throw new BusinessException("更新用户失败", ErrorCode.OPERATION_ERROR);
         }
         return ResultUtil.success("更新用户成功",userInfoDTO);
+    }
+    @GetMapping("/getUserList")
+    public ResponseEntity<BaseResponse<PageDTO<UserInfoDTO>>> getUserList(
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "10") Integer size,
+            @RequestParam(value = "is_desc",defaultValue = "true")Boolean isDesc,
+            HttpServletRequest request) {
+        PageDTO<UserInfoDTO> userInfoDTOPage = userService.getUserList(page, size, request);
+        return ResultUtil.success("获取用户列表成功", userInfoDTOPage);
     }
 }
 

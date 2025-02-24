@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.services;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
@@ -171,5 +172,10 @@ public interface UserService {
     UserInfoDTO updateUser(
             String userUuid,
             UserEditVO userEditVO,
+            HttpServletRequest request);
+
+    PageDTO<UserInfoDTO> getUserList(
+            Integer page,
+            Integer size,
             HttpServletRequest request);
 }
