@@ -34,13 +34,12 @@ import com.frontleaves.scheduling.annotations.RequestPermission;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.daos.PermissionDAO;
 import com.frontleaves.scheduling.daos.RoleDAO;
-import com.frontleaves.scheduling.daos.TokenDAO;
 import com.frontleaves.scheduling.models.dto.RoleDTO;
 import com.frontleaves.scheduling.models.entity.PermissionDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
-import com.xlf.utility.util.HeaderUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.JoinPoint;
@@ -52,6 +51,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -78,8 +78,8 @@ import java.util.Objects;
 public class PermissionAspect {
 
     private final PermissionDAO permissionDAO;
-    private final TokenDAO tokenDAO;
     private final RoleDAO roleDAO;
+    private final UserService userService;
 
     /**
      * 在方法执行前检查请求的权限。
@@ -102,10 +102,9 @@ public class PermissionAspect {
      * </ul>
      *
      * @param joinPoint 连接点对象，包含正在执行的方法信息。
-     *                 通过此参数可以获取到注解 {@link RequestPermission} 配置的权限标识符。
-     *
+     *                  通过此参数可以获取到注解 {@link RequestPermission} 配置的权限标识符。
      * @throws ServerInternalErrorException 如果所需权限在数据库中不存在，抛出此异常。
-     * @throws UserAuthenticationException   如果用户未登录或没有足够权限，抛出此异常。
+     * @throws UserAuthenticationException  如果用户未登录或没有足够权限，抛出此异常。
      */
     @Before("@annotation(com.frontleaves.scheduling.annotations.RequestPermission)")
     public void requestPermissionCheck(@NotNull JoinPoint joinPoint) {
@@ -119,8 +118,7 @@ public class PermissionAspect {
             throw new ServerInternalErrorException("权限 " + permission + " 不存在，请检查接口" + methodSignature.getName() + "的权限配置");
         }
         HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
-        String userToken = HeaderUtil.getAuthorizeUserUuidString(request);
-        UserDO getUser = tokenDAO.getTokenUser(userToken);
+        UserDO getUser = userService.getUserByRequest(request);
         if (getUser == null) {
             throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_LOGIN, request);
         } else {
@@ -129,7 +127,8 @@ public class PermissionAspect {
                     .filter(permissionDO -> permissionDO.getPermissionKey().equals(permission))
                     .findFirst()
                     .ifPresentOrElse(
-                            permissionDO -> {},
+                            permissionDO -> {
+                            },
                             () -> {
                                 // 不具备权限获取所在角色
                                 RoleDTO roleDTO = roleDAO.getRoleByUuid(getUser.getRoleUuid());
@@ -169,8 +168,7 @@ public class PermissionAspect {
     @Before("@annotation(com.frontleaves.scheduling.annotations.RequestLogin)")
     public void requestLoginCheck() {
         HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
-        String userToken = HeaderUtil.getAuthorizeUserUuidString(request);
-        UserDO getUser = tokenDAO.getTokenUser(userToken);
+        UserDO getUser = userService.getUserByRequest(request);
         if (getUser == null) {
             throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_LOGIN, request);
         }
@@ -197,31 +195,25 @@ public class PermissionAspect {
      *
      * @param joinPoint 连接点对象，包含正在执行的方法信息。
      *                  通过此参数可以获取到注解 {@link RequestRole} 配置的角色标识符。
-     *
      * @throws ServerInternalErrorException 如果所需角色在数据库中不存在，抛出此异常。
-     * @throws UserAuthenticationException   如果用户未登录或没有足够的角色权限，抛出此异常。
+     * @throws UserAuthenticationException  如果用户未登录或没有足够的角色权限，抛出此异常。
      */
     @Before("@annotation(com.frontleaves.scheduling.annotations.RequestRole)")
     public void requestRoleCheck(@NotNull JoinPoint joinPoint) {
         // 获取方法签名
         MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
-        String role = methodSignature.getMethod().getAnnotation(RequestRole.class).value();
+        List<String> role = List.of(methodSignature.getMethod().getAnnotation(RequestRole.class).value());
+
+        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
+        UserDO getUser = userService.getUserByRequest(request);
 
         // 可以继续后续的权限检查逻辑，如查询数据库等
-        RoleDTO foundRole = roleDAO.getRoleByName(role);
-        if (foundRole == null) {
-            throw new ServerInternalErrorException("角色 " + role + " 不存在，请检查接口" + methodSignature.getName() + "的角色配置");
-        }
-        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
-        String userToken = HeaderUtil.getAuthorizeUserUuidString(request);
-        UserDO getUser = tokenDAO.getTokenUser(userToken);
-        if (getUser == null) {
-            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_LOGIN, request);
-        } else {
-            // 获取权限信息
-            if (!getUser.getRoleUuid().equals(foundRole.getRoleUuid())) {
-                throw new UserAuthenticationException(UserAuthenticationException.ErrorType.PERMISSION_DENIED, request);
-            }
+        List<RoleDTO> roleNameList = role.stream().map(roleDAO::getRoleByName)
+                .filter(Objects::nonNull)
+                .filter(roleDTO -> getUser != null && getUser.getRoleUuid().equals(roleDTO.getRoleUuid()))
+                .toList();
+        if (roleNameList.isEmpty()) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.PERMISSION_DENIED, request);
         }
     }
 }

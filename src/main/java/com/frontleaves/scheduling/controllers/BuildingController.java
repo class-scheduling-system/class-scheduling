@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.models.dto.BuildingDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
@@ -63,14 +64,17 @@ public class BuildingController {
     /**
      * 获取教学楼列表
      * <p>
-     * 该方法用于根据分页参数和可选的关键词获取教学楼教学楼列表。如果提供了关键词，则会根据关键词进行模糊搜索。
+     * 该方法用于获取教学楼的分页列表。支持按关键词搜索，并且可以指定是否按降序排列。
+     * 如果提供了关键词 {@code keyword}，则会根据关键词进行搜索；否则返回所有教学楼的列表。
+     * 单页查询的最大条目数为 200，超过此限制将抛出异常。
      *
-     * @param page    当前页码，默认值为 1
-     * @param size    每页显示的条目数，默认值为 20，最大值为 200
-     * @param isDesc  是否按降序排列，默认值为 true
-     * @param keyword 可选的搜索关键词
-     * @return 包含分页数据的响应实体，其中包含 {@code BuildingDTO} 对象的列表
+     * @param page 当前页码，默认值为 1
+     * @param size 每页显示的条目数，默认值为 20
+     * @param isDesc 是否按降序排列，默认值为 true
+     * @param keyword 搜索关键词，可选参数
+     * @return 包含教学楼列表的分页数据和响应状态的 {@code ResponseEntity}
      */
+    @RequestRole({"管理员"})
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<PageDTO<BuildingDTO>>> getBuildingList(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
@@ -95,11 +99,12 @@ public class BuildingController {
     /**
      * 获取教学楼信息
      * <p>
-     * 通过提供的教学楼 UUID 或名称获取教学楼的详细信息。如果传入的教学楼标识为空或无效，则会抛出异常。
-     *
+     * 该方法用于根据教学楼的 UUID 或名称获取教学楼的详细信息。如果提供的 {@code building} 参数为空或空白，
+     * 则会抛出一个业务异常，提示“教学楼UUID/名称不能为空”。成功获取后，将以 JSON 格式返回教学楼的信息。
      * @param building 教学楼的 UUID 或名称
-     * @return 包含教学楼信息的 {@code ResponseEntity} 对象，其中包含一个 {@code BaseResponse<BuildingDTO>} 对象
+     * @return 包含教学楼信息的响应实体
      */
+    @RequestRole({"管理员"})
     @GetMapping("")
     public ResponseEntity<BaseResponse<BuildingDTO>> getBuilding(
             @RequestParam String building
@@ -114,14 +119,14 @@ public class BuildingController {
     /**
      * 根据校区获取教学楼列表
      * <p>
-     * 该方法用于根据指定的校区UUID来获取其下的教学楼信息。支持分页查询，同时允许设置是否降序排列结果。
-     *
+     * 该方法用于根据指定的校区UUID获取该校区下的教学楼列表。支持分页查询，并可以设置查询结果是否按降序排列。
      * @param campusUuid 校区的唯一标识符，不能为空或空白字符串
-     * @param page       请求的页码，默认为1
-     * @param size       每页显示的教学楼数量，默认为20
-     * @param isDesc     是否按照降序排列，默认为true表示降序
-     * @return 包含请求状态和数据响应体的ResponseEntity对象，其中数据部分是包含分页信息的教学楼列表
+     * @param page 请求的页码，默认值为1
+     * @param size 每页显示的教学楼数量，默认值为20
+     * @param isDesc 查询结果是否按降序排列，默认值为true
+     * @return 包含状态信息和数据的响应实体，其中数据部分是{@code PageDTO<BuildingDTO>}类型，代表了当前页的教学楼列表
      */
+    @RequestRole({"管理员"})
     @GetMapping("/campus/{campus_uuid}")
     public ResponseEntity<BaseResponse<PageDTO<BuildingDTO>>> getBuildingByCampus(
             @PathVariable("campus_uuid") String campusUuid,
@@ -139,12 +144,16 @@ public class BuildingController {
     /**
      * 添加教学楼
      * <p>
-     * 该方法用于向系统中添加一个新的教学楼信息。通过传入的 {@code BuildingOperateVO} 对象，可以指定教学楼所属的校区UUID、教学楼名称以及其状态。
-     * 成功添加后，返回一个包含成功消息的响应实体。
+     * 该方法用于向系统中添加一个新的教学楼。通过传入包含校园 UUID、教学楼名称和状态的 {@code BuildingOperateVO} 对象，
+     * 系统将调用相应的服务层方法来完成教学楼的添加操作。
+     * <p>
+     * 请求需要管理员权限，并且请求体中的数据需要经过验证。
      *
-     * @param buildingVO 包含新增教学楼信息的对象，包括校区UUID、教学楼名称和状态
-     * @return 返回一个表示操作结果的响应实体，如果添加成功，则携带相应的成功消息
+     * @param buildingVO 包含新教学楼信息的对象，其中包括：{@code campusUuid} 校园唯一标识符,
+     *                   {@code buildingName} 教学楼名称, 和 {@code status} 教学楼状态
+     * @return ResponseEntity<BaseResponse < Void>> 返回一个表示操作结果的响应实体，其中包含了成功或失败的信息。
      */
+    @RequestRole({"管理员"})
     @PostMapping("")
     public ResponseEntity<BaseResponse<Void>> addBuilding(
             @RequestBody @Validated BuildingOperateVO buildingVO
@@ -156,14 +165,14 @@ public class BuildingController {
     /**
      * 更新教学楼信息
      * <p>
-     * 该方法用于根据提供的教学楼 UUID 更新教学楼的相关信息。更新的信息包括所属校区 UUID、教学楼名称以及状态。
-     * 方法接收两个参数：一个是表示教学楼的唯一标识符 {@code buildingUuid}，另一个是包含待更新数据的对象 {@code BuildingOperateVO}。
-     * 成功执行后，将返回一个成功响应。
+     * 该方法用于更新指定 UUID 的教学楼信息。通过提供的 {@code BuildingOperateVO} 对象，可以更新教学楼的名称、状态以及所属校区。
+     * 只有具备管理员权限的用户才能调用此接口。
      *
      * @param buildingUuid 教学楼的唯一标识符
-     * @param buildingVO 包含更新所需数据的对象，具体包括校区 UUID、教学楼名称和状态
-     * @return 包含操作结果的消息，如果更新成功，则返回成功提示
+     * @param buildingVO 包含更新后的教学楼信息的对象
+     * @return 返回一个包含成功信息的响应实体
      */
+    @RequestRole({"管理员"})
     @PutMapping("/{building_uuid}")
     public ResponseEntity<BaseResponse<Void>> updateBuilding(
             @PathVariable("building_uuid") String buildingUuid,
@@ -181,12 +190,15 @@ public class BuildingController {
     /**
      * 删除教学楼
      * <p>
-     * 该方法通过提供的教学楼唯一标识符 {@code buildingUuid} 来删除指定的教学楼。
+     * 该方法用于根据提供的教学楼唯一标识 {@code buildingUuid} 删除指定的教学楼。
+     * 只有具有管理员权限的用户才能调用此接口。
+     * <p>
      * 成功删除后，返回一个包含成功信息的响应实体。
      *
      * @param buildingUuid 教学楼的唯一标识符
-     * @return 包含操作结果的响应实体，成功时返回成功信息
+     * @return 包含删除成功信息的响应实体
      */
+    @RequestRole({"管理员"})
     @DeleteMapping("/{building_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteBuilding(
             @PathVariable("building_uuid") String buildingUuid

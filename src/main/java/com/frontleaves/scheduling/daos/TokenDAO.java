@@ -224,7 +224,7 @@ public class TokenDAO {
      */
     public UserDO getTokenUser(String userToken) {
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.TOKEN + userToken);
-        if (!map.isExists()) {
+        if (map.isExists()) {
             TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
             if (tokenDTO.getUserUuid() != null && !tokenDTO.getUserUuid().isEmpty()) {
                 return userDAO.getUserByUuid(tokenDTO.getUserUuid());

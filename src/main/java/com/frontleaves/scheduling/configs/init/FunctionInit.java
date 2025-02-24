@@ -103,6 +103,16 @@ class FunctionInit {
         }
     }
 
+    /**
+     * 加载角色内容
+     * <p>
+     * 该方法根据传入的角色名称从数据库中查询对应的角色信息。如果找到匹配的角色，则返回该角色的 UUID；
+     * 如果没有找到匹配的角色，则返回 {@code null}。
+     * </p>
+     *
+     * @param role 角色名称
+     * @return 返回与给定角色名称匹配的角色 UUID，如果没有找到则返回 {@code null}
+     */
     public String loadRoleContent(String role) {
         RoleDO roleDO = roleDAO.lambdaQuery().eq(RoleDO::getRoleName, role).one();
         if (roleDO != null) {

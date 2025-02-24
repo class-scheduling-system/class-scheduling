@@ -28,10 +28,7 @@
 
 package com.frontleaves.scheduling.annotations;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 需要角色注解。
@@ -46,6 +43,7 @@ import java.lang.annotation.Target;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Documented
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RequestRole {
@@ -58,5 +56,5 @@ public @interface RequestRole {
      *
      * @return 角色所需的标识符，用于匹配系统安全框架中的角色定义，确保调用者具备相应的权限和角色。
      */
-    String value();
+    String[] value();
 }
