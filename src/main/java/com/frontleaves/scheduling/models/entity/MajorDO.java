@@ -41,9 +41,9 @@ import java.sql.Timestamp;
  * 主键为 major_uuid，类型为 UUID 自动生成。
  * </p>
  *
- * @since v1.0.0
- * @version v1.0.0
  * @author FLASHLACK
+ * @version v1.0.0
+ * @since v1.0.0
  */
 @Data
 @TableName("cs_major")
@@ -55,7 +55,7 @@ public class MajorDO {
     @TableId(value = "major_uuid", type = IdType.ASSIGN_UUID)
     private String majorUuid;
     /**
-     * 专业名词
+     * 专业名称
      */
     private String majorName;
     /**
@@ -70,6 +70,18 @@ public class MajorDO {
      * 专业状态，0：禁用，1：启用
      */
     private Integer majorStatus;
+    /**
+     * 专业所属学院UUID
+     */
+    private String majorDepartmentUuid;
+    /**
+     * 学制（年）
+     */
+    private Integer educationYears;
+    /**
+     * 培养层次
+     */
+    private String trainingLevel;
     /**
      * 创建时间
      */
