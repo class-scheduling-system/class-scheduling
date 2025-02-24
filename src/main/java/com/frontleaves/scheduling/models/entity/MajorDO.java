@@ -29,7 +29,6 @@
 package com.frontleaves.scheduling.models.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -44,9 +43,9 @@ import java.sql.Timestamp;
  * 主键为 major_uuid，类型为 UUID 自动生成。
  * </p>
  *
- * @since v1.0.0
- * @version v1.0.0
  * @author FLASHLACK
+ * @version v1.0.0
+ * @since v1.0.0
  */
 @Data
 @TableName("cs_major")
@@ -58,34 +57,40 @@ public class MajorDO {
     @TableId(value = "major_uuid", type = IdType.ASSIGN_UUID)
     private String majorUuid;
     /**
-     * 专业名词
+     * 专业名称
      */
-    @TableField(value = "major_name")
     private String majorName;
     /**
      * 专业描述
      */
-    @TableField(value = "major_description")
     private String majorDescription;
     /**
      * 专业代码
      */
-    @TableField(value = "major_code")
     private String majorCode;
     /**
      * 专业状态，0：禁用，1：启用
      */
-    @TableField(value = "majorStatus")
     private Integer majorStatus;
+    /**
+     * 专业所属学院UUID
+     */
+    private String majorDepartmentUuid;
+    /**
+     * 学制（年）
+     */
+    private Integer educationYears;
+    /**
+     * 培养层次
+     */
+    private String trainingLevel;
     /**
      * 创建时间
      */
-    @TableField(value = "created_at")
     private Timestamp createdAt;
     /**
      * 更新时间
      */
-    @TableField(value = "updated_at")
     private Timestamp updatedAt;
 
 }
