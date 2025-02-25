@@ -40,11 +40,13 @@ import com.xlf.utility.util.UuidUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.redisson.api.RMap;
+import org.redisson.api.RTransaction;
+import org.redisson.api.RedissonClient;
+import org.redisson.api.TransactionOptions;
 import org.springframework.stereotype.Repository;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Transaction;
 
-import java.util.Map;
+import java.time.Duration;
 import java.util.UUID;
 
 /**
@@ -69,7 +71,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TokenDAO {
 
-    private final Jedis jedis;
+    private final RedissonClient redisson;
     private final UserDAO userDAO;
 
     /**
@@ -85,7 +87,8 @@ public class TokenDAO {
      * @throws ServerInternalErrorException 如果在操作过程中发生错误
      */
     public TokenDTO createToken(@NotNull UserDO userDO) throws ServerInternalErrorException {
-        try (Transaction transaction = jedis.multi()) {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
             TokenDTO tokenDTO = new TokenDTO();
             String getNewTokenUuid = UuidUtil.generateStringUuid();
             String newRefreshToken = UUID.randomUUID().toString();
@@ -97,11 +100,14 @@ public class TokenDAO {
                     .setExpireTime(System.currentTimeMillis() + 3600000)
                     .setRefreshExpireTime(System.currentTimeMillis() + 86400000);
             // 将 TokenDTO 对象转换为 Map 格式存储在 Redis 中
-            transaction.hmset(StringConstant.Redis.TOKEN + getNewTokenUuid, ConvertUtil.convertObjectToMapString(tokenDTO));
-            transaction.expire(StringConstant.Redis.TOKEN + getNewTokenUuid, 86400);
-            transaction.exec();
+            RMap<String, String> map = transaction.getMap(StringConstant.Redis.TOKEN + getNewTokenUuid);
+            map.putAll(ConvertUtil.convertObjectToMapString(tokenDTO));
+            map.expire(Duration.ofSeconds(86400));
+            transaction.commit();
+
             return tokenDTO;
         } catch (Exception e) {
+            transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
@@ -124,27 +130,22 @@ public class TokenDAO {
         if (token == null || token.trim().isEmpty()) {
             return false;
         }
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.TOKEN + token);
-        try (Transaction transaction = jedis.multi()) {
-            if (!map.isEmpty()) {
-                TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
-                if (tokenDTO.getUserUuid() == null || !tokenDTO.getUserUuid().equals(userDO.getUserUuid())) {
-                    throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
-                }
-                if (Long.parseLong(map.get(StringConstant.Common.Hump.EXPIRE_TIME)) < System.currentTimeMillis()) {
-                    return false;
-                }
-                if (Long.parseLong(map.get(StringConstant.Common.Hump.REFRESH_EXPIRE_TIME)) < System.currentTimeMillis()) {
-                    transaction.del(StringConstant.Redis.TOKEN + token);
-                    transaction.exec();
-                    return false;
-                }
-                return true;
-            } else {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TOKEN + token);
+        if (map.isExists()) {
+            TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
+            if (tokenDTO.getUserUuid() == null || !tokenDTO.getUserUuid().equals(userDO.getUserUuid())) {
+                throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
+            }
+            if (Long.parseLong(map.get(StringConstant.Common.Hump.EXPIRE_TIME)) < System.currentTimeMillis()) {
                 return false;
             }
-        } catch (Exception e) {
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+            if (Long.parseLong(map.get(StringConstant.Common.Hump.REFRESH_EXPIRE_TIME)) < System.currentTimeMillis()) {
+                map.delete();
+                return false;
+            }
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -161,30 +162,25 @@ public class TokenDAO {
      * @throws BusinessException            如果令牌不存在、已过期或不与指定用户关联
      */
     public TokenDTO refreshToken(String token, UserDO userDO) throws ServerInternalErrorException, BusinessException {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.TOKEN + token);
-        try (Transaction transaction = jedis.multi()) {
-            if (!map.isEmpty()) {
-                TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
-                if (tokenDTO.getUserUuid() == null || !tokenDTO.getUserUuid().equals(userDO.getUserUuid())) {
-                    throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
-                }
-                if (Long.parseLong(map.get(StringConstant.Common.Hump.EXPIRE_TIME)) < System.currentTimeMillis()) {
-                    transaction.del(StringConstant.Redis.TOKEN + token);
-                    throw new BusinessException("刷新令牌已过期", ErrorCode.SERVER_INTERNAL_ERROR);
-                }
-                long newExpireTime = System.currentTimeMillis() + 3600000;
-                long newRefreshExpireTime = System.currentTimeMillis() + 86400000;
-                transaction.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.Hump.EXPIRE_TIME, String.valueOf(newExpireTime));
-                transaction.hset(StringConstant.Redis.TOKEN + token, StringConstant.Common.Hump.REFRESH_EXPIRE_TIME, String.valueOf(newRefreshExpireTime));
-                transaction.expire(StringConstant.Redis.TOKEN + token, 86400);
-                transaction.exec();
-                return tokenDTO.setExpireTime(newExpireTime)
-                        .setRefreshExpireTime(newRefreshExpireTime);
-            } else {
-                throw new BusinessException("令牌不存在", ErrorCode.SERVER_INTERNAL_ERROR);
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TOKEN + token);
+        if (!map.isExists()) {
+            TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
+            if (tokenDTO.getUserUuid() == null || !tokenDTO.getUserUuid().equals(userDO.getUserUuid())) {
+                throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
             }
-        } catch (Exception e) {
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+            if (Long.parseLong(map.get(StringConstant.Common.Hump.EXPIRE_TIME)) < System.currentTimeMillis()) {
+                map.delete();
+                throw new BusinessException("刷新令牌已过期", ErrorCode.SERVER_INTERNAL_ERROR);
+            }
+            long newExpireTime = System.currentTimeMillis() + 3600000;
+            long newRefreshExpireTime = System.currentTimeMillis() + 86400000;
+            map.put(StringConstant.Common.Hump.EXPIRE_TIME, String.valueOf(newExpireTime));
+            map.put(StringConstant.Common.Hump.REFRESH_EXPIRE_TIME, String.valueOf(newRefreshExpireTime));
+            map.expire(Duration.ofSeconds(86400));
+            return tokenDTO.setExpireTime(newExpireTime)
+                    .setRefreshExpireTime(newRefreshExpireTime);
+        } else {
+            throw new BusinessException("令牌不存在", ErrorCode.SERVER_INTERNAL_ERROR);
         }
     }
 
@@ -202,21 +198,16 @@ public class TokenDAO {
      * @throws ServerInternalErrorException 当发生未预期的内部服务器错误时抛出
      */
     public void deleteToken(String token, UserDO userDO) throws BusinessException, ServerInternalErrorException {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.TOKEN + token);
-        try (Transaction transaction = jedis.multi()) {
-            if (!map.isEmpty()) {
-                TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
-                if (tokenDTO.getUserUuid() == null || !tokenDTO.getUserUuid().equals(userDO.getUserUuid())) {
-                    throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
-                } else {
-                    transaction.del(StringConstant.Redis.TOKEN + token);
-                    transaction.exec();
-                }
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TOKEN + token);
+        if (!map.isExists()) {
+            TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
+            if (tokenDTO.getUserUuid() == null || !tokenDTO.getUserUuid().equals(userDO.getUserUuid())) {
+                throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
             } else {
-                throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.NOT_EXIST);
+                map.delete();
             }
-        } catch (Exception e) {
-            throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
+        } else {
+            throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.NOT_EXIST);
         }
     }
 
@@ -232,8 +223,8 @@ public class TokenDAO {
      * @return 返回与令牌关联的用户信息，如果未找到则返回 null
      */
     public UserDO getTokenUser(String userToken) {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.TOKEN + userToken);
-        if (!map.isEmpty()) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TOKEN + userToken);
+        if (map.isExists()) {
             TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
             if (tokenDTO.getUserUuid() != null && !tokenDTO.getUserUuid().isEmpty()) {
                 return userDAO.getUserByUuid(tokenDTO.getUserUuid());

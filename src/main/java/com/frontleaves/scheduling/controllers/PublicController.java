@@ -1,6 +1,8 @@
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.SiteDTO;
+import com.frontleaves.scheduling.models.dto.SystemDTO;
 import com.frontleaves.scheduling.services.PublicService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
@@ -41,6 +43,21 @@ public class PublicController {
     public ResponseEntity<BaseResponse<SiteDTO>> getSiteInfo() {
         SiteDTO siteDTO = publicService.getSiteInfo();
         return ResultUtil.success("成功", siteDTO);
+    }
+
+    /**
+     * 获取系统信息
+     * <p>
+     * 该方法用于获取系统的详细信息。通过调用 {@code publicService.getSystemInfo()} 方法从系统数据库中获取详细的系统信息，并将其封装到一个 {@code SystemDTO} 对象中返回。
+     * 返回的信息包括系统版本、服务器状态、数据库状态等。
+     *
+     * @return 包含系统详细信息的响应实体，其中数据部分为 {@code BaseResponse<SystemDTO>} 类型
+     */
+    @RequestRole({"管理员"})
+    @GetMapping("/system")
+    public ResponseEntity<BaseResponse<SystemDTO>> getSystemInfo() {
+        SystemDTO systemInfo = publicService.getSystemInfo();
+        return ResultUtil.success("成功", systemInfo);
     }
 }
 

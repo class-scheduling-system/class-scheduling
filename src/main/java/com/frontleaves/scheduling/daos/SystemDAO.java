@@ -36,8 +36,9 @@ import com.frontleaves.scheduling.mappers.SystemMapper;
 import com.frontleaves.scheduling.models.entity.SystemDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
-import redis.clients.jedis.Jedis;
 
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,7 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
     /**
      * Redis 缓存
      */
-    private final Jedis jedis;
+    private final RedissonClient redisson;
 
     /**
      * 获取系统信息
@@ -73,15 +74,15 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
      */
     @IgnoreLog
     public String getSystemInfo(String key) {
-        List<String> getValue = jedis.hmget(StringConstant.Redis.SYSTEM + "info", key);
-        if (!getValue.isEmpty()) {
-            return getValue.get(0);
+        RMap<String, String> getValue = redisson.getMap(StringConstant.Redis.SYSTEM + "info");
+        if (getValue.isExists()) {
+            return getValue.get(key);
         } else {
             SystemDO systemDO = this.lambdaQuery()
                     .eq(SystemDO::getSystemKey, key)
                     .one();
             if (systemDO != null) {
-                jedis.hset(StringConstant.Redis.SYSTEM + "info", systemDO.getSystemKey(), systemDO.getSystemVal());
+                getValue.put(systemDO.getSystemKey(), systemDO.getSystemVal());
                 return systemDO.getSystemVal();
             } else {
                 return null;
@@ -105,7 +106,8 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
                 .eq(SystemDO::getSystemKey, key)
                 .set(SystemDO::getSystemVal, value)
                 .update();
-        jedis.hset(StringConstant.Redis.SYSTEM + "info", key, value);
+        redisson.getMap(StringConstant.Redis.SYSTEM + "info")
+                .put(key, value);
         return value;
     }
 
@@ -125,7 +127,8 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
                 .setSystemKey(key)
                 .setSystemVal(value);
         this.save(systemDO);
-        jedis.hset(StringConstant.Redis.SYSTEM + "info", key, value);
+        redisson.getMap(StringConstant.Redis.SYSTEM + "info")
+                .put(key, value);
     }
 
     /**
@@ -138,12 +141,13 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
      * @return 系统值的列表
      */
     public Map<String, String> getSystemInfoList() {
-        if (!jedis.exists(StringConstant.Redis.SYSTEM + "info")) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.SYSTEM + "info");
+        if (!map.isExists()) {
             List<SystemDO> systemDOList = this.list();
             for (SystemDO systemDO : systemDOList) {
-                jedis.hset(StringConstant.Redis.SYSTEM + "info", systemDO.getSystemKey(), systemDO.getSystemVal());
+                map.put(systemDO.getSystemKey(), systemDO.getSystemVal());
             }
         }
-        return jedis.hgetAll(StringConstant.Redis.SYSTEM + "info");
+        return map.readAllMap();
     }
 }

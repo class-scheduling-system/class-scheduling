@@ -40,11 +40,11 @@ import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RedissonClient;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import redis.clients.jedis.Jedis;
 
 /**
  * 初始化方法类
@@ -63,7 +63,7 @@ public class Initialize {
     private final TableDAO tableDAO;
     private final SystemDAO systemDAO;
     private final RoleDAO roleDAO;
-    private final Jedis jedis;
+    private final RedissonClient redissonClient;
     private final UserDAO userDAO;
 
     private FunctionInit init;
@@ -71,7 +71,7 @@ public class Initialize {
     @PostConstruct
     public void init() {
         // 初始化准备算法
-        init = new FunctionInit(tableDAO, systemDAO, roleDAO, jedis);
+        init = new FunctionInit(tableDAO, systemDAO, roleDAO, redissonClient);
 
         // 初始化数据库完整性检查
         this.checkTable();

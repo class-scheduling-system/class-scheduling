@@ -30,11 +30,22 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.models.dto.SiteDTO;
+import com.frontleaves.scheduling.models.dto.SystemDTO;
 import com.frontleaves.scheduling.services.PublicService;
+import com.sun.management.OperatingSystemMXBean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.text.DecimalFormat;
 import java.util.Map;
 
 /**
@@ -96,4 +107,138 @@ public class PublicLogic implements PublicService {
                 .setTechnologyStack(systemInfoList.get("web_technology_stack"));
         return siteDTO;
     }
+
+    /**
+     * 获取系统信息
+     * <p>
+     * 该方法用于获取当前系统的详细信息，包括 CPU、内存、磁盘和操作系统的信息。
+     * 返回的 {@code SystemDTO} 对象包含了所有这些信息。
+     *
+     * @return 包含系统信息的 {@code SystemDTO} 对象
+     */
+    @Override
+    public SystemDTO getSystemInfo() {
+        SystemDTO systemDTO = new SystemDTO();
+
+        this.setCpuInfo(systemDTO);
+        this.setMemoryInfo(systemDTO);
+        this.setDiskInfo(systemDTO);
+        this.setOsInfo(systemDTO);
+
+        return systemDTO;
+    }
+
+    /**
+     * 设置系统 CPU 信息
+     * <p>
+     * 该方法用于从系统环境变量和运行时信息中获取 CPU 的相关信息，并将这些信息设置到给定的 {@code SystemDTO} 对象中。
+     * 具体来说，它会获取并设置 CPU 名称、CPU 核心数以及当前的 CPU 使用率。
+     *
+     * @param systemDTO 系统信息数据传输对象，用于存储获取到的 CPU 信息
+     */
+    private void setCpuInfo(@NotNull SystemDTO systemDTO) {
+        // 获取 CPU 名称
+        String cpuName = System.getenv("PROCESSOR_IDENTIFIER");
+        systemDTO.setCpuName(cpuName != null ? cpuName : "未能获取");
+
+        // 获取 CPU 核心数
+        int availableProcessors = Runtime.getRuntime().availableProcessors();
+        systemDTO.setCpuCores(availableProcessors);
+
+        // 获取系统 CPU 使用率
+        OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        double cpuLoad = osBean.getCpuLoad() * 100;
+        systemDTO.setCpuUsage(cpuLoad);
+    }
+
+    /**
+     * 设置内存信息
+     * <p>
+     * 该方法用于获取系统和JVM的内存使用情况，并将这些信息设置到给定的 {@code SystemDTO} 对象中。
+     * 具体来说，该方法会获取系统的物理内存总量和空闲内存大小，以及JVM堆内存的初始值、已使用量和最大值。
+     * 获取到的信息会被格式化为可读的字符串形式，然后通过相应的 setter 方法设置到 {@code SystemDTO} 对象中。
+     *
+     * @param systemDTO 系统信息的数据传输对象，用于存储内存信息
+     */
+    private void setMemoryInfo(@NotNull SystemDTO systemDTO) {
+        // 获取物理内存信息
+        OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        long totalPhysicalMemorySize = osBean.getTotalMemorySize();
+        long freePhysicalMemorySize = osBean.getFreeMemorySize();
+
+        // 获取 JVM 堆内存使用情况
+        MemoryMXBean memoryMxBean = ManagementFactory.getMemoryMXBean();
+        MemoryUsage heapMemoryUsage = memoryMxBean.getHeapMemoryUsage();
+
+        systemDTO.setTotalMemory(formatSize(totalPhysicalMemorySize));
+        systemDTO.setFreeMemory(formatSize(freePhysicalMemorySize));
+        systemDTO.setHeapMemoryInit(formatSize(heapMemoryUsage.getInit()));
+        systemDTO.setHeapMemoryUsed(formatSize(heapMemoryUsage.getUsed()));
+        systemDTO.setHeapMemoryMax(formatSize(heapMemoryUsage.getMax()));
+    }
+
+    /**
+     * 设置系统磁盘信息
+     * <p>
+     * 该方法用于获取当前系统的磁盘信息，并将其设置到传入的 {@code SystemDTO} 对象中。
+     * 它通过遍历文件存储（FileStore）来获取每个磁盘的总空间和可用空间，然后将这些信息格式化后设置到
+     * {@code SystemDTO} 的相应字段中。如果在获取磁盘信息的过程中发生异常，则会将磁盘信息设置为0。
+     *
+     * @param systemDTO 用于存储系统磁盘信息的对象
+     */
+    private void setDiskInfo(@NotNull SystemDTO systemDTO) {
+        try {
+            // 获取文件系统的文件存储（FileStore）信息
+            FileSystem fs = FileSystems.getDefault();
+            Iterable<FileStore> fileStores = fs.getFileStores();
+            for (FileStore fileStore : fileStores) {
+                // 获取磁盘的总空间和可用空间
+                long totalSpace = fileStore.getTotalSpace();
+                long usableSpace = fileStore.getUsableSpace();
+
+                // 设置系统DTO中的磁盘信息
+                systemDTO.setTotalDiskSpace(formatSize(totalSpace));
+                systemDTO.setFreeDiskSpace(formatSize(usableSpace));
+            }
+        } catch (IOException e) {
+            // 错误处理
+            systemDTO.setTotalDiskSpace(0);
+            systemDTO.setFreeDiskSpace(0);
+        }
+    }
+
+    /**
+     * 设置操作系统信息
+     * <p>
+     * 该方法用于获取当前操作系统的名称、版本和架构，并将这些信息设置到给定的 {@code SystemDTO} 对象中。
+     * 操作系统信息通过调用 {@code System.getProperty} 方法获取，包括 "os.name"、"os.version" 和 "os.arch" 属性。
+     *
+     * @param systemDTO 用于存储操作系统信息的目标对象，不能为空
+     */
+    private void setOsInfo(@NotNull SystemDTO systemDTO) {
+        // 获取操作系统信息
+        String osName = System.getProperty("os.name");
+        String osVersion = System.getProperty("os.version");
+        String osArch = System.getProperty("os.arch");
+
+        systemDTO.setOsName(osName);
+        systemDTO.setOsVersion(osVersion);
+        systemDTO.setOsArchitecture(osArch);
+    }
+
+    /**
+     * 格式化文件大小为 MB 单位
+     * <p>
+     * 该方法接收一个以字节为单位的文件大小，并将其转换为以兆字节（MB）为单位的大小。转换后的结果保留两位小数。
+     *
+     * @param size 文件大小，以字节为单位
+     * @return 转换后的文件大小，以兆字节（MB）为单位，保留两位小数
+     */
+    // 格式化只返回 mb 大小
+    private double formatSize(long size) {
+        double mb = size / 1024.0 / 1024.0;
+        DecimalFormat df = new DecimalFormat("0.00");
+        return Double.parseDouble(df.format(mb));
+    }
+
 }
