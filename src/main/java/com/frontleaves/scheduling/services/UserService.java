@@ -46,7 +46,6 @@ import jakarta.servlet.http.HttpServletRequest;
  * @since v1.0.0
  */
 public interface UserService {
-
     /**
      * 根据请求中的用户Token获取用户信息。
      * <p>

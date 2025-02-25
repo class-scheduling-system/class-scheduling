@@ -5,6 +5,11 @@ spring:
     active: dev
   jackson:
     property-naming-strategy: SNAKE_CASE
+  data:
+    redis:
+      database: 0
+      host: localhost
+      port: 6379
 logging:
   file:
     path: "./.logs"

@@ -26,63 +26,90 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.models.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.AllArgsConstructor;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
-import java.util.List;
 
 /**
- * 角色数据传输对象
+ * 教师信息实体类
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
+ * 对应数据库表：`cs_teacher`
+ * 本类用于封装教师的详细信息，主键为 teacher_uuid，采用 UUID 自动生成。
  * </p>
  *
+ * @author FLASHLACK
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@TableName("cs_teacher")
 @Accessors(chain = true)
-public class RoleDTO {
-
+public class TeacherDO {
     /**
-     * 角色主键，采用 UUID 自动生成
+     * 教室主键，采用 UUID 自动生成
      */
-    private String roleUuid;
-
+    @TableId(value = "teacher_uuid", type = IdType.ASSIGN_UUID)
+    private String teacherUuid;
     /**
-     * 角色名
+     * 单位主键
      */
-    private String roleName;
-
+    private String unitUuid;
     /**
-     * 角色状态 0: 禁用 1: 启用
+     * 用户主键
      */
-    private Integer roleStatus;
-
+    private String userUuid;
     /**
-     * 角色权限，JSON 格式
+     * 教师工号
      */
-    private List<String> permission;
-
+    private String id;
+    /**
+     * 教师姓名
+     */
+    private String name;
+    /**
+     * 教师英文名
+     */
+    private String englishName;
+    /**
+     * 教师名族
+     */
+    private String ethnic;
+    /**
+     * 教师性别 0：女 1：男
+     */
+    private Integer sex;
+    /**
+     * 教师电话
+     */
+    private String phone;
+    /**
+     * 教师邮箱
+     */
+    private String email;
+    /**
+     * 教师职称
+     */
+    private String jobTitle;
+    /**
+     * 教师描述
+     */
+    @TableField(value = "`desc`")
+    private String desc;
     /**
      * 创建时间
      */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp createdAt;
 
     /**
      * 更新时间
      */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp updatedAt;
+
 }

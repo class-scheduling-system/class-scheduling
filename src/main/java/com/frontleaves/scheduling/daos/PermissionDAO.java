@@ -36,11 +36,9 @@ import com.frontleaves.scheduling.mappers.PermissionMapper;
 import com.frontleaves.scheduling.models.entity.PermissionDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Transaction;
-
-import java.util.Map;
 
 /**
  * 权限数据访问对象
@@ -58,27 +56,27 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PermissionDAO extends ServiceImpl<PermissionMapper, PermissionDO> implements IService<PermissionDO> {
 
-    private final Jedis jedis;
+    private final RedissonClient redisson;
 
     /**
-     * 根据权限键获取权限信息。
+     * 根据权限键获取权限信息
      * <p>
-     * 首先尝试从 Redis 缓存中读取权限信息，如果缓存中没有，则查询数据库并将数据写入 Redis。
+     * 该方法首先尝试从 Redis 缓存中获取指定 {@code permissionKey} 的权限信息。
+     * 如果缓存中不存在，则从数据库中查询并将其存储到 Redis 中，以便后续快速访问。
      * </p>
      *
-     * @param permissionKey 权限的唯一标识键
-     * @return 权限实体对象 {@link PermissionDO}，包含权限的详细信息。如果未找到，则返回 null。
+     * @param permissionKey 权限键，用于唯一标识一个权限
+     * @return 返回与给定 {@code permissionKey} 对应的 {@link PermissionDO} 对象，
+     *         如果找不到则返回 null
      */
     public PermissionDO getPermissionKey(String permissionKey) {
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.PERMISSION + permissionKey);
-        if (map.isEmpty()) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.PERMISSION + permissionKey);
+        if (!map.isExists()) {
             PermissionDO permissionDO = this.lambdaQuery().eq(PermissionDO::getPermissionKey, permissionKey).one();
-            Transaction transaction = jedis.multi();
-            transaction.hmset(StringConstant.Redis.PERMISSION + permissionKey, ConvertUtil.convertObjectToMapString(permissionDO));
-            transaction.exec();
+            map.putAll(ConvertUtil.convertObjectToMapString(permissionDO));
+            return permissionDO;
         } else {
             return BeanUtil.toBean(map, PermissionDO.class);
         }
-        return null;
     }
 }

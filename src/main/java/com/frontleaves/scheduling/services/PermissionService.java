@@ -26,63 +26,46 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.services;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import com.frontleaves.scheduling.models.entity.UserDO;
 
-import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * 角色数据传输对象
+ * 权限服务接口，定义了与权限相关的操作方法。
+ * 该接口可以被具体实现类继承，以提供具体的业务逻辑。
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
+ * 本接口中的方法主要用于处理权限的拆分和验证等基本操作，
+ * 以及可能的其他扩展功能。具体实现细节由实现类决定。
  * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Accessors(chain = true)
-public class RoleDTO {
+public interface PermissionService {
 
     /**
-     * 角色主键，采用 UUID 自动生成
+     * 将权限字符串拆分为权限列表
+     * <p>
+     * 该方法接收一个权限字符串，并将其按照点号（{@code .}）进行拆分，返回一个包含各个权限部分的列表。如果输入的权限字符串为空或为 {@code null}，则返回一个空列表。
+     * </p>
+     *
+     * @param permissions 权限字符串
+     * @return 拆分后的权限列表
      */
-    private String roleUuid;
+    List<String> dismantlingPermissions(String permissions);
 
     /**
-     * 角色名
+     * 检查用户是否具有指定权限
+     * <p>
+     * 该方法用于验证给定的用户是否拥有特定的权限。如果用户拥有该权限，则返回 {@code true}；否则返回 {@code false}。
+     * </p>
+     *
+     * @param permission 要检查的权限字符串
+     * @param userDO     用户对象，包含用户的详细信息
+     * @return 如果用户拥有指定的权限则返回 {@code true}，否则返回 {@code false}
      */
-    private String roleName;
-
-    /**
-     * 角色状态 0: 禁用 1: 启用
-     */
-    private Integer roleStatus;
-
-    /**
-     * 角色权限，JSON 格式
-     */
-    private List<String> permission;
-
-    /**
-     * 创建时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp updatedAt;
+    boolean checkPermission(String permission, UserDO userDO);
 }

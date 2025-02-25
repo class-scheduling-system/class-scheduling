@@ -26,63 +26,35 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.constants;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
-
-import java.sql.Timestamp;
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * 角色数据传输对象
- * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
- * </p>
+ * 提供日志记录中使用的常量字符串，旨在统一和标准化日志输出的前缀。
+ * 包含服务、控制器、数据访问层、工具类、异常、不同日志级别等标识，
+ * 便于日志分析和系统维护时快速识别日志来源与重要性。
  *
  * @version v1.0.0
  * @since v1.0.0
  * @author xiao_lfeng
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Accessors(chain = true)
-public class RoleDTO {
+@Slf4j
+public class LogConstant {
+    public static final String SERVICE = "[SERV] ";
+    public static final String CONTROLLER = "[CTRL] ";
+    public static final String DAO = "[DAO] ";
+    public static final String UTIL = "[UTIL] ";
+    public static final String EXCEPTION = "[EXCP] ";
+    public static final String INFO = "[INFO] ";
+    public static final String WARN = "[WARN] ";
+    public static final String ERROR = "[ERRO] ";
+    public static final String DEBUG = "[DEBG] ";
+    public static final String TRACE = "[TRAC] ";
+    public static final String ASPECT = "[ASPT] ";
 
-    /**
-     * 角色主键，采用 UUID 自动生成
-     */
-    private String roleUuid;
 
-    /**
-     * 角色名
-     */
-    private String roleName;
-
-    /**
-     * 角色状态 0: 禁用 1: 启用
-     */
-    private Integer roleStatus;
-
-    /**
-     * 角色权限，JSON 格式
-     */
-    private List<String> permission;
-
-    /**
-     * 创建时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp updatedAt;
+    private LogConstant() {
+        log.error("LogConstant 不能被实例化");
+    }
 }

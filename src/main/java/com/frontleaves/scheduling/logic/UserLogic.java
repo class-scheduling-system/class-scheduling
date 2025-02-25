@@ -38,20 +38,21 @@ import com.xlf.utility.exception.library.UserAuthenticationException;
 import com.xlf.utility.util.HeaderUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * 用户逻辑处理类，实现了 {@link UserService} 接口，提供了用户相关的业务逻辑。
+ * 用户逻辑处理服务类，实现了 {@code UserService} 接口。该类主要负责处理用户登录验证、注册等核心业务逻辑。
+ * 通过与多个 DAO 层对象协作，完成数据的存取操作，并基于这些数据构建响应体或进行有效性检查。
  * <p>
- * 该类主要用于处理与用户相关的操作，如根据请求中的Token获取用户信息等。
- * 具体的实现细节包括从请求头中提取Token，并通过Token在数据库中查找对应的用户信息。
- * 如果Token有效且用户存在，则返回用户信息；如果Token无效或用户不存在，则抛出相应的异常。
- * </p>
+ * 此服务类使用了依赖注入来获取必要的 DAO 对象实例，确保能够访问到用户、学生、教师以及角色等相关信息。
+ * 在执行具体业务时，会调用 DAO 提供的方法读写数据库，并根据需要转换实体间的数据格式以满足前端请求的需求。
  *
- * @author xiao_lfeng
+ * @author FLASHLACK | xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserLogic implements UserService {
@@ -60,15 +61,14 @@ public class UserLogic implements UserService {
     private final HttpServletRequest request;
 
     /**
-     * 根据请求中的用户Token获取用户信息。
+     * 根据传入的 {@code HttpServletRequest} 请求对象获取对应的用户信息。
      * <p>
-     * 该方法首先从请求头中提取用户Token，然后通过Token在数据库中查找对应的用户信息。
-     * 如果Token有效且用户存在，则返回用户信息；如果Token无效或用户不存在，则抛出相应的异常。
-     * </p>
+     * 该方法首先通过请求头中的特定字段（如Authorization）获取用户的Token，然后使用这个Token从数据库中查询对应用户的信息。
+     * 如果Token有效且存在对应的用户，则返回该用户信息；如果Token无效或没有找到对应的用户，则抛出相应的异常。
      *
-     * @param request HTTP请求对象，用于从中提取用户Token
-     * @return UserDO 用户信息对象，包含用户的详细信息
-     * @throws UserAuthenticationException 如果Token过期或用户不存在时抛出
+     * @param request 包含用户认证信息的HTTP请求对象
+     * @return 返回与请求中的Token关联的用户信息
+     * @throws UserAuthenticationException 当Token过期或不存在对应的用户时抛出此异常
      */
     @Override
     public UserDO getUserByRequest(HttpServletRequest request) {

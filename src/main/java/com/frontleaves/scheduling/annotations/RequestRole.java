@@ -28,10 +28,7 @@
 
 package com.frontleaves.scheduling.annotations;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 需要角色注解。
@@ -46,6 +43,7 @@ import java.lang.annotation.Target;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Documented
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RequestRole {
@@ -58,5 +56,16 @@ public @interface RequestRole {
      *
      * @return 角色所需的标识符，用于匹配系统安全框架中的角色定义，确保调用者具备相应的权限和角色。
      */
-    String value();
+    String[] value();
+
+    /**
+     * 获取权限标识符。
+     * <p>
+     * 该方法用于获取方法执行所需的权限标识符。权限标识符通常与系统中的权限管理机制相结合，
+     * 或者与角色注解 {@code @RequestRole} 结合使用，以实现更细粒度的权限控制。
+     * </p>
+     *
+     * @return 权限所需的标识符，用于匹配系统安全框架中的权限定义，确保调用者具备相应的权限。
+     */
+    String permission() default "";
 }

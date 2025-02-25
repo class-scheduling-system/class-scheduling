@@ -26,41 +26,76 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.annotations;
+package com.frontleaves.scheduling.models.entity;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+import lombok.experimental.Accessors;
+
+import java.sql.Timestamp;
 
 /**
- * 需要权限注解。
- *
+ * 校区表实体类
  * <p>
- * 此注解用于指示方法执行前需要验证特定的权限。被此注解标记的方法表示在调用时，
- * 必须检查调用者是否具备指定的权限才能继续执行，这是实现系统权限控制的一种方式。
- * 通常与权限检查逻辑或AOP（面向切面编程）结合使用，以确保对受限功能的合法访问。
- * </p>
- *
- * <p>
- * 参数 {@code value} 指定所需的权限标识符，该标识符应与系统的权限管理系统中的权限定义相匹配。
+ * 对应数据库表：`cs_campus`
+ * 该类用于表示校区的相关信息，包括校区的唯一标识、名称、编码、描述、状态、地址以及创建和更新时间。
  * </p>
  *
  * @since v1.0.0
  * @version v1.0.0
  * @author xiao_lfeng
  */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface RequestPermission {
+@Data
+@TableName("cs_campus")
+@Accessors(chain = true)
+public class CampusDO {
 
     /**
-     * 获取权限标识符。
-     * <p>
-     *     例如：{@code "user:unit:type:edit"} 表示需要用户读取权限。
-     * </p>
-     *
-     * @return 权限所需的标识符，用于匹配系统权限管理系统中的权限定义。
+     * 校区主键
      */
-    String value();
+    @TableId(value = "campus_uuid", type = IdType.INPUT)
+    private String campusUuid;
+
+    /**
+     * 校区名称
+     */
+    @TableField("campus_name")
+    private String campusName;
+
+    /**
+     * 校区编码
+     */
+    @TableField("campus_code")
+    private String campusCode;
+
+    /**
+     * 校区描述
+     */
+    @TableField("campus_desc")
+    private String campusDesc;
+
+    /**
+     * 校区状态 0:禁用 1:启用
+     */
+    @TableField("campus_status")
+    private Integer campusStatus;
+
+    /**
+     * 校区地址
+     */
+    @TableField("campus_address")
+    private String campusAddress;
+
+    /**
+     * 创建时间
+     */
+    private Timestamp createdAt;
+
+    /**
+     * 更新时间
+     */
+    private Timestamp updatedAt;
 }

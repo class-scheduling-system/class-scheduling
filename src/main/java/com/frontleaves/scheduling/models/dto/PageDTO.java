@@ -28,61 +28,54 @@
 
 package com.frontleaves.scheduling.models.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import cn.hutool.json.JSONUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 角色数据传输对象
+ * 分页数据传输对象
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
+ * 用于返回分页数据相关信息，包含记录列表、总记录数、每页大小、当前页码和总页数。
+ * 该类提供了将 JSON 格式的记录字符串转换为实际记录列表的方法，以及直接设置记录列表的方法。
  * </p>
  *
+ * @param <T> 记录的类型
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Accessors(chain = true)
-public class RoleDTO {
+@AllArgsConstructor
+public class PageDTO<T> {
+    private List<T> records;
+    private Long total;
+    private Long size;
+    private Long current;
 
-    /**
-     * 角色主键，采用 UUID 自动生成
-     */
-    private String roleUuid;
+    public PageDTO() {
+        this.total = 0L;
+        this.size = 0L;
+        this.current = 0L;
+        this.records = new ArrayList<>();
+    }
 
-    /**
-     * 角色名
-     */
-    private String roleName;
+    public PageDTO(long total, long size) {
+        this.total = total;
+        this.size = size;
+    }
 
-    /**
-     * 角色状态 0: 禁用 1: 启用
-     */
-    private Integer roleStatus;
+    public PageDTO<T> setRecords(String jsonRecords, Class<T> t) {
+        this.records = JSONUtil.toList(jsonRecords, t);
+        return this;
+    }
 
-    /**
-     * 角色权限，JSON 格式
-     */
-    private List<String> permission;
-
-    /**
-     * 创建时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp updatedAt;
+    public PageDTO<T> setRecords(List<T> records) {
+        this.records = records;
+        return this;
+    }
 }

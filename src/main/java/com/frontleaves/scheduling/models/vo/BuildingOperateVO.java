@@ -26,63 +26,49 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.models.vo;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.frontleaves.scheduling.constants.StringConstant;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
-
-import java.sql.Timestamp;
-import java.util.List;
 
 /**
- * 角色数据传输对象
+ * 教学楼操作视图对象
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
- * </p>
+ * 该类用于表示教学楼操作相关的数据，主要用于前端与后端的数据交互。它包含了教学楼名称、校区主键以及教学楼状态等信息。
+ * <p>
+ * 通过使用 {@code @Getter} 注解，自动为所有字段生成 getter 方法；通过使用 {@code @NoArgsConstructor} 和 {@code @AllArgsConstructor} 注解，
+ * 分别提供了无参构造函数和全参数构造函数，方便不同场景下的对象创建。
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Accessors(chain = true)
-public class RoleDTO {
+public class BuildingOperateVO {
 
     /**
-     * 角色主键，采用 UUID 自动生成
+     * 教学楼名称
      */
-    private String roleUuid;
+    @NotBlank(message = "教学楼名称不能为空")
+    private String buildingName;
 
     /**
-     * 角色名
+     * 校区主键
      */
-    private String roleName;
+    @NotBlank(message = "校区不能为空")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "校区输入有误")
+    private String campusUuid;
 
     /**
-     * 角色状态 0: 禁用 1: 启用
+     * 教学楼状态（0:禁用，1:启用）
      */
-    private Integer roleStatus;
-
-    /**
-     * 角色权限，JSON 格式
-     */
-    private List<String> permission;
-
-    /**
-     * 创建时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp updatedAt;
+    @NotNull(message = "教学楼状态不能为空")
+    private Boolean status;
 }

@@ -26,38 +26,23 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.configs.apps;
+package com.frontleaves.scheduling.mappers;
 
-import cn.hutool.db.nosql.redis.RedisDS;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import redis.clients.jedis.Jedis;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.frontleaves.scheduling.models.entity.CampusDO;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
- * Redis 配置
+ * 校区表映射器
  * <p>
- * 该类用于配置 Hutool 的 Redis 连接。
+ * 该类用于定义校区表的映射器，继承自 MyBatis-Plus 的 {@code BaseMapper} 接口。
+ * 通过此接口可以实现对 {@code CampusDO} 实体类的数据库操作，包括增删改查等基本操作。
  * </p>
  *
  * @version v1.0.0
  * @since v1.0.0
  * @author xiao_lfeng
  */
-@Slf4j
-@Configuration
-public class RedisConfig {
-
-    @Bean
-    public Jedis jedis() {
-        log.info("[INIT] Redis 配置初始化");
-
-        try (RedisDS redisDs = RedisDS.create()) {
-            return redisDs.getJedis();
-        } catch (Exception e) {
-            log.error("[NOSQL] Redis 连接失败: {}", e.getMessage());
-            System.exit(1);
-            return null;
-        }
-    }
+@Mapper
+public interface CampusMapper extends BaseMapper<CampusDO> {
 }

@@ -26,63 +26,72 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.models.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.AllArgsConstructor;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
-import java.util.List;
 
 /**
- * 角色数据传输对象
+ * 专业表实体类
  * <p>
- * 用于返回角色数据相关信息，传输的是角色的基本信息;
- * 包含角色名、角色状态、角色权限、创建时间、更新时间等信息。
+ * 对应数据库表：`cs_major`
+ * 主键为 major_uuid，类型为 UUID 自动生成。
  * </p>
  *
+ * @author FLASHLACK
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@TableName("cs_major")
 @Accessors(chain = true)
-public class RoleDTO {
-
+public class MajorDO {
     /**
-     * 角色主键，采用 UUID 自动生成
+     * 专业主键，自增
      */
-    private String roleUuid;
-
+    @TableId(value = "major_uuid", type = IdType.ASSIGN_UUID)
+    private String majorUuid;
     /**
-     * 角色名
+     * 专业名称
      */
-    private String roleName;
-
+    private String majorName;
     /**
-     * 角色状态 0: 禁用 1: 启用
+     * 专业描述
      */
-    private Integer roleStatus;
-
+    private String majorDescription;
     /**
-     * 角色权限，JSON 格式
+     * 专业代码
      */
-    private List<String> permission;
-
+    private String majorCode;
+    /**
+     * 专业状态，0：禁用，1：启用
+     */
+    private Integer majorStatus;
+    /**
+     * 专业所属学院UUID
+     */
+    private String departmentUuid;
+    /**
+     * 学制（年）
+     */
+    private Integer educationYears;
+    /**
+     * 培养层次
+     */
+    private String trainingLevel;
     /**
      * 创建时间
      */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp createdAt;
 
     /**
      * 更新时间
      */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp updatedAt;
+
 }

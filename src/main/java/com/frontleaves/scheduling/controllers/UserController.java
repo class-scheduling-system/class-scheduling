@@ -29,10 +29,7 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestLogin;
-import com.frontleaves.scheduling.logic.UserLogic;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
-import com.frontleaves.scheduling.models.dto.UserLoginDTO;
-import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
@@ -40,7 +37,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -58,50 +54,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/user")
 public class UserController {
-
-    private final UserLogic userLogic;
     private final UserService userService;
-
-    /**
-     * 用户登录接口。
-     * <p>
-     * 此接口用于处理用户登录逻辑，支持多种登录方式：
-     * <ul>
-     *   <li>当用户已存在时，可通过用户名、手机或邮箱登录。</li>
-     *   <li>
-     *     若用户不存在，但输入的凭据为学号或工号且密码为默认格式（{@code stu+学号} 或 {@code te+工号}），
-     *     则系统将检查学生或教师表。若在相应表中存在该记录，则自动创建用户，并分配默认角色（学生或教师）。
-     *   </li>
-     *   <li>
-     *     如果用户既不存在于用户表，也不在学生/教师表中，则响应中将包含 {@code initialization} 字段，
-     *     用于通知前端该用户为未注册状态，需要进一步完善用户信息。
-     *   </li>
-     * </ul>
-     *
-     * @param userLoginVO 包含用户登录请求信息的视图对象，已通过验证
-     * @return 返回包含用户登录信息的响应实体。若响应数据中含有 {@code initialization} 字段，则表示该用户尚未完成正式注册，
-     * 前端应引导用户进入补全信息页面
-     * @see UserLoginDTO
-     */
-    @PostMapping("/login")
-    public ResponseEntity<BaseResponse<UserLoginDTO>> userLogin(@RequestBody @Validated UserLoginVO userLoginVO) {
-        return null;
-    }
-
-    /**
-     * 初始化用户注册接口。
-     * <p>
-     * 当登录接口返回的 {@code initialization} 字段表明用户为初始化状态时，
-     * 前端应引导用户进入此页面，补全其用户信息（如用户名、密码、邮箱等），以完成正式注册。
-     * 此接口负责接收用户补全信息后的注册请求，并将用户信息更新至数据库。
-     *
-     * @param userLoginVO 包含用户注册信息的视图对象，已通过验证
-     * @return 返回空数据的响应实体，表示注册操作已成功处理
-     */
-    @PostMapping("/registered")
-    public ResponseEntity<BaseResponse<Void>> userRegistered(@RequestBody @Validated UserLoginVO userLoginVO) {
-        return null;
-    }
 
     /**
      * 获取当前登录用户信息接口
@@ -115,7 +68,7 @@ public class UserController {
     @GetMapping("/current")
     public ResponseEntity<BaseResponse<UserInfoDTO>> getCurrentUserInfo(HttpServletRequest request) {
         // 从请求中获取当前用户
-        UserInfoDTO userInfo = userService.getUserInfoWithRole(userLogic.getUserByRequest(request));
+        UserInfoDTO userInfo = userService.getUserInfoWithRole(userService.getUserByRequest(request));
         return ResultUtil.success("用户信息获取成功", userInfo);
     }
 }
