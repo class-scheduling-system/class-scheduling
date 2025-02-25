@@ -93,8 +93,17 @@ public class UserLogic implements UserService {
      */
     @Override
     public UserInfoDTO getUserInfoWithRole(UserDO userByRequest) {
+        // 校验 roleUuid 是否为空或无效
+        String roleUuid = userByRequest.getRoleUuid();
+        if (roleUuid == null || roleUuid.trim().isEmpty()) {
+            throw new UserAuthenticationException(
+                    UserAuthenticationException.ErrorType.TOKEN_EXPIRED,
+                    request
+            );
+        }
+        
         // 获取用户的角色信息
-        RoleDO role = roleDAO.getRoleByUuid(userByRequest.getRoleUuid());
+        RoleDO role = roleDAO.getRoleByUuid(roleUuid);
         if (role == null) {
             throw new UserAuthenticationException(
                     UserAuthenticationException.ErrorType.USER_NOT_EXIST,

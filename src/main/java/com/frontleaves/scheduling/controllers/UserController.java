@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.logic.UserLogic;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
@@ -110,9 +111,10 @@ public class UserController {
      *
      * @return 用户信息(DTO)
      */
+    @RequestLogin
     @GetMapping("/current")
     public ResponseEntity<BaseResponse<UserInfoDTO>> getCurrentUserInfo(HttpServletRequest request) {
-        //从请求中获取当前用户
+        // 从请求中获取当前用户
         UserInfoDTO userInfo = userService.getUserInfoWithRole(userLogic.getUserByRequest(request));
         return ResultUtil.success("用户信息获取成功", userInfo);
     }
