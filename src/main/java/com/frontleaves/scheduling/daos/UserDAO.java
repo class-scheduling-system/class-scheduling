@@ -41,8 +41,8 @@ import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.*;
 import org.jetbrains.annotations.NotNull;
+import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
@@ -209,12 +209,28 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @param userDO 用户实体
      */
     public void deleteUser(UserDO userDO) throws ServerInternalErrorException {
-        try (Transaction transaction = jedis.multi()) {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
             this.lambdaUpdate().eq(UserDO::getUserUuid, userDO.getUserUuid()).remove();
-            deleteRedis(userDO, transaction);
+            deleteUserRedis(userDO, transaction);
         } catch (Exception e) {
+            transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+    }
+
+    /**
+     * 删除用户 Redis 数据
+     *
+     * @param userDO      用户实体
+     * @param transaction 事务
+     */
+    private void deleteUserRedis(UserDO userDO, RTransaction transaction) {
+        transaction.getBucket(StringConstant.Redis.USER_UUID + userDO.getUserUuid()).delete();
+        transaction.getBucket(StringConstant.Redis.USER_NAME + userDO.getName()).delete();
+        transaction.getBucket(StringConstant.Redis.USER_MAIL + userDO.getEmail()).delete();
+        transaction.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone()).delete();
+        transaction.commit();
     }
 
     /**
@@ -226,29 +242,26 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @throws ServerInternalErrorException 如果更新过程中发生服务器内部错误
      */
     public void updateUser(UserDO userOldDO, UserDO userNewDO) throws ServerInternalErrorException {
-        try (Transaction transaction = jedis.multi()) {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
             this.updateById(userNewDO);
-            deleteRedis(userOldDO, transaction);
+            deleteUserRedis(userOldDO, transaction);
         } catch (Exception e) {
+            transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
 
+
     /**
-     * 删除 Redis 中的用户信息
+     * 获取用户列表
      *
-     * @param userOldDO   用户实体
-     * @param transaction 事务
+     * @param page    页数
+     * @param size    每页大小
+     * @param keyWord 关键字
+     * @param isDesc  是否降序
+     * @return 用户信息数据传输对象分页列表
      */
-    private void deleteRedis(UserDO userOldDO, Transaction transaction) {
-        transaction.del(StringConstant.Redis.USER_UUID + userOldDO.getUserUuid());
-        transaction.del(StringConstant.Redis.USER_NAME + userOldDO.getName());
-        transaction.del(StringConstant.Redis.USER_MAIL + userOldDO.getEmail());
-        transaction.del(StringConstant.Redis.USER_TEL + userOldDO.getPhone());
-        transaction.exec();
-    }
-
-
     public Page<UserDO> getUserList(@NotNull Integer page, @NotNull Integer size, String keyWord, Boolean isDesc) {
         Page<UserDO> userDOPage;
         if (keyWord != null && !keyWord.isEmpty()) {

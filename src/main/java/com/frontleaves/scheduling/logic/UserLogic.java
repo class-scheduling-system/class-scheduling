@@ -28,15 +28,34 @@
 
 package com.frontleaves.scheduling.logic;
 
-import com.frontleaves.scheduling.daos.TokenDAO;
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.RandomUtil;
+import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.frontleaves.scheduling.constants.LogConstant;
+import com.frontleaves.scheduling.constants.SystemConstant;
+import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.vo.UserAddVO;
+import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.utils.ProjectUtil;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import com.xlf.utility.util.HeaderUtil;
+import com.xlf.utility.util.PasswordUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * 用户逻辑处理服务类，实现了 {@code UserService} 接口。该类主要负责处理用户登录验证、注册等核心业务逻辑。
@@ -54,6 +73,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UserLogic implements UserService {
     private final TokenDAO tokenDAO;
+    private final UserDAO userDAO;
+    private final StudentDAO studentDAO;
+    private final RoleDAO roleDAO;
+    private final TeacherDAO teacherDAO;
 
     /**
      * 根据传入的 {@code HttpServletRequest} 请求对象获取对应的用户信息。
@@ -136,7 +159,7 @@ public class UserLogic implements UserService {
             throw new BusinessException("此类用户数据不允许添加", ErrorCode.BODY_ERROR);
         }
         log.debug("检查用户是否存在开始前");
-        checkUserExist(userAddVO.getName(), userAddVO.getEmail(), userAddVO.getPhone());
+        this.checkUserExist(userAddVO.getName(), userAddVO.getEmail(), userAddVO.getPhone());
         log.debug("检查用户是否存在结束");
     }
 
@@ -358,5 +381,29 @@ public class UserLogic implements UserService {
         log.debug("更改对象：{}", userEditVO.getName());
         log.debug("用户数据对象：{}", userDO);
         return userDO;
+    }
+
+    /**
+     * 检查用户信息是否已经存在于系统中。
+     * <p>
+     * 该方法通过用户名、邮箱和手机号来检测用户是否存在。如果任意一项已存在，则抛出 {@link BusinessException} 异常。
+     *
+     * @param username 用户名
+     * @param email    邮箱地址
+     * @param phone    手机号码
+     * @throws BusinessException 如果用户名、邮箱或手机号已存在，则抛出此异常
+     */
+    @Override
+    public void checkUserExist(String username, String email, String phone) throws BusinessException {
+        log.debug(LogConstant.SERVICE + "检测用户信息是否重复");
+        if (userDAO.getUserByName(username) != null) {
+            throw new BusinessException("用户名已存在", ErrorCode.BODY_ERROR);
+        }
+        if (userDAO.getUserByMail(email) != null) {
+            throw new BusinessException("邮箱已存在", ErrorCode.BODY_ERROR);
+        }
+        if (userDAO.getUserByTel(phone) != null) {
+            throw new BusinessException("手机号已存在", ErrorCode.BODY_ERROR);
+        }
     }
 }

@@ -167,11 +167,12 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
      * @throws ServerInternalErrorException 如果删除过程中发生服务器内部错误
      */
     public void deleteStudent(StudentDO studentDO) throws ServerInternalErrorException {
-        try (Transaction transaction = jedis.multi()) {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try  {
             this.lambdaUpdate().eq(StudentDO::getId, studentDO.getId()).remove();
-            transaction.del(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
-            transaction.del(StringConstant.Redis.STUDENT_ID + studentDO.getId());
-            transaction.exec();
+            transaction.getBucket(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
+            transaction.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
+            transaction.commit();
         } catch (Exception e) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }

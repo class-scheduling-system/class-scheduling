@@ -41,7 +41,6 @@ import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.transaction.Transaction;
 import org.redisson.api.RMap;
 import org.redisson.api.RTransaction;
 import org.redisson.api.RedissonClient;
@@ -160,11 +159,12 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
      * @throws ServerInternalErrorException 如果删除过程中发生服务器内部错误
      */
     public void deleteTeacher(TeacherDO teacherDO) throws ServerInternalErrorException {
-        try (Transaction transaction = jedis.multi()) {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
             this.lambdaUpdate().eq(TeacherDO::getId, teacherDO.getId()).remove();
-            transaction.del(StringConstant.Redis.TEACHER_ID + teacherDO.getId());
-            transaction.del(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid());
-            transaction.exec();
+            transaction.getBucket(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
+            transaction.getBucket(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
+            transaction.commit();
         } catch (Exception e) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
@@ -172,12 +172,13 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
 
     /**
      * 根据用户 UUID 获取教师信息
+     *
      * @param uuid 用户UUID
      * @return 教师信息
      */
-    public TeacherDO getTeacherByUserUuid(String uuid){
+    public TeacherDO getTeacherByUserUuid(String uuid) {
         TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getUserUuid, uuid).one();
-        if (teacherDO == null){
+        if (teacherDO == null) {
             throw new BusinessException("未找到对应的教师信息", ErrorCode.NOT_EXIST);
         }
         return teacherDO;

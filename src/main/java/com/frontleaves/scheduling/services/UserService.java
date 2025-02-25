@@ -28,7 +28,12 @@
 
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.vo.UserAddVO;
+import com.frontleaves.scheduling.models.vo.UserEditVO;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -144,4 +149,6 @@ public interface UserService {
     void checkPageAndSize(
             Integer page,
             Integer size);
+
+    void checkUserExist(String username, String email, String phone) throws BusinessException;
 }
