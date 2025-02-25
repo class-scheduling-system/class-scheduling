@@ -31,9 +31,9 @@ package com.frontleaves.scheduling.logic;
 import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.TokenDAO;
 import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import com.xlf.utility.util.HeaderUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -103,7 +103,7 @@ public class UserLogic implements UserService {
         }
         
         // 获取用户的角色信息
-        RoleDO role = roleDAO.getRoleByUuid(roleUuid);
+        RoleDTO role = roleDAO.getRoleByUuid(roleUuid);
         if (role == null) {
             throw new UserAuthenticationException(
                     UserAuthenticationException.ErrorType.USER_NOT_EXIST,
@@ -113,25 +113,9 @@ public class UserLogic implements UserService {
 
         // 创建 UserInfoDTO，返回基础的用户信息
         UserInfoDTO userInfoDTO = new UserInfoDTO();
-        // 填充基础用户信息
-        userInfoDTO.setUser(new UserDTO()
-                .setUserUuid(userByRequest.getUserUuid())
-                .setName(userByRequest.getName())
-                .setEmail(userByRequest.getEmail())
-                .setPhone(userByRequest.getPhone())
-                .setStatus(userByRequest.getStatus())
-                .setBan(userByRequest.getBan())
-                // 填充角色信息
-                .setRole(new RoleDTO()
-                        .setRoleUuid(role.getRoleUuid())
-                        .setRoleName(role.getRoleName())
-                        .setRoleStatus(role.getRoleStatus())
-                        .setPermission(role.getPermission())
-                        .setCreatedAt(role.getCreatedAt())
-                        .setUpdatedAt(role.getUpdatedAt()))
-                .setPermission(userByRequest.getPermission())
-                .setCreatedAt(userByRequest.getCreatedAt())
-                .setUpdatedAt(userByRequest.getUpdatedAt()));
+        UserDTO userDTO = ProjectUtil.convertUserDoToUserDTO(userByRequest)
+                .setRole(role);
+        userInfoDTO.setUser(userDTO);
 
         // 判断角色类型并填充对应的角色信息
         if ("学生".equals(role.getRoleName())) {
