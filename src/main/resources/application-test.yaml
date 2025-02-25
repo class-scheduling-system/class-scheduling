@@ -4,6 +4,12 @@ spring:
     url: "jdbc:mysql://172.16.11.3:3306/class-scheduling-system?useUnicode=true&characterEncoding=utf-8&serverTimezone=GMT%2B8"
     username: "class-scheduling-system"
     password: "123456"
+  data:
+    redis:
+      database: 0
+      host: "172.16.11.3"
+      port: 6379
+      password: "123456"
 logging:
   level:
     com.frontleaves: debug
