@@ -31,9 +31,10 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.StudentDO;
@@ -61,6 +62,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 用户逻辑处理服务类，实现了 {@code UserService} 接口。该类主要负责处理用户登录验证、注册等核心业务逻辑。
@@ -401,7 +403,7 @@ public class UserLogic implements UserService {
         if ("学生".equals(roleDTO.getRoleName())) {
             StudentDO studentDO = studentDAO.lambdaQuery().eq(StudentDO::getUserUuid, userUuid).one();
             if (studentDO == null) {
-                throw new BusinessException("学生信息不存在", ErrorCode.OPERATION_ERROR);
+                throw new BusinessException("", ErrorCode.OPERATION_ERROR);
             }
             userInfoDTO.setStudent(BeanUtil.toBean(studentDO, StudentDTO.class));
         }
@@ -575,8 +577,48 @@ public class UserLogic implements UserService {
     }
 
     @Override
-    public PageDTO<UserInfoDTO> getUserList(Integer page, Integer size, HttpServletRequest request) {
-        return null;
+    public PageDTO<UserInfoDTO> getUserList(@NotNull Integer page, @NotNull Integer size, String keyWord,
+                                            Boolean isDesc, HttpServletRequest request) {
+        Page<UserDO> userDOPage = userDAO.getUserList(page, size, keyWord, isDesc);
+        List<UserInfoDTO> userInfoDTOList = userDOPage.getRecords().stream()
+                .map(userDO -> {
+                    //检查是否为学生或者老师
+                    RoleDTO roleDTO = roleDAO.getRoleByUuid(userDO.getRoleUuid());
+                    if (roleDTO == null) {
+                        throw new BusinessException("角色不存在", ErrorCode.OPERATION_ERROR);
+                    }
+                    UserDTO userDTO;
+                    UserInfoDTO userInfoDTO = new UserInfoDTO();
+                    userDTO = ProjectUtil.convertUserDoToUserDTO(userDO)
+                            .setRole(BeanUtil.toBean(roleDTO, RoleDTO.class));
+                    userInfoDTO.setUser(userDTO);
+                    if (roleDTO.getRoleUuid().equals(SystemConstant.getRoleStudent())) {
+                        StudentDO studentDO = studentDAO.getStudentByUserUuid(userDO.getUserUuid());
+                        StudentDTO studentDTO = BeanUtil.toBean(studentDO, StudentDTO.class);
+                        userInfoDTO.setStudent(studentDTO);
+                    }
+                    if ("老师".equals(roleDTO.getRoleName())) {
+                        TeacherDO teacherDO = teacherDAO.getTeacherByUserUuid(userDO.getUserUuid());
+                        TeacherDTO teacherDTO = BeanUtil.toBean(teacherDO, TeacherDTO.class);
+                        userInfoDTO.setTeacher(teacherDTO);
+                    }
+                    return userInfoDTO;
+                }).toList();
+        if (userInfoDTOList.isEmpty()) {
+            throw new BusinessException("用户数据为空", ErrorCode.OPERATION_ERROR);
+        }
+        return ProjectUtil.convertPageToPageDTO(userDOPage, UserInfoDTO.class)
+                .setRecords(userInfoDTOList);
+    }
+
+    @Override
+    public void checkPageAndSize(Integer page, Integer size) {
+        if (page == null || page < 1) {
+            throw new BusinessException("页数错误", ErrorCode.PARAMETER_ERROR);
+        }
+        if (size == null || size < 1) {
+            throw new BusinessException("每页大小错误", ErrorCode.PARAMETER_ERROR);
+        }
     }
 
     /**

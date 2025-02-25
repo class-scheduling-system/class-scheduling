@@ -28,7 +28,8 @@
 
 package com.frontleaves.scheduling.controllers;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
+
+import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
@@ -183,13 +184,25 @@ public class UserController {
         }
         return ResultUtil.success("更新用户成功",userInfoDTO);
     }
+
+    /**
+     * 获取用户列表
+     * @param page 页数
+     * @param size 每页大小
+     * @param keyWord 关键字
+     * @param isDesc   是否降序
+     * @param request HTTP请求对象
+     * @return 用户信息数据传输对象分页列表
+     */
     @GetMapping("/getUserList")
     public ResponseEntity<BaseResponse<PageDTO<UserInfoDTO>>> getUserList(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "10") Integer size,
+            @RequestParam(value = "key_word",required = false)String keyWord,
             @RequestParam(value = "is_desc",defaultValue = "true")Boolean isDesc,
             HttpServletRequest request) {
-        PageDTO<UserInfoDTO> userInfoDTOPage = userService.getUserList(page, size, request);
+        userService.checkPageAndSize(page, size);
+        PageDTO<UserInfoDTO> userInfoDTOPage = userService.getUserList(page, size, keyWord,isDesc,request);
         return ResultUtil.success("获取用户列表成功", userInfoDTOPage);
     }
 }

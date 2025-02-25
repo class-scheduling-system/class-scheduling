@@ -28,7 +28,7 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
+import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
@@ -174,8 +174,30 @@ public interface UserService {
             UserEditVO userEditVO,
             HttpServletRequest request);
 
+    /**
+     * 获取用户列表
+     *
+     * @param page    页数
+     * @param size    每页大小
+     * @param keyWord 关键字
+     * @param isDesc  是否降序
+     * @param request HTTP请求对象
+     * @return PageDTO<UserInfoDTO>
+     */
     PageDTO<UserInfoDTO> getUserList(
             Integer page,
             Integer size,
+            String keyWord,
+            Boolean isDesc,
             HttpServletRequest request);
+
+    /**
+     * 检查页数和每页大小
+     *
+     * @param page 页数
+     * @param size 每页大小
+     */
+    void checkPageAndSize(
+            Integer page,
+            Integer size);
 }

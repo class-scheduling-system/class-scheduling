@@ -182,5 +182,18 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
+
+    /**
+     * 根据用户 UUID 获取学生信息
+     * @param userUuid 用户 UUID
+     * @return 学生信息
+     */
+    public StudentDO getStudentByUserUuid(String userUuid) {
+        StudentDO studentDO = this.lambdaQuery().eq(StudentDO::getUserUuid, userUuid).one();
+        if (studentDO == null) {
+            throw new BusinessException("未找到对应的学生信息", ErrorCode.NOT_EXIST);
+        }
+        return studentDO;
+    }
 }
 

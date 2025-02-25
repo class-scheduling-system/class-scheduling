@@ -181,4 +181,17 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
+
+    /**
+     * 根据用户 UUID 获取教师信息
+     * @param uuid 用户UUID
+     * @return 教师信息
+     */
+    public TeacherDO getTeacherByUserUuid(String uuid){
+        TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getUserUuid, uuid).one();
+        if (teacherDO == null){
+            throw new BusinessException("未找到对应的教师信息", ErrorCode.NOT_EXIST);
+        }
+        return teacherDO;
+    }
 }

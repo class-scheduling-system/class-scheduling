@@ -29,15 +29,19 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UserMapper;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Repository;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
@@ -229,8 +233,9 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
 
     /**
      * 删除 Redis 中的用户信息
-     * @param userOldDO 用户实体
-     * @param transaction  事务
+     *
+     * @param userOldDO   用户实体
+     * @param transaction 事务
      */
     private void deleteRedis(UserDO userOldDO, Transaction transaction) {
         transaction.del(StringConstant.Redis.USER_UUID + userOldDO.getUserUuid());
@@ -238,5 +243,41 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
         transaction.del(StringConstant.Redis.USER_MAIL + userOldDO.getEmail());
         transaction.del(StringConstant.Redis.USER_TEL + userOldDO.getPhone());
         transaction.exec();
+    }
+
+
+    public Page<UserDO> getUserList(@NotNull Integer page, @NotNull Integer size, String keyWord, Boolean isDesc) {
+        Page<UserDO> userDOPage;
+        if (keyWord != null && !keyWord.isEmpty()) {
+            if (Boolean.TRUE.equals(isDesc)) {
+                userDOPage = this.lambdaQuery()
+                        .like(UserDO::getName, keyWord)
+                        .or()
+                        .like(UserDO::getEmail, keyWord)
+                        .or()
+                        .like(UserDO::getPhone, keyWord)
+                        .orderByDesc(UserDO::getCreatedAt)
+                        .page(new Page<>(page, size));
+            } else {
+                userDOPage = this.lambdaQuery()
+                        .like(UserDO::getName, keyWord)
+                        .or()
+                        .like(UserDO::getEmail, keyWord)
+                        .or()
+                        .like(UserDO::getPhone, keyWord)
+                        .orderByAsc(UserDO::getCreatedAt)
+                        .page(new Page<>(page, size));
+            }
+        } else {
+            if (Boolean.TRUE.equals(isDesc)) {
+                userDOPage = this.lambdaQuery().orderByDesc(UserDO::getCreatedAt).page(new Page<>(page, size));
+            } else {
+                userDOPage = this.lambdaQuery().orderByAsc(UserDO::getCreatedAt).page(new Page<>(page, size));
+            }
+        }
+        if (userDOPage == null) {
+            throw new BusinessException("用户数据为空", ErrorCode.BODY_ERROR);
+        }
+        return userDOPage;
     }
 }
