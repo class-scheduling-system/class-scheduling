@@ -33,14 +33,18 @@ import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.daos.TableDAO;
+import com.frontleaves.scheduling.daos.UserDAO;
+import com.frontleaves.scheduling.models.entity.UserDO;
+import com.xlf.utility.util.PasswordUtil;
+import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RedissonClient;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import redis.clients.jedis.Jedis;
 
 /**
  * 初始化方法类
@@ -59,19 +63,21 @@ public class Initialize {
     private final TableDAO tableDAO;
     private final SystemDAO systemDAO;
     private final RoleDAO roleDAO;
-    private final Jedis jedis;
+    private final RedissonClient redissonClient;
+    private final UserDAO userDAO;
 
     private FunctionInit init;
 
     @PostConstruct
     public void init() {
         // 初始化准备算法
-        init = new FunctionInit(tableDAO, systemDAO, roleDAO, jedis);
+        init = new FunctionInit(tableDAO, systemDAO, roleDAO, redissonClient);
 
         // 初始化数据库完整性检查
         this.checkTable();
         this.checkSystemTable();
         this.writeRoleInfo();
+        this.initTestUser();
     }
 
     @Bean
@@ -145,6 +151,33 @@ public class Initialize {
         SystemConstant.setIsInitMode(init.checkSystemTable("system_init_mode", "true"));
         init.checkSystemTable("system_init_time", DateUtil.now());
 
+        //站点基础信息
+        init.checkSystemTable("web_name", SystemConstant.getSYSTEM_NAME());
+        init.checkSystemTable("web_title", "智课方舟-智能排课系统");
+        init.checkSystemTable("web_sub_title", "基于AI的智能排课系统，适用于学校等教育场地");
+        init.checkSystemTable("web_description", "一个用于智能排课的系统");
+        init.checkSystemTable("web_keywords", "排课系统，教育管理，人工智能，课程规划");
+        init.checkSystemTable("web_icon_url", "https://xxx.com/favicon.ico");
+        init.checkSystemTable("web_logo_url", "https://xxx.com/logo.png");
+        //站点备案与版权
+        init.checkSystemTable("web_icp_number", "京ICP备 2020001234号");
+        init.checkSystemTable("web_icp_link", "https://beian.miit.gov.cn");
+        init.checkSystemTable("web_security_record", "京公网安备 110101020004221号");
+        init.checkSystemTable("web_security_record_link", "https://www.beian.gov.cn/portal/registerSystemInfo");
+        init.checkSystemTable("web_copyright_status", "Copyright © 2024 智课方舟. All rights reserved.");
+        init.checkSystemTable("web_open_source_license", "MIT License");
+        //站点联系与社交
+        init.checkSystemTable("web_contact_email", "xxx@xxx.com");
+        init.checkSystemTable("web_contact_phone", "123xxxxxxxx");
+        init.checkSystemTable("web_office_address", "北京市海淀区中关村大街 1 号");
+        init.checkSystemTable("web_weibo_url", "weibo_url");
+        init.checkSystemTable("web_wechat_official_account", "FrontLeavesTech");
+        //站点高级元数据
+        init.checkSystemTable("web_owner", "锋楪技术团队");
+        init.checkSystemTable("web_founder", "张三，李四，王五");
+        init.checkSystemTable("web_launch_date", "2025-01-01");
+        init.checkSystemTable("web_technology_stack", "Spring Boot, React, MySQL, Redis");
+
         log.info("[INIT] 系统数据表检查完成");
     }
 
@@ -159,5 +192,36 @@ public class Initialize {
         SystemConstant.setRoleStudent(init.loadRoleContent("学生"));
         SystemConstant.setRoleLeader(init.loadRoleContent("管理"));
         SystemConstant.setRoleAcademic(init.loadRoleContent("教务"));
+    }
+
+    /**
+     * 初始化测试用户
+     * <p>
+     * 该方法用于初始化测试用户，用于测试系统是否正常运行。
+     */
+    private void initTestUser() {
+        log.info("[INIT] 初始化测试用户开始");
+        userDAO.lambdaQuery().eq(UserDO::getName, "test").oneOpt().ifPresentOrElse(
+                userDO -> {
+                    log.info("[INIT] 测试用户已存在");
+                    log.info("[INIT] 将测试用户信息恢复默认");
+                    userDO
+                            .setPassword(PasswordUtil.encrypt("123456"))
+                            .setRoleUuid(SystemConstant.getRoleAdmin())
+                            .setPhone("13388888880")
+                            .setEmail("test@x-lf.cn");
+                    userDAO.updateById(userDO);
+                }, () -> {
+                    UserDO userDO = new UserDO();
+                    userDO
+                            .setUserUuid(UuidUtil.generateUuidNoDash())
+                            .setEmail("test@x-lf.cn")
+                            .setPhone("13388888880")
+                            .setName("test")
+                            .setPassword(PasswordUtil.encrypt("123456"))
+                            .setRoleUuid(SystemConstant.getRoleAdmin());
+                    userDAO.save(userDO);
+                    log.info("[INIT] 初始化测试用户完成");
+                });
     }
 }

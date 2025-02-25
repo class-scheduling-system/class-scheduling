@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.models.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -50,27 +51,35 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class TokenDTO {
     /**
+     * 用户主键
+     */
+    @NotNull
+    private String userUuid;
+
+    /**
      * 用户令牌
      */
+    @NotNull
     private String token;
 
     /**
      * 刷新令牌
      */
+    @NotNull
     private String refreshToken;
 
     /**
      * 令牌过期时间（单位：秒）
      */
-    private Long expireTime;
+    private long expireTime;
 
     /**
      * 刷新令牌过期时间（单位：秒）
      */
-    private Long refreshExpireTime;
+    private long refreshExpireTime;
 
     /**
      * 令牌创建时间（单位：「时间戳」毫秒）
      */
-    private Long createdAt;
+    private long createdAt;
 }

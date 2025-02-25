@@ -44,14 +44,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * 请求头过滤器
+ * 过滤器类，用于控制初始化模式下的API访问权限。
  * <p>
- * 该类用于定义请求头过滤器;
- * 用于检查请求头是否符合规范。
+ * 当系统处于初始化模式（由 {@link SystemConstant#getIsInitMode()} 确定）时，
+ * 仅允许对 '/api/v1/init' 路径的访问。其他所有请求将被拒绝并返回403 Forbidden响应。
+ * 如果系统不是处于初始化模式，则此过滤器不影响请求处理，所有请求都将正常通过。
  *
- * @author xiao_lfeng
- * @version v1.0.0
  * @since v1.0.0
+ * @version v1.0.0
+ * @author xiao_lfeng
  */
 public class InitialModeFilter extends OncePerRequestFilter {
     @Override
@@ -65,7 +66,7 @@ public class InitialModeFilter extends OncePerRequestFilter {
                 .create();
         // 检查是否是初始化模式
         if ("true".equals(SystemConstant.getIsInitMode())) {
-            if (request.getRequestURI().contains("/api/v1/init")) {
+            if (request.getRequestURI().startsWith("/api/v1/init")) {
                 filterChain.doFilter(request, response);
             } else {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);

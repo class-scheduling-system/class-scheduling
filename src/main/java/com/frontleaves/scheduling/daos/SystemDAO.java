@@ -30,13 +30,18 @@ package com.frontleaves.scheduling.daos;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.annotations.IgnoreLog;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.SystemMapper;
 import com.frontleaves.scheduling.models.entity.SystemDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
-import redis.clients.jedis.Jedis;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 系统表数据访问对象
@@ -55,7 +60,7 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
     /**
      * Redis 缓存
      */
-    private final Jedis jedis;
+    private final RedissonClient redisson;
 
     /**
      * 获取系统信息
@@ -67,16 +72,17 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
      * @param key 系统键
      * @return 系统值
      */
+    @IgnoreLog
     public String getSystemInfo(String key) {
-        String getValue = jedis.get(StringConstant.Redis.SYSTEM + key);
-        if (getValue != null) {
-            return getValue;
+        RMap<String, String> getValue = redisson.getMap(StringConstant.Redis.SYSTEM + "info");
+        if (getValue.isExists()) {
+            return getValue.get(key);
         } else {
             SystemDO systemDO = this.lambdaQuery()
                     .eq(SystemDO::getSystemKey, key)
                     .one();
             if (systemDO != null) {
-                jedis.set(StringConstant.Redis.SYSTEM + key, systemDO.getSystemVal());
+                getValue.put(systemDO.getSystemKey(), systemDO.getSystemVal());
                 return systemDO.getSystemVal();
             } else {
                 return null;
@@ -100,7 +106,8 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
                 .eq(SystemDO::getSystemKey, key)
                 .set(SystemDO::getSystemVal, value)
                 .update();
-        jedis.set(StringConstant.Redis.SYSTEM + key, value);
+        redisson.getMap(StringConstant.Redis.SYSTEM + "info")
+                .put(key, value);
         return value;
     }
 
@@ -120,6 +127,27 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
                 .setSystemKey(key)
                 .setSystemVal(value);
         this.save(systemDO);
-        jedis.set(StringConstant.Redis.SYSTEM + key, value);
+        redisson.getMap(StringConstant.Redis.SYSTEM + "info")
+                .put(key, value);
+    }
+
+    /**
+     * 获取系统信息列表
+     * <p>
+     * 该方法用于获取系统表中的所有系统信息。首先从 Redis 缓存中查询，如果缓存中不存在数据，则从数据库中查询并将结果存入 Redis 缓存中。
+     * 返回的列表包含所有的系统值。
+     * </p>
+     *
+     * @return 系统值的列表
+     */
+    public Map<String, String> getSystemInfoList() {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.SYSTEM + "info");
+        if (!map.isExists()) {
+            List<SystemDO> systemDOList = this.list();
+            for (SystemDO systemDO : systemDOList) {
+                map.put(systemDO.getSystemKey(), systemDO.getSystemVal());
+            }
+        }
+        return map.readAllMap();
     }
 }

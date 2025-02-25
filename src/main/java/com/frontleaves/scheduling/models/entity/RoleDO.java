@@ -72,7 +72,6 @@ public class RoleDO {
      * 角色权限，JSON 格式
      */
     private String permission;
-
     /**
      * 创建时间
      */

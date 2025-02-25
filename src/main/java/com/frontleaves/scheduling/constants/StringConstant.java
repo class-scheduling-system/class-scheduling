@@ -31,32 +31,98 @@ package com.frontleaves.scheduling.constants;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 系统常量
+ * 提供字符串常量的类，包括系统错误信息、Redis相关常量及通用常量等。
  * <p>
- * 该类用于定义系统常量;
- * 定义多处位置使用的字符串常量。
+ * 本类中的常量旨在作为应用内共享的不可变值，避免硬编码字符串，提高代码可维护性。
+ * 所有常量均为静态最终成员，且构造方法私有化，防止外部实例化。
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Slf4j
 public class StringConstant {
+
+    public static final String TOKEN_ATTRIBUTION_ERROR = "令牌归属错误";
+    public static final String DATABASE_OPERATION_FAILED = "数据库操作失败";
+    public static final String REDIS_OPERATION_FAILED = "缓存操作失败";
+
+    private StringConstant() {
+        log.error("StringConstant 不能被实例化");
+    }
 
     /**
      * Redis 常量
      */
     public static class Redis {
         public static final String SYSTEM = "system:";
+        public static final String TOKEN = "token:";
+        public static final String PERMISSION = "permission:";
         public static final String ROLE_UUID = "role:uuid:";
-        public static final String ROLE_NAME = "user:name:";
+        public static final String ROLE_NAME = "role:name:";
+        public static final String USER_UUID = "user:uuid:";
+        public static final String USER_NAME = "user:name:";
+        public static final String USER_MAIL = "user:mail:";
+        public static final String USER_TEL = "user:tel:";
+        public static final String STUDENT_ID = "stu:id:";
+        public static final String STUDENT_UUID = "stu:uuid:";
+        public static final String TEACHER_ID = "tea:id:";
+        public static final String TEACHER_UUID = "tea:uuid:";
+        public static final String BUILDING_LIST = "building:list";
+        public static final String BUILDING_UUID = "building:uuid:";
+        public static final String BUILDING_NAME = "building:name:";
+        public static final String BUILDING_CAMPUS = "building:campus:";
+        public static final String CAMPUS_UUID = "campus:uuid:";
+        public static final String CAMPUS_NAME = "campus:name:";
+        public static final String CAMPUS_CODE = "campus:code:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
         }
     }
 
-    private StringConstant() {
-        log.error("StringConstant 不能被实例化");
+    /**
+     * 常量
+     */
+    public static class Common {
+
+        public static final String USER_AGENT = "User-Agent";
+
+        private Common() {
+            log.error("Common 不能被实例化");
+        }
+
+        /**
+         * 驼峰命名常量
+         */
+        public static class Hump {
+            public static final String USER_UUID = "userUuid";
+            public static final String TOKEN = "token";
+            public static final String REFRESH_TOKEN = "refreshToken";
+            public static final String EXPIRE_TIME = "expireTime";
+            public static final String REFRESH_EXPIRE_TIME = "refreshExpireTime";
+            public static final String CREATED_AT = "createdAt";
+            public static final String UPDATED_AT = "updatedAt";
+
+            private Hump() {
+                log.error("Hump 不能被实例化");
+            }
+        }
+    }
+
+    /**
+     * 正则表达式常量类。
+     */
+    public static class Regular {
+        public static final String EMAIL_REGULAR_EXPRESSION ="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$";
+        public static final String PHONE_REGULAR_EXPRESSION ="^1[3456789]\\d{9}$";
+        public static final String USER_NAME_REGULAR_EXPRESSION ="^[0-9A-Za-z_-]{4,32}$";
+        public static final String PASSWORD_REGULAR_EXPRESSION = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$";
+        public static final String UUID_NO_DASH_REGULAR_EXPRESSION = "^[a-f0-9]{8}[a-f0-9]{4}4[a-f0-9]{3}[89ab][a-f0-9]{3}[a-f0-9]{12}$";
+        public static final String UUID_REGULAR_EXPRESSION = "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$";
+
+        private Regular() {
+            log.error("Regular 不能被实例化");
+        }
     }
 }

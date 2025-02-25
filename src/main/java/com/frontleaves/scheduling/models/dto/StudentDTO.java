@@ -26,38 +26,88 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.configs.apps;
+package com.frontleaves.scheduling.models.dto;
 
-import cn.hutool.db.nosql.redis.RedisDS;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import redis.clients.jedis.Jedis;
+import com.baomidou.mybatisplus.annotation.TableField;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 /**
- * Redis 配置
+ * Student 数据传输对象
  * <p>
- * 该类用于配置 Hutool 的 Redis 连接。
+ * 用于在不同层之间传输学生基本信息。
+ * 该 DTO 包含学生主键、学号、学生姓名、性别、年级、学院、专业、班级、对应用户主键、
+ * 创建时间及更新时间等字段。
  * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-@Configuration
-public class RedisConfig {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+public class StudentDTO {
 
-    @Bean
-    public Jedis jedis() {
-        log.info("[INIT] Redis 配置初始化");
+    /**
+     * 学生主键
+     */
+    private String studentUuid;
 
-        try (RedisDS redisDs = RedisDS.create()) {
-            return redisDs.getJedis();
-        } catch (Exception e) {
-            log.error("[NOSQL] Redis 连接失败: {}", e.getMessage());
-            System.exit(1);
-            return null;
-        }
-    }
+    /**
+     * 学号
+     */
+    private String id;
+
+    /**
+     * 学生姓名
+     */
+    private String name;
+
+    /**
+     * 性别（0：女，1：男）
+     */
+    private Integer gender;
+
+    /**
+     * 年级
+     */
+    private String grade;
+
+    /**
+     * 学院
+     */
+    private String department;
+
+    /**
+     * 专业
+     */
+    private String major;
+
+    /**
+     * 班级
+     * <p>
+     * 注意：由于 class 为 Java 保留关键字，此处使用 clazz 表示班级。
+     * </p>
+     */
+    @TableField(value = "class")
+    private String clazz;
+
+    /**
+     * 对应用户主键
+     */
+    private String userUuid;
+
+    /**
+     * 创建时间（单位：毫秒时间戳）
+     */
+    private Long createdAt;
+
+    /**
+     * 更新时间（单位：毫秒时间戳）
+     */
+    private Long updatedAt;
 }

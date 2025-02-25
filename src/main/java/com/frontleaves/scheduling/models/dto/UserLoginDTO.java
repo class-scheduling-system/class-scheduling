@@ -28,6 +28,8 @@
 
 package com.frontleaves.scheduling.models.dto;
 
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -36,7 +38,9 @@ import lombok.experimental.Accessors;
 /**
  * 用户登录数据传输对象
  * <p>
- * 用于返回用户登录相关信息，传输的是用户的基本信息和 Token 信息。
+ * 用于返回用户登录相关信息，包括用户基本信息、Token 信息及账户状态。
+ * 当用户为学生时，{@code student} 字段有效，教师登录则此字段为空；
+ * 若用户尚未注册账号，则 {@code user} 字段不存在，通过 {@code initialization} 标记区分。
  * </p>
  *
  * @author xiao_lfeng
@@ -49,15 +53,32 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class UserLoginDTO {
     /**
-     * 用户数据传输对象
+     * 用户数据传输对象，若用户未注册则为 {@code null}
      */
+    @Nullable
     private UserDTO user;
+
     /**
-     * 令牌对象
+     * 学生数据传输对象，仅在学生登录时有效，其他身份登录则为 {@code null}
      */
+    @Nullable
+    private StudentDTO student;
+
+    /**
+     * 教师数据传输对象，仅在教师登录时有效，其他身份登录则为 {@code null}
+     */
+    @Nullable
+    private TeacherDTO teacher;
+
+    /**
+     * 令牌对象，包含认证信息
+     */
+    @Nullable
     private TokenDTO token;
+
     /**
-     * 是否是初始化用户
+     * 是否是初始化用户，指示用户是否首次使用或未完全注册
      */
+    @NotNull
     private Boolean initialization;
 }

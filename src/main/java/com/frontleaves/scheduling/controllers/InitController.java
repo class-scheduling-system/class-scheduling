@@ -32,7 +32,8 @@ import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.entity.RoleDO;
+import com.frontleaves.scheduling.models.dto.RoleDTO;
+import com.frontleaves.scheduling.models.dto.SystemInitCheckDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.InitVO;
 import com.xlf.utility.BaseResponse;
@@ -44,10 +45,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 初始化控制器
@@ -71,15 +69,20 @@ public class InitController {
 
     /**
      * 系统初始化
-     * <p>
-     * 该方法用于系统初始化;
-     * 用于系统在启动时进行初始化操作。
+     *
+     * @param initVO 初始化参数对象，包含用户名、密码、邮箱和电话等信息。
+     * @return 响应实体，其中数据部分为Void，成功时返回系统初始化成功的提示信息，失败时抛出对应业务异常。
+     *
+     * <p>此方法用于首次系统启动时的初始化设置，包括创建超级管理员用户，设置其角色、密码、联系方式等信息，
+     * 并将系统设置为非初始化模式。如果系统已非初始化状态，则禁止再次执行初始化操作。</p>
+     *
+     * @throws BusinessException 如果管理员角色不存在、初始化过程失败或系统当前不处于初始化模式时抛出。
      */
     @PostMapping("")
     public ResponseEntity<BaseResponse<Void>> systemInit(@RequestBody @Validated InitVO initVO) {
         if ("true".equals(SystemConstant.getIsInitMode())) {
             // 获取管理员角色
-            RoleDO getAdminRole = roleDAO.getRoleByUuid(SystemConstant.getRoleAdmin());
+            RoleDTO getAdminRole = roleDAO.getRoleByUuid(SystemConstant.getRoleAdmin());
             if (getAdminRole == null) {
                 throw new BusinessException("管理员角色不存在", ErrorCode.SERVER_INTERNAL_ERROR);
             }
@@ -104,6 +107,22 @@ public class InitController {
             }
         } else {
             throw new BusinessException("当前系统不处于初始化模式", ErrorCode.FORBIDDEN);
+        }
+    }
+
+    /**
+     * 检查系统初始化状态
+     *
+     * @return ResponseEntity 包含 BaseResponse<SystemInitCheckDTO> 对象，表示系统初始化检查的结果。
+     *         若系统处于初始化模式（isInitMode为true），则返回SystemInitCheckDTO对象中systemInit属性为true，表示系统已初始化。
+     *         若系统不在初始化模式，返回的SystemInitCheckDTO对象中systemInit属性为false，表示系统未处于初始化状态。
+     */
+    @GetMapping("/check")
+    public ResponseEntity<BaseResponse<SystemInitCheckDTO>> systemInitCheck() {
+        if ("true".equals(SystemConstant.getIsInitMode())) {
+            return ResultUtil.success("操作成功", new SystemInitCheckDTO().setSystemInit(true));
+        } else {
+            return ResultUtil.success("操作成功", new SystemInitCheckDTO().setSystemInit(false));
         }
     }
 }

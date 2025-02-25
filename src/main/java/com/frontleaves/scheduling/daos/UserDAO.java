@@ -28,22 +28,168 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UserMapper;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
+import com.xlf.utility.util.ConvertUtil;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
+
+import java.time.Duration;
 
 /**
  * 用户数据访问对象
  * <p>
- * 该类用于对用户数据进行访问。
+ * 该类提供了对用户数据的基本操作，包括通过 UUID、用户名、邮箱和电话号码获取用户信息。
+ * 所有方法都优先尝试从 Redis 缓存中读取数据，如果缓存中没有，则从数据库中查询，并将结果缓存到 Redis 中以提高性能。
  * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
+@Slf4j
 @Repository
+@RequiredArgsConstructor
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService<UserDO> {
+    private final RedissonClient redisson;
+
+    /**
+     * 根据用户 UUID 获取用户信息
+     * <p>
+     * 该方法通过传入的用户 UUID 从 Redis 中获取用户信息，如果 Redis 中不存在，则从数据库中查询并缓存到 Redis。
+     * 如果在 Redis 和数据库中都未找到对应用户，则返回 null。
+     *
+     * @param userUuid 用户的唯一标识符 UUID
+     * @return 返回与给定 UUID 对应的 {@code UserDO} 对象，如果未找到则返回 null
+     * @throws ServerInternalErrorException 当数据库操作失败时抛出此异常
+     */
+    public UserDO getUserByUuid(String userUuid) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.USER_UUID + userUuid);
+        if (map.isEmpty()) {
+            UserDO userDO = this.lambdaQuery().eq(UserDO::getUserUuid, userUuid).one();
+            if (userDO != null) {
+                map.putAll(ConvertUtil.convertObjectToMapString(userDO));
+                map.expire(Duration.ofSeconds(86400));
+                return userDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, UserDO.class);
+        }
+        return null;
+    }
+
+    /**
+     * 通过用户名获取用户信息
+     * <p>
+     * 该方法根据提供的用户名从 Redis 缓存或数据库中查询对应的用户信息。首先尝试从 Redis 缓存中获取用户的 UUID，
+     * 如果缓存中不存在，则从数据库中查询用户信息，并将查询结果存入 Redis 缓存中，设置过期时间为一天。
+     * 如果在 Redis 或数据库中均未找到对应用户，则返回 {@code null}。
+     *
+     * @param name 用户名
+     * @return 返回与用户名匹配的 {@code UserDO} 对象，如果未找到则返回 {@code null}
+     * @throws ServerInternalErrorException 如果在操作过程中发生服务器内部错误
+     */
+    public UserDO getUserByName(String name) throws ServerInternalErrorException {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            RBucket<String> tryGetUuid = transaction.getBucket(StringConstant.Redis.USER_NAME + name);
+            if (!tryGetUuid.isExists()) {
+                UserDO userDO = this.lambdaQuery().eq(UserDO::getName, name).one();
+                if (userDO != null) {
+                    tryGetUuid.set(userDO.getUserUuid());
+                    tryGetUuid.expire(Duration.ofSeconds(86400));
+                    RMap<String, String> map = transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+                    map.putAll(ConvertUtil.convertObjectToMapString(userDO));
+                    map.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
+                    return userDO;
+                }
+            } else {
+                return this.getUserByUuid(tryGetUuid.get());
+            }
+            return null;
+        } catch (Exception e) {
+            transaction.rollback();
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
+
+    /**
+     * 通过邮箱获取用户信息
+     * <p>
+     * 该方法根据提供的邮箱地址查询用户信息。首先尝试从 Redis 缓存中读取用户 UUID，如果缓存中没有找到，则直接从数据库中查询。
+     * 如果在数据库中查找到了用户信息，则将用户的 UUID 和邮箱信息存储到 Redis 中，并设置过期时间为一天（86400秒）。
+     * 最后返回查找到的用户信息。如果在整个过程中出现异常，将抛出 {@code ServerInternalErrorException} 异常。
+     *
+     * @param mail 用户的邮箱地址
+     * @return 返回与邮箱匹配的用户信息，如果没有找到则返回 null
+     * @throws ServerInternalErrorException 在数据库操作或 Redis 操作失败时抛出
+     */
+    public UserDO getUserByMail(String mail) throws ServerInternalErrorException {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            RBucket<String> tryGetUuid = transaction.getBucket(StringConstant.Redis.USER_MAIL + mail);
+            if (!tryGetUuid.isExists()) {
+                UserDO userDO = this.lambdaQuery().eq(UserDO::getEmail, mail).one();
+                if (userDO != null) {
+                    tryGetUuid.set(userDO.getUserUuid());
+                    tryGetUuid.expire(Duration.ofSeconds(86400));
+                    RMap<String, String> map = transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+                    map.putAll(ConvertUtil.convertObjectToMapString(userDO));
+                    map.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
+                    return userDO;
+                }
+            } else {
+                return this.getUserByUuid(tryGetUuid.get());
+            }
+            return null;
+        } catch (Exception e) {
+            transaction.rollback();
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
+
+    /**
+     * 通过电话号码获取用户信息
+     * <p>
+     * 该方法根据提供的电话号码 {@code tel} 查询用户信息。首先尝试从 Redis 缓存中获取用户的 UUID，
+     * 如果缓存中没有找到，则从数据库中查询用户信息，并将结果存储到 Redis 缓存中，设置过期时间为一天。
+     * 如果在数据库中也未找到用户信息，则返回 null。
+     *
+     * @param tel 用户的电话号码
+     * @return 返回与电话号码关联的用户信息，如果未找到则返回 null
+     * @throws ServerInternalErrorException 如果在操作过程中发生服务器内部错误
+     */
+    public UserDO getUserByTel(String tel) throws ServerInternalErrorException {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            RBucket<String> tryGetUuid = transaction.getBucket(StringConstant.Redis.USER_TEL + tel);
+            if (!tryGetUuid.isExists()) {
+                UserDO userDO = this.lambdaQuery().eq(UserDO::getPhone, tel).one();
+                if (userDO != null) {
+                    tryGetUuid.set(userDO.getUserUuid());
+                    tryGetUuid.expire(Duration.ofSeconds(86400));
+                    RMap<String, String> map = transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+                    map.putAll(ConvertUtil.convertObjectToMapString(userDO));
+                    map.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
+                    return userDO;
+                }
+            } else {
+                return this.getUserByUuid(tryGetUuid.get());
+            }
+            return null;
+        } catch (Exception e) {
+            transaction.rollback();
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
 }
