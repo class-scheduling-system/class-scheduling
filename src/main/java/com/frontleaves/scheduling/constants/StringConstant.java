@@ -44,6 +44,10 @@ import lombok.extern.slf4j.Slf4j;
 public class StringConstant {
 
     public static final String TOKEN_ATTRIBUTION_ERROR = "令牌归属错误";
+    public static final String TOKEN_NOT_EXIST = "令牌不存在";
+    public static final String TOKEN_EXPIRED = "令牌已过期";
+    public static final String REFRESH_TOKEN_ERROR = "刷新令牌错误";
+    public static final String REFRESH_TOKEN_EXPIRED = "刷新令牌已过期";
     public static final String DATABASE_OPERATION_FAILED = "数据库操作失败";
     public static final String REDIS_OPERATION_FAILED = "缓存操作失败";
 

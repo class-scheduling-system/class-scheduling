@@ -32,6 +32,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.RoleMapper;
 import com.frontleaves.scheduling.models.dto.RoleDTO;
@@ -79,10 +80,10 @@ public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> implements IService
         if (!map.isExists()) {
             RoleDO roleDO = this.lambdaQuery().eq(RoleDO::getRoleUuid, roleUuid).one();
             if (roleDO != null) {
-                map.putAll(ConvertUtil.convertObjectToMapString(roleDO));
-                return reorganizePermissions(roleDO);
+                return this.reorganizePermissions(roleDO, map);
             }
         } else {
+            log.debug(LogConstant.DAO + "通过 redis 的 uuid 获取角色");
             return reorganizePermissionsRedis(map);
         }
         return null;
@@ -103,10 +104,10 @@ public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> implements IService
         if (!map.isExists()) {
             RoleDO roleDO = this.lambdaQuery().eq(RoleDO::getRoleName, roleName).one();
             if (roleDO != null) {
-                map.putAll(ConvertUtil.convertObjectToMapString(roleDO));
-                return reorganizePermissions(roleDO);
+                return this.reorganizePermissions(roleDO, map);
             }
         } else {
+            log.debug(LogConstant.DAO + "通过 redis 的 name 获取角色");
             return reorganizePermissionsRedis(map);
         }
         return null;
@@ -122,31 +123,39 @@ public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> implements IService
      * @param map 包含角色和权限信息的映射，其中 "permission" 键用于存储权限信息
      * @return 返回包含角色和权限信息的 RoleDTO 对象
      */
+    @NotNull
     private RoleDTO reorganizePermissionsRedis(@NotNull Map<String, String> map) {
         if (map.get("permission").isEmpty()) {
-            return BeanUtil.toBean(map, RoleDTO.class);
+            return BeanUtil.toBean(map, RoleDTO.class)
+                    .setPermission(List.of());
         } else {
             List<String> permissionDOList = JSONUtil.parseArray(map.get("permission")).toList(String.class);
-            return BeanUtil.toBean(map, RoleDTO.class).setPermission(permissionDOList);
+            return BeanUtil.toBean(map, RoleDTO.class)
+                    .setPermission(permissionDOList);
         }
     }
 
     /**
-     * 重新组织权限信息
+     * 重组权限信息
      * <p>
-     * 该方法用于将 {@code RoleDO} 对象转换为 {@code RoleDTO} 对象，并处理权限信息。
-     * 如果 {@code RoleDO} 中的权限信息为空或不存在，则直接进行对象转换；否则，将权限信息解析为字符串列表并设置到 {@code RoleDTO} 中。
-     * </p>
+     * 该方法接收一个 {@code RoleDO} 对象和一个 {@code RMap<String, String>} 对象作为参数。它首先将 {@code RoleDO} 对象的属性转换为键值对并存入传入的映射中。
+     * 如果 {@code RoleDO} 中的权限信息为空或不存在，则返回一个新的 {@code RoleDTO} 对象，其权限列表为空。
+     * 否则，将 {@code RoleDO} 的权限信息解析为字符串列表，并设置到新创建的 {@code RoleDTO} 对象中，然后返回该对象。
      *
-     * @param roleDO 角色数据对象，包含角色的基本信息和权限信息
-     * @return 转换后的角色传输对象，包含重新组织的权限信息
+     * @param roleDO 角色数据对象，不能为空
+     * @param map    用于存储角色属性的映射，不能为空
+     * @return 角色数据传输对象，包含处理后的权限信息(可能为空)
      */
-    private RoleDTO reorganizePermissions(@NotNull RoleDO roleDO) {
+    @NotNull
+    private RoleDTO reorganizePermissions(@NotNull RoleDO roleDO, @NotNull RMap<String, String> map) {
+        map.putAll(ConvertUtil.convertObjectToMapString(roleDO));
         if (roleDO.getPermission() == null || roleDO.getPermission().isEmpty()) {
-            return BeanUtil.toBean(roleDO, RoleDTO.class);
+            return BeanUtil.toBean(roleDO, RoleDTO.class)
+                    .setPermission(List.of());
         } else {
             List<String> permissionList = JSONUtil.parseArray(roleDO.getPermission()).toList(String.class);
-            return BeanUtil.toBean(roleDO, RoleDTO.class).setPermission(permissionList);
+            return BeanUtil.toBean(roleDO, RoleDTO.class)
+                    .setPermission(permissionList);
         }
     }
 }
