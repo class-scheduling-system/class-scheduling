@@ -29,24 +29,21 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestLogin;
+import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
-import com.xlf.utility.ErrorCode;
-import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -95,10 +92,11 @@ public class UserController {
      * @param request  HTTP请求对象，用于从中提取用户Token
      * @return UserDO 用户信息对象，包含用户的详细信息
      */
-    @GetMapping("/getUserInfo")
+    @GetMapping("/{user_uuid}")
     public ResponseEntity<BaseResponse<UserInfoDTO>> userGetInfo(
-            @RequestParam("user_uuid") String userUuid,
-            HttpServletRequest request) {
+            @PathVariable("user_uuid") String userUuid,
+            HttpServletRequest request
+    ) {
         userService.checkUuid(userUuid);
         UserInfoDTO userInfoDTO = userService.getUserInfo(userUuid, request);
         return ResultUtil.success("获取用户信息成功", userInfoDTO);
@@ -110,9 +108,10 @@ public class UserController {
      * @param userAddVO 用户添加视图对象
      * @return 用户信息数据传输对象
      */
-    @PostMapping("/addUser")
+    @PostMapping("/")
     public ResponseEntity<BaseResponse<UserInfoDTO>> addUser(
-            @RequestBody UserAddVO userAddVO) {
+            @RequestBody UserAddVO userAddVO
+    ) {
         userService.checkAddUser(userAddVO);
         UserInfoDTO userInfoDTO = userService.addUser(userAddVO);
         return ResultUtil.success("添加用户成功", userInfoDTO);
@@ -124,10 +123,11 @@ public class UserController {
      * @param userUuid 用户唯一标识符
      * @return 空数据的响应实体，表示删除操作已成功处理
      */
-    @DeleteMapping("/deleteUser")
+    @DeleteMapping("/{user_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteUser(
-            @RequestParam("user_uuid") String userUuid,
-            HttpServletRequest request) {
+            @PathVariable("user_uuid") String userUuid,
+            HttpServletRequest request
+    ) {
         userService.checkUuid(userUuid);
         userService.deleteUser(userUuid, request);
         return ResultUtil.success("删除用户成功");
@@ -135,42 +135,46 @@ public class UserController {
 
     /**
      * 更新用户
-     * @param userUuid 用户唯一标识符
+     *
+     * @param userUuid   用户唯一标识符
      * @param userEditVO 用户编辑视图对象
-     * @param request HTTP请求对象
+     * @param request    HTTP请求对象
      * @return 用户信息数据传输对象
      */
-    @PutMapping("/updateUser")
+    @PutMapping("/{user_uuid}")
     public ResponseEntity<BaseResponse<UserInfoDTO>> updateUser(
-            @RequestParam("user_uuid")String userUuid,
+            @PathVariable("user_uuid") String userUuid,
             @Validated @RequestBody UserEditVO userEditVO,
-            HttpServletRequest request) {
+            HttpServletRequest request
+    ) {
         userService.checkUuid(userUuid);
-        UserInfoDTO userInfoDTO = userService.updateUser(userUuid,userEditVO,request);
+        UserInfoDTO userInfoDTO = userService.updateUser(userUuid, userEditVO, request);
         if (userInfoDTO == null) {
             throw new BusinessException("更新用户失败", ErrorCode.OPERATION_ERROR);
         }
-        return ResultUtil.success("更新用户成功",userInfoDTO);
+        return ResultUtil.success("更新用户成功", userInfoDTO);
     }
 
     /**
      * 获取用户列表
-     * @param page 页数
-     * @param size 每页大小
+     *
+     * @param page    页数
+     * @param size    每页大小
      * @param keyWord 关键字
-     * @param isDesc   是否降序
+     * @param isDesc  是否降序
      * @param request HTTP请求对象
      * @return 用户信息数据传输对象分页列表
      */
-    @GetMapping("/getUserList")
+    @GetMapping("/list")
     public ResponseEntity<BaseResponse<PageDTO<UserInfoDTO>>> getUserList(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "10") Integer size,
-            @RequestParam(value = "key_word",required = false)String keyWord,
-            @RequestParam(value = "is_desc",defaultValue = "true")Boolean isDesc,
-            HttpServletRequest request) {
+            @RequestParam(value = "key_word", required = false) String keyWord,
+            @RequestParam(value = "is_desc", defaultValue = "true") Boolean isDesc,
+            HttpServletRequest request
+    ) {
         userService.checkPageAndSize(page, size);
-        PageDTO<UserInfoDTO> userInfoDTOPage = userService.getUserList(page, size, keyWord,isDesc,request);
+        PageDTO<UserInfoDTO> userInfoDTOPage = userService.getUserList(page, size, keyWord, isDesc, request);
         return ResultUtil.success("获取用户列表成功", userInfoDTOPage);
     }
 }
