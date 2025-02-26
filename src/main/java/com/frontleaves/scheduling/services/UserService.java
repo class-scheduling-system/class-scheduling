@@ -28,8 +28,9 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.UserAddInfoDTO;
+import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserEditVO;
@@ -105,7 +106,7 @@ public interface UserService {
      * @param userAddVO 用户添加数据
      * @return 用户信息数据传输对象
      */
-    UserInfoDTO addUser(
+    UserAddInfoDTO addUser(
             UserAddVO userAddVO
     );
 
@@ -151,10 +152,10 @@ public interface UserService {
      * @return PageDTO<UserInfoDTO>
      */
     PageDTO<UserInfoDTO> getUserList(
-            Integer page,
-            Integer size,
+            int page,
+            int size,
             String keyWord,
-            Boolean isDesc,
+            boolean isDesc,
             HttpServletRequest request);
 
     /**

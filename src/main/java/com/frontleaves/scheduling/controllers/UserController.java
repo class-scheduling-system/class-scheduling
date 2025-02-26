@@ -30,6 +30,7 @@ package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.UserAddInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
@@ -108,12 +109,12 @@ public class UserController {
      * @param userAddVO 用户添加视图对象
      * @return 用户信息数据传输对象
      */
-    @PostMapping("/")
-    public ResponseEntity<BaseResponse<UserInfoDTO>> addUser(
+    @PostMapping("")
+    public ResponseEntity<BaseResponse<UserAddInfoDTO>> addUser(
             @RequestBody UserAddVO userAddVO
     ) {
         userService.checkAddUser(userAddVO);
-        UserInfoDTO userInfoDTO = userService.addUser(userAddVO);
+        UserAddInfoDTO userInfoDTO = userService.addUser(userAddVO);
         return ResultUtil.success("添加用户成功", userInfoDTO);
     }
 
@@ -160,7 +161,7 @@ public class UserController {
      *
      * @param page    页数
      * @param size    每页大小
-     * @param keyWord 关键字
+     * @param keyword 关键字
      * @param isDesc  是否降序
      * @param request HTTP请求对象
      * @return 用户信息数据传输对象分页列表
@@ -168,13 +169,13 @@ public class UserController {
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<PageDTO<UserInfoDTO>>> getUserList(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
-            @RequestParam(value = "size", defaultValue = "10") Integer size,
-            @RequestParam(value = "key_word", required = false) String keyWord,
+            @RequestParam(value = "size", defaultValue = "20") Integer size,
+            @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "is_desc", defaultValue = "true") Boolean isDesc,
             HttpServletRequest request
     ) {
         userService.checkPageAndSize(page, size);
-        PageDTO<UserInfoDTO> userInfoDTOPage = userService.getUserList(page, size, keyWord, isDesc, request);
-        return ResultUtil.success("获取用户列表成功", userInfoDTOPage);
+        PageDTO<UserInfoDTO> userInfoDtoPage = userService.getUserList(page, size, keyword, isDesc, request);
+        return ResultUtil.success("获取用户列表成功", userInfoDtoPage);
     }
 }

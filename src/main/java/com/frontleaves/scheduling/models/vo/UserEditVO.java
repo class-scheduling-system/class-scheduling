@@ -31,6 +31,8 @@ public class UserEditVO {
     private String phone;
     private Boolean status;
     private Boolean ban;
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY,
+            message = "角色 UUID 格式不正确")
     private String roleUuid;
     private String permission;
 }

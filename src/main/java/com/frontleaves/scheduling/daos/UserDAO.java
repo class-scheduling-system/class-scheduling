@@ -36,8 +36,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UserMapper;
 import com.frontleaves.scheduling.models.entity.UserDO;
-import com.xlf.utility.ErrorCode;
-import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
@@ -175,8 +173,8 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * 如果在数据库中没有找到用户信息，则回滚事务。
      *
      * @param transaction Redis 事务对象，用于执行一系列操作
-     * @param tryGetUuid 用于尝试获取或存储用户 UUID 的 Redis 存储桶
-     * @param eq 查询条件链，用于构建查询条件以从数据库中获取用户信息
+     * @param tryGetUuid  用于尝试获取或存储用户 UUID 的 Redis 存储桶
+     * @param eq          查询条件链，用于构建查询条件以从数据库中获取用户信息
      * @return 返回用户信息，如果没有找到则返回 null
      */
     @Nullable
@@ -217,7 +215,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             this.lambdaUpdate().eq(UserDO::getUserUuid, userDO.getUserUuid()).remove();
-            deleteUserRedis(userDO, transaction);
+            this.deleteUserRedis(userDO, transaction);
         } catch (Exception e) {
             transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
@@ -230,7 +228,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @param userDO      用户实体
      * @param transaction 事务
      */
-    private void deleteUserRedis(UserDO userDO, RTransaction transaction) {
+    private void deleteUserRedis(@NotNull UserDO userDO, @NotNull RTransaction transaction) {
         transaction.getBucket(StringConstant.Redis.USER_UUID + userDO.getUserUuid()).delete();
         transaction.getBucket(StringConstant.Redis.USER_NAME + userDO.getName()).delete();
         transaction.getBucket(StringConstant.Redis.USER_MAIL + userDO.getEmail()).delete();
@@ -250,7 +248,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             this.updateById(userNewDO);
-            deleteUserRedis(userOldDO, transaction);
+            this.deleteUserRedis(userOldDO, transaction);
         } catch (Exception e) {
             transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
@@ -260,45 +258,29 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
 
     /**
      * 获取用户列表
+     * <p>
+     * 该方法用于从数据库中查询用户列表，并支持分页、关键词搜索以及排序。根据传入的参数，可以实现对用户名称、邮箱或电话进行模糊匹配，
+     * 并按照创建时间升序或降序排列结果。
      *
-     * @param page    页数
-     * @param size    每页大小
-     * @param keyWord 关键字
-     * @param isDesc  是否降序
-     * @return 用户信息数据传输对象分页列表
+     * @param page 当前页码，必须为正整数
+     * @param size 每页显示的记录数，必须为正整数
+     * @param keyword 可选参数，用于在用户的姓名、邮箱和电话字段中进行模糊搜索
+     * @param isDesc 布尔值，指定结果是否按创建时间降序排列；如果为 {@code true} 则降序，否则升序
+     * @return 返回一个包含当前请求页面数据及总条目数等信息的 {@code Page<UserDO>} 对象
      */
-    public Page<UserDO> getUserList(@NotNull Integer page, @NotNull Integer size, String keyWord, Boolean isDesc) {
-        Page<UserDO> userDOPage;
-        if (keyWord != null && !keyWord.isEmpty()) {
-            if (Boolean.TRUE.equals(isDesc)) {
-                userDOPage = this.lambdaQuery()
-                        .like(UserDO::getName, keyWord)
-                        .or()
-                        .like(UserDO::getEmail, keyWord)
-                        .or()
-                        .like(UserDO::getPhone, keyWord)
-                        .orderByDesc(UserDO::getCreatedAt)
-                        .page(new Page<>(page, size));
-            } else {
-                userDOPage = this.lambdaQuery()
-                        .like(UserDO::getName, keyWord)
-                        .or()
-                        .like(UserDO::getEmail, keyWord)
-                        .or()
-                        .like(UserDO::getPhone, keyWord)
-                        .orderByAsc(UserDO::getCreatedAt)
-                        .page(new Page<>(page, size));
-            }
+    public Page<UserDO> getUserList(@NotNull Integer page, @NotNull Integer size, String keyword, Boolean isDesc) {
+        LambdaQueryChainWrapper<UserDO> query = this.lambdaQuery();
+        if (keyword != null && !keyword.isEmpty()) {
+            query
+                    .like(UserDO::getName, keyword).or()
+                    .like(UserDO::getEmail, keyword).or()
+                    .like(UserDO::getPhone, keyword);
+        }
+        if (Boolean.TRUE.equals(isDesc)) {
+            query.orderByDesc(UserDO::getCreatedAt);
         } else {
-            if (Boolean.TRUE.equals(isDesc)) {
-                userDOPage = this.lambdaQuery().orderByDesc(UserDO::getCreatedAt).page(new Page<>(page, size));
-            } else {
-                userDOPage = this.lambdaQuery().orderByAsc(UserDO::getCreatedAt).page(new Page<>(page, size));
-            }
+            query.orderByAsc(UserDO::getCreatedAt);
         }
-        if (userDOPage == null) {
-            throw new BusinessException("用户数据为空", ErrorCode.BODY_ERROR);
-        }
-        return userDOPage;
+        return query.page(new Page<>(page, size));
     }
 }
