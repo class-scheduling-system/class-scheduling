@@ -15,10 +15,11 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import redis.clients.jedis.Jedis;
 
-import java.util.Map;
+import java.time.Duration;
 
 @Slf4j
 @SpringBootTest
@@ -30,10 +31,10 @@ class StudentTest {
     @Resource
     private MajorDAO majorDAO;
     @Resource
-    private Jedis jedis;
+    private RedissonClient redisson;
 
     /**
-     * 通过部门名称获取部门数据
+     * 通过部门 名称获取部门数据
      *
      * @return 部门数据
      */
@@ -75,16 +76,18 @@ class StudentTest {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, studentDO.getName()).remove();
         }
         studentDAO.save(studentDO);
-        jedis.hmset(StringConstant.Redis.STUDENT_ID + studentDO.getId(),
-                ConvertUtil.convertObjectToMapString(studentDO));
-        jedis.expire(StringConstant.Redis.STUDENT_ID + studentDO.getId(), 86400);
-        jedis.hmset(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid(),
-                ConvertUtil.convertObjectToMapString(studentDO));
-        jedis.expire(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid(), 86400);
+        RMap<String, String> mapId = redisson.getMap(StringConstant.Redis.STUDENT_ID + studentDO.getId());
+        mapId.putAll(ConvertUtil.convertObjectToMapString(studentDO));
+        mapId.expire(Duration.ofSeconds(86400));
+        RMap<String, String> mapUuid = redisson.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
+        mapUuid.putAll(ConvertUtil.convertObjectToMapString(studentDO));
+        mapUuid.expire(Duration.ofSeconds(86400));
         studentDAO.deleteStudent(studentDO);
         StudentDO studentDO1 = studentDAO.lambdaQuery().eq(StudentDO::getId, studentDO.getId()).one();
+        RMap<String, String> getMapById = redisson.getMap(StringConstant.Redis.STUDENT_ID + studentDO.getId());
+        RMap<String, String> getMapByUuid = redisson.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
         Assertions.assertNull(studentDO1);
-        Map<String, String> map = jedis.hgetAll(StringConstant.Redis.STUDENT_ID + studentDO.getId());
-        Assertions.assertTrue(map.isEmpty());
+        Assertions.assertFalse(getMapById.isExists());
+        Assertions.assertFalse(getMapByUuid.isExists());
     }
 }
