@@ -65,7 +65,7 @@ public class StudentDO {
     /**
      * 姓名
      */
-    private String name;
+    private String name = "123";
     /**
      * 性别 0:女 1:男
      */
