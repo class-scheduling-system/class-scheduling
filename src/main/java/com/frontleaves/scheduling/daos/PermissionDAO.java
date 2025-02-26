@@ -73,6 +73,9 @@ public class PermissionDAO extends ServiceImpl<PermissionMapper, PermissionDO> i
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.PERMISSION + permissionKey);
         if (!map.isExists()) {
             PermissionDO permissionDO = this.lambdaQuery().eq(PermissionDO::getPermissionKey, permissionKey).one();
+            if (permissionDO == null) {
+                return null;
+            }
             map.putAll(ConvertUtil.convertObjectToMapString(permissionDO));
             return permissionDO;
         } else {

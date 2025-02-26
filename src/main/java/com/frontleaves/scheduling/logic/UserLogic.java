@@ -60,6 +60,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 用户逻辑处理服务类，实现了 {@code UserService} 接口。该类主要负责处理用户登录验证、注册等核心业务逻辑。
@@ -81,6 +82,7 @@ public class UserLogic implements UserService {
     private final StudentDAO studentDAO;
     private final RoleDAO roleDAO;
     private final TeacherDAO teacherDAO;
+    private final PermissionDAO permissionDAO;
 
     /**
      * 根据传入的 {@code HttpServletRequest} 请求对象获取对应的用户信息。
@@ -225,8 +227,8 @@ public class UserLogic implements UserService {
         } else {
             userDO.setPassword(PasswordUtil.encrypt(userDO.getPassword()));
         }
-        userDO.setRoleUuid(roleDTO.getRoleUuid())
-                .setPermission(JSONUtil.toJsonStr(userAddVO.getPermission()));
+        userDO.setRoleUuid(roleDTO.getRoleUuid());
+        checkPermission(userDO, userAddVO.getPermission());
         log.debug("添加用户UserDO: {}", userDO);
         userDAO.save(userDO);
         // 构造信息
@@ -239,6 +241,24 @@ public class UserLogic implements UserService {
         log.debug("添加用户最后的UserDTO: {}", userDTO);
         userInfoDTO.setUser(userDTO);
         return userInfoDTO;
+    }
+
+    /**
+     * 检查权限
+     * @param userDO 用户数据对象
+     * @param permissionKey 权限键列表
+     */
+    private void checkPermission(UserDO userDO, List<String> permissionKey) {
+        if (!permissionKey.isEmpty()) {
+            for (String permission : permissionKey) {
+                if (permissionDAO.getPermissionKey(permission) == null) {
+                    throw new BusinessException("权限不存在", ErrorCode.BODY_ERROR);
+                }
+            }
+            String jsonPermission = JSONUtil.toJsonStr(permissionKey);
+            // 保持 JSON 格式存储
+            userDO.setPermission(jsonPermission);
+        }
     }
 
     /**
@@ -372,6 +392,11 @@ public class UserLogic implements UserService {
                 .setRecords(userInfoDTOList);
     }
 
+    /**
+     * 检查页数和每页大小
+     * @param page 页数
+     * @param size 每页大小
+     */
     @Override
     public void checkPageAndSize(Integer page, Integer size) {
         if (page == null || page < 1) {
@@ -391,18 +416,20 @@ public class UserLogic implements UserService {
      */
     @Contract("_, _ -> param2")
     private UserDO exchangeOfUserData(@NotNull UserEditVO userEditVO, UserDO userDO) {
-        if (!userEditVO.getName().isEmpty()) {
-            userDO.setName(userEditVO.getName());
-        }
-        if (!userEditVO.getPassword().isEmpty()) {
-            userDO.setPassword(PasswordUtil.encrypt(userEditVO.getPassword()));
-        }
-        if (!userEditVO.getEmail().isEmpty()) {
-            userDO.setEmail(userEditVO.getEmail());
-        }
-        if (!userEditVO.getPhone().isEmpty()) {
-            userDO.setPhone(userEditVO.getPhone());
-        }
+        //检查是否为空并且赋值
+        Optional.ofNullable(userEditVO.getName())
+                .filter(name -> !name.isEmpty()).ifPresent(userDO::setName);
+        Optional.ofNullable(userEditVO.getPassword())
+                .filter(password -> !password.isEmpty())
+                .ifPresent(password -> userDO.setPassword(PasswordUtil.encrypt(password)));
+        Optional.ofNullable(userEditVO.getEmail())
+                .filter(email -> !email.isEmpty()).ifPresent(userDO::setEmail);
+        Optional.ofNullable(userEditVO.getPhone())
+                .filter(phone -> !phone.isEmpty()).ifPresent(userDO::setPhone);
+        Optional.ofNullable(userEditVO.getStatus())
+                .ifPresent(userDO::setStatus);
+        Optional.ofNullable(userEditVO.getBan())
+                .ifPresent(userDO::setBan);
         if (!userEditVO.getRoleUuid().isEmpty()) {
             log.debug("用户角色：{}", userEditVO.getRoleUuid());
             log.debug("改变用户角色");
@@ -416,13 +443,8 @@ public class UserLogic implements UserService {
             }
             userDO.setRoleUuid(userEditVO.getRoleUuid());
         }
-        if (!userEditVO.getPermission().isEmpty()) {
-            if (JSONUtil.isTypeJSON(userEditVO.getPermission())) {
-                userDO.setPermission(JSONUtil.toJsonStr(userEditVO.getPermission()));
-            } else {
-                throw new BusinessException("权限数据格式错误", ErrorCode.BODY_ERROR);
-            }
-        }
+        this.checkPermission(userDO, userEditVO.getPermission());
+
         log.debug("更改对象：{}", userEditVO.getName());
         log.debug("用户数据对象：{}", userDO);
         return userDO;

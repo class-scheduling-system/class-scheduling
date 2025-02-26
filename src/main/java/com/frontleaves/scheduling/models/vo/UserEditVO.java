@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.util.List;
+
 /**
  * 用户编辑 VO
  *
@@ -29,10 +31,10 @@ public class UserEditVO {
     @Pattern(regexp = StringConstant.Regular.PHONE_REGULAR_EXPRESSION_ABLE_EMPTY,
             message = "手机号格式不正确")
     private String phone;
-    private Boolean status;
-    private Boolean ban;
+    private Integer status;
+    private Integer ban;
     @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY,
             message = "角色 UUID 格式不正确")
     private String roleUuid;
-    private String permission;
+    private List<String> permission;
 }
