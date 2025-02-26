@@ -176,16 +176,27 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     }
 
     /**
-     * 根据用户 UUID 获取教师信息
+     * 通过用户 UUID 获取教师信息
+     * <p>
+     * 该方法首先尝试从 Redis 中获取教师信息，如果 Redis 中不存在，则从数据库中查询教师信息并将其存入 Redis。
+     * 如果在 Redis 和数据库中都未找到教师信息，则返回 null。
+     * </p>
      *
-     * @param uuid 用户UUID
-     * @return 教师信息
+     * @param userUuid 用户的 UUID
+     * @return 返回教师信息，如果未找到则返回 null
      */
-    public TeacherDO getTeacherByUserUuid(String uuid) {
-        TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getUserUuid, uuid).one();
-        if (teacherDO == null) {
-            throw new BusinessException("未找到对应的教师信息", ErrorCode.NOT_EXIST);
+    public TeacherDO getTeacherByUserUuid(String userUuid) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TEACHER_USER_UUID + userUuid);
+        if (!map.isExists()) {
+            TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getUserUuid, userUuid).one();
+            if (teacherDO != null) {
+                map.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
+                map.expire(Duration.ofSeconds(86400));
+                return teacherDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, TeacherDO.class);
         }
-        return teacherDO;
+        return null;
     }
 }

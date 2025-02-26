@@ -29,20 +29,26 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.constants.SystemConstant;
+import com.frontleaves.scheduling.daos.RoleDAO;
+import com.frontleaves.scheduling.daos.StudentDAO;
+import com.frontleaves.scheduling.daos.TeacherDAO;
+import com.frontleaves.scheduling.daos.TokenDAO;
+import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.frontleaves.scheduling.models.entity.TeacherDO;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.LogConstant;
-import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.StudentDO;
-import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.services.UserService;
 import com.frontleaves.scheduling.utils.ProjectUtil;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
@@ -101,6 +107,46 @@ public class UserLogic implements UserService {
         } else {
             throw new UserAuthenticationException(UserAuthenticationException.ErrorType.TOKEN_EXPIRED, request);
         }
+    }
+
+    /**
+     * 根据用户角色聚合三方信息(学生、教师或普通用户)
+     *
+     * @param userByRequest 当前登录用户实体
+     * @return UserInfoDTO聚合后的用户信息
+     */
+    @Override
+    public UserInfoDTO getUserInfoWithRole(@NotNull UserDO userByRequest) {
+        // 校验 roleUuid 是否为空或无效
+        // UserDO
+        String roleUuid = userByRequest.getRoleUuid();
+        if (roleUuid == null || roleUuid.trim().isEmpty()) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+
+        // 获取用户的角色信息
+        RoleDTO role = roleDAO.getRoleByUuid(roleUuid);
+        if (role == null) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+
+        // 创建 UserInfoDTO，返回基础的用户信息
+        UserInfoDTO userInfoDTO = new UserInfoDTO();
+        UserDTO userDTO = ProjectUtil.convertUserDoToUserDTO(userByRequest)
+                .setRole(role);
+        userInfoDTO.setUser(userDTO);
+
+        // 判断角色类型并填充对应的角色信息
+        if (role.getRoleUuid().equals(SystemConstant.getRoleStudent())) {
+            StudentDO studentDO = studentDAO.getStudentByUserUuid(userByRequest.getUserUuid());
+            assert studentDO != null;
+            userInfoDTO.setStudent(BeanUtil.toBean(studentDO, StudentDTO.class));
+        } else if ("教师".equals(role.getRoleName())) {
+            TeacherDO teacherDO = teacherDAO.getTeacherByUserUuid(userByRequest.getUserUuid());
+            assert teacherDO != null;
+            userInfoDTO.setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class));
+        }
+        return userInfoDTO;
     }
 
     /**

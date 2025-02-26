@@ -70,8 +70,10 @@ public class StringConstant {
         public static final String USER_TEL = "user:tel:";
         public static final String STUDENT_ID = "stu:id:";
         public static final String STUDENT_UUID = "stu:uuid:";
+        public static final String STUDENT_USER_UUID = "stu:user:uuid:";
         public static final String TEACHER_ID = "tea:id:";
         public static final String TEACHER_UUID = "tea:uuid:";
+        public static final String TEACHER_USER_UUID = "tea:user:uuid:";
         public static final String BUILDING_LIST = "building:list";
         public static final String BUILDING_UUID = "building:uuid:";
         public static final String BUILDING_NAME = "building:name:";

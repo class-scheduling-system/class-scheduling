@@ -162,11 +162,11 @@ public class AuthLogic implements AuthService {
         }
         UserLoginDTO userLoginDTO = new UserLoginDTO();
         // 学生教师验证「确认信息后将信息填入」
-        StudentDO studentDO = studentDAO.getStudentByUuid(userDO.getUserUuid());
+        StudentDO studentDO = studentDAO.getStudentByUserUuid(userDO.getUserUuid());
         if (studentDO != null) {
             userLoginDTO.setStudent(BeanUtil.toBean(studentDO, StudentDTO.class));
         }
-        TeacherDO teacherDO = teacherDAO.getTeacherByUuid(userDO.getUserUuid());
+        TeacherDO teacherDO = teacherDAO.getTeacherByUserUuid(userDO.getUserUuid());
         if (teacherDO != null) {
             userLoginDTO.setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class));
         }
