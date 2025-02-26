@@ -157,31 +157,27 @@ public class PermissionAspect {
         UserDO getUser = userService.getUserByRequest(request);
 
         // 检查角色
-        if (permission.isEmpty()) {
-            // 可以继续后续的权限检查逻辑，如查询数据库等
-            List<RoleDTO> roleNameList = role.stream().map(roleDAO::getRoleByName)
-                    .filter(Objects::nonNull)
-                    .toList();
-            if (role.size() != roleNameList.size()) {
-                role.stream()
-                        .filter(roleName -> roleNameList.stream().noneMatch(roleDTO -> roleDTO.getRoleName().equals(roleName)))
-                        .findFirst()
-                        .ifPresent(roleName -> {
-                            throw new ServerInternalErrorException("角色 " + roleName + " 不存在，请检查接口" + methodSignature.getName() + "的角色配置");
-                        });
-            }
-            roleNameList.stream()
-                    .filter(roleDTO -> getUser != null && getUser.getRoleUuid().equals(roleDTO.getRoleUuid()))
-                    .findFirst()
-                    .orElseThrow(() -> new UserAuthenticationException(UserAuthenticationException.ErrorType.PERMISSION_DENIED, request));
-            log.debug(LogConstant.ASPECT + "用户角色检查通过，所需角色：{}", role);
-        } else {
-            // 检查用户权限
-            if (!this.checkPermission(permission, getUser)) {
-                throw new UserAuthenticationException(UserAuthenticationException.ErrorType.PERMISSION_DENIED, request);
-            } else {
-                log.debug(LogConstant.ASPECT + "用户权限检查通过，所需权限：{}", getUser.getPermission());
-            }
+        if (!permission.isEmpty() && this.checkPermission(permission, getUser)) {
+            log.debug(LogConstant.ASPECT + "用户权限检查通过，所需权限：{}", getUser.getPermission());
+            return;
         }
+
+        // 可以继续后续的权限检查逻辑，如查询数据库等
+        List<RoleDTO> roleNameList = role.stream().map(roleDAO::getRoleByName)
+                .filter(Objects::nonNull)
+                .toList();
+        if (role.size() != roleNameList.size()) {
+            role.stream()
+                    .filter(roleName -> roleNameList.stream().noneMatch(roleDTO -> roleDTO.getRoleName().equals(roleName)))
+                    .findFirst()
+                    .ifPresent(roleName -> {
+                        throw new ServerInternalErrorException("角色 " + roleName + " 不存在，请检查接口" + methodSignature.getName() + "的角色配置");
+                    });
+        }
+        roleNameList.stream()
+                .filter(roleDTO -> getUser != null && getUser.getRoleUuid().equals(roleDTO.getRoleUuid()))
+                .findFirst()
+                .orElseThrow(() -> new UserAuthenticationException(UserAuthenticationException.ErrorType.PERMISSION_DENIED, request));
+        log.debug(LogConstant.ASPECT + "用户角色检查通过，所需角色：{}", role);
     }
 }
