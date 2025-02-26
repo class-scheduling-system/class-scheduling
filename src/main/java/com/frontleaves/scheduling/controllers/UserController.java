@@ -30,14 +30,18 @@ package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
+import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.library.UserAuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 用户控制器
@@ -68,7 +72,12 @@ public class UserController {
     @GetMapping("/current")
     public ResponseEntity<BaseResponse<UserInfoDTO>> getCurrentUserInfo(HttpServletRequest request) {
         // 从请求中获取当前用户
-        UserInfoDTO userInfo = userService.getUserInfoWithRole(userService.getUserByRequest(request));
+        UserDO getCurrentUser = userService.getUserByRequest(request);
+        if (getCurrentUser == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_LOGIN, request);
+        }
+        // 用户信息是存在的
+        UserInfoDTO userInfo = userService.getUserInfoWithRole(getCurrentUser);
         return ResultUtil.success("用户信息获取成功", userInfo);
     }
 }

@@ -154,5 +154,31 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
+
+    /**
+     * 通过用户 UUID 获取学生信息
+     * <p>
+     * 该方法根据提供的用户 UUID 从系统中检索对应的学生信息。首先尝试从缓存（如 Redis）中获取数据，如果缓存中没有找到，则从数据库中查询，并将结果存入缓存以提高后续访问速度。
+     * 如果在缓存和数据库中均未找到与给定 UUID 对应的学生信息，则返回 null。
+     * </p>
+     *
+     * @param userUuid 用户的唯一标识符
+     * @return 返回与指定 UUID 关联的学生信息，若无匹配项则返回 {@code null}
+     * @throws ServerInternalErrorException 当执行数据库查询或缓存操作时遇到错误
+     */
+    public StudentDO getStudentByUserUuid(String userUuid) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_USER_UUID + userUuid);
+        if (!map.isExists()) {
+            StudentDO studentDO = this.lambdaQuery().eq(StudentDO::getUserUuid, userUuid).one();
+            if (studentDO != null) {
+                map.putAll(ConvertUtil.convertObjectToMapString(studentDO));
+                map.expire(Duration.ofSeconds(86400));
+                return studentDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, StudentDO.class);
+        }
+        return null;
+    }
 }
 

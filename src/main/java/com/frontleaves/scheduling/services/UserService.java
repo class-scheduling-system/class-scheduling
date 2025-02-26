@@ -32,6 +32,7 @@ import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 用户服务接口，定义了与用户相关的操作方法。
@@ -72,6 +73,6 @@ public interface UserService {
      * @return UserInfoDTO 返回包含用户详细信息及角色信息的DTO对象
      * @throws UserAuthenticationException 如果用户信息无效或角色不存在时抛出
      */
-    UserInfoDTO getUserInfoWithRole(UserDO userByRequest);
+    UserInfoDTO getUserInfoWithRole(@NotNull UserDO userByRequest);
 
 }

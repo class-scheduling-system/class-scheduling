@@ -28,17 +28,26 @@
 
 package com.frontleaves.scheduling.logic;
 
+import cn.hutool.core.bean.BeanUtil;
+import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.RoleDAO;
+import com.frontleaves.scheduling.daos.StudentDAO;
+import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.daos.TokenDAO;
 import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.services.UserService;
 import com.frontleaves.scheduling.utils.ProjectUtil;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import com.xlf.utility.util.HeaderUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 /**
@@ -59,6 +68,8 @@ public class UserLogic implements UserService {
     private final TokenDAO tokenDAO;
     private final RoleDAO roleDAO;
     private final HttpServletRequest request;
+    private final StudentDAO studentDAO;
+    private final TeacherDAO teacherDAO;
 
     /**
      * 根据传入的 {@code HttpServletRequest} 请求对象获取对应的用户信息。
@@ -92,23 +103,18 @@ public class UserLogic implements UserService {
      * @return UserInfoDTO聚合后的用户信息
      */
     @Override
-    public UserInfoDTO getUserInfoWithRole(UserDO userByRequest) {
+    public UserInfoDTO getUserInfoWithRole(@NotNull UserDO userByRequest) {
         // 校验 roleUuid 是否为空或无效
+        // UserDO
         String roleUuid = userByRequest.getRoleUuid();
         if (roleUuid == null || roleUuid.trim().isEmpty()) {
-            throw new UserAuthenticationException(
-                    UserAuthenticationException.ErrorType.TOKEN_EXPIRED,
-                    request
-            );
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
-        
+
         // 获取用户的角色信息
         RoleDTO role = roleDAO.getRoleByUuid(roleUuid);
         if (role == null) {
-            throw new UserAuthenticationException(
-                    UserAuthenticationException.ErrorType.USER_NOT_EXIST,
-                    request
-            );
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
 
         // 创建 UserInfoDTO，返回基础的用户信息
@@ -118,12 +124,15 @@ public class UserLogic implements UserService {
         userInfoDTO.setUser(userDTO);
 
         // 判断角色类型并填充对应的角色信息
-        if ("学生".equals(role.getRoleName())) {
-            userInfoDTO.setStudent(new StudentDTO());
+        if (role.getRoleUuid().equals(SystemConstant.getRoleStudent())) {
+            StudentDO studentDO = studentDAO.getStudentByUserUuid(userByRequest.getUserUuid());
+            assert studentDO != null;
+            userInfoDTO.setStudent(BeanUtil.toBean(studentDO, StudentDTO.class));
         } else if ("教师".equals(role.getRoleName())) {
-            userInfoDTO.setTeacher(new TeacherDTO());
+            TeacherDO teacherDO = teacherDAO.getTeacherByUserUuid(userByRequest.getUserUuid());
+            assert teacherDO != null;
+            userInfoDTO.setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class));
         }
-
         return userInfoDTO;
     }
 }
