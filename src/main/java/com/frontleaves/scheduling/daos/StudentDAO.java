@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.daos;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.StudentMapper;
 import com.frontleaves.scheduling.models.entity.StudentDO;
@@ -71,16 +72,14 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
     /**
      * 根据学生ID获取学生信息
      * <p>
-     * 该方法根据传入的学生ID从Redis缓存中查找学生信息，如果在Redis中未找到，则从数据库查询并将结果存入Redis。
-     * 如果在数据库中也未找到对应的学生信息，则返回null。此方法可能会抛出{@code ServerInternalErrorException}异常，
-     * 表示在执行过程中遇到了服务器内部错误。
+     * 该方法首先尝试从Redis缓存中获取学生信息。如果缓存中不存在，则从数据库查询，并将查询结果存储到Redis缓存中，设置过期时间为24小时。
+     * 如果在数据库中也未找到对应的学生信息，则返回null。
      *
-     * @param id 学生的唯一标识符
-     * @return 返回与给定ID匹配的学生信息，如果没有找到则返回null
-     * @throws ServerInternalErrorException 当操作数据库或Redis时发生异常
+     * @param id 学生的唯一标识符 {@code String}
+     * @return 返回与给定ID匹配的学生信息 {@code StudentDO}，如果没有找到则返回null
      */
     @Nullable
-    public StudentDO getStudentById(String id) throws ServerInternalErrorException {
+    public StudentDO getStudentById(String id) {
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_ID + id);
         if (!map.isExists()) {
             StudentDO studentDO = this.lambdaQuery().eq(StudentDO::getId, id).one();
@@ -96,18 +95,15 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
     }
 
     /**
-     * 根据学生唯一标识获取学生信息
-     * <p>
-     * 该方法通过传入的学生 UUID 来查询对应的学生信息。首先尝试从 Redis 缓存中获取数据，如果缓存中没有找到，则会从数据库中查询。
-     * 如果从数据库中成功查询到学生信息，会将该信息存入 Redis 缓存，并设置过期时间为一天（86400 秒）。
-     * 如果在整个过程中发生任何异常，将会抛出 {@code ServerInternalErrorException} 异常。
-     *
+     * 通过UUID获取学生信息
+     * <p>该方法首先尝试从Redis缓存中根据给定的UUID查找学生信息。如果在Redis中找不到，则会尝试从数据库中查询。
+     * 如果从数据库中成功查找到学生信息，会将该信息存入Redis，并设置过期时间为一天（86400秒），然后返回该学生信息。
+     * 如果既在Redis中也未在数据库中找到学生信息，则返回null。
      * @param studentUuid 学生的唯一标识符 {@code String}
-     * @return 返回与给定 UUID 对应的学生信息 {@code StudentDO}，如果没有找到则返回 null
-     * @throws ServerInternalErrorException 在执行数据库操作或 Redis 操作时出现错误
+     * @return 返回与给定UUID对应的学生信息对象 {@code StudentDO}，若未找到则返回null
      */
     @Nullable
-    public StudentDO getStudentByUuid(String studentUuid) throws ServerInternalErrorException {
+    public StudentDO getStudentByUuid(String studentUuid) {
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_UUID + studentUuid);
         if (!map.isExists()) {
             StudentDO studentDO = this.getById(studentUuid);
@@ -146,11 +142,12 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
                         .update();
                 transaction.commit();
             } else {
+                transaction.rollback();
                 throw new BusinessException("未找到对应的教师信息", ErrorCode.NOT_EXIST);
             }
         } catch (Exception e) {
             transaction.rollback();
-            log.error("更新学生信息中的用户 UUID 失败", e);
+            log.error(LogConstant.DAO + "更新学生信息中的用户 UUID 失败", e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }

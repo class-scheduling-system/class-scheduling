@@ -246,12 +246,14 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      */
     @Transactional
     public void updateBuilding(BuildingDO buildingDO) throws ServerInternalErrorException {
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.BUILDING_LIST);
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
-            RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
             this.deleteBuildingRedis(transaction, buildingDO);
             this.updateById(buildingDO);
             transaction.commit();
         } catch (Exception e) {
+            transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
@@ -268,12 +270,14 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      */
     @Transactional
     public void deleteBuilding(BuildingDO buildingDO) {
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.BUILDING_LIST);
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
-            RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
             this.deleteBuildingRedis(transaction, buildingDO);
             this.removeById(buildingDO.getBuildingUuid());
             transaction.commit();
         } catch (Exception e) {
+            transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }

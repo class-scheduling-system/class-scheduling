@@ -104,7 +104,6 @@ public class TokenDAO {
             map.putAll(ConvertUtil.convertObjectToMapString(tokenDTO));
             map.expire(Duration.ofSeconds(86400));
             transaction.commit();
-
             return tokenDTO;
         } catch (Exception e) {
             transaction.rollback();
@@ -115,18 +114,16 @@ public class TokenDAO {
     /**
      * 验证令牌有效性
      * <p>
-     * 该方法用于验证给定的令牌是否有效，并且是否属于指定用户。如果令牌为空或无效，将返回 {@code false}。
-     * 如果令牌有效但已过期，或者刷新时间已过期，则从 Redis 中删除该令牌并返回 {@code false}。
-     * 如果令牌有效且未过期，则返回 {@code true}。
-     * <p>
-     * 在处理过程中，如果遇到任何异常，将抛出 {@link ServerInternalErrorException}。
+     * 该方法用于验证给定的令牌是否有效。首先检查令牌是否为空或空白，然后从 Redis 中获取与令牌关联的数据。
+     * 如果数据存在，则进一步验证用户 UUID 是否匹配以及令牌和刷新令牌是否过期。如果所有条件都满足，则返回 true 表示令牌有效。
+     * 否则，返回 false 或抛出异常。
      *
-     * @param token  要验证的令牌字符串
-     * @param userDO 用户对象，包含用户唯一标识符等信息
-     * @return 如果令牌有效且未过期，返回 {@code true}；否则返回 {@code false}
-     * @throws ServerInternalErrorException 如果在处理过程中发生内部服务器错误
+     * @param token 待验证的令牌字符串
+     * @param userDO 用户对象，包含用户信息
+     * @return 如果令牌有效且未过期，则返回 {@code true}；否则返回 {@code false}
+     * @throws BusinessException 当令牌归属不匹配时抛出业务异常
      */
-    public boolean verifyToken(String token, UserDO userDO) throws ServerInternalErrorException {
+    public boolean verifyToken(String token, UserDO userDO) throws BusinessException {
         if (token == null || token.trim().isEmpty()) {
             return false;
         }
@@ -152,35 +149,50 @@ public class TokenDAO {
     /**
      * 刷新访问令牌
      * <p>
-     * 该方法用于刷新给定的访问令牌。如果令牌存在且未过期，并且与指定用户关联，则会更新其过期时间并返回更新后的令牌信息。
-     * 如果令牌不存在、已过期或不与指定用户关联，则抛出相应的异常。
+     * 该方法用于刷新用户的访问令牌。首先，它会检查提供的令牌和刷新令牌的有效性。如果这些令牌有效且未过期，则生成新的访问令牌和刷新令牌，并更新存储在 Redis 中的相关信息。如果原始令牌不存在或已过期，则抛出相应的业务异常。
      *
-     * @param token  待刷新的访问令牌字符串
-     * @param userDO 用户数据对象，包含用户唯一标识符等信息
-     * @return 更新后的令牌数据传输对象，包含新的过期时间和刷新过期时间
-     * @throws ServerInternalErrorException 如果在执行数据库操作时发生内部错误
-     * @throws BusinessException            如果令牌不存在、已过期或不与指定用户关联
+     * @param token        当前的访问令牌
+     * @param refreshToken 当前的刷新令牌
+     * @param userDO       用户数据对象
+     * @return 包含新生成的访问令牌和刷新令牌的 {@code TokenDTO} 对象
+     * @throws BusinessException 如果令牌归属错误、令牌已过期、刷新令牌错误或刷新令牌已过期等情况下抛出
      */
-    public TokenDTO refreshToken(String token, UserDO userDO) throws ServerInternalErrorException, BusinessException {
+    public TokenDTO refreshToken(String token, String refreshToken, UserDO userDO) throws BusinessException {
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.TOKEN + token);
         if (!map.isExists()) {
             TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
+            // 检查令牌
             if (tokenDTO.getUserUuid() == null || !tokenDTO.getUserUuid().equals(userDO.getUserUuid())) {
                 throw new BusinessException(StringConstant.TOKEN_ATTRIBUTION_ERROR, ErrorCode.SERVER_INTERNAL_ERROR);
             }
             if (Long.parseLong(map.get(StringConstant.Common.Hump.EXPIRE_TIME)) < System.currentTimeMillis()) {
                 map.delete();
-                throw new BusinessException("刷新令牌已过期", ErrorCode.SERVER_INTERNAL_ERROR);
+                throw new BusinessException(StringConstant.TOKEN_EXPIRED, ErrorCode.SERVER_INTERNAL_ERROR);
+            }
+            // 检查刷新令牌
+            if (!refreshToken.equals(tokenDTO.getRefreshToken())) {
+                throw new BusinessException(StringConstant.REFRESH_TOKEN_ERROR, ErrorCode.OPERATION_DENIED);
+            }
+            if (Long.parseLong(map.get(StringConstant.Common.Hump.REFRESH_EXPIRE_TIME)) < System.currentTimeMillis()) {
+                map.delete();
+                throw new BusinessException(StringConstant.REFRESH_TOKEN_EXPIRED, ErrorCode.SERVER_INTERNAL_ERROR);
             }
             long newExpireTime = System.currentTimeMillis() + 3600000;
             long newRefreshExpireTime = System.currentTimeMillis() + 86400000;
-            map.put(StringConstant.Common.Hump.EXPIRE_TIME, String.valueOf(newExpireTime));
-            map.put(StringConstant.Common.Hump.REFRESH_EXPIRE_TIME, String.valueOf(newRefreshExpireTime));
+            String newToken = UuidUtil.generateStringUuid();
+            String newRefreshToken = UuidUtil.generateStringUuid();
+            tokenDTO
+                    .setToken(newToken)
+                    .setRefreshToken(newRefreshToken)
+                    .setExpireTime(newExpireTime)
+                    .setRefreshExpireTime(newRefreshExpireTime);
+            map.putAll(ConvertUtil.convertObjectToMapString(tokenDTO));
             map.expire(Duration.ofSeconds(86400));
-            return tokenDTO.setExpireTime(newExpireTime)
+            return tokenDTO
+                    .setExpireTime(newExpireTime)
                     .setRefreshExpireTime(newRefreshExpireTime);
         } else {
-            throw new BusinessException("令牌不存在", ErrorCode.SERVER_INTERNAL_ERROR);
+            throw new BusinessException(StringConstant.TOKEN_NOT_EXIST, ErrorCode.OPERATION_DENIED);
         }
     }
 
@@ -212,20 +224,25 @@ public class TokenDAO {
     }
 
     /**
-     * 通过用户令牌获取用户信息
+     * 获取与指定用户令牌关联的用户信息
      * <p>
-     * 该方法首先尝试从 Redis 中获取与给定用户令牌关联的用户信息。如果在 Redis 中找到相关信息，
-     * 则将其转换为 {@code TokenDTO} 对象，并使用其中的用户 UUID 从数据库中查询对应的用户信息。
-     * 如果在 Redis 或数据库中未找到相关信息，则返回 null。
-     * </p>
+     * 该方法通过提供的用户令牌 {@code userToken} 从 Redis 中获取相关联的用户信息。
+     * 首先，它会检查是否存在与给定令牌相关的缓存数据。如果存在，将尝试转换为 {@code TokenDTO} 对象并验证其有效性。
+     * 如果令牌已过期，则删除该缓存条目，并抛出一个 {@code BusinessException} 异常。
+     * 如果令牌有效且包含有效的用户唯一标识符，则使用此标识符从数据库中检索对应的用户信息。
      *
-     * @param userToken 用户令牌
-     * @return 返回与令牌关联的用户信息，如果未找到则返回 null
+     * @param userToken 用户令牌字符串
+     * @return 返回与令牌关联的用户对象，若未找到或令牌无效则返回 null
+     * @throws BusinessException 当令牌已过期时抛出此异常
      */
-    public UserDO getTokenUser(String userToken) {
+    public UserDO getTokenUser(String userToken) throws BusinessException {
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.TOKEN + userToken);
         if (map.isExists()) {
             TokenDTO tokenDTO = BeanUtil.toBean(map, TokenDTO.class);
+            if (Long.parseLong(map.get(StringConstant.Common.Hump.EXPIRE_TIME)) < System.currentTimeMillis()) {
+                map.delete();
+                throw new BusinessException(StringConstant.TOKEN_EXPIRED, ErrorCode.SERVER_INTERNAL_ERROR);
+            }
             if (tokenDTO.getUserUuid() != null && !tokenDTO.getUserUuid().isEmpty()) {
                 return userDAO.getUserByUuid(tokenDTO.getUserUuid());
             }

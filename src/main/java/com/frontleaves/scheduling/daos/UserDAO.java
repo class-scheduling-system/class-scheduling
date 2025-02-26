@@ -29,6 +29,7 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
@@ -38,6 +39,8 @@ import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
@@ -72,8 +75,8 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      */
     public UserDO getUserByUuid(String userUuid) {
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.USER_UUID + userUuid);
-        if (map.isEmpty()) {
-            UserDO userDO = this.lambdaQuery().eq(UserDO::getUserUuid, userUuid).one();
+        if (!map.isExists()) {
+            UserDO userDO = this.getById(userUuid);
             if (userDO != null) {
                 map.putAll(ConvertUtil.convertObjectToMapString(userDO));
                 map.expire(Duration.ofSeconds(86400));
@@ -100,21 +103,10 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             RBucket<String> tryGetUuid = transaction.getBucket(StringConstant.Redis.USER_NAME + name);
-            if (!tryGetUuid.isExists()) {
-                UserDO userDO = this.lambdaQuery().eq(UserDO::getName, name).one();
-                if (userDO != null) {
-                    tryGetUuid.set(userDO.getUserUuid());
-                    tryGetUuid.expire(Duration.ofSeconds(86400));
-                    RMap<String, String> map = transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
-                    map.putAll(ConvertUtil.convertObjectToMapString(userDO));
-                    map.expire(Duration.ofSeconds(86400));
-                    transaction.commit();
-                    return userDO;
-                }
-            } else {
-                return this.getUserByUuid(tryGetUuid.get());
-            }
-            return null;
+            return this.getUserInternal(
+                    transaction, tryGetUuid,
+                    this.lambdaQuery().eq(UserDO::getName, name)
+            );
         } catch (Exception e) {
             transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
@@ -136,21 +128,10 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             RBucket<String> tryGetUuid = transaction.getBucket(StringConstant.Redis.USER_MAIL + mail);
-            if (!tryGetUuid.isExists()) {
-                UserDO userDO = this.lambdaQuery().eq(UserDO::getEmail, mail).one();
-                if (userDO != null) {
-                    tryGetUuid.set(userDO.getUserUuid());
-                    tryGetUuid.expire(Duration.ofSeconds(86400));
-                    RMap<String, String> map = transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
-                    map.putAll(ConvertUtil.convertObjectToMapString(userDO));
-                    map.expire(Duration.ofSeconds(86400));
-                    transaction.commit();
-                    return userDO;
-                }
-            } else {
-                return this.getUserByUuid(tryGetUuid.get());
-            }
-            return null;
+            return this.getUserInternal(
+                    transaction, tryGetUuid,
+                    this.lambdaQuery().eq(UserDO::getEmail, mail)
+            );
         } catch (Exception e) {
             transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
@@ -172,24 +153,49 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             RBucket<String> tryGetUuid = transaction.getBucket(StringConstant.Redis.USER_TEL + tel);
-            if (!tryGetUuid.isExists()) {
-                UserDO userDO = this.lambdaQuery().eq(UserDO::getPhone, tel).one();
-                if (userDO != null) {
-                    tryGetUuid.set(userDO.getUserUuid());
-                    tryGetUuid.expire(Duration.ofSeconds(86400));
-                    RMap<String, String> map = transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
-                    map.putAll(ConvertUtil.convertObjectToMapString(userDO));
-                    map.expire(Duration.ofSeconds(86400));
-                    transaction.commit();
-                    return userDO;
-                }
-            } else {
-                return this.getUserByUuid(tryGetUuid.get());
-            }
-            return null;
+            return this.getUserInternal(
+                    transaction, tryGetUuid,
+                    this.lambdaQuery().eq(UserDO::getPhone, tel)
+            );
         } catch (Exception e) {
             transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+    }
+
+    /**
+     * 从数据库中获取用户信息并存储到 Redis 中
+     * <p>
+     * 此方法首先检查 Redis 中是否已存在指定的用户 UUID。如果不存在，则从数据库查询用户信息，
+     * 并将用户信息存储到 Redis 中，同时设置过期时间为 24 小时。如果 Redis 中已存在用户 UUID，则直接从 Redis 中获取用户信息。
+     * 如果在数据库中没有找到用户信息，则回滚事务。
+     *
+     * @param transaction Redis 事务对象，用于执行一系列操作
+     * @param tryGetUuid 用于尝试获取或存储用户 UUID 的 Redis 存储桶
+     * @param eq 查询条件链，用于构建查询条件以从数据库中获取用户信息
+     * @return 返回用户信息，如果没有找到则返回 null
+     */
+    @Nullable
+    private UserDO getUserInternal(
+            RTransaction transaction,
+            @NotNull RBucket<String> tryGetUuid,
+            LambdaQueryChainWrapper<UserDO> eq
+    ) {
+        if (!tryGetUuid.isExists()) {
+            UserDO userDO = eq.one();
+            if (userDO != null) {
+                tryGetUuid.set(userDO.getUserUuid());
+                tryGetUuid.expire(Duration.ofSeconds(86400));
+                RMap<String, String> map = transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+                map.putAll(ConvertUtil.convertObjectToMapString(userDO));
+                map.expire(Duration.ofSeconds(86400));
+                transaction.commit();
+                return userDO;
+            }
+            transaction.rollback();
+        } else {
+            return this.getUserByUuid(tryGetUuid.get());
+        }
+        return null;
     }
 }
