@@ -14,7 +14,9 @@ import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,6 +34,7 @@ class StudentTest {
     private MajorDAO majorDAO;
     @Resource
     private RedissonClient redisson;
+    private StudentDO studentDO;
 
     /**
      * 通过部门 名称获取部门数据
@@ -42,7 +45,7 @@ class StudentTest {
         DepartmentDO departmentDO = departmentDAO.lambdaQuery().eq(DepartmentDO::getDepartmentName,
                 "信息智能工程学院").one();
         if (departmentDO == null) {
-            throw new BusinessException("单元测试通过部门名称找不到部门数据", ErrorCode.OPERATION_ERROR);
+            throw new BusinessException("[dao.StudentTest]单元测试通过部门名称找不到部门数据", ErrorCode.OPERATION_ERROR);
         }
         return departmentDO;
     }
@@ -55,15 +58,15 @@ class StudentTest {
     private MajorDO getMajorByName() {
         MajorDO majorDO = majorDAO.lambdaQuery().eq(MajorDO::getMajorName, "软件技术").one();
         if (majorDO == null) {
-            throw new BusinessException("单元测试通过找不到专业数据", ErrorCode.OPERATION_ERROR);
+            throw new BusinessException("[dao.StudentTest]单元测试通过找不到专业数据", ErrorCode.OPERATION_ERROR);
         }
         return majorDO;
     }
 
-    @Test
-    void testDeleteStudent() {
-        log.debug("测试删除学生信息");
-        StudentDO studentDO = new StudentDO();
+    @BeforeEach
+    void setUp() {
+        log.debug("测试学生信息");
+        studentDO = new StudentDO();
         studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("1")
                 .setName("ZhangSan1314")
@@ -76,18 +79,35 @@ class StudentTest {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, studentDO.getName()).remove();
         }
         studentDAO.save(studentDO);
-        RMap<String, String> mapId = redisson.getMap(StringConstant.Redis.STUDENT_ID + studentDO.getId());
-        mapId.putAll(ConvertUtil.convertObjectToMapString(studentDO));
-        mapId.expire(Duration.ofSeconds(86400));
-        RMap<String, String> mapUuid = redisson.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
-        mapUuid.putAll(ConvertUtil.convertObjectToMapString(studentDO));
-        mapUuid.expire(Duration.ofSeconds(86400));
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_ID + studentDO.getId());
+        map.putAll(ConvertUtil.convertObjectToMapString(studentDO));
+        map.expire(Duration.ofSeconds(86400));
+        RBucket<String> bucketUuid = redisson.getBucket(StringConstant.Redis.STUDENT_UUID +
+                studentDO.getStudentUuid());
+        bucketUuid.set(studentDO.getStudentUuid());
+        bucketUuid.expire(Duration.ofSeconds(86400));
+        RBucket<String> bucketId = redisson.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId());
+        bucketId.set(studentDO.getId());
+        bucketId.expire(Duration.ofSeconds(86400));
+        RBucket<String> bucketUserUuid = redisson.getBucket(StringConstant.Redis.STUDENT_USER_UUID +
+                studentDO.getUserUuid());
+        bucketUserUuid.set(studentDO.getUserUuid());
+        bucketUserUuid.expire(Duration.ofSeconds(86400));
+    }
+
+
+    @Test
+    void testDeleteStudent() {
+        log.debug("测试删除学生信息");
         studentDAO.deleteStudent(studentDO);
         StudentDO studentDO1 = studentDAO.lambdaQuery().eq(StudentDO::getId, studentDO.getId()).one();
         RMap<String, String> getMapById = redisson.getMap(StringConstant.Redis.STUDENT_ID + studentDO.getId());
         RMap<String, String> getMapByUuid = redisson.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
+        RMap<String, String> getMapByUserUuid = redisson.getMap(StringConstant.Redis.STUDENT_USER_UUID
+                + studentDO.getUserUuid());
         Assertions.assertNull(studentDO1);
         Assertions.assertFalse(getMapById.isExists());
         Assertions.assertFalse(getMapByUuid.isExists());
+        Assertions.assertFalse(getMapByUserUuid.isExists());
     }
 }

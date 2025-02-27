@@ -99,6 +99,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
      * <p>该方法首先尝试从Redis缓存中根据给定的UUID查找学生信息。如果在Redis中找不到，则会尝试从数据库中查询。
      * 如果从数据库中成功查找到学生信息，会将该信息存入Redis，并设置过期时间为一天（86400秒），然后返回该学生信息。
      * 如果既在Redis中也未在数据库中找到学生信息，则返回null。
+     *
      * @param studentUuid 学生的唯一标识符 {@code String}
      * @return 返回与给定UUID对应的学生信息对象 {@code StudentDO}，若未找到则返回null
      */
@@ -165,10 +166,11 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
      */
     public void deleteStudent(StudentDO studentDO) throws ServerInternalErrorException {
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
-        try  {
+        try {
             this.lambdaUpdate().eq(StudentDO::getId, studentDO.getId()).remove();
             transaction.getBucket(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
             transaction.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
+            transaction.getBucket(StringConstant.Redis.STUDENT_USER_UUID + studentDO.getUserUuid()).delete();
             transaction.commit();
         } catch (Exception e) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);

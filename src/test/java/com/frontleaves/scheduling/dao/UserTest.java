@@ -53,17 +53,17 @@ class UserTest {
         userDAO.save(userDO);
         // 缓存用户到 Redis
         RMap<String, String> mapUserUuid = redisson.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
-        RBucket<String> mapUserName = redisson.getBucket(StringConstant.Redis.USER_NAME + userDO.getName());
-        RBucket<String> mapUserEmail = redisson.getBucket(StringConstant.Redis.USER_MAIL + userDO.getEmail());
-        RBucket<String> mapUserPhone = redisson.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone());
-        mapUserName.set(userDO.getUserUuid());
-        mapUserEmail.set(userDO.getUserUuid());
-        mapUserPhone.set(userDO.getUserUuid());
+        RBucket<String> bucketUserName = redisson.getBucket(StringConstant.Redis.USER_NAME + userDO.getName());
+        RBucket<String> bucketUserEmail = redisson.getBucket(StringConstant.Redis.USER_MAIL + userDO.getEmail());
+        RBucket<String> bucketUserPhone = redisson.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone());
+        bucketUserName.set(userDO.getUserUuid());
+        bucketUserEmail.set(userDO.getUserUuid());
+        bucketUserPhone.set(userDO.getUserUuid());
         mapUserUuid.putAll(ConvertUtil.convertObjectToMapString(userDO));
-        mapUserName.expire(Duration.ofSeconds(86400));
+        bucketUserName.expire(Duration.ofSeconds(86400));
         mapUserUuid.expire(Duration.ofSeconds(86400));
-        mapUserEmail.expire(Duration.ofSeconds(86400));
-        mapUserPhone.expire(Duration.ofSeconds(86400));
+        bucketUserEmail.expire(Duration.ofSeconds(86400));
+        bucketUserPhone.expire(Duration.ofSeconds(86400));
     }
 
     @Test
