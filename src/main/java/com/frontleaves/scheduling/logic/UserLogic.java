@@ -128,7 +128,7 @@ public class UserLogic implements UserService {
             StudentDO studentDO = studentDAO.getStudentByUserUuid(userByRequest.getUserUuid());
             assert studentDO != null;
             userInfoDTO.setStudent(BeanUtil.toBean(studentDO, StudentDTO.class));
-        } else if ("教师".equals(role.getRoleName())) {
+        } else if (role.getRoleUuid().equals(SystemConstant.getRoleTeacher())) {
             TeacherDO teacherDO = teacherDAO.getTeacherByUserUuid(userByRequest.getUserUuid());
             assert teacherDO != null;
             userInfoDTO.setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class));
