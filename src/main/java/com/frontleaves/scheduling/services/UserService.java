@@ -28,8 +28,13 @@
 
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.UserAddInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.vo.UserAddVO;
+import com.frontleaves.scheduling.models.vo.UserEditVO;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jetbrains.annotations.NotNull;
@@ -75,4 +80,93 @@ public interface UserService {
      */
     UserInfoDTO getUserInfoWithRole(@NotNull UserDO userByRequest);
 
+
+    /**
+     * 获取用户信息
+     *
+     * @param userUuid 用户唯一标识符
+     * @param request  HTTP请求对象
+     * @return 用户信息数据传输对象
+     */
+    UserInfoDTO getUserInfo(
+            String userUuid,
+            HttpServletRequest request);
+
+    /**
+     * 检查添加用户
+     *
+     * @param userAddVO 用户添加数据
+     */
+    void checkAddUser(
+            UserAddVO userAddVO);
+
+    /**
+     * 添加用户
+     *
+     * @param userAddVO 用户添加数据
+     * @return 用户信息数据传输对象
+     */
+    UserAddInfoDTO addUser(
+            UserAddVO userAddVO
+    );
+
+    /**
+     * 检查用户UUID
+     *
+     * @param userUuid 用户唯一标识符
+     */
+    void checkUuid(
+            String userUuid);
+
+    /**
+     * 删除用户
+     *
+     * @param userUuid 用户唯一标识符
+     * @param request  HTTP请求对象
+     */
+    void deleteUser(
+            String userUuid,
+            HttpServletRequest request);
+
+    /**
+     * 检查编辑用户数据合规性
+     *
+     * @param userUuid   用户唯一标识符
+     * @param userEditVO 用户编辑数据
+     * @param request    HTTP请求对象
+     * @return UserInfoDTO
+     */
+    UserInfoDTO updateUser(
+            String userUuid,
+            UserEditVO userEditVO,
+            HttpServletRequest request);
+
+    /**
+     * 获取用户列表
+     *
+     * @param page    页数
+     * @param size    每页大小
+     * @param keyWord 关键字
+     * @param isDesc  是否降序
+     * @param request HTTP请求对象
+     * @return PageDTO<UserInfoDTO>
+     */
+    PageDTO<UserInfoDTO> getUserList(
+            int page,
+            int size,
+            String keyWord,
+            boolean isDesc,
+            HttpServletRequest request);
+
+    /**
+     * 检查页数和每页大小
+     *
+     * @param page 页数
+     * @param size 每页大小
+     */
+    void checkPageAndSize(
+            Integer page,
+            Integer size);
+
+    void checkUserExist(String username, String email, String phone) throws BusinessException;
 }

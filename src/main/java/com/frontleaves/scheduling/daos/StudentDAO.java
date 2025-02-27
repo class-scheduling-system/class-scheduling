@@ -153,6 +153,29 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
     }
 
     /**
+     * 删除学生并删除token
+     * <p>
+     * 该方法用于删除学生信息，首先通过学生 UUID 获取学生信息，然后删除学生信息。
+     * 如果学生信息存在，则删除 Redis 中与学生相关的所有数据。
+     * 如果学生信息不存在或者删除失败，则抛出 {@code ServerInternalErrorException} 异常。
+     * </p>
+     *
+     * @param studentDO 学生实体
+     * @throws ServerInternalErrorException 如果删除过程中发生服务器内部错误
+     */
+    public void deleteStudent(StudentDO studentDO) throws ServerInternalErrorException {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try  {
+            this.lambdaUpdate().eq(StudentDO::getId, studentDO.getId()).remove();
+            transaction.getBucket(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
+            transaction.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
+            transaction.commit();
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
+
+    /**
      * 通过用户 UUID 获取学生信息
      * <p>
      * 该方法根据提供的用户 UUID 从系统中检索对应的学生信息。首先尝试从缓存（如 Redis）中获取数据，如果缓存中没有找到，则从数据库中查询，并将结果存入缓存以提高后续访问速度。

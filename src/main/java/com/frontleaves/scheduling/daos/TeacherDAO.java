@@ -153,6 +153,29 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     }
 
     /**
+     * 删除教师
+     * <p>
+     * 该方法用于删除指定的教师信息。首先通过教师 ID 获取教师信息，然后在数据库中删除该教师信息，
+     * 并在 Redis 中删除与该教师关联的数据。
+     * 如果未找到对应的教师信息或者删除失败，则抛出 {@code BusinessException} 异常。
+     * </p>
+     *
+     * @param teacherDO 教师信息
+     * @throws ServerInternalErrorException 如果删除过程中发生服务器内部错误
+     */
+    public void deleteTeacher(TeacherDO teacherDO) throws ServerInternalErrorException {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            this.lambdaUpdate().eq(TeacherDO::getId, teacherDO.getId()).remove();
+            transaction.getBucket(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
+            transaction.getBucket(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
+            transaction.commit();
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
+
+    /**
      * 通过用户 UUID 获取教师信息
      * <p>
      * 该方法首先尝试从 Redis 中获取教师信息，如果 Redis 中不存在，则从数据库中查询教师信息并将其存入 Redis。

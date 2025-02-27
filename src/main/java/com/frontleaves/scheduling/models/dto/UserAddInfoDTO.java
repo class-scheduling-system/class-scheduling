@@ -26,55 +26,24 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.vo;
+package com.frontleaves.scheduling.models.dto;
 
-import com.frontleaves.scheduling.constants.StringConstant;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 /**
- * 用户初始化视图对象
+ * 用户新增信息数据传输对象
  * <p>
- * 此类用于封装用户在初始化时所需提供的信息，
- * 包括用户名、密码以及验证相关的信息如新密码、
- * 姓名、邮箱和手机号。数据校验规则通过注解实现，
- * 确保接收到的数据符合系统要求。
+ * 该类继承自 {@code UserInfoDTO}，用于在不同层之间传输用户的基本信息以及其对应的身份信息（如学生或教师）。
+ * 与父类相比，此 DTO 增加了对新密码的处理。主要用于用户注册、修改密码等场景。
  * </p>
- *
- * @author FLASHLACK
- * @version v1.0.0
- * @see InitVO 初始化视图对象参考
- * @see UserLoginVO 用户登录视图对象参考
- * @since v1.0.0
  */
-@Getter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserInitializationVO {
-    @NotNull(message = "类型只能为学生「TRUE」或老师「FALSE」")
-    private boolean type;
-    @NotBlank(message = "学号/工号不能为空")
-    @NotNull
-    private String user;
-    @Pattern(regexp = StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION,
-            message = "用户名格式不正确，应为4-32位的字母、数字、下划线或短横线")
-    @NotNull
-    private String name;
-    @Pattern(regexp = StringConstant.Regular.PASSWORD_REGULAR_EXPRESSION,
-            message = "强密码(必须包含大小写字母和数字的组合，可以使用特殊字符，至少6位）")
-    @NotNull
+@Accessors(chain = true)
+public class UserAddInfoDTO extends UserInfoDTO {
     private String newPassword;
-    @Email(message = "邮箱格式不正确")
-    @NotNull
-    private String email;
-    @NotNull
-    @Pattern(regexp = StringConstant.Regular.PHONE_REGULAR_EXPRESSION,
-            message = "手机号格式不正确")
-    private String phone;
-
 }

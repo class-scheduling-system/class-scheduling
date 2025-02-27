@@ -30,6 +30,7 @@ package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
@@ -62,6 +63,7 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService<UserDO> {
     private final RedissonClient redisson;
+
 
     /**
      * 根据用户 UUID 获取用户信息
@@ -171,8 +173,8 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * 如果在数据库中没有找到用户信息，则回滚事务。
      *
      * @param transaction Redis 事务对象，用于执行一系列操作
-     * @param tryGetUuid 用于尝试获取或存储用户 UUID 的 Redis 存储桶
-     * @param eq 查询条件链，用于构建查询条件以从数据库中获取用户信息
+     * @param tryGetUuid  用于尝试获取或存储用户 UUID 的 Redis 存储桶
+     * @param eq          查询条件链，用于构建查询条件以从数据库中获取用户信息
      * @return 返回用户信息，如果没有找到则返回 null
      */
     @Nullable
@@ -197,5 +199,88 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
             return this.getUserByUuid(tryGetUuid.get());
         }
         return null;
+    }
+
+    /**
+     * 删除用户并且删除token
+     * <p>
+     * 该方法用于删除用户信息，首先通过用户 UUID 获取用户信息，然后删除用户信息。
+     * 如果用户信息存在，则删除 Redis 中与用户相关的所有数据。
+     * 如果用户信息不存在或者删除失败，则抛出 {@code ServerInternalErrorException} 异常。
+     * </p>
+     *
+     * @param userDO 用户实体
+     */
+    public void deleteUser(UserDO userDO) throws ServerInternalErrorException {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            this.lambdaUpdate().eq(UserDO::getUserUuid, userDO.getUserUuid()).remove();
+            this.deleteUserRedis(userDO, transaction);
+        } catch (Exception e) {
+            transaction.rollback();
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
+
+    /**
+     * 删除用户 Redis 数据
+     *
+     * @param userDO      用户实体
+     * @param transaction 事务
+     */
+    private void deleteUserRedis(@NotNull UserDO userDO, @NotNull RTransaction transaction) {
+        transaction.getBucket(StringConstant.Redis.USER_UUID + userDO.getUserUuid()).delete();
+        transaction.getBucket(StringConstant.Redis.USER_NAME + userDO.getName()).delete();
+        transaction.getBucket(StringConstant.Redis.USER_MAIL + userDO.getEmail()).delete();
+        transaction.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone()).delete();
+        transaction.commit();
+    }
+
+    /**
+     * 更新用户信息
+     *
+     * @param userOldDO 旧的用户实体
+     *                  用于删除 Redis 中的旧数据
+     * @param userNewDO 新的用户实体
+     * @throws ServerInternalErrorException 如果更新过程中发生服务器内部错误
+     */
+    public void updateUser(UserDO userOldDO, UserDO userNewDO) throws ServerInternalErrorException {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            this.updateById(userNewDO);
+            this.deleteUserRedis(userOldDO, transaction);
+        } catch (Exception e) {
+            transaction.rollback();
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
+
+
+    /**
+     * 获取用户列表
+     * <p>
+     * 该方法用于从数据库中查询用户列表，并支持分页、关键词搜索以及排序。根据传入的参数，可以实现对用户名称、邮箱或电话进行模糊匹配，
+     * 并按照创建时间升序或降序排列结果。
+     *
+     * @param page 当前页码，必须为正整数
+     * @param size 每页显示的记录数，必须为正整数
+     * @param keyword 可选参数，用于在用户的姓名、邮箱和电话字段中进行模糊搜索
+     * @param isDesc 布尔值，指定结果是否按创建时间降序排列；如果为 {@code true} 则降序，否则升序
+     * @return 返回一个包含当前请求页面数据及总条目数等信息的 {@code Page<UserDO>} 对象
+     */
+    public Page<UserDO> getUserList(@NotNull Integer page, @NotNull Integer size, String keyword, Boolean isDesc) {
+        LambdaQueryChainWrapper<UserDO> query = this.lambdaQuery();
+        if (keyword != null && !keyword.isEmpty()) {
+            query
+                    .like(UserDO::getName, keyword).or()
+                    .like(UserDO::getEmail, keyword).or()
+                    .like(UserDO::getPhone, keyword);
+        }
+        if (Boolean.TRUE.equals(isDesc)) {
+            query.orderByDesc(UserDO::getCreatedAt);
+        } else {
+            query.orderByAsc(UserDO::getCreatedAt);
+        }
+        return query.page(new Page<>(page, size));
     }
 }
