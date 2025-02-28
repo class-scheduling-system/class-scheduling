@@ -16,7 +16,10 @@ import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.redisson.Redisson;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
@@ -168,7 +171,18 @@ class TeacherTest {
     }
 
     @Test
-    @Order(99)
+    void testGetTeacherByUserUuid() {
+        log.debug("测试通过用户UUID获取教师信息");
+        TeacherDO teacherByUserUuid = teacherDAO.getTeacherByUserUuid(userDO.getUserUuid());
+        Assertions.assertNotNull(teacherByUserUuid);
+        log.debug("删除教师用户UUID缓存信息");
+        redisson.getBucket(
+                StringConstant.Redis.TEACHER_USER_UUID + userDO.getUserUuid()).delete();
+        TeacherDO teacherDO1 = teacherDAO.getTeacherByUserUuid(userDO.getUserUuid());
+        Assertions.assertNotNull(teacherDO1);
+    }
+
+    @Test
     void testDeleteTeacher() {
         log.debug("测试删除教师信息");
         teacherDAO.deleteTeacher(teacherDO);
@@ -185,15 +199,5 @@ class TeacherTest {
         Assertions.assertFalse(userUuid.isExists());
     }
 
-    @Test
-    void testGetTeacherByUserUuid() {
-        log.debug("测试通过用户UUID获取教师信息");
-        TeacherDO teacherByUserUuid = teacherDAO.getTeacherByUserUuid(userDO.getUserUuid());
-        Assertions.assertNotNull(teacherByUserUuid);
-        log.debug("删除教师用户UUID缓存信息");
-        redisson.getBucket(
-                StringConstant.Redis.TEACHER_USER_UUID + userDO.getUserUuid()).delete();
-        TeacherDO teacherDO1 = teacherDAO.getTeacherByUserUuid(userDO.getUserUuid());
-        Assertions.assertNotNull(teacherDO1);
-    }
+
 }

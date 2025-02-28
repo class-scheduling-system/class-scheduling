@@ -36,7 +36,7 @@ class UserTest {
         userDO = new UserDO();
         userDO.setUserUuid("2b700c3c14ef4afdbf18c0a89d5311b9")
                 .setName("ZhangSan55511164")
-                .setPassword("123456Aa")
+                .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("12138@qq.com")
                 .setPhone("12345678901")
                 .setStatus(1)
