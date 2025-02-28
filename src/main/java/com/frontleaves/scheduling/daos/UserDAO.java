@@ -231,7 +231,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @param transaction 事务
      */
     private void deleteUserRedis(@NotNull UserDO userDO, @NotNull RTransaction transaction) {
-        transaction.getBucket(StringConstant.Redis.USER_UUID + userDO.getUserUuid()).delete();
+        transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid()).delete();
         transaction.getBucket(StringConstant.Redis.USER_NAME + userDO.getName()).delete();
         transaction.getBucket(StringConstant.Redis.USER_MAIL + userDO.getEmail()).delete();
         transaction.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone()).delete();
