@@ -70,14 +70,18 @@ pipeline {
         stage('build project') {
             steps {
                 ansiColor('xterm') {
-                    echo "修改构建文件"
-                    sh '''
-                        sed -i 's/spring.profiles.active: dev/spring.profiles.active: test/g' src/main/resources/application.yml
-                    '''
-                    sh '''
-                        mvn clean package \
-                            -Dmaven.test.failure.ignore=true
-                    '''
+                    script {
+                        def workspace = pwd()
+                        echo "当前工作目录: ${workspace}"
+                        echo "修改构建文件"
+                        sh '''
+                            sed -i 's/spring.profiles.active: dev/spring.profiles.active: test/g' ${workspace}/src/main/resources/application.yml
+                        '''
+                        sh '''
+                            mvn clean package \
+                                -Dmaven.test.failure.ignore=true
+                        '''
+                    }
                 }
             }
         }
