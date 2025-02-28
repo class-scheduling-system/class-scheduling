@@ -16,6 +16,7 @@ import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ class TeacherTest {
     @Resource
     private Redisson redisson;
     private TeacherDO teacherDO;
+    private UserDO userDO;
 
     /**
      * 通过部门 名称获取部门数据
@@ -77,10 +79,11 @@ class TeacherTest {
     @BeforeEach
     void setUp() {
         log.debug("TeacherDAO单元测试初始化");
-
+        TeacherDO setUpTeacher = new TeacherDO();
         teacherDO = new TeacherDO();
-        UserDO userDO = new UserDO();
-        userDO.setUserUuid(UuidUtil.generateUuidNoDash())
+        UserDO setUpUser = new UserDO();
+        userDO = new UserDO();
+        setUpUser.setUserUuid(UuidUtil.generateUuidNoDash())
                 .setName("teacherDAOTest")
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("teacherDAOTest@qwer.com")
@@ -89,12 +92,13 @@ class TeacherTest {
                 .setBan(0)
                 .setRoleUuid(getRoleByName().getRoleUuid())
                 .setPermission("[\"user:role:edit\"]");
-        if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() == null) {
-            userDAO.save(userDO);
+        if (userDAO.lambdaQuery().eq(UserDO::getName, setUpUser.getName()).one() == null) {
+            userDAO.save(setUpUser);
         }
-        teacherDO.setTeacherUuid(UuidUtil.generateUuidNoDash())
+        userDO = userDAO.lambdaQuery().eq(UserDO::getName, setUpUser.getName()).one();
+        setUpTeacher.setTeacherUuid(UuidUtil.generateUuidNoDash())
                 .setUnitUuid(getDepartmentByName().getDepartmentUuid())
-                .setUserUuid(userDO.getUserUuid())
+                .setUserUuid(setUpUser.getUserUuid())
                 .setId("123456")
                 .setName("teacherDAOTest")
                 .setEnglishName("ZhangSeng")
@@ -104,21 +108,32 @@ class TeacherTest {
                 .setEmail("qwerasdfzxcv@qwer.com")
                 .setJobTitle("教授")
                 .setDesc("这是一个教授");
-        if (teacherDAO.lambdaQuery().eq(TeacherDO::getId, teacherDO.getId()).one() == null) {
-            teacherDAO.save(teacherDO);
+        if (teacherDAO.lambdaQuery().eq(TeacherDO::getId, setUpTeacher.getId()).one() == null) {
+            teacherDAO.save(setUpTeacher);
         }
+        teacherDO = teacherDAO.lambdaQuery().eq(TeacherDO::getId, setUpTeacher.getId()).one();
         RMap<String, String> teacherMap = redisson.getMap(
-                StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid());
-        teacherMap.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
+                StringConstant.Redis.TEACHER_UUID + setUpTeacher.getTeacherUuid());
+        teacherMap.putAll(ConvertUtil.convertObjectToMapString(setUpTeacher));
         teacherMap.expire(Duration.ofSeconds(86400));
         RBucket<String> teacherId = redisson.getBucket(
-                StringConstant.Redis.TEACHER_ID + teacherDO.getId());
-        teacherId.set(teacherDO.getTeacherUuid());
+                StringConstant.Redis.TEACHER_ID + setUpTeacher.getId());
+        teacherId.set(setUpTeacher.getTeacherUuid());
         teacherId.expire(Duration.ofSeconds(86400));
         RBucket<String> teacherUserUuid = redisson.getBucket(
-                StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid());
-        teacherUserUuid.set(teacherDO.getTeacherUuid());
+                StringConstant.Redis.TEACHER_USER_UUID + setUpTeacher.getUserUuid());
+        teacherUserUuid.set(setUpTeacher.getTeacherUuid());
         teacherUserUuid.expire(Duration.ofSeconds(86400));
+    }
+
+    @AfterEach
+    void tearDown() {
+        log.debug("TeacherDAO单元测试结束");
+        teacherDAO.lambdaUpdate().eq(TeacherDO::getTeacherUuid, teacherDO.getTeacherUuid()).remove();
+        userDAO.lambdaUpdate().eq(UserDO::getUserUuid, userDO.getUserUuid()).remove();
+        redisson.getMap(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
+        redisson.getBucket(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
+        redisson.getBucket(StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid()).delete();
     }
 
     @Test
@@ -131,6 +146,20 @@ class TeacherTest {
         redisson.getBucket(
                 StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
         TeacherDO teacherDO1 = teacherDAO.getTeacherById(teacherDO.getId());
+        assert teacherDO1 != null;
+        Assertions.assertNotNull(teacherDO1);
+    }
+
+    @Test
+    void testGetTeacherByUuid() {
+        log.debug("测试通过教师UUID获取教师信息");
+        TeacherDO teacherByUuid = teacherDAO.getTeacherByUuid(teacherDO.getTeacherUuid());
+        assert teacherByUuid != null;
+        Assertions.assertNotNull(teacherByUuid);
+        log.debug("删除教师UUID缓存信息");
+        redisson.getMap(
+                StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
+        TeacherDO teacherDO1 = teacherDAO.getTeacherByUuid(teacherDO.getTeacherUuid());
         assert teacherDO1 != null;
         Assertions.assertNotNull(teacherDO1);
     }
