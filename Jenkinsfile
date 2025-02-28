@@ -67,38 +67,27 @@ pipeline {
                 }
             }
         }
-        stage('build project') {
+        stage('deploy project') {
             steps {
                 ansiColor('xterm') {
                     script {
                         def workspace = pwd()
                         echo "当前工作目录: ${workspace}"
-                        echo "修改构建文件"
-                        sh '''
-                            sed -i 's/spring.profiles.active: dev/spring.profiles.active: test/g' src/main/resources/application.yml
-                        '''
+
+                        sh """
+                            sed -i 's/spring.profiles.active: dev/spring.profiles.active: test/g' ${workspace}/src/main/resources/application.yml
+                        """
+
                         sh '''
                             mvn clean package \
                                 -Dmaven.test.failure.ignore=true
                         '''
-                    }
-                }
-            }
-        }
-        stage('deploy project to server') {
-            steps {
-                ansiColor('xterm') {
-                    script {
-                        def workspace = pwd()
-                        echo "当前工作目录: ${workspace}"
 
-                        // 上传文件到服务器
-                        sh '''
+                        sh """
                             # 上传整个文件夹到服务器
                             scp -r ${workspace}/* root@172.16.11.10:/root/project
-                        '''
+                        """
 
-                        // 在服务器上执行：获取PID、kill旧的PID并启动新的项目
                         sh '''
                             # 在服务器上执行以下操作
                             ssh root@172.16.11.10 "
