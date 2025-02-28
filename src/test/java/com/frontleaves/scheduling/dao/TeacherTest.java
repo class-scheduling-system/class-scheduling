@@ -25,6 +25,7 @@ import org.redisson.Redisson;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
@@ -78,6 +79,7 @@ class TeacherTest {
     }
 
     @BeforeEach
+    @Transactional
     void setUp() {
         log.debug("TeacherDAO单元测试初始化");
         setUpTeacher = new TeacherDO();
@@ -126,6 +128,7 @@ class TeacherTest {
     }
 
     @AfterEach
+    @Transactional
     void tearDown() {
         log.debug("TeacherDAO单元测试结束");
         if (teacherDAO.lambdaQuery().eq(TeacherDO::getId, setUpTeacher.getId()).one() != null) {
@@ -227,6 +230,5 @@ class TeacherTest {
             userDAO.lambdaUpdate().eq(UserDO::getUserUuid, newTestUserDO.getUserUuid()).remove();
         }
     }
-
 
 }
