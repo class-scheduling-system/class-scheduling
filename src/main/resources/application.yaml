@@ -2,7 +2,7 @@ server:
   port: 8888
 spring:
   profiles:
-    active: test
+    active: dev
   jackson:
     property-naming-strategy: SNAKE_CASE
 logging:
