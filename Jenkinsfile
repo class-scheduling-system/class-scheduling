@@ -2,7 +2,7 @@ pipeline {
     agent { label 'centos' }
     environment {
         SONAR_TOKEN = credentials('xiaolfeng-sonar-token')
-        BRANCH_NAME = env.GH_BRANCH
+        BRANCH_NAME = "${env.GH_BRANCH}"
     }
 
     tools {
