@@ -208,7 +208,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
                     tryGetTeacherByUserUuid.set(teacherDO.getTeacherUuid());
                     tryGetTeacherByUserUuid.expire(Duration.ofSeconds(86400));
                     RMap<String, String> teacherMap = transaction.getMap(
-                            StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid()
+                            StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()
                     );
                     teacherMap.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
                     teacherMap.expire(Duration.ofSeconds(86400));

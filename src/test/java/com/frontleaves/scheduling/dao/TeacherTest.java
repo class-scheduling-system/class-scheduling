@@ -184,4 +184,16 @@ class TeacherTest {
         Assertions.assertFalse(id.isExists());
         Assertions.assertFalse(userUuid.isExists());
     }
+
+    @Test
+    void testGetTeacherByUserUuid() {
+        log.debug("测试通过用户UUID获取教师信息");
+        TeacherDO teacherByUserUuid = teacherDAO.getTeacherByUserUuid(userDO.getUserUuid());
+        Assertions.assertNotNull(teacherByUserUuid);
+        log.debug("删除教师用户UUID缓存信息");
+        redisson.getBucket(
+                StringConstant.Redis.TEACHER_USER_UUID + userDO.getUserUuid()).delete();
+        TeacherDO teacherDO1 = teacherDAO.getTeacherByUserUuid(userDO.getUserUuid());
+        Assertions.assertNotNull(teacherDO1);
+    }
 }
