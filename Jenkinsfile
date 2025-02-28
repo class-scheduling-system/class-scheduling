@@ -79,7 +79,7 @@ pipeline {
 
                         // 修改 application.yaml 文件，将 Redis 配置文件的 dev 改为 test
                         sh """
-                            sed -i 's/dev/test/g' ${workspace}/src/main/resources/application.yaml
+                            sed -i 's/active: dev/active: test/' ${workspace}/src/main/resources/application.yaml
                         """
 
                         // 使用 sshpass 和密码进行文件上传
