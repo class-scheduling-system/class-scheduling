@@ -16,10 +16,7 @@ import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.redisson.Redisson;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
@@ -168,5 +165,23 @@ class TeacherTest {
         TeacherDO teacherDO1 = teacherDAO.getTeacherByUuid(teacherDO.getTeacherUuid());
         assert teacherDO1 != null;
         Assertions.assertNotNull(teacherDO1);
+    }
+
+    @Test
+    @Order(99)
+    void testDeleteTeacher() {
+        log.debug("测试删除教师信息");
+        teacherDAO.deleteTeacher(teacherDO);
+        TeacherDO teacherDO1 = teacherDAO.getTeacherByUuid(teacherDO.getTeacherUuid());
+        Assertions.assertNull(teacherDO1);
+        RMap<String, String> uuid = redisson.getMap(
+                StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid());
+        RBucket<String> id = redisson.getBucket(
+                StringConstant.Redis.TEACHER_ID + teacherDO.getId());
+        RBucket<String> userUuid = redisson.getBucket(
+                StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid());
+        Assertions.assertFalse(uuid.isExists());
+        Assertions.assertFalse(id.isExists());
+        Assertions.assertFalse(userUuid.isExists());
     }
 }

@@ -179,7 +179,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
         try {
             this.lambdaUpdate().eq(TeacherDO::getId, teacherDO.getId()).remove();
             transaction.getBucket(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
-            transaction.getBucket(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
+            transaction.getMap(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
             transaction.getBucket(StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid()).delete();
             transaction.commit();
         } catch (Exception e) {
@@ -224,5 +224,6 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
             log.error("通过用户 UUID 获取教师信息失败", e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+
     }
 }
