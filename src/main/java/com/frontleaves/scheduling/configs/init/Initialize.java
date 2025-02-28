@@ -145,9 +145,9 @@ public class Initialize {
      * </p>
      */
     private void initClearRedis() {
-        log.info("[INIT] 清空 Redis 缓存开始");
+        log.info("[INIT] 清空 Redis 缓存");
         redissonClient.getKeys().flushall();
-        log.info("[INIT] 清空 Redis 缓存完成");
+        log.debug("[INIT] 清空 Redis 缓存完成");
     }
 
     /**
