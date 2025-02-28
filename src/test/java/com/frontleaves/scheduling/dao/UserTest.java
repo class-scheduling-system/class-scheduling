@@ -11,6 +11,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
@@ -115,6 +116,7 @@ class UserTest {
     }
 
     @Test
+    @Order(99)
     void testDeleteUser() {
         log.debug("测试删除用户信息");
         userDAO.deleteUser(userDO);
