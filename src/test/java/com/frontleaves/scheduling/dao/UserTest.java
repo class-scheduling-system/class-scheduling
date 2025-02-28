@@ -9,10 +9,7 @@ import com.xlf.utility.util.ConvertUtil;
 import com.xlf.utility.util.PasswordUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -65,6 +62,18 @@ class UserTest {
         mapUserUuid.expire(Duration.ofSeconds(86400));
         bucketUserEmail.expire(Duration.ofSeconds(86400));
         bucketUserPhone.expire(Duration.ofSeconds(86400));
+    }
+
+    @AfterEach
+    void tearDown() {
+        log.debug("清理UserDAOTest用户数据");
+        if (userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one() != null) {
+            userDAO.lambdaUpdate().eq(UserDO::getUserUuid, userDO.getUserUuid()).remove();
+        }
+        redisson.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid()).delete();
+        redisson.getBucket(StringConstant.Redis.USER_NAME + userDO.getName()).delete();
+        redisson.getBucket(StringConstant.Redis.USER_MAIL + userDO.getEmail()).delete();
+        redisson.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone()).delete();
     }
 
     @Test
@@ -186,8 +195,9 @@ class UserTest {
                     "数据应该按正序排列，当前数据顺序错误");
         }
     }
+
     @Test
-    void getUserDoPageDesc(){
+    void getUserDoPageDesc() {
         // 获取 userDAO 返回的 Page 对象（降序）
         Page<UserDO> pageDesc = userDAO.getUserDoPage(1, 10, null, true);
         int totalPagesDesc = (int) pageDesc.getTotal();
@@ -202,8 +212,9 @@ class UserTest {
                     "数据应该按降序排列，当前数据顺序错误");
         }
     }
+
     @Test
-    void getUserDoPageDescByKeyWordDesc(){
+    void getUserDoPageDescByKeyWordDesc() {
         Page<UserDO> pageKeyWord = userDAO.getUserDoPage(1, 10, "test", false);
         List<UserDO> contentKeyWord = pageKeyWord.getRecords();
         for (UserDO user : contentKeyWord) {
@@ -227,8 +238,9 @@ class UserTest {
                     "数据应该按正序排列，当前数据顺序错误");
         }
     }
+
     @Test
-    void getUserDoPageKeyAscByKeyWord(){
+    void getUserDoPageKeyAscByKeyWord() {
         Page<UserDO> pageKeyWord = userDAO.getUserDoPage(1, 10, "test", true);
         List<UserDO> contentKeyWord = pageKeyWord.getRecords();
         for (UserDO user : contentKeyWord) {
