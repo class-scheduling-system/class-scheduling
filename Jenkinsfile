@@ -74,39 +74,36 @@ pipeline {
                         def workspace = pwd()
                         echo "当前工作目录: ${workspace}"
 
+                        // 定义账号密码
+                        def serverPassword = '123456'  // 目标服务器的密码
+
+                        // 使用 sshpass 和密码进行文件上传
                         sh """
-                            sed -i 's/spring.profiles.active: dev/spring.profiles.active: test/g' ${workspace}/src/main/resources/application.yaml
+                            sshpass -p ${serverPassword} scp -r ${workspace}/target/* root@172.16.11.10:/root/project
                         """
 
-                        sh '''
-                            mvn clean package \
-                                -Dmaven.test.failure.ignore=true
-                        '''
+                        // 获取打包的 .jar 文件
+                        def jarFile = sh(script: 'ls target/*.jar', returnStdout: true).trim()
 
+                        // 在服务器上执行操作，杀掉旧进程并启动新项目
                         sh """
-                            # 上传整个文件夹到服务器
-                            scp -r ${workspace}/* root@172.16.11.10:/root/project
-                        """
-
-                        sh '''
-                            # 在服务器上执行以下操作
-                            ssh root@172.16.11.10 "
+                            sshpass -p ${serverPassword} ssh root@172.16.11.10 '
                             # 检查是否有旧的进程PID记录
                             if [ -f /root/project/pid.txt ]; then
                                 OLD_PID=\$(cat /root/project/pid.txt)
                                 # 杀掉旧的进程
-                                echo 'Killing old process with PID: \${OLD_PID}'
+                                echo "Killing old process with PID: \${OLD_PID}"
                                 kill -9 \${OLD_PID}
                             fi
 
                             # 启动新的项目并记录PID
-                            echo 'Starting new project...'
-                            nohup java -jar /root/project/your-app.jar > /root/project/output.log 2>&1 &
+                            echo "Starting new project..."
+                            nohup java -jar /root/project/${jarFile} > /root/project/output.log 2>&1 &
                             NEW_PID=\$!
                             echo \${NEW_PID} > /root/project/pid.txt
-                            echo 'New project started with PID: \${NEW_PID}'
-                            "
-                        '''
+                            echo "New project started with PID: \${NEW_PID}"
+                            '
+                        """
                     }
                 }
             }
