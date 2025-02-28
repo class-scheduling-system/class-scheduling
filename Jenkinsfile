@@ -20,7 +20,7 @@ pipeline {
                     // 判断当前分支，如果不是 master，则终止构建
                     if (GIT_BRANCH != 'master') {
                         echo "当前不是 master 分支，终止构建。"
-                        ignore "Not on master branch. The pipeline has been aborted."
+                        error "Not on master branch. The pipeline has been aborted."
                     }
                     echo "在 master 分支，继续执行构建流程。"
                 }
