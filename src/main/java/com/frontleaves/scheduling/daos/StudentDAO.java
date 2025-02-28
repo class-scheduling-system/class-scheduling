@@ -85,7 +85,8 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
                 if (studentDO != null) {
                     tryGetStudentId.set(studentDO.getStudentUuid());
                     tryGetStudentId.expire(Duration.ofSeconds(86400));
-                    RMap<String, String> studentMap = transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
+                    RMap<String, String> studentMap = transaction.getMap(
+                            StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
                     studentMap.putAll(ConvertUtil.convertObjectToMapString(studentDO));
                     studentMap.expire(Duration.ofSeconds(86400));
                     transaction.commit();
@@ -144,7 +145,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
         try {
             if (studentDO != null) {
                 transaction.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
-                transaction.getBucket(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
+                transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
                 this.lambdaUpdate()
                         .eq(StudentDO::getStudentUuid, studentDO.getStudentUuid())
                         .set(StudentDO::getUserUuid, userUuid)
@@ -176,7 +177,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             this.lambdaUpdate().eq(StudentDO::getId, studentDO.getId()).remove();
-            transaction.getBucket(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
+            transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
             transaction.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
             transaction.getBucket(StringConstant.Redis.STUDENT_USER_UUID + studentDO.getUserUuid()).delete();
             transaction.commit();
@@ -213,7 +214,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
                     return studentDO;
                 }
             } else {
-                return BeanUtil.toBean(tryGetStudentByUserUuid, StudentDO.class);
+                return this.getStudentByUuid(tryGetStudentByUserUuid.get());
             }
             return null;
         } catch (Exception e) {

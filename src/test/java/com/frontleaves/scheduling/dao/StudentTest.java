@@ -79,22 +79,27 @@ class StudentTest {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, studentDO.getName()).remove();
         }
         studentDAO.save(studentDO);
-        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_ID + studentDO.getId());
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
         map.putAll(ConvertUtil.convertObjectToMapString(studentDO));
         map.expire(Duration.ofSeconds(86400));
-        RBucket<String> bucketUuid = redisson.getBucket(StringConstant.Redis.STUDENT_UUID +
-                studentDO.getStudentUuid());
-        bucketUuid.set(studentDO.getStudentUuid());
-        bucketUuid.expire(Duration.ofSeconds(86400));
         RBucket<String> bucketId = redisson.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId());
-        bucketId.set(studentDO.getId());
+        bucketId.set(studentDO.getStudentUuid());
         bucketId.expire(Duration.ofSeconds(86400));
         RBucket<String> bucketUserUuid = redisson.getBucket(StringConstant.Redis.STUDENT_USER_UUID +
                 studentDO.getUserUuid());
-        bucketUserUuid.set(studentDO.getUserUuid());
+        bucketUserUuid.set(studentDO.getStudentUuid());
         bucketUserUuid.expire(Duration.ofSeconds(86400));
     }
 
+    @Test
+    void testGetStudentById() {
+        log.debug("测试通过学生 ID 获取学生信息");
+        StudentDO studentById = studentDAO.getStudentById(studentDO.getId());
+        Assertions.assertNotNull(studentById);
+        redisson.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
+        StudentDO studentById1 = studentDAO.getStudentById(studentDO.getId());
+        Assertions.assertNotNull(studentById1);
+    }
 
     @Test
     void testDeleteStudent() {

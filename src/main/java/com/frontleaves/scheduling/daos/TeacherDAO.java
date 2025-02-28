@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.daos;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherMapper;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
@@ -91,7 +92,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
                     return teacherDO;
                 }
             } else {
-                return BeanUtil.toBean(tryGetTeacherById, TeacherDO.class);
+                return this.getTeacherByUuid(tryGetTeacherById.get());
             }
             return null;
         } catch (Exception e) {
@@ -127,7 +128,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     }
 
     /**
-     * 更新教师的用户 UUID
+     * 更新教师的 用户UUID
      * <p>
      * 该方法用于更新指定教师的用户 UUID。首先，通过 {@code teacherId} 获取教师信息。
      * 如果教师信息存在，则删除 Redis 中与该教师相关的缓存数据，并更新数据库中的用户 UUID。
@@ -142,6 +143,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     public void updateUserUuid(String userUuid, String teacherId) throws BusinessException,
             ServerInternalErrorException {
         TeacherDO teacherDO = this.getTeacherById(teacherId);
+        log.debug(LogConstant.DAO + "teacherDO: {}", teacherDO);
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             if (teacherDO != null) {
@@ -216,7 +218,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
                     return teacherDO;
                 }
             } else {
-                return BeanUtil.toBean(tryGetTeacherByUserUuid, TeacherDO.class);
+                return this.getTeacherByUuid(tryGetTeacherByUserUuid.get());
             }
             return null;
         } catch (Exception e) {

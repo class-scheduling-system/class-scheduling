@@ -9,7 +9,10 @@ import com.xlf.utility.util.ConvertUtil;
 import com.xlf.utility.util.PasswordUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -125,7 +128,6 @@ class UserTest {
     }
 
     @Test
-    @Order(99)
     void testDeleteUser() {
         log.debug("测试删除用户信息");
         userDAO.deleteUser(userDO);

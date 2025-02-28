@@ -186,8 +186,10 @@ class TeacherTest {
     void testDeleteTeacher() {
         log.debug("测试删除教师信息");
         teacherDAO.deleteTeacher(teacherDO);
-        TeacherDO teacherDO1 = teacherDAO.getTeacherByUuid(teacherDO.getTeacherUuid());
+        TeacherDO teacherDO1 = teacherDAO.lambdaQuery().eq(
+                TeacherDO::getTeacherUuid,teacherDO.getTeacherUuid()).one();
         Assertions.assertNull(teacherDO1);
+        log.debug("检查缓存是否删除成功");
         RMap<String, String> uuid = redisson.getMap(
                 StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid());
         RBucket<String> id = redisson.getBucket(
@@ -197,6 +199,34 @@ class TeacherTest {
         Assertions.assertFalse(uuid.isExists());
         Assertions.assertFalse(id.isExists());
         Assertions.assertFalse(userUuid.isExists());
+    }
+    @Test
+    void testUpdateUserUuid (){
+        log.debug("测试更新教师的用户uuid");
+        //创建一个新的教师用户
+        UserDO newTestUserDO = new UserDO();
+        newTestUserDO.setUserUuid(UuidUtil.generateUuidNoDash())
+                .setName("teacherDAONewTestUser")
+                .setPassword(PasswordUtil.encrypt("123456Aa"))
+                .setEmail("teacherDAONewTestUser@qwer.com")
+                .setPhone("15859273800")
+                .setStatus(1)
+                .setBan(0)
+                .setRoleUuid(getRoleByName().getRoleUuid())
+                .setPermission("[\"user:role:edit\"]");
+        if (userDAO.lambdaQuery().eq(UserDO::getName, newTestUserDO.getName()).one() == null) {
+            userDAO.save(newTestUserDO);
+        }
+        UserDO newUser = userDAO.lambdaQuery().eq(UserDO::getName, newTestUserDO.getName()).one();
+        teacherDAO.updateUserUuid(newUser.getUserUuid(),teacherDO.getId());
+        TeacherDO teacherDO1 = teacherDAO.lambdaQuery().eq(TeacherDO::getId, teacherDO.getId()).one();
+        Assertions.assertEquals(newUser.getUserUuid(),teacherDO1.getUserUuid());
+        if (teacherDAO.lambdaQuery().eq(TeacherDO::getTeacherUuid,teacherDO1.getTeacherUuid()).one() != null) {
+            teacherDAO.lambdaUpdate().eq(TeacherDO::getTeacherUuid,teacherDO1.getTeacherUuid()).remove();
+        }
+        if (userDAO.lambdaQuery().eq(UserDO::getUserUuid,newUser.getUserUuid()).one() != null) {
+            userDAO.lambdaUpdate().eq(UserDO::getUserUuid, newUser.getUserUuid()).remove();
+        }
     }
 
 
