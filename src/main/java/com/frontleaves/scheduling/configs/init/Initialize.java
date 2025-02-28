@@ -75,6 +75,7 @@ public class Initialize {
 
         // 初始化数据库完整性检查
         this.checkTable();
+        this.initClearRedis();
         this.checkSystemTable();
         this.writeRoleInfo();
         this.initTestUser();
@@ -134,6 +135,19 @@ public class Initialize {
         init.checkDatabase("cs_class_assignment");
 
         log.info("[INIT] 数据库检查完成");
+    }
+
+    /**
+     * 初始化清空 Redis 缓存
+     * <p>
+     * 该方法用于在系统初始化阶段清空 Redis 中的所有缓存数据。此操作将删除 Redis 中的所有键值对，确保系统从一个干净的状态开始运行。
+     * 清空操作前后会记录日志信息，以便于调试和监控。
+     * </p>
+     */
+    private void initClearRedis() {
+        log.info("[INIT] 清空 Redis 缓存开始");
+        redissonClient.getKeys().flushall();
+        log.info("[INIT] 清空 Redis 缓存完成");
     }
 
     /**
