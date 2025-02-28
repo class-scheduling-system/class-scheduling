@@ -1,0 +1,137 @@
+package com.frontleaves.scheduling.dao;
+
+import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.daos.DepartmentDAO;
+import com.frontleaves.scheduling.daos.RoleDAO;
+import com.frontleaves.scheduling.daos.TeacherDAO;
+import com.frontleaves.scheduling.daos.UserDAO;
+import com.frontleaves.scheduling.models.entity.DepartmentDO;
+import com.frontleaves.scheduling.models.entity.RoleDO;
+import com.frontleaves.scheduling.models.entity.TeacherDO;
+import com.frontleaves.scheduling.models.entity.UserDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.util.ConvertUtil;
+import com.xlf.utility.util.PasswordUtil;
+import com.xlf.utility.util.UuidUtil;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.redisson.Redisson;
+import org.redisson.api.RBucket;
+import org.redisson.api.RMap;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.time.Duration;
+
+@SpringBootTest
+@Slf4j
+class TeacherTest {
+    @Resource
+    private TeacherDAO teacherDAO;
+    @Resource
+    private DepartmentDAO departmentDAO;
+    @Resource
+    private UserDAO userDAO;
+    @Resource
+    private RoleDAO roleDAO;
+    @Resource
+    private Redisson redisson;
+    private TeacherDO teacherDO;
+
+    /**
+     * 通过部门 名称获取部门数据
+     *
+     * @return 部门数据
+     */
+    private DepartmentDO getDepartmentByName() {
+        DepartmentDO departmentDO = departmentDAO.lambdaQuery().eq(DepartmentDO::getDepartmentName,
+                "信息智能工程学院").one();
+        if (departmentDO == null) {
+            throw new BusinessException("[dao.StudentTest]单元测试通过部门名称找不到部门数据", ErrorCode.OPERATION_ERROR);
+        }
+        return departmentDO;
+    }
+
+    /**
+     * 根据角色名称获取角色对象
+     * <p>
+     * 此方法使用lambda表达式和链式调用从数据库中查询角色名称匹配的角色对象如果找不到对应的角色，
+     * 则抛出一个自定义的BusinessException异常，指示操作失败这主要是为了处理角色数据不存在的情况，
+     * 确保调用此方法时能够得到明确的错误提示
+     *
+     * @return RoleDO 如果找到匹配的角色名称，则返回对应的角色对象
+     * @throws BusinessException 如果数据库中不存在指定角色名称的角色，则抛出此异常
+     */
+    private RoleDO getRoleByName() {
+        RoleDO roleDO = roleDAO.lambdaQuery().eq(RoleDO::getRoleName, "老师").one();
+        if (roleDO == null) {
+            throw new BusinessException(
+                    "[dao.StudentTest]单元测试通过角色名称找不到角色数据", ErrorCode.OPERATION_ERROR);
+        }
+        return roleDO;
+    }
+
+    @BeforeEach
+    void setUp() {
+        log.debug("TeacherDAO单元测试初始化");
+
+        teacherDO = new TeacherDO();
+        UserDO userDO = new UserDO();
+        userDO.setUserUuid(UuidUtil.generateUuidNoDash())
+                .setName("teacherDAOTest")
+                .setPassword(PasswordUtil.encrypt("123456Aa"))
+                .setEmail("teacherDAOTest@qwer.com")
+                .setPhone("14452873800")
+                .setStatus(1)
+                .setBan(0)
+                .setRoleUuid(getRoleByName().getRoleUuid())
+                .setPermission("[\"user:role:edit\"]");
+        if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() == null) {
+            userDAO.save(userDO);
+        }
+        teacherDO.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setUnitUuid(getDepartmentByName().getDepartmentUuid())
+                .setUserUuid(userDO.getUserUuid())
+                .setId("123456")
+                .setName("teacherDAOTest")
+                .setEnglishName("ZhangSeng")
+                .setEthnic("汉族")
+                .setSex(1)
+                .setPhone("14452873800")
+                .setEmail("qwerasdfzxcv@qwer.com")
+                .setJobTitle("教授")
+                .setDesc("这是一个教授");
+        if (teacherDAO.lambdaQuery().eq(TeacherDO::getId, teacherDO.getId()).one() == null) {
+            teacherDAO.save(teacherDO);
+        }
+        RMap<String, String> teacherMap = redisson.getMap(
+                StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid());
+        teacherMap.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
+        teacherMap.expire(Duration.ofSeconds(86400));
+        RBucket<String> teacherId = redisson.getBucket(
+                StringConstant.Redis.TEACHER_ID + teacherDO.getId());
+        teacherId.set(teacherDO.getTeacherUuid());
+        teacherId.expire(Duration.ofSeconds(86400));
+        RBucket<String> teacherUserUuid = redisson.getBucket(
+                StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid());
+        teacherUserUuid.set(teacherDO.getTeacherUuid());
+        teacherUserUuid.expire(Duration.ofSeconds(86400));
+    }
+
+    @Test
+    void testGetTeacherById() {
+        log.debug("测试通过教师ID获取教师信息");
+        TeacherDO teacherById = teacherDAO.getTeacherById(teacherDO.getId());
+        assert teacherById != null;
+        Assertions.assertNotNull(teacherById);
+        log.debug("删除教师ID缓存信息");
+        redisson.getBucket(
+                StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
+        TeacherDO teacherDO1 = teacherDAO.getTeacherById(teacherDO.getId());
+        assert teacherDO1 != null;
+        Assertions.assertNotNull(teacherDO1);
+    }
+}
