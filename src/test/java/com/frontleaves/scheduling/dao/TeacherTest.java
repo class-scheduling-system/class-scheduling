@@ -40,7 +40,9 @@ class TeacherTest {
     private RoleDAO roleDAO;
     @Resource
     private Redisson redisson;
+    //初始化后查询出来的DO对象
     private TeacherDO teacherDO;
+    //初始化后查询出来的DO对象
     private UserDO userDO;
 
     /**
@@ -129,8 +131,12 @@ class TeacherTest {
     @AfterEach
     void tearDown() {
         log.debug("TeacherDAO单元测试结束");
-        teacherDAO.lambdaUpdate().eq(TeacherDO::getTeacherUuid, teacherDO.getTeacherUuid()).remove();
-        userDAO.lambdaUpdate().eq(UserDO::getUserUuid, userDO.getUserUuid()).remove();
+        if (teacherDAO.lambdaQuery().eq(TeacherDO::getId, teacherDO.getId()).one() != null) {
+            teacherDAO.lambdaUpdate().eq(TeacherDO::getId, teacherDO.getId()).remove();
+        }
+        if (userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one() != null) {
+            userDAO.lambdaUpdate().eq(UserDO::getUserUuid, userDO.getUserUuid()).remove();
+        }
         redisson.getMap(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
         redisson.getBucket(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
         redisson.getBucket(StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid()).delete();
