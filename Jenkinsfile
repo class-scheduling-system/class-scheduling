@@ -82,6 +82,9 @@ pipeline {
                             sed -i 's/active: dev/active: test/' ${workspace}/src/main/resources/application.yaml
                         """
 
+                        // 打包项目
+                        sh 'mvn clean package -Dmaven.test.skip=true'
+
                         // 使用 sshpass 和密码进行文件上传
                         sh """
                             sshpass -p ${serverPassword} scp -r ${workspace}/target/*.jar root@172.16.11.10:/root/project/
