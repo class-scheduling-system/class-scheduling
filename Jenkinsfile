@@ -84,7 +84,7 @@ pipeline {
 
                         // 使用 sshpass 和密码进行文件上传
                         sh """
-                            sshpass -p ${serverPassword} scp -r ${workspace}/target/*.jar root@172.16.11.10:/root/project
+                            sshpass -p ${serverPassword} scp -r ${workspace}/target/*.jar root@172.16.11.10:/root/project/
                         """
 
                         // 获取打包的 .jar 文件(不含地址名字)
