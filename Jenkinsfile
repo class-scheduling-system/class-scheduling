@@ -67,7 +67,7 @@ pipeline {
                 }
             }
         }
-        stage('Reset Database') {
+        stage('Reset Database Again') {
             steps {
                 script {
                     def workspace = pwd()
