@@ -26,78 +26,24 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.models.dto;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.sql.Timestamp;
-
 /**
- * 学生信息实体类
+ * 用户新增信息数据传输对象
  * <p>
- * 对应数据库表：`cs_student`
- * 本类用于描述学生的基本信息，包括学号、姓名、性别、年级、学院、专业、班级等，
- * 并关联了用户主键。主键(student_uuid)采用 UUID 自动生成。
+ * 该类继承自 {@code UserInfoDTO}，用于在不同层之间传输用户的基本信息以及其对应的身份信息（如学生或教师）。
+ * 与父类相比，此 DTO 增加了对新密码的处理。主要用于用户注册、修改密码等场景。
  * </p>
- *
- * @author FLASHLACK
- * @version v1.0.0
- * @since v1.0.0
  */
 @Data
-@TableName(value = "cs_student")
+@NoArgsConstructor
+@AllArgsConstructor
 @Accessors(chain = true)
-public class StudentDO {
-    /**
-     * 学生主键，采用 UUID 自动生成
-     */
-    @TableId(value = "student_uuid", type = IdType.ASSIGN_UUID)
-    private String studentUuid;
-    /**
-     * 学号
-     */
-    private String id;
-    /**
-     * 姓名
-     */
-    private String name = "123";
-    /**
-     * 性别 0:女 1:男
-     */
-    private Integer gender;
-    /**
-     * 年级
-     */
-    private String grade;
-    /**
-     * 学院
-     */
-    private String department;
-    /**
-     * 专业
-     */
-    private String major;
-    /**
-     * 班级
-     */
-    @TableField(value = "class")
-    private String clazz;
-    /**
-     * 对应用户主键
-     */
-    private String userUuid;
-    /**
-     * 创建时间
-     */
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    private Timestamp updatedAt;
+public class UserAddInfoDTO extends UserInfoDTO {
+    private String newPassword;
 }

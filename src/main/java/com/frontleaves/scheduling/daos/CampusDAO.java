@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CampusMapper;
 import com.frontleaves.scheduling.models.entity.CampusDO;
-import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -42,14 +41,13 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
      * 如果缓存中存在，则直接从缓存中读取校区信息。
      * </p>
      *
-     * @param campusUuid 校区唯一标识
-     * @return 返回与给定校区唯一标识匹配的校区信息，如果未找到则返回null
-     * @throws ServerInternalErrorException 如果服务器内部发生错误
+     * @param campusUuid 校区的唯一标识
+     * @return 返回与给定校区唯一标识匹配的校区信息，如果未找到则返回 {@code null}
      */
-    public CampusDO getCampusByUuid(String campusUuid) throws ServerInternalErrorException {
+    public CampusDO getCampusByUuid(String campusUuid) {
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.CAMPUS_UUID + campusUuid);
         if (!map.isExists()) {
-            CampusDO campusDO = getById(campusUuid);
+            CampusDO campusDO = this.getById(campusUuid);
             if (campusDO != null) {
                 map.putAll(ConvertUtil.convertObjectToMapString(campusDO));
                 map.expire(Duration.ofSeconds(86400));
@@ -64,17 +62,16 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
     /**
      * 通过校区名称获取校区信息
      * <p>
-     * 该方法根据给定的校区名称从Redis缓存或数据库中查询对应的校区信息。如果在Redis缓存中没有找到相应的数据，则会从数据库中进行查询，并将查询结果存入Redis缓存中以便后续快速访问。
+     * 该方法根据给定的校区名称 {@code campusName} 从Redis缓存或数据库中查询对应的校区信息。如果在Redis缓存中没有找到相应的数据，则从数据库中查询，并将结果缓存到Redis中以提高后续查询效率。
+     * 如果缓存中存在，则直接从缓存中读取校区信息。
      * </p>
      *
      * @param campusName 校区名称
-     * @return 返回与给定校区名称匹配的校区实体对象，如果未找到则返回 {@code null}
-     * @throws ServerInternalErrorException 如果在执行过程中发生服务器内部错误
+     * @return 返回与给定校区名称匹配的校区信息，如果未找到则返回 {@code null}
      */
-    public CampusDO getCampusByName(String campusName) throws ServerInternalErrorException {
-        RBucket<String> rBucket = redisson.getBucket(StringConstant.Redis.CAMPUS_NAME + campusName);
+    public CampusDO getCampusByName(String campusName) {
         return getCampusAndCache(
-                rBucket,
+                redisson.getBucket(StringConstant.Redis.CAMPUS_NAME + campusName),
                 this.lambdaQuery().eq(CampusDO::getCampusName, campusName)
         );
     }
@@ -82,18 +79,16 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
     /**
      * 通过校区编码获取校区信息
      * <p>
-     * 该方法通过传入的校区编码 {@code campusCode}，从Redis缓存或数据库中查询并返回对应的校区信息。
-     * 如果在Redis缓存中未找到，则从数据库中查询，并将结果缓存到Redis中以提高后续查询效率。
+     * 该方法根据给定的校区编码 {@code campusCode} 从Redis缓存或数据库中查询对应的校区信息。如果在Redis缓存中没有找到相应的数据，则从数据库中查询，并将结果缓存到Redis中以提高后续查询效率。
+     * 如果缓存中存在，则直接从缓存中读取校区信息。
      * </p>
      *
      * @param campusCode 校区编码
-     * @return 返回与给定校区编码匹配的校区信息，如果未找到则返回null
-     * @throws ServerInternalErrorException 如果在处理过程中发生服务器内部错误
+     * @return 返回与给定校区编码匹配的校区信息，如果未找到则返回 {@code null}
      */
-    public CampusDO getCampusByCode(String campusCode) throws ServerInternalErrorException {
-        RBucket<String> rBucket = redisson.getBucket(StringConstant.Redis.CAMPUS_CODE + campusCode);
+    public CampusDO getCampusByCode(String campusCode) {
         return getCampusAndCache(
-                rBucket,
+                redisson.getBucket(StringConstant.Redis.CAMPUS_CODE + campusCode),
                 this.lambdaQuery().eq(CampusDO::getCampusCode, campusCode)
         );
     }
@@ -110,7 +105,7 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
      * @return 返回查询到的校区信息，如果未找到则返回null
      */
     @Nullable
-    public CampusDO getCampusAndCache(@NotNull RBucket<String> rBucket, LambdaQueryChainWrapper<CampusDO> eq) {
+    private CampusDO getCampusAndCache(@NotNull RBucket<String> rBucket, LambdaQueryChainWrapper<CampusDO> eq) {
         if (!rBucket.isExists()) {
             CampusDO campusDO = eq.one();
             if (campusDO != null) {

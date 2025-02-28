@@ -68,9 +68,9 @@ public class BuildingController {
      * 如果提供了关键词 {@code keyword}，则会根据关键词进行搜索；否则返回所有教学楼的列表。
      * 单页查询的最大条目数为 200，超过此限制将抛出异常。
      *
-     * @param page 当前页码，默认值为 1
-     * @param size 每页显示的条目数，默认值为 20
-     * @param isDesc 是否按降序排列，默认值为 true
+     * @param page    当前页码，默认值为 1
+     * @param size    每页显示的条目数，默认值为 20
+     * @param isDesc  是否按降序排列，默认值为 true
      * @param keyword 搜索关键词，可选参数
      * @return 包含教学楼列表的分页数据和响应状态的 {@code ResponseEntity}
      */
@@ -101,6 +101,7 @@ public class BuildingController {
      * <p>
      * 该方法用于根据教学楼的 UUID 或名称获取教学楼的详细信息。如果提供的 {@code building} 参数为空或空白，
      * 则会抛出一个业务异常，提示“教学楼UUID/名称不能为空”。成功获取后，将以 JSON 格式返回教学楼的信息。
+     *
      * @param building 教学楼的 UUID 或名称
      * @return 包含教学楼信息的响应实体
      */
@@ -120,10 +121,11 @@ public class BuildingController {
      * 根据校区获取教学楼列表
      * <p>
      * 该方法用于根据指定的校区UUID获取该校区下的教学楼列表。支持分页查询，并可以设置查询结果是否按降序排列。
+     *
      * @param campusUuid 校区的唯一标识符，不能为空或空白字符串
-     * @param page 请求的页码，默认值为1
-     * @param size 每页显示的教学楼数量，默认值为20
-     * @param isDesc 查询结果是否按降序排列，默认值为true
+     * @param page       请求的页码，默认值为1
+     * @param size       每页显示的教学楼数量，默认值为20
+     * @param isDesc     查询结果是否按降序排列，默认值为true
      * @return 包含状态信息和数据的响应实体，其中数据部分是{@code PageDTO<BuildingDTO>}类型，代表了当前页的教学楼列表
      */
     @RequestRole({"管理员"})
@@ -169,7 +171,7 @@ public class BuildingController {
      * 只有具备管理员权限的用户才能调用此接口。
      *
      * @param buildingUuid 教学楼的唯一标识符
-     * @param buildingVO 包含更新后的教学楼信息的对象
+     * @param buildingVO   包含更新后的教学楼信息的对象
      * @return 返回一个包含成功信息的响应实体
      */
     @RequestRole({"管理员"})

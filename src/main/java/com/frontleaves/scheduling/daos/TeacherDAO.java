@@ -67,10 +67,16 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     private final RedissonClient redisson;
 
     /**
+     * 根据教师ID获取教师信息
+     * <p>
+     * 该方法通过提供的教师ID从Redis缓存中查找教师信息。如果在Redis中未找到，则会尝试从数据库查询，并将结果存入Redis以供后续快速访问。
+     * 如果既没有在Redis也没有在数据库中找到对应的教师信息，那么返回值为 {@code null}。
      *
+     * @param id 教师的唯一标识符
+     * @return 返回与给定ID匹配的教师对象；如果没有找到匹配项，则返回 {@code null}
      */
     @Nullable
-    public TeacherDO getTeacherById(String id) throws ServerInternalErrorException {
+    public TeacherDO getTeacherById(String id) {
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.TEACHER_ID + id);
         if (!map.isExists()) {
             TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getId, id).one();
@@ -86,21 +92,19 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     }
 
     /**
-     * 通过教师 UUID 获取教师信息
+     * 根据教师的唯一标识获取教师信息
      * <p>
-     * 该方法首先尝试从 Redis 中获取教师信息，如果 Redis 中不存在，则从数据库中查询教师信息并将其存入 Redis。
-     * 如果在 Redis 和数据库中都未找到教师信息，则返回 null。
-     * </p>
+     * 该方法首先尝试从 Redis 缓存中获取教师数据。如果缓存中没有找到对应的教师信息，则会从数据库中查询。
+     * 查询到的数据会被存入 Redis 缓存中，并设置过期时间为一天（86400秒）。如果在缓存和数据库中都没有找到对应的教师信息，则返回 {@code null}。
      *
-     * @param teacherUuid 教师的 UUID
-     * @return 返回教师信息，如果未找到则返回 null
-     * @throws ServerInternalErrorException 如果数据库操作失败
+     * @param teacherUuid 教师的唯一标识符
+     * @return 返回与给定 UUID 对应的教师对象，如果没有找到则返回 {@code null}
      */
     @Nullable
-    public TeacherDO getTeacherByUuid(String teacherUuid) throws ServerInternalErrorException {
+    public TeacherDO getTeacherByUuid(String teacherUuid) {
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.TEACHER_UUID + teacherUuid);
         if (map.isEmpty()) {
-            TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getTeacherUuid, teacherUuid).one();
+            TeacherDO teacherDO = this.getById(teacherUuid);
             if (teacherDO != null) {
                 map.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
                 map.expire(Duration.ofSeconds(86400));
@@ -138,6 +142,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
                         .update();
                 transaction.commit();
             } else {
+                transaction.rollback();
                 throw new BusinessException("未找到对应的教师信息", ErrorCode.NOT_EXIST);
             }
         } catch (Exception e) {
@@ -145,5 +150,53 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
             transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+    }
+
+    /**
+     * 删除教师
+     * <p>
+     * 该方法用于删除指定的教师信息。首先通过教师 ID 获取教师信息，然后在数据库中删除该教师信息，
+     * 并在 Redis 中删除与该教师关联的数据。
+     * 如果未找到对应的教师信息或者删除失败，则抛出 {@code BusinessException} 异常。
+     * </p>
+     *
+     * @param teacherDO 教师信息
+     * @throws ServerInternalErrorException 如果删除过程中发生服务器内部错误
+     */
+    public void deleteTeacher(TeacherDO teacherDO) throws ServerInternalErrorException {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            this.lambdaUpdate().eq(TeacherDO::getId, teacherDO.getId()).remove();
+            transaction.getBucket(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
+            transaction.getBucket(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
+            transaction.commit();
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
+
+    /**
+     * 通过用户 UUID 获取教师信息
+     * <p>
+     * 该方法首先尝试从 Redis 中获取教师信息，如果 Redis 中不存在，则从数据库中查询教师信息并将其存入 Redis。
+     * 如果在 Redis 和数据库中都未找到教师信息，则返回 null。
+     * </p>
+     *
+     * @param userUuid 用户的 UUID
+     * @return 返回教师信息，如果未找到则返回 null
+     */
+    public TeacherDO getTeacherByUserUuid(String userUuid) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TEACHER_USER_UUID + userUuid);
+        if (!map.isExists()) {
+            TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getUserUuid, userUuid).one();
+            if (teacherDO != null) {
+                map.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
+                map.expire(Duration.ofSeconds(86400));
+                return teacherDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, TeacherDO.class);
+        }
+        return null;
     }
 }

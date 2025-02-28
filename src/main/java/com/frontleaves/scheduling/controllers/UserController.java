@@ -28,11 +28,25 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestLogin;
+import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.UserAddInfoDTO;
+import com.frontleaves.scheduling.models.dto.UserInfoDTO;
+import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.vo.UserAddVO;
+import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.services.UserService;
+import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.exception.library.UserAuthenticationException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 用户控制器
@@ -50,4 +64,118 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/user")
 public class UserController {
     private final UserService userService;
+
+    /**
+     * 获取当前登录用户信息接口
+     * <p>
+     * 该接口用于获取当前登录的用户的三方信息;
+     * 并针对不同身份用户返回对应的DTO
+     *
+     * @return 用户信息(DTO)
+     */
+    @RequestLogin
+    @GetMapping("/current")
+    public ResponseEntity<BaseResponse<UserInfoDTO>> getCurrentUserInfo(HttpServletRequest request) {
+        // 从请求中获取当前用户
+        UserDO getCurrentUser = userService.getUserByRequest(request);
+        if (getCurrentUser == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_LOGIN, request);
+        }
+        // 用户信息是存在的
+        UserInfoDTO userInfo = userService.getUserInfoWithRole(getCurrentUser);
+        return ResultUtil.success("用户信息获取成功", userInfo);
+    }
+
+    /**
+     * 获取用户信息接口
+     *
+     * @param userUuid 用户唯一标识符
+     * @param request  HTTP请求对象，用于从中提取用户Token
+     * @return UserDO 用户信息对象，包含用户的详细信息
+     */
+    @GetMapping("/{user_uuid}")
+    public ResponseEntity<BaseResponse<UserInfoDTO>> userGetInfo(
+            @PathVariable("user_uuid") String userUuid,
+            HttpServletRequest request
+    ) {
+        userService.checkUuid(userUuid);
+        UserInfoDTO userInfoDTO = userService.getUserInfo(userUuid, request);
+        return ResultUtil.success("获取用户信息成功", userInfoDTO);
+    }
+
+    /**
+     * 添加用户
+     *
+     * @param userAddVO 用户添加视图对象
+     * @return 用户信息数据传输对象
+     */
+    @PostMapping("")
+    public ResponseEntity<BaseResponse<UserAddInfoDTO>> addUser(
+            @RequestBody UserAddVO userAddVO
+    ) {
+        userService.checkAddUser(userAddVO);
+        UserAddInfoDTO userInfoDTO = userService.addUser(userAddVO);
+        return ResultUtil.success("添加用户成功", userInfoDTO);
+    }
+
+    /**
+     * 删除用户
+     *
+     * @param userUuid 用户唯一标识符
+     * @return 空数据的响应实体，表示删除操作已成功处理
+     */
+    @DeleteMapping("/{user_uuid}")
+    public ResponseEntity<BaseResponse<Void>> deleteUser(
+            @PathVariable("user_uuid") String userUuid,
+            HttpServletRequest request
+    ) {
+        userService.checkUuid(userUuid);
+        userService.deleteUser(userUuid, request);
+        return ResultUtil.success("删除用户成功");
+    }
+
+    /**
+     * 更新用户
+     *
+     * @param userUuid   用户唯一标识符
+     * @param userEditVO 用户编辑视图对象
+     * @param request    HTTP请求对象
+     * @return 用户信息数据传输对象
+     */
+    @PutMapping("/{user_uuid}")
+    public ResponseEntity<BaseResponse<UserInfoDTO>> updateUser(
+            @PathVariable("user_uuid") String userUuid,
+            @Validated @RequestBody UserEditVO userEditVO,
+            HttpServletRequest request
+    ) {
+        userService.checkUuid(userUuid);
+        UserInfoDTO userInfoDTO = userService.updateUser(userUuid, userEditVO, request);
+        if (userInfoDTO == null) {
+            throw new BusinessException("更新用户失败", ErrorCode.OPERATION_ERROR);
+        }
+        return ResultUtil.success("更新用户成功", userInfoDTO);
+    }
+
+    /**
+     * 获取用户列表
+     *
+     * @param page    页数
+     * @param size    每页大小
+     * @param keyword 关键字
+     * @param isDesc  是否降序
+     * @param request HTTP请求对象
+     * @return 用户信息数据传输对象分页列表
+     */
+    @GetMapping("/list")
+    public ResponseEntity<BaseResponse<PageDTO<UserInfoDTO>>> getUserList(
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "20") Integer size,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "is_desc", defaultValue = "true") Boolean isDesc,
+            HttpServletRequest request
+    ) {
+        userService.checkPageAndSize(page, size);
+        PageDTO<UserInfoDTO> userInfoDtoPage = userService.getUserList(page, size, keyword, isDesc, request);
+        return ResultUtil.success("获取用户列表成功", userInfoDtoPage);
+    }
 }

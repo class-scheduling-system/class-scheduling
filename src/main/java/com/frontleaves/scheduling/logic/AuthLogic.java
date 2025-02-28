@@ -40,6 +40,7 @@ import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.AuthService;
+import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
@@ -75,6 +76,7 @@ public class AuthLogic implements AuthService {
     private final TeacherDAO teacherDAO;
     private final RoleDAO roleDAO;
     private final TokenDAO tokenDAO;
+    private final UserService userService;
 
     /**
      * 检查新用户通过学生信息登录
@@ -160,11 +162,11 @@ public class AuthLogic implements AuthService {
         }
         UserLoginDTO userLoginDTO = new UserLoginDTO();
         // 学生教师验证「确认信息后将信息填入」
-        StudentDO studentDO = studentDAO.getStudentByUuid(userDO.getUserUuid());
+        StudentDO studentDO = studentDAO.getStudentByUserUuid(userDO.getUserUuid());
         if (studentDO != null) {
             userLoginDTO.setStudent(BeanUtil.toBean(studentDO, StudentDTO.class));
         }
-        TeacherDO teacherDO = teacherDAO.getTeacherByUuid(userDO.getUserUuid());
+        TeacherDO teacherDO = teacherDAO.getTeacherByUserUuid(userDO.getUserUuid());
         if (teacherDO != null) {
             userLoginDTO.setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class));
         }
@@ -173,29 +175,6 @@ public class AuthLogic implements AuthService {
                 .setToken(tokenDAO.createToken(userDO))
                 .setInitialization(false);
         return userLoginDTO;
-    }
-
-    /**
-     * 检查用户信息是否已经存在于系统中。
-     * <p>
-     * 该方法通过用户名、邮箱和手机号来检测用户是否存在。如果任意一项已存在，则抛出 {@link BusinessException} 异常。
-     *
-     * @param username 用户名
-     * @param email    邮箱地址
-     * @param phone    手机号码
-     * @throws BusinessException 如果用户名、邮箱或手机号已存在，则抛出此异常
-     */
-    private void checkUserExist(String username, String email, String phone) throws BusinessException {
-        log.debug(LogConstant.SERVICE + "检测用户信息是否重复");
-        if (userDAO.getUserByName(username) != null) {
-            throw new BusinessException("用户名已存在", ErrorCode.BODY_ERROR);
-        }
-        if (userDAO.getUserByMail(email) != null) {
-            throw new BusinessException("邮箱已存在", ErrorCode.BODY_ERROR);
-        }
-        if (userDAO.getUserByTel(phone) != null) {
-            throw new BusinessException("手机号已存在", ErrorCode.BODY_ERROR);
-        }
     }
 
     /**
@@ -257,7 +236,7 @@ public class AuthLogic implements AuthService {
     public void userRegistered(@NotNull UserInitializationVO userInitializationVO, HttpServletRequest request)
             throws BusinessException {
         // 检查用户是否存在
-        this.checkUserExist(
+        userService.checkUserExist(
                 userInitializationVO.getName(),
                 userInitializationVO.getEmail(),
                 userInitializationVO.getPhone()

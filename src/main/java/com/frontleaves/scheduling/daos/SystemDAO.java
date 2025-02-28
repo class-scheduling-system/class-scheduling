@@ -122,8 +122,7 @@ public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IS
      * @param value 系统值
      */
     public void addSystemInfo(String key, String value) {
-        SystemDO systemDO = new SystemDO();
-        systemDO
+        SystemDO systemDO = new SystemDO()
                 .setSystemKey(key)
                 .setSystemVal(value);
         this.save(systemDO);
