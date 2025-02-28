@@ -77,13 +77,18 @@ pipeline {
                         // 定义账号密码
                         def serverPassword = '123456'  // 目标服务器的密码
 
-                        // 使用 sshpass 和密码进行文件上传
+                        // 修改 application.yaml 文件，将 Redis 配置文件的 dev 改为 test
                         sh """
-                            sshpass -p ${serverPassword} scp -r ${workspace}/target/* root@172.16.11.10:/root/project
+                            sed -i 's/dev/test/g' ${workspace}/src/main/resources/application.yaml
                         """
 
-                        // 获取打包的 .jar 文件
-                        def jarFile = sh(script: 'ls target/*.jar', returnStdout: true).trim()
+                        // 使用 sshpass 和密码进行文件上传
+                        sh """
+                            sshpass -p ${serverPassword} scp -r ${workspace}/target/*.jar root@172.16.11.10:/root/project
+                        """
+
+                        // 获取打包的 .jar 文件(不含地址名字)
+                        def jarFile = sh(script: 'ls target/*.jar | awk -F "/" \'{print $2}\'', returnStdout: true).trim()
 
                         // 在服务器上执行操作，杀掉旧进程并启动新项目
                         sh """
