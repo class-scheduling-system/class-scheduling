@@ -49,18 +49,6 @@ pipeline {
                 }
             }
         }
-        stage('Prepare Environment') {
-            steps {
-                script {
-                    def workspace = pwd()
-                    echo "当前工作目录: ${workspace}"
-                    sh """
-                    sed -i '/^host = localhost/a password = 123456' ${workspace}/src/main/resources/config/redis.setting
-                    sed -i 's/host = localhost/host = 172.16.11.3/' ${workspace}/src/main/resources/config/redis.setting
-                    """
-                }
-            }
-        }
         stage('SonarQube Analysis') {
             steps {
                 ansiColor('xterm') {
@@ -74,6 +62,57 @@ pipeline {
                                 -Dsonar.token=${SONAR_TOKEN} \
                                 -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
                                 -Dmaven.test.failure.ignore=true
+                        '''
+                    }
+                }
+            }
+        }
+        stage('build project') {
+            steps {
+                ansiColor('xterm') {
+                    echo "修改构建文件"
+                    sh '''
+                        sed -i 's/spring.profiles.active: dev/spring.profiles.active: test/g' src/main/resources/application.yml
+                    '''
+                    sh '''
+                        mvn clean package \
+                            -Dmaven.test.failure.ignore=true
+                    '''
+                }
+            }
+        }
+        stage('deploy project to server') {
+            steps {
+                ansiColor('xterm') {
+                    script {
+                        def workspace = pwd()
+                        echo "当前工作目录: ${workspace}"
+
+                        // 上传文件到服务器
+                        sh '''
+                            # 上传整个文件夹到服务器
+                            scp -r ${workspace}/* root@172.16.11.10:/root/project
+                        '''
+
+                        // 在服务器上执行：获取PID、kill旧的PID并启动新的项目
+                        sh '''
+                            # 在服务器上执行以下操作
+                            ssh root@172.16.11.10 "
+                            # 检查是否有旧的进程PID记录
+                            if [ -f /root/project/pid.txt ]; then
+                                OLD_PID=\$(cat /root/project/pid.txt)
+                                # 杀掉旧的进程
+                                echo 'Killing old process with PID: \${OLD_PID}'
+                                kill -9 \${OLD_PID}
+                            fi
+
+                            # 启动新的项目并记录PID
+                            echo 'Starting new project...'
+                            nohup java -jar /root/project/your-app.jar > /root/project/output.log 2>&1 &
+                            NEW_PID=\$!
+                            echo \${NEW_PID} > /root/project/pid.txt
+                            echo 'New project started with PID: \${NEW_PID}'
+                            "
                         '''
                     }
                 }
