@@ -1,26 +1,23 @@
 package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.AcademicAffairsPermissionDAO;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
-import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserAddInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.entity.AcademicAffairsPermissionDO;
-import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.services.UserService;
-import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,8 +38,6 @@ class UserTest {
     @Resource
     private UserService userService;
     @Resource
-    private RoleDAO roleDAO;
-    @Resource
     private RedissonClient redisson;
     @Resource
     private UserDAO userDAO;
@@ -52,25 +47,6 @@ class UserTest {
     private AcademicAffairsPermissionDAO academicAffairsPermissionDAO;
     private UserDO setUpUser;
 
-
-    /**
-     * 根据角色名称获取角色信息
-     * 此方法特别针对“管理员”角色，用于在系统中查找此角色的详细信息
-     * 如果找不到指定的角色，则抛出业务异常，指示操作失败
-     *
-     * @return RoleDO 返回角色数据对象，包含角色的详细信息
-     * @throws BusinessException 当在数据库中找不到指定角色名称的角色时抛出此异常
-     */
-    private @NotNull RoleDO getRoleByName(String roleName) {
-        // 使用Lambda表达式查询“管理员”角色的详细信息
-        RoleDO roleDO = roleDAO.lambdaQuery().eq(RoleDO::getRoleName, roleName).one();
-        // 如果查询结果为空，则抛出异常
-        if (roleDO == null) {
-            throw new BusinessException("[dao.StudentTest]单元测试通过部门名称找不到部门数据", ErrorCode.OPERATION_ERROR);
-        }
-        // 返回查询到的角色信息
-        return roleDO;
-    }
 
     @BeforeEach
     void setUp() {
@@ -83,7 +59,7 @@ class UserTest {
                 .setStatus(1)
                 .setBan(0)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
-                .setRoleUuid(getRoleByName("管理").getRoleUuid());
+                .setRoleUuid(SystemConstant.getRoleAdmin());
         if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
             userDAO.lambdaUpdate().eq(UserDO::getName, userDO.getName()).remove();
         }
@@ -115,7 +91,7 @@ class UserTest {
     void testAddUser() {
         log.debug("测试添加用户");
         UserAddVO addVO = new UserAddVO(
-                getRoleByName("管理").getRoleUuid(),
+                SystemConstant.getRoleAdmin(),
                 "testAddUser",
                 PasswordUtil.encrypt("123456Aa"),
                 "testAddUser@test.com",
@@ -144,7 +120,7 @@ class UserTest {
     void testAddUserWithAcademic() {
         log.debug("测试添加教务用户");
         UserAddVO addVO = new UserAddVO(
-                getRoleByName("教务").getRoleUuid(),
+                SystemConstant.getRoleAcademic(),
                 "testAddUser",
                 PasswordUtil.encrypt("123456Aa"),
                 "testAddUser@test.com",
@@ -201,7 +177,7 @@ class UserTest {
         log.debug("测试更新用户信息");
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
                 "13800000001", 0, 1,
-                getRoleByName("管理员").getRoleUuid(),
+                SystemConstant.getRoleAdmin(),
                 List.of("operate"));
         UserInfoDTO userInfoDTO = userService.updateUser(
                 setUpUser.getUserUuid(), editVO, new MockHttpServletRequest());
@@ -228,7 +204,7 @@ class UserTest {
         log.debug("测试更新用户信息改变为学生角色");
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
                 "13800000001", 0, 1,
-                getRoleByName("学生").getRoleUuid(),
+                SystemConstant.getRoleStudent(),
                 List.of("operate"));
         String userUuid = setUpUser.getUserUuid();
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -243,7 +219,7 @@ class UserTest {
         log.debug("测试更新用户信息改变为教师角色");
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
                 "13800000001", 0, 1,
-                getRoleByName("老师").getRoleUuid(),
+                SystemConstant.getRoleTeacher(),
                 List.of("operate"));
         String userUuid = setUpUser.getUserUuid();
         MockHttpServletRequest request = new MockHttpServletRequest();

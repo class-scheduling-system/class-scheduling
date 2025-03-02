@@ -1,8 +1,15 @@
 package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.constants.SystemConstant;
+import com.frontleaves.scheduling.daos.DepartmentDAO;
+import com.frontleaves.scheduling.daos.MajorDAO;
+import com.frontleaves.scheduling.daos.StudentDAO;
+import com.frontleaves.scheduling.daos.UserDAO;
+import com.frontleaves.scheduling.models.entity.DepartmentDO;
+import com.frontleaves.scheduling.models.entity.MajorDO;
+import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
@@ -10,7 +17,6 @@ import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,8 +33,7 @@ import java.time.Duration;
 class StudentTest {
     @Resource
     private StudentDAO studentDAO;
-    @Resource
-    private RoleDAO roleDAO;
+
     @Resource
     private UserDAO userDAO;
     @Resource
@@ -67,24 +72,6 @@ class StudentTest {
         return majorDO;
     }
 
-    /**
-     * 根据角色名称获取角色对象
-     * <p>
-     * 此方法使用lambda表达式和链式调用从数据库中查询角色名称匹配的角色对象如果找不到对应的角色，
-     * 则抛出一个自定义的BusinessException异常，指示操作失败这主要是为了处理角色数据不存在的情况，
-     * 确保调用此方法时能够得到明确的错误提示
-     *
-     * @return RoleDO 如果找到匹配的角色名称，则返回对应的角色对象
-     * @throws BusinessException 如果数据库中不存在指定角色名称的角色，则抛出此异常
-     */
-    private @NotNull RoleDO getRoleByName() {
-        RoleDO roleDO = roleDAO.lambdaQuery().eq(RoleDO::getRoleName, "学生").one();
-        if (roleDO == null) {
-            throw new BusinessException(
-                    "[dao.StudentTest]单元测试通过角色名称找不到角色数据", ErrorCode.OPERATION_ERROR);
-        }
-        return roleDO;
-    }
 
     @BeforeEach
     void setUp() {
@@ -97,7 +84,7 @@ class StudentTest {
                 .setPhone("14452873800")
                 .setStatus(1)
                 .setBan(0)
-                .setRoleUuid(getRoleByName().getRoleUuid())
+                .setRoleUuid(SystemConstant.getRoleStudent())
                 .setPermission("[\"user:role:edit\"]");
         if (userDAO.lambdaQuery().eq(UserDO::getName, setUpUser.getName()).one() != null) {
             userDAO.lambdaUpdate().eq(UserDO::getName, setUpUser.getName()).remove();
@@ -165,7 +152,7 @@ class StudentTest {
     }
 
     @Test
-    void testUpdateUserUuid(){
+    void testUpdateUserUuid() {
         log.debug("测试更新学生信息中的用户 UUID");
         //创建一个新的教师用户
         UserDO newTestUserDO = new UserDO();
@@ -176,7 +163,7 @@ class StudentTest {
                 .setPhone("15859273800")
                 .setStatus(1)
                 .setBan(0)
-                .setRoleUuid(getRoleByName().getRoleUuid())
+                .setRoleUuid(SystemConstant.getRoleStudent())
                 .setPermission("[\"user:role:edit\"]");
         if (userDAO.lambdaQuery().eq(UserDO::getName, newTestUserDO.getName()).one() != null) {
             userDAO.lambdaUpdate().eq(UserDO::getName, newTestUserDO.getName()).remove();
@@ -189,7 +176,7 @@ class StudentTest {
         if (studentDAO.lambdaQuery().eq(StudentDO::getStudentUuid, studentDO1.getStudentUuid()).one() != null) {
             studentDAO.lambdaUpdate().eq(StudentDO::getStudentUuid, studentDO1.getStudentUuid()).remove();
         }
-        if (userDAO.lambdaQuery().eq(UserDO::getUserUuid,newTestUserDO.getUserUuid()).one() != null) {
+        if (userDAO.lambdaQuery().eq(UserDO::getUserUuid, newTestUserDO.getUserUuid()).one() != null) {
             userDAO.lambdaUpdate().eq(UserDO::getUserUuid, newTestUserDO.getUserUuid()).remove();
         }
     }
@@ -209,6 +196,7 @@ class StudentTest {
         Assertions.assertFalse(getMapByUuid.isExists());
         Assertions.assertFalse(getMapByUserUuid.isExists());
     }
+
     @Test
     void testGetStudentByUserUuid() {
         log.debug("测试通过用户 UUID 获取学生信息");

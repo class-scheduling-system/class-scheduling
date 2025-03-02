@@ -1,12 +1,11 @@
 package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
-import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
-import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.ErrorCode;
@@ -16,7 +15,6 @@ import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,8 +37,6 @@ class TeacherTest {
     @Resource
     private UserDAO userDAO;
     @Resource
-    private RoleDAO roleDAO;
-    @Resource
     private RedissonClient redisson;
     private TeacherDO setUpTeacher;
     private UserDO setUpUser;
@@ -59,24 +55,6 @@ class TeacherTest {
         return departmentDO;
     }
 
-    /**
-     * 根据角色名称获取角色对象
-     * <p>
-     * 此方法使用lambda表达式和链式调用从数据库中查询角色名称匹配的角色对象如果找不到对应的角色，
-     * 则抛出一个自定义的BusinessException异常，指示操作失败这主要是为了处理角色数据不存在的情况，
-     * 确保调用此方法时能够得到明确的错误提示
-     *
-     * @return RoleDO 如果找到匹配的角色名称，则返回对应的角色对象
-     * @throws BusinessException 如果数据库中不存在指定角色名称的角色，则抛出此异常
-     */
-    private @NotNull RoleDO getRoleByName() {
-        RoleDO roleDO = roleDAO.lambdaQuery().eq(RoleDO::getRoleName, "老师").one();
-        if (roleDO == null) {
-            throw new BusinessException(
-                    "[dao.TeacherTest]单元测试通过角色名称找不到角色数据", ErrorCode.OPERATION_ERROR);
-        }
-        return roleDO;
-    }
 
     @BeforeEach
     @Transactional
@@ -91,7 +69,7 @@ class TeacherTest {
                 .setPhone("14452873800")
                 .setStatus(1)
                 .setBan(0)
-                .setRoleUuid(getRoleByName().getRoleUuid())
+                .setRoleUuid(SystemConstant.getRoleTeacher())
                 .setPermission("[\"user:role:edit\"]");
         if (userDAO.lambdaQuery().eq(UserDO::getName, setUpUser.getName()).one() != null) {
             userDAO.lambdaUpdate().eq(UserDO::getName, setUpUser.getName()).remove();
@@ -213,7 +191,7 @@ class TeacherTest {
                 .setPhone("15859273800")
                 .setStatus(1)
                 .setBan(0)
-                .setRoleUuid(getRoleByName().getRoleUuid())
+                .setRoleUuid(SystemConstant.getRoleTeacher())
                 .setPermission("[\"user:role:edit\"]");
         if (userDAO.lambdaQuery().eq(UserDO::getName, newTestUserDO.getName()).one() == null) {
             userDAO.lambdaUpdate().eq(UserDO::getName, newTestUserDO.getName()).remove();
