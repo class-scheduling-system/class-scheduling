@@ -194,7 +194,7 @@ public class UserLogic implements UserService {
     public void checkAddUser(UserAddVO userAddVO) {
         RoleDTO roleDTO = roleDAO.getRoleByUuid(userAddVO.getRoleUuid());
         if (roleDTO == null) {
-            throw new BusinessException(StringConstant.USER_DATA_NOT_EXIST, ErrorCode.BODY_ERROR);
+            throw new BusinessException("无此类用户角色", ErrorCode.BODY_ERROR);
         }
         if (SystemConstant.getRoleStudent().equals(roleDTO.getRoleName())
                 || SystemConstant.getRoleTeacher().equals(roleDTO.getRoleName())) {
