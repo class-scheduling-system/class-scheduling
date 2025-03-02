@@ -129,7 +129,7 @@ public interface UserService {
             HttpServletRequest request);
 
     /**
-     * 检查编辑用户数据合规性
+     * 更新用户信息
      *
      * @param userUuid   用户唯一标识符
      * @param userEditVO 用户编辑数据

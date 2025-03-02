@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
@@ -16,7 +16,7 @@ import java.util.List;
  *
  * @author FLASHLACK
  */
-@Getter
+@Data
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
