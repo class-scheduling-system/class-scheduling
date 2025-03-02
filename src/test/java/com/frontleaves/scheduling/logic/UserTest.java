@@ -9,7 +9,6 @@ import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserAddInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
 import com.frontleaves.scheduling.models.entity.AcademicAffairsPermissionDO;
-import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
@@ -151,8 +150,7 @@ class UserTest {
                 "testAddUser@test.com",
                 "13800000001",
                 List.of("operate"),
-                departmentDAO.lambdaQuery().eq(DepartmentDO::getDepartmentOrder, 1)
-                        .one().getDepartmentUuid(),
+                departmentDAO.lambdaQuery().list().get(0).getDepartmentUuid(),
                 0
         );
         if (userDAO.lambdaQuery().eq(UserDO::getName, addVO.getName()).one() != null) {

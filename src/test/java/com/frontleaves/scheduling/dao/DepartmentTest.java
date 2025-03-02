@@ -22,7 +22,7 @@ class DepartmentTest {
 
     @Test
      void testGetDepartmentByUuidNoRedis() {
-        DepartmentDO departmentDO = departmentDAO.lambdaQuery().eq(DepartmentDO::getDepartmentOrder,1).one();
+        DepartmentDO departmentDO = departmentDAO.lambdaQuery().list().get(0);
         DepartmentDO departmentDO1 = departmentDAO.getDepartmentByUuid(departmentDO.getDepartmentUuid());
         Assertions.assertNotNull(departmentDO1);
         Map<String, String> map = redisson.getMap(

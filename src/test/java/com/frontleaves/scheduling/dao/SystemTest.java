@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DuplicateKeyException;
 
 @Slf4j
 @SpringBootTest
@@ -69,16 +70,12 @@ class SystemTest {
         String getRandomAdd = systemDAO.getSystemInfo(getKey);
         log.debug("获取随机存入结果: {}", getRandomAdd);
 
-        try {
+        Assertions.assertThrows(DuplicateKeyException.class, () -> {
             // 存入已存在的结果
             systemDAO.addSystemInfo("system_author", "测试团队");
             String getSystemAuthor = systemDAO.getSystemInfo("system_author");
             log.debug("获取添加的内容，检查是否会报错: {}", getSystemAuthor);
             systemDAO.setSystemInfo("system_author", "锋楪技术团队");
-            Assertions.fail("添加已存在的内容时未报错");
-        } catch (Exception e) {
-            log.error("添加已存在的内容时报错: {}", e.getMessage());
-            Assertions.assertTrue(true);
-        }
+        });
     }
 }
