@@ -3,7 +3,7 @@ package com.frontleaves.scheduling.models.vo;
 import com.frontleaves.scheduling.constants.StringConstant;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
@@ -14,7 +14,7 @@ import java.util.List;
  *
  * @author FLASHLACK
  */
-@Data
+@Getter
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

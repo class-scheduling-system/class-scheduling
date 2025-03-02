@@ -32,6 +32,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.StudentDO;
@@ -252,7 +253,7 @@ public class AuthLogic implements AuthService {
                 throw new BusinessException("学生已注册", ErrorCode.BODY_ERROR);
             }
             userDO = BeanUtil.toBean(userInitializationVO, UserDO.class)
-                    .setRoleUuid(roleDAO.getRoleByName("学生").getRoleUuid());
+                    .setRoleUuid(SystemConstant.getRoleStudent());
         } else {
             TeacherDO teacherDO = teacherDAO.getTeacherById(userInitializationVO.getUser());
             if (teacherDO == null) {
@@ -262,7 +263,7 @@ public class AuthLogic implements AuthService {
                 throw new BusinessException("教师已注册", ErrorCode.BODY_ERROR);
             }
             userDO = BeanUtil.toBean(userInitializationVO, UserDO.class)
-                    .setRoleUuid(roleDAO.getRoleByName("教师").getRoleUuid());
+                    .setRoleUuid(SystemConstant.getRoleTeacher());
         }
         // 构造信息
         String userUuid = UuidUtil.generateUuidNoDash();
