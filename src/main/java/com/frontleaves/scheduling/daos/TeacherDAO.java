@@ -140,8 +140,8 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
      * @throws BusinessException            如果未找到对应的教师信息
      * @throws ServerInternalErrorException 如果更新教师信息失败
      */
-    public void updateUserUuid(String userUuid, String teacherId) throws BusinessException,
-            ServerInternalErrorException {
+    public void updateUserUuid(String userUuid, String teacherId)
+            throws BusinessException, ServerInternalErrorException {
         TeacherDO teacherDO = this.getTeacherById(teacherId);
         log.debug(LogConstant.DAO + "teacherDO: {}", teacherDO);
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());

@@ -278,8 +278,12 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @param isDesc  布尔值，指定结果是否按创建时间降序排列；如果为 {@code true} 则降序，否则升序
      * @return 返回一个包含当前请求页面数据及总条目数等信息的 {@code Page<UserDO>} 对象
      */
-    public Page<UserDO> getUserDoPage(@NotNull Integer page, @NotNull Integer size, String keyword,
-                                      boolean isDesc) {
+    public Page<UserDO> getUserDoPage(
+            @NotNull Integer page,
+            @NotNull Integer size,
+            String keyword,
+            boolean isDesc
+    ) {
         if (page <= 0 || size <= 0) {
             throw new BusinessException("UserDAO内page和size为空", ErrorCode.OPERATION_ERROR);
         }
