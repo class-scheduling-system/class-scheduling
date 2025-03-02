@@ -196,7 +196,8 @@ public class UserLogic implements UserService {
         if (roleDTO == null) {
             throw new BusinessException(StringConstant.USER_DATA_NOT_EXIST, ErrorCode.BODY_ERROR);
         }
-        if ("学生".equals(roleDTO.getRoleName()) || "老师".equals(roleDTO.getRoleName())) {
+        if (SystemConstant.getRoleStudent().equals(roleDTO.getRoleName())
+                || SystemConstant.getRoleTeacher().equals(roleDTO.getRoleName())) {
             throw new BusinessException("此类用户数据不允许添加", ErrorCode.BODY_ERROR);
         }
         log.debug("检查用户是否存在开始前");
@@ -245,7 +246,8 @@ public class UserLogic implements UserService {
 
     /**
      * 检查权限
-     * @param userDO 用户数据对象
+     *
+     * @param userDO        用户数据对象
      * @param permissionKey 权限键列表
      */
     private void checkPermission(UserDO userDO, List<String> permissionKey) {
@@ -310,69 +312,69 @@ public class UserLogic implements UserService {
     }
 
     /**
- * 检查用户更新数据的合法性并返回用户旧的角色信息。
- * <p>
- * 该方法主要用于验证用户在编辑时提交的数据是否符合系统规则，包括但不限于用户名、邮箱、手机号的唯一性检查，
- * 以及角色变更的限制。如果检测到任何违反规则的情况，则抛出相应的异常。
- *
- * @param userOldDO 原始用户数据对象，包含用户的基本信息和角色信息
- * @param userEditVO 用户编辑数据对象，包含用户希望修改的信息
- * @param request HTTP请求对象，用于上下文信息传递（如异常处理）
- * @return RoleDTO 返回用户原始的角色信息
- * @throws UserAuthenticationException 当用户不存在时抛出此异常
- * @throws BusinessException 当用户数据不符合更新规则时抛出此异常
- * @throws ServerInternalErrorException 当角色信息缺失或无效时抛出此异常
- */
-@Contract("null, _, _ -> fail")
-private @NotNull RoleDTO checkUpdateDate(UserDO userOldDO, UserEditVO userEditVO, HttpServletRequest request) {
-    // 验证用户是否存在
-    if (userOldDO == null) {
-        throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
-    }
+     * 检查用户更新数据的合法性并返回用户旧的角色信息。
+     * <p>
+     * 该方法主要用于验证用户在编辑时提交的数据是否符合系统规则，包括但不限于用户名、邮箱、手机号的唯一性检查，
+     * 以及角色变更的限制。如果检测到任何违反规则的情况，则抛出相应的异常。
+     *
+     * @param userOldDO  原始用户数据对象，包含用户的基本信息和角色信息
+     * @param userEditVO 用户编辑数据对象，包含用户希望修改的信息
+     * @param request    HTTP请求对象，用于上下文信息传递（如异常处理）
+     * @return RoleDTO 返回用户原始的角色信息
+     * @throws UserAuthenticationException  当用户不存在时抛出此异常
+     * @throws BusinessException            当用户数据不符合更新规则时抛出此异常
+     * @throws ServerInternalErrorException 当角色信息缺失或无效时抛出此异常
+     */
+    @Contract("null, _, _ -> fail")
+    private @NotNull RoleDTO checkUpdateDate(UserDO userOldDO, UserEditVO userEditVO, HttpServletRequest request) {
+        // 验证用户是否存在
+        if (userOldDO == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+        }
 
-    // 验证用户名唯一性
-    if (!userEditVO.getName().isEmpty()
-            && !userEditVO.getName().equals(userOldDO.getName())
-            && userDAO.getUserByName(userEditVO.getName()) != null) {
-        throw new BusinessException("用户名已存在", ErrorCode.BODY_ERROR);
-    }
+        // 验证用户名唯一性
+        if (!userEditVO.getName().isEmpty()
+                && !userEditVO.getName().equals(userOldDO.getName())
+                && userDAO.getUserByName(userEditVO.getName()) != null) {
+            throw new BusinessException("用户名已存在", ErrorCode.BODY_ERROR);
+        }
 
-    // 验证邮箱唯一性
-    if (!userEditVO.getEmail().isEmpty()
-            && !userEditVO.getEmail().equals(userOldDO.getEmail())
-            && userDAO.getUserByMail(userEditVO.getEmail()) != null) {
-        throw new BusinessException("邮箱已存在", ErrorCode.BODY_ERROR);
-    }
+        // 验证邮箱唯一性
+        if (!userEditVO.getEmail().isEmpty()
+                && !userEditVO.getEmail().equals(userOldDO.getEmail())
+                && userDAO.getUserByMail(userEditVO.getEmail()) != null) {
+            throw new BusinessException("邮箱已存在", ErrorCode.BODY_ERROR);
+        }
 
-    // 验证手机号唯一性
-    if (!userEditVO.getPhone().isEmpty()
-            && !userEditVO.getPhone().equals(userOldDO.getPhone())
-            && userDAO.getUserByTel(userEditVO.getPhone()) != null) {
-        throw new BusinessException("手机号已存在", ErrorCode.BODY_ERROR);
-    }
+        // 验证手机号唯一性
+        if (!userEditVO.getPhone().isEmpty()
+                && !userEditVO.getPhone().equals(userOldDO.getPhone())
+                && userDAO.getUserByTel(userEditVO.getPhone()) != null) {
+            throw new BusinessException("手机号已存在", ErrorCode.BODY_ERROR);
+        }
 
-    // 获取用户原始角色信息
-    RoleDTO roleOldDTO = roleDAO.getRoleByUuid(userOldDO.getRoleUuid());
-    if (roleOldDTO == null) {
-        throw new ServerInternalErrorException("角色不存在意料之外的错误");
-    }
+        // 获取用户原始角色信息
+        RoleDTO roleOldDTO = roleDAO.getRoleByUuid(userOldDO.getRoleUuid());
+        if (roleOldDTO == null) {
+            throw new ServerInternalErrorException("角色不存在意料之外的错误");
+        }
 
-    // 禁止编辑学生或教师类型用户
-    if (roleOldDTO.getRoleUuid().equals(SystemConstant.getRoleStudent())
-            || roleOldDTO.getRoleUuid().equals(SystemConstant.getRoleTeacher())) {
-        throw new BusinessException("此类用户数据不允许编辑", ErrorCode.BODY_ERROR);
-    }
+        // 禁止编辑学生或教师类型用户
+        if (roleOldDTO.getRoleUuid().equals(SystemConstant.getRoleStudent())
+                || roleOldDTO.getRoleUuid().equals(SystemConstant.getRoleTeacher())) {
+            throw new BusinessException("此类用户数据不允许编辑", ErrorCode.BODY_ERROR);
+        }
 
-    // 禁止将用户角色更改为学生或教师
-    if (!userEditVO.getRoleUuid().isEmpty()
-            && (userEditVO.getRoleUuid().equals(SystemConstant.getRoleStudent())
-            || userEditVO.getRoleUuid().equals(SystemConstant.getRoleTeacher()))) {
-        throw new BusinessException("不允许将角色编辑为学生或者老师", ErrorCode.BODY_ERROR);
-    }
+        // 禁止将用户角色更改为学生或教师
+        if (!userEditVO.getRoleUuid().isEmpty()
+                && (userEditVO.getRoleUuid().equals(SystemConstant.getRoleStudent())
+                || userEditVO.getRoleUuid().equals(SystemConstant.getRoleTeacher()))) {
+            throw new BusinessException("不允许将角色编辑为学生或者老师", ErrorCode.BODY_ERROR);
+        }
 
-    // 返回用户原始角色信息
-    return roleOldDTO;
-}
+        // 返回用户原始角色信息
+        return roleOldDTO;
+    }
 
 
     @Override
@@ -433,6 +435,7 @@ private @NotNull RoleDTO checkUpdateDate(UserDO userOldDO, UserEditVO userEditVO
 
     /**
      * 检查页数和每页大小
+     *
      * @param page 页数
      * @param size 每页大小
      */
