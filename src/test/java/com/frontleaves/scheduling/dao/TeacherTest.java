@@ -21,9 +21,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.redisson.Redisson;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +41,7 @@ class TeacherTest {
     @Resource
     private RoleDAO roleDAO;
     @Resource
-    private Redisson redisson;
+    private RedissonClient redisson;
     private TeacherDO setUpTeacher;
     private UserDO setUpUser;
 

@@ -46,6 +46,13 @@ public class UserAddVO {
      * 用户权限
      */
     private List<String> permission;
-
+    /**
+     * 用户部门ID,若选为教务，则必需
+     */
+    private String department;
+    /**
+     * 权限类型，若选为教务，则必需，1代表所有权限，2代表教务权限
+     */
+    private Integer type;
 
 }

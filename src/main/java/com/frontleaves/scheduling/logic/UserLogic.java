@@ -37,9 +37,7 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.StudentDO;
-import com.frontleaves.scheduling.models.entity.TeacherDO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.services.UserService;
@@ -83,6 +81,8 @@ public class UserLogic implements UserService {
     private final RoleDAO roleDAO;
     private final TeacherDAO teacherDAO;
     private final PermissionDAO permissionDAO;
+    private final AcademicAffairsPermissionDAO academicAffairsPermissionDAO;
+    private final DepartmentDAO departmentDAO;
 
     /**
      * 根据传入的 {@code HttpServletRequest} 请求对象获取对应的用户信息。
@@ -186,42 +186,55 @@ public class UserLogic implements UserService {
     }
 
     /**
-     * 检查用户登录数据
+     * 检查用户添加数据的合法性。
+     * <p>
+     * 该方法用于验证用户在注册或添加时提交的数据是否符合系统规则，包括但不限于：
+     * - 角色信息的有效性检查：确保提供的角色UUID对应的角色存在，并且不允许添加学生或教师类型用户。
+     * - 用户唯一性检查：通过用户名、邮箱和手机号确保用户信息的唯一性。
+     * 如果检测到任何违反规则的情况，则抛出相应的异常。
      *
-     * @param userAddVO 用户添加数据
+     * @param userAddVO 用户添加数据对象，包含用户的基本信息和角色信息
+     * @return boolean 返回是否否为教务，目前逻辑中固定返回 {@code SystemConstant.getRoleAcademic().equals(roleDTO.getRoleUuid())}
+     * @throws BusinessException 当用户数据不符合添加规则时抛出此异常
      */
     @Override
-    public void checkAddUser(UserAddVO userAddVO) {
+    public boolean checkAddUser(@NotNull UserAddVO userAddVO) {
+        // 获取用户角色信息
         RoleDTO roleDTO = roleDAO.getRoleByUuid(userAddVO.getRoleUuid());
         if (roleDTO == null) {
-            throw new BusinessException(StringConstant.USER_DATA_NOT_EXIST, ErrorCode.BODY_ERROR);
+            throw new BusinessException("无此类用户角色", ErrorCode.BODY_ERROR);
         }
+
+        // 禁止添加学生或教师类型用户
         if (SystemConstant.getRoleStudent().equals(roleDTO.getRoleName())
                 || SystemConstant.getRoleTeacher().equals(roleDTO.getRoleName())) {
             throw new BusinessException("此类用户数据不允许添加", ErrorCode.BODY_ERROR);
         }
+
+        // 检查用户信息是否存在重复
         log.debug("检查用户是否存在开始前");
         this.checkUserExist(userAddVO.getName(), userAddVO.getEmail(), userAddVO.getPhone());
         log.debug("检查用户是否存在结束");
+        // 返回是否允许添加用户，当前逻辑中固定返回学术角色的判断结果
+        if (SystemConstant.getRoleAcademic().equals(roleDTO.getRoleUuid())) {
+            if (userAddVO.getDepartment() != null && userAddVO.getType() != null) {
+                return true;
+            }
+            throw new BusinessException("教务部门不能为空", ErrorCode.BODY_ERROR);
+        }
+        return false;
     }
 
-    /**
-     * 添加用户
-     *
-     * @param userAddVO 用户添加数据
-     * @return 用户信息数据传输对象
-     */
     @Override
-    public UserAddInfoDTO addUser(@NotNull UserAddVO userAddVO) {
+    public UserAddInfoDTO addUser(UserAddVO userAddVO, Boolean isAcademic) {
         RoleDTO roleDTO = roleDAO.getRoleByUuid(userAddVO.getRoleUuid());
         if (roleDTO == null) {
             throw new BusinessException(StringConstant.USER_DATA_NOT_EXIST, ErrorCode.BODY_ERROR);
         }
-
         UserAddInfoDTO userInfoDTO = new UserAddInfoDTO();
-        String newUserUuid = UuidUtil.generateUuidNoDash();
+        //交互用户信息
         UserDO userDO = BeanUtil.toBean(userAddVO, UserDO.class)
-                .setUserUuid(newUserUuid);
+                .setUserUuid(UuidUtil.generateUuidNoDash());
         if (userDO.getPassword() == null || userDO.getPassword().isEmpty()) {
             userInfoDTO.setNewPassword(RandomUtil.randomString(8));
             userDO.setPassword(PasswordUtil.encrypt(userInfoDTO.getNewPassword()));
@@ -232,8 +245,22 @@ public class UserLogic implements UserService {
         checkPermission(userDO, userAddVO.getPermission());
         log.debug("添加用户UserDO: {}", userDO);
         userDAO.save(userDO);
+        if (Boolean.TRUE.equals(isAcademic)) {
+            if (userAddVO.getDepartment() == null && userAddVO.getType() == null) {
+                throw new BusinessException("部门不能为空", ErrorCode.BODY_ERROR);
+            }
+            DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(userAddVO.getDepartment());
+            if (departmentDO == null) {
+                throw new BusinessException("部门不存在", ErrorCode.BODY_ERROR);
+            }
+            AcademicAffairsPermissionDO academicAffairsPermissionDO = new AcademicAffairsPermissionDO();
+            academicAffairsPermissionDO.setAuthorizedUser(userDO.getUserUuid())
+                    .setDepartment(departmentDO.getDepartmentUuid())
+                    .setType(userAddVO.getType());
+            academicAffairsPermissionDAO.save(academicAffairsPermissionDO);
+        }
         // 构造信息
-        UserDO newUserDO = userDAO.getUserByUuid(newUserUuid);
+        UserDO newUserDO = userDAO.getUserByUuid(userDO.getUserUuid());
         if (newUserDO == null) {
             throw new BusinessException("添加用户失败", ErrorCode.OPERATION_ERROR);
         }
@@ -243,6 +270,7 @@ public class UserLogic implements UserService {
         userInfoDTO.setUser(userDTO);
         return userInfoDTO;
     }
+
 
     /**
      * 检查权限
