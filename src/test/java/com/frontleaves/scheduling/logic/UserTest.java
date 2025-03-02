@@ -1,11 +1,15 @@
 package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.daos.AcademicAffairsPermissionDAO;
+import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserAddInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
+import com.frontleaves.scheduling.models.entity.AcademicAffairsPermissionDO;
+import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
@@ -43,6 +47,10 @@ class UserTest {
     private RedissonClient redisson;
     @Resource
     private UserDAO userDAO;
+    @Resource
+    private DepartmentDAO departmentDAO;
+    @Resource
+    private AcademicAffairsPermissionDAO academicAffairsPermissionDAO;
     private UserDO setUpUser;
 
 
@@ -113,15 +121,54 @@ class UserTest {
                 PasswordUtil.encrypt("123456Aa"),
                 "testAddUser@test.com",
                 "13800000001",
-                List.of("operate")
+                List.of("operate"),
+                "",
+                0
         );
         if (userDAO.lambdaQuery().eq(UserDO::getName, addVO.getName()).one() != null) {
             userDAO.lambdaUpdate().eq(UserDO::getName, addVO.getName()).remove();
         }
-        UserAddInfoDTO userAddInfoDTO = userService.addUser(addVO);
+        UserAddInfoDTO userAddInfoDTO = userService.addUser(addVO, false);
         Assertions.assertNotNull(userAddInfoDTO);
         // 删除测试用户
         UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, addVO.getName()).one();
+        if (userDO != null) {
+            userDAO.lambdaUpdate().eq(UserDO::getName, addVO.getName()).remove();
+            redisson.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid()).delete();
+            redisson.getBucket(StringConstant.Redis.USER_NAME + userDO.getName()).delete();
+            redisson.getBucket(StringConstant.Redis.USER_MAIL + userDO.getEmail()).delete();
+            redisson.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone()).delete();
+        }
+    }
+
+    @Test
+    void testAddUserWithAcademic() {
+        log.debug("测试添加教务用户");
+        UserAddVO addVO = new UserAddVO(
+                getRoleByName("教务").getRoleUuid(),
+                "testAddUser",
+                PasswordUtil.encrypt("123456Aa"),
+                "testAddUser@test.com",
+                "13800000001",
+                List.of("operate"),
+                departmentDAO.lambdaQuery().eq(DepartmentDO::getDepartmentOrder, 1)
+                        .one().getDepartmentUuid(),
+                0
+        );
+        if (userDAO.lambdaQuery().eq(UserDO::getName, addVO.getName()).one() != null) {
+            userDAO.lambdaUpdate().eq(UserDO::getName, addVO.getName()).remove();
+        }
+        UserAddInfoDTO userAddInfoDTO = userService.addUser(addVO, true);
+        Assertions.assertNotNull(userAddInfoDTO);
+        //检查是否存到数据库
+        Assertions.assertNotNull(
+                userDAO.lambdaQuery().eq(UserDO::getUserUuid, userAddInfoDTO.getUser().getUserUuid()).one());
+        Assertions.assertNotNull(academicAffairsPermissionDAO.lambdaQuery().eq(
+                AcademicAffairsPermissionDO::getAuthorizedUser, userAddInfoDTO.getUser().getUserUuid()).one());
+        academicAffairsPermissionDAO.lambdaUpdate().eq(
+                AcademicAffairsPermissionDO::getAuthorizedUser, userAddInfoDTO.getUser().getUserUuid()).remove();
+        // 删除测试用户
+        UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userAddInfoDTO.getUser().getUserUuid()).one();
         if (userDO != null) {
             userDAO.lambdaUpdate().eq(UserDO::getName, addVO.getName()).remove();
             redisson.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid()).delete();
@@ -154,8 +201,8 @@ class UserTest {
     @Test
     void testUpdateUser() {
         log.debug("测试更新用户信息");
-        UserEditVO editVO = new UserEditVO("testUpdateUser","","testUpdateUser@test.com",
-                "13800000001",0,1,
+        UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
+                "13800000001", 0, 1,
                 getRoleByName("管理员").getRoleUuid(),
                 List.of("operate"));
         UserInfoDTO userInfoDTO = userService.updateUser(
@@ -181,8 +228,8 @@ class UserTest {
     @Test
     void testUpdateUserWithStudent() {
         log.debug("测试更新用户信息改变为学生角色");
-        UserEditVO editVO = new UserEditVO("testUpdateUser","","testUpdateUser@test.com",
-                "13800000001",0,1,
+        UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
+                "13800000001", 0, 1,
                 getRoleByName("学生").getRoleUuid(),
                 List.of("operate"));
         String userUuid = setUpUser.getUserUuid();
@@ -196,8 +243,8 @@ class UserTest {
     @Test
     void testUpdateUserWithTeacher() {
         log.debug("测试更新用户信息改变为教师角色");
-        UserEditVO editVO = new UserEditVO("testUpdateUser","","testUpdateUser@test.com",
-                "13800000001",0,1,
+        UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
+                "13800000001", 0, 1,
                 getRoleByName("老师").getRoleUuid(),
                 List.of("operate"));
         String userUuid = setUpUser.getUserUuid();
@@ -208,6 +255,7 @@ class UserTest {
                         userUuid, editVO, request)
         );
     }
+
     @Test
     void testGetUserList() {
         log.debug("测试获取用户列表");
