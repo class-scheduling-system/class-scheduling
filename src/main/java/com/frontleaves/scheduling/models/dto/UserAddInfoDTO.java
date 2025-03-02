@@ -30,6 +30,7 @@ package com.frontleaves.scheduling.models.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
@@ -39,7 +40,9 @@ import lombok.experimental.Accessors;
  * 该类继承自 {@code UserInfoDTO}，用于在不同层之间传输用户的基本信息以及其对应的身份信息（如学生或教师）。
  * 与父类相比，此 DTO 增加了对新密码的处理。主要用于用户注册、修改密码等场景。
  * </p>
+ * @author xiao_lfeng
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
