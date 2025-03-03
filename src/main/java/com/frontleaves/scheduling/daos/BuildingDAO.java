@@ -114,7 +114,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             } else {
                 queryWrapper.orderByAsc(BuildingDO::getCreatedAt);
             }
-            if (keyword != null && !keyword.isBlank()) {
+            if (keyword != null) {
                 queryWrapper.like(BuildingDO::getBuildingName, keyword);
             }
             return this.queryAndCache(queryWrapper, page, size, map);
@@ -227,6 +227,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             transaction.commit();
         } catch (Exception e) {
             transaction.rollback();
+            log.error(StringConstant.DATABASE_OPERATION_FAILED, e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
@@ -243,7 +244,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      */
     @Transactional
     public void deleteBuilding(BuildingDO buildingDO) {
-        redisson.getKeys().deleteByPattern(StringConstant.Redis.BUILDING_LIST);
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*");
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             this.deleteBuildingRedis(transaction, buildingDO);
@@ -251,6 +252,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             transaction.commit();
         } catch (Exception e) {
             transaction.rollback();
+            log.error(StringConstant.DATABASE_OPERATION_FAILED, e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }

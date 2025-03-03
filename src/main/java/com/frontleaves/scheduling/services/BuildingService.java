@@ -45,6 +45,7 @@ import org.jetbrains.annotations.NotNull;
  * @since v1.0.0
  */
 public interface BuildingService {
+
     /**
      * 获取包含关键词的教学楼列表
      * <p>
