@@ -30,13 +30,19 @@ package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.RoleMapper;
+import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.RoleDTO;
 import com.frontleaves.scheduling.models.entity.RoleDO;
+import com.frontleaves.scheduling.utils.ProjectUtil;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
@@ -157,5 +163,44 @@ public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> implements IService
             return BeanUtil.toBean(roleDO, RoleDTO.class)
                     .setPermission(permissionList);
         }
+    }
+
+    /**
+     * 获取角色列表
+     * @param page 当前页数
+     * @param size 每页显示数量
+     * @param isDesc 是否降序
+     * @param search 搜索关键字
+     * @return 角色列表
+     */
+    public PageDTO<RoleDTO> getRoleDtoPageDTO(
+            @NotNull Integer page, @NotNull Integer size, Boolean isDesc, String search) {
+        if (page <= 0 || size <= 0) {
+            throw new BusinessException("RoleDAO内page和size为空", ErrorCode.OPERATION_ERROR);
+        }
+        LambdaQueryChainWrapper<RoleDO> query = this.lambdaQuery();
+        if (search != null && !search.isEmpty()) {
+            query
+                    .like(RoleDO::getRoleName, search);
+        }
+        if (Boolean.TRUE.equals(isDesc)) {
+            query.orderByDesc(RoleDO::getCreatedAt);
+        } else {
+            query.orderByAsc(RoleDO::getCreatedAt);
+        }
+        Page<RoleDO> roleDoPage =  query.page(new Page<>(page, size));
+        List<RoleDTO> roleDTOList = roleDoPage.getRecords().stream().map(
+                roleDO -> {
+                    if (roleDO.getPermission() == null || roleDO.getPermission().isEmpty()) {
+                        return BeanUtil.toBean(roleDO, RoleDTO.class)
+                                .setPermission(List.of());
+                    } else {
+                        List<String> permissionList = JSONUtil.parseArray(roleDO.getPermission()).toList(String.class);
+                        return BeanUtil.toBean(roleDO, RoleDTO.class)
+                                .setPermission(permissionList);
+                    }
+                }).toList();
+        return ProjectUtil.convertPageToPageDTO(roleDoPage, RoleDTO.class)
+                .setRecords(roleDTOList);
     }
 }
