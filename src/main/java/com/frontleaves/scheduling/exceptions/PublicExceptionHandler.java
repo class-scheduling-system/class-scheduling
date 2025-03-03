@@ -32,6 +32,7 @@ import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.PublicExceptionHandlerAbstract;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -48,11 +49,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 @ControllerAdvice
 public class PublicExceptionHandler extends PublicExceptionHandlerAbstract {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<BaseResponse<Void>> handleHttpMessageNotReadableException(@NotNull HttpMessageNotReadableException ignored) {
+        log.error("消息不可读", ignored);
         return ResultUtil.error(ErrorCode.BODY_ERROR, "消息不可读", null);
     }
 }

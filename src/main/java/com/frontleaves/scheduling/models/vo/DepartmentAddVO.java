@@ -1,14 +1,12 @@
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.models.vo;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
 
-import java.sql.Timestamp;
 import java.util.Date;
 
 /**
@@ -18,29 +16,25 @@ import java.util.Date;
  */
 @TableName(value = "cs_department")
 @Data
-@Accessors(chain = true)
-@NoArgsConstructor
 @AllArgsConstructor
-public class DepartmentDO {
-    /**
-     * 部门主键，采用 UUID 自动生成
-     */
-    @TableId(value = "department_uuid", type = IdType.ASSIGN_UUID)
-    private String departmentUuid;
-
+public class DepartmentAddVO {
     /**
      * 部门编码
      */
+    @NotBlank(message = "部门编码不能为空")
     private String departmentCode;
 
     /**
      * 部门名称
      */
+    @NotBlank(message = "部门名称不能为空")
     private String departmentName;
 
     /**
      * 部门排序 默认100
      */
+    @NotNull(message = "部门排序不能为空")
+    @Min(value = 0, message = "部门排序不能小于0")
     private Integer departmentOrder;
 
     /**
@@ -61,6 +55,7 @@ public class DepartmentDO {
     /**
      * 是否实体部门
      */
+    @NotNull(message = "是否实体部门不能为空")
     private Boolean isEntity;
 
     /**
@@ -76,6 +71,7 @@ public class DepartmentDO {
     /**
      * 成立日期，默认当前日期
      */
+    @NotNull(message = "成立日期不能为空")
     private Date establishmentDate;
 
     /**
@@ -86,31 +82,37 @@ public class DepartmentDO {
     /**
      * 单位类别
      */
+    @NotBlank(message = "单位类别不能为空")
     private String unitCategory;
 
     /**
      * 单位办别
      */
+    @NotBlank(message = "单位办别不能为空")
     private String unitType;
 
     /**
      * 上级部门
      */
+    @NotBlank(message = "上级部门不能为空")
     private String parentDepartment;
 
     /**
      * 分配教学楼
      */
+    @NotBlank(message = "分配教学楼不能为空")
     private String assignedTeachingBuilding;
 
     /**
      * 是否为开课院系
      */
+    @NotNull(message = "是否为开课院系不能为空")
     private Boolean isTeachingCollege;
 
     /**
      * 是否为上课院系
      */
+    @NotNull(message = "是否为上课院系不能为空")
     private Boolean isAttendingCollege;
 
     /**
@@ -126,21 +128,12 @@ public class DepartmentDO {
     /**
      * 是否为开课教研室
      */
+    @NotNull(message = "是否为开课教研室不能为空")
     private Boolean isTeachingOffice;
 
     /**
      * 是否启用
      */
+    @NotNull(message = "是否启用不能为空")
     private Boolean isEnabled;
-
-    /**
-     * 创建时间，自动填充
-     */
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间，自动填充
-     */
-    private Timestamp updatedAt;
-
 }

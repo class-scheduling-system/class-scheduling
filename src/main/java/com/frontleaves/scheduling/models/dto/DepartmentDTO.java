@@ -1,11 +1,10 @@
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.models.dto;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
@@ -19,9 +18,8 @@ import java.util.Date;
 @TableName(value = "cs_department")
 @Data
 @Accessors(chain = true)
-@NoArgsConstructor
 @AllArgsConstructor
-public class DepartmentDO {
+public class DepartmentDTO {
     /**
      * 部门主键，采用 UUID 自动生成
      */
@@ -142,5 +140,4 @@ public class DepartmentDO {
      * 更新时间，自动填充
      */
     private Timestamp updatedAt;
-
 }
