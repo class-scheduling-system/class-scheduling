@@ -5,15 +5,14 @@ import com.frontleaves.scheduling.models.dto.DepartmentDTO;
 import com.frontleaves.scheduling.models.vo.DepartmentAddVO;
 import com.frontleaves.scheduling.services.DepartmentService;
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 部门控制器类
@@ -43,6 +42,16 @@ public class DepartmentController {
         DepartmentDTO departmentDTO=departmentService.addDepartment(departmentAddVO);
         // 使用ResultUtil工具类生成成功响应，包含成功消息和部门数据
         return ResultUtil.success("部门创建成功",departmentDTO);
+    }
+
+    @GetMapping("/{department_uuid}")
+    public ResponseEntity<BaseResponse<DepartmentDTO>> getDepartment(
+            @PathVariable("department_uuid") String departmentUuid) {
+        if (departmentUuid == null || departmentUuid.isBlank()) {
+            throw new BusinessException("部门UUID不能为空", ErrorCode.PARAMETER_ERROR);
+        }
+        DepartmentDTO departmentDTO = departmentService.getDepartment(departmentUuid);
+        return ResultUtil.success("查询成功", departmentDTO);
     }
 }
 

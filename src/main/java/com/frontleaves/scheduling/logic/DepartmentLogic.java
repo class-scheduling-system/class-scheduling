@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.BuildingDAO;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.UnitCategoryDAO;
@@ -72,5 +73,17 @@ public class DepartmentLogic implements DepartmentService {
         // 取出数据
         DepartmentDO getNewDepartment = departmentDAO.getDepartmentByUuid(departmentDO.getDepartmentUuid());
         return BeanUtil.toBean(getNewDepartment, DepartmentDTO.class);
+    }
+
+    @Override
+    public DepartmentDTO getDepartment(@NotNull String departmentUuid) {
+       DepartmentDO departmentDTO = null;
+       if (departmentUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+           departmentDTO = departmentDAO.getDepartmentByUuid(departmentUuid);
+       }
+        if (departmentDTO == null) {
+            throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
+        }
+         return BeanUtil.toBean(departmentDTO, DepartmentDTO.class);
     }
 }
