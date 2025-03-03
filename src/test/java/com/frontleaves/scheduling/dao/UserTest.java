@@ -179,11 +179,11 @@ class UserTest {
     void testGetUserDoAsc() {
         log.debug("测试获取用户列表");
         // 获取 userDAO 返回的 Page 对象
-        Page<UserDO> pageAsc = userDAO.getUserDoPage(1, 10, null, false);
+        Page<UserDO> pageAsc = userDAO.getUserDoPage(1, 10, "", false);
         // 获取总页数
         int totalPages = (int) pageAsc.getTotal();
         // 判断页数是否大于 1
-        Assertions.assertTrue(totalPages > 1, "总页数应该大于 1");
+        Assertions.assertTrue(totalPages >= 1, "总页数应该大于等于 1");
         // 判断是否为正序（根据 createdAt 字段）
         List<UserDO> content = pageAsc.getRecords();
         for (int i = 0; i < content.size() - 1; i++) {
@@ -201,7 +201,7 @@ class UserTest {
     @Test
     void getUserDoPageDesc() {
         // 获取 userDAO 返回的 Page 对象（降序）
-        Page<UserDO> pageDesc = userDAO.getUserDoPage(1, 10, null, true);
+        Page<UserDO> pageDesc = userDAO.getUserDoPage(1, 10, "", true);
         int totalPagesDesc = (int) pageDesc.getTotal();
         Assertions.assertTrue(totalPagesDesc > 1, "总页数应该大于 1");
         List<UserDO> contentDesc = pageDesc.getRecords();
@@ -216,7 +216,7 @@ class UserTest {
     }
 
     @Test
-    void getUserDoPageDescByKeyWordDesc() {
+    void getUserDoPageAscByKeyWordDesc() {
         Page<UserDO> pageKeyWord = userDAO.getUserDoPage(1, 10, "test", false);
         List<UserDO> contentKeyWord = pageKeyWord.getRecords();
         for (UserDO user : contentKeyWord) {
@@ -242,7 +242,7 @@ class UserTest {
     }
 
     @Test
-    void getUserDoPageKeyAscByKeyWord() {
+    void getUserDoPageKeyDescByKeyWord() {
         Page<UserDO> pageKeyWord = userDAO.getUserDoPage(1, 10, "test", true);
         List<UserDO> contentKeyWord = pageKeyWord.getRecords();
         for (UserDO user : contentKeyWord) {

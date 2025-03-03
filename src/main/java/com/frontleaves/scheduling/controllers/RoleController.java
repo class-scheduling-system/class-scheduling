@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.RoleDTO;
 import com.frontleaves.scheduling.services.RoleService;
 import com.xlf.utility.BaseResponse;
@@ -49,6 +50,31 @@ public class RoleController {
         }
         RoleDTO roleDTO = roleService.getRole(role);
         return ResultUtil.success("角色信息获取成功", roleDTO);
+    }
+
+    /**
+     * 获取角色列表
+     * <p>
+     * 该方法用于获取系统中所有角色的列表信息。通过调用 {@code roleService.getRoleList()} 方法从系统数据库中获取所有角色的列表信息，
+     * 并将其封装到一个 {@code PageDTO<RoleDTO>} 对象中返回。
+     * 返回的信息包括角色ID、角色名称、角色描述、角色权限等。
+     *
+     * @param page   当前页数
+     * @param size   每页显示数量
+     * @param isDesc 是否降序
+     * @param search 搜索关键字
+     * @return 包含角色列表信息的响应实体，其中数据部分为 {@code BaseResponse<PageDTO<RoleDTO>>} 类型
+     */
+    @GetMapping("/list")
+    public ResponseEntity<BaseResponse<PageDTO<RoleDTO>>> getRoleList(
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "10") Integer size,
+            @RequestParam(value = "is_desc", defaultValue = "false") Boolean isDesc,
+            @RequestParam(value = "search", required = false) String search
+    ) {
+        roleService.checkPageAndSize(page, size);
+        PageDTO<RoleDTO> roleList = roleService.getRoleList(page, size, isDesc, search);
+        return ResultUtil.success("角色列表获取成功", roleList);
     }
 }
 
