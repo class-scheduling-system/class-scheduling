@@ -80,7 +80,7 @@ public class BuildingLogic implements BuildingService {
     @Override
     @NotNull
     public PageDTO<BuildingDTO> getBuildingList(int page, int size, boolean isDesc, String keyword) {
-        Page<BuildingDO> buildingList = buildingDAO.getBuildingListHasKeyword(page, size, isDesc, keyword);
+        Page<BuildingDO> buildingList = buildingDAO.getBuildingList(page, size, isDesc, keyword);
         return ProjectUtil.convertPageToPageDTO(buildingList, BuildingDTO.class);
     }
 
