@@ -88,11 +88,11 @@ public class BuildingController {
         }
         log.debug(LogConstant.CONTROLLER + "获取教学楼列表，page: {}, size: {}, keyword: {}", page, size, keyword);
         if (keyword == null || keyword.isBlank()) {
-            PageDTO<BuildingDTO> buildingList = buildingService.getBuildingList(page, size, isDesc);
+            PageDTO<BuildingDTO> buildingList = buildingService.getBuildingList(page, size, isDesc, null);
             return ResultUtil.success("教学楼建筑列表成功", buildingList);
         } else {
-            PageDTO<BuildingDTO> buildingListHasKeyword = buildingService.getBuildingListHasKeyword(page, size, isDesc, keyword);
-            return ResultUtil.success("教学楼建筑列表成功", buildingListHasKeyword);
+            PageDTO<BuildingDTO> buildingList = buildingService.getBuildingList(page, size, isDesc, keyword);
+            return ResultUtil.success("教学楼建筑列表成功", buildingList);
         }
     }
 

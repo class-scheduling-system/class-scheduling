@@ -46,21 +46,6 @@ import org.jetbrains.annotations.NotNull;
  */
 public interface BuildingService {
     /**
-     * 获取教学楼列表
-     * <p>
-     * 该方法用于分页查询系统中所有的教学楼信息。通过指定的页码、每页大小以及排序方式，返回符合条件的教学楼数据。
-     * 返回的数据封装在 {@code PageDTO<BuildingDTO>} 中，其中包含分页信息和教学楼的基本信息。
-     * </p>
-     *
-     * @param page   当前页码，从1开始
-     * @param size   每页显示的记录数
-     * @param isDesc 排序方式，true 表示降序，false 表示升序
-     * @return 包含分页信息和教学楼数据的 {@code PageDTO<BuildingDTO>}
-     */
-    @NotNull
-    PageDTO<BuildingDTO> getBuildingList(int page, int size, boolean isDesc);
-
-    /**
      * 获取包含关键词的教学楼列表
      * <p>
      * 该方法用于分页查询系统中所有名称或相关信息包含指定关键词的教学楼信息。
@@ -76,7 +61,7 @@ public interface BuildingService {
      * @return 分页的教学楼数据传输对象 {@code PageDTO<BuildingDTO>}
      */
     @NotNull
-    PageDTO<BuildingDTO> getBuildingListHasKeyword(int page, int size, boolean isDesc, String keyword);
+    PageDTO<BuildingDTO> getBuildingList(int page, int size, boolean isDesc, String keyword);
 
     /**
      * 根据教学楼标识获取教学楼信息

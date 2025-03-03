@@ -93,34 +93,6 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
     }
 
     /**
-     * 获取教学楼列表
-     * <p>
-     * 该方法用于从 Redis 缓存或数据库中获取教学楼列表，并支持分页和排序。如果 Redis 缓存中存在数据，则直接返回缓存中的数据；
-     * 否则，从数据库查询并缓存结果。根据 {@code isDesc} 参数决定按创建时间降序或按校区 UUID 升序排列。
-     * </p>
-     *
-     * @param page 分页的页码
-     * @param size 每页的大小
-     * @param isDesc 是否降序排列，默认为升序
-     * @return 返回包含教学楼信息的分页对象
-     */
-    public Page<BuildingDO> getBuildingList(int page, int size, boolean isDesc) {
-        String cacheKey = StringConstant.Redis.BUILDING_LIST + ":" + page + ":" + size + ":" + isDesc;
-        RMap<String, String> map = redisson.getMap(cacheKey);
-        if (!map.isExists()) {
-            LambdaQueryChainWrapper<BuildingDO> queryWrapper = this.lambdaQuery();
-            if (isDesc) {
-                queryWrapper.orderByDesc(BuildingDO::getCreatedAt);
-            } else {
-                queryWrapper.orderByAsc(BuildingDO::getCampusUuid);
-            }
-            return this.queryAndCache(queryWrapper, page, size, map);
-        } else {
-            return ProjectUtil.getPageForMap(map, BuildingDO.class);
-        }
-    }
-
-    /**
      * 获取包含关键字的教学楼列表
      * <p>
      * 该方法用于根据给定的关键字从数据库中查询教学楼列表，并支持分页和排序。首先尝试从 Redis 缓存中读取数据，如果缓存中没有数据，则从数据库查询并缓存结果。
@@ -132,7 +104,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      * @param keyword 查询关键字，用于匹配教学楼名称
      * @return 返回包含教学楼信息的分页对象
      */
-    public Page<BuildingDO> getBuildingListHasKeyword(int page, int size, boolean isDesc, String keyword) {
+    public Page<BuildingDO> getBuildingList(int page, int size, boolean isDesc, String keyword) {
         String cacheKey = StringConstant.Redis.BUILDING_LIST + ":" + page + ":" + size + ":" + isDesc + ":" + keyword;
         RMap<String, String> map = redisson.getMap(cacheKey);
         if (!map.isExists()) {
@@ -142,12 +114,13 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             } else {
                 queryWrapper.orderByAsc(BuildingDO::getCreatedAt);
             }
-            queryWrapper.like(BuildingDO::getBuildingName, keyword);
-            this.queryAndCache(queryWrapper, page, size, map);
+            if (keyword != null && !keyword.isBlank()) {
+                queryWrapper.like(BuildingDO::getBuildingName, keyword);
+            }
+            return this.queryAndCache(queryWrapper, page, size, map);
         } else {
             return ProjectUtil.getPageForMap(map, BuildingDO.class);
         }
-        return null;
     }
 
     /**

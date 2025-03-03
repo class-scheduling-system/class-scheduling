@@ -90,7 +90,10 @@ public class ProjectUtil {
      * @return 转换后的分页数据传输对象
      */
     @NotNull
-    public static <T, E> PageDTO<E> convertPageToPageDTO(@NotNull Page<T> page, Class<E> clazz) {
+    public static <T, E> PageDTO<E> convertPageToPageDTO(Page<T> page, Class<E> clazz) {
+        if (page == null) {
+            return new PageDTO<>();
+        }
         if (page.getCurrent() != 0) {
             PageDTO<E> pageDTO = new PageDTO<>(page.getTotal(), page.getSize());
             pageDTO
