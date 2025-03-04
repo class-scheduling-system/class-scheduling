@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.models.dto.CampusDTO;
+import com.frontleaves.scheduling.models.entity.CampusDO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import com.frontleaves.scheduling.services.CampusService;
 import com.xlf.utility.BaseResponse;
@@ -9,10 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 校区控制器
@@ -43,5 +41,15 @@ public class CampusController {
         campusService.checkAddCampusVO(campusVO);
         CampusDTO campusDTO = campusService.addCampus(campusVO);
         return ResultUtil.success("添加校区成功",campusDTO);
+    }
+
+    @PutMapping("/{campus_uuid}")
+    public ResponseEntity<BaseResponse<CampusDTO>> updateCampus(
+            @PathVariable("campus_uuid") String campusUuid,
+            @RequestBody @Validated CampusVO campusVO
+    ) {
+        CampusDO campusDO = campusService.checkUpdateCampusVO(campusUuid,campusVO);
+        CampusDTO campusDTO = campusService.updateCampus(campusVO,campusDO);
+        return ResultUtil.success("更新校区成功", campusDTO);
     }
 }

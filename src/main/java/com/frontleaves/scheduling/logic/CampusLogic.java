@@ -11,6 +11,7 @@ import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 /**
@@ -34,7 +35,7 @@ public class CampusLogic implements CampusService {
     public CampusDTO addCampus(CampusVO campusVO) {
         //数据交换
         CampusDO campusDO = BeanUtil.copyProperties(campusVO, CampusDO.class)
-                        .setCampusUuid(UuidUtil.generateUuidNoDash());
+                .setCampusUuid(UuidUtil.generateUuidNoDash());
         campusDAO.save(campusDO);
         CampusDO newCampusDO = campusDAO.getCampusByUuid(campusDO.getCampusUuid());
         return BeanUtil.copyProperties(newCampusDO, CampusDTO.class);
@@ -42,28 +43,94 @@ public class CampusLogic implements CampusService {
 
     @Override
     public void checkAddCampusVO(CampusVO campusVO) {
-        if (campusVO.getCampusName().isEmpty()){
+        if (campusVO.getCampusName().isEmpty()) {
             throw new BusinessException("校区名称不能为空", ErrorCode.BODY_ERROR);
         }
-        if (campusVO.getCampusCode().isEmpty()){
+        if (campusVO.getCampusCode().isEmpty()) {
             throw new BusinessException("校区编码不能为空", ErrorCode.BODY_ERROR);
         }
-        if (campusVO.getCampusDesc().isEmpty()){
+        if (campusVO.getCampusDesc().isEmpty()) {
             throw new BusinessException("校区描述不能为空", ErrorCode.BODY_ERROR);
         }
-        if (campusVO.getCampusStatus() == null){
+        if (campusVO.getCampusStatus() == null) {
             throw new BusinessException("校区状态不能为空", ErrorCode.BODY_ERROR);
         }
-        if (campusVO.getCampusAddress().isEmpty()){
+        if (campusVO.getCampusAddress().isEmpty()) {
             throw new BusinessException("校区地址不能为空", ErrorCode.BODY_ERROR);
         }
         //检查唯一键是否重复
         if (campusDAO.getCampusByCode(campusVO.getCampusCode()) != null) {
-            throw  new BusinessException("校区编码已存在", ErrorCode.BODY_ERROR);
+            throw new BusinessException("校区编码已存在", ErrorCode.BODY_ERROR);
         }
         //检查校区名称是否重复
         if (campusDAO.getCampusByName(campusVO.getCampusName()) != null) {
-            throw  new BusinessException("校区名称已存在", ErrorCode.BODY_ERROR);
+            throw new BusinessException("校区名称已存在", ErrorCode.BODY_ERROR);
         }
     }
+
+    @Override
+    public CampusDO checkUpdateCampusVO(String campusUuid, CampusVO campusVO) {
+        //检查校区是否存在
+        CampusDO campusDO = campusDAO.getCampusByUuid(campusUuid);
+        if (campusDO == null) {
+            throw new BusinessException("校区不存在", ErrorCode.OPERATION_FAILED);
+        }
+        //检查校区名称是否重复
+        if (campusVO.getCampusName() != null
+                && !campusVO.getCampusName().equals(campusDO.getCampusName())
+                && campusDAO.getCampusByName(campusVO.getCampusName()) != null) {
+            throw new BusinessException("校区名称已存在", ErrorCode.BODY_ERROR);
+        }
+        //检查校区编码是否重复
+        if (campusVO.getCampusCode() != null
+                && !campusVO.getCampusCode().equals(campusDO.getCampusCode())
+                && campusDAO.getCampusByCode(campusVO.getCampusCode()) != null) {
+            throw new BusinessException("校区编码已存在", ErrorCode.BODY_ERROR);
+        }
+
+        return campusDO;
+    }
+
+    @Override
+    public CampusDTO updateCampus(CampusVO campusVO, CampusDO campusOldDO) {
+        //数据交换
+        CampusDO campusDO = exchangeCampus(campusVO, campusOldDO);
+        CampusDO newCampusDO = campusDAO.updateCampus(campusDO);
+        return BeanUtil.copyProperties(newCampusDO, CampusDTO.class);
+    }
+
+
+    /**
+     * 交换校区信息
+     * 此方法用于将校区视图对象（VO）中的非空字段值复制到校区数据对象（DO）中，
+     * 同时保留原有校区的唯一标识符（UUID）。如果视图对象中的字段为空，则保留数据对象中原有的值。
+     *
+     * @param campusVO    包含要更新的校区信息的视图对象，不能为空
+     * @param campusOldDO 原有的校区数据对象，作为默认值来源，不能为空
+     * @return 返回一个包含更新后校区信息的数据对象（DO），该对象一定不为空
+     */
+    private @NotNull CampusDO exchangeCampus(
+            @NotNull CampusVO campusVO, @NotNull CampusDO campusOldDO) {
+        CampusDO campusDO = new CampusDO();
+        // 保留原有校区的唯一标识符
+        campusDO.setCampusUuid(campusOldDO.getCampusUuid());
+        // 根据视图对象中的非空字段，更新数据对象中的相应字段
+        if (campusVO.getCampusName() != null) {
+            campusDO.setCampusName(campusVO.getCampusName());
+        }
+        if (campusVO.getCampusCode() != null) {
+            campusDO.setCampusCode(campusVO.getCampusCode());
+        }
+        if (campusVO.getCampusDesc() != null) {
+            campusDO.setCampusDesc(campusVO.getCampusDesc());
+        }
+        if (campusVO.getCampusStatus() != null) {
+            campusDO.setCampusStatus(campusVO.getCampusStatus());
+        }
+        if (campusVO.getCampusAddress() != null) {
+            campusDO.setCampusAddress(campusVO.getCampusAddress());
+        }
+        return campusDO;
+    }
+
 }
