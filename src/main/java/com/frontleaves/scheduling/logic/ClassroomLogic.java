@@ -29,14 +29,19 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.daos.ClassroomDAO;
 import com.frontleaves.scheduling.daos.ClassroomTagDAO;
 import com.frontleaves.scheduling.daos.ClassroomTypeDAO;
+import com.frontleaves.scheduling.models.dto.ClassroomDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTagDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTypeDTO;
+import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.entity.ClassroomDO;
 import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
 import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
 import com.frontleaves.scheduling.services.ClassroomService;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -89,5 +94,46 @@ public class ClassroomLogic implements ClassroomService {
     public List<ClassroomTypeDTO> listClassroomTypes() {
         List<ClassroomTypeDO> types = classroomTypeDAO.getTypes();
         return BeanUtil.copyToList(types, ClassroomTypeDTO.class);
+    }
+
+    /**
+     * 获取教室分页数据
+     * <p>
+     * 该方法用于根据指定的分页参数、排序方式以及搜索条件获取教室信息的分页结果。返回的结果包含当前页的数据记录、总记录数等信息。
+     * </p>
+     *
+     * @param page    当前页码，从1开始
+     * @param size    每页显示的记录数
+     * @param isDesc  是否降序排列，如果为 {@code true} 则按降序排列，否则按升序排列
+     * @param keyword 搜索关键词，用于在教室名称或编号中进行模糊搜索
+     * @param tag     教室标签，用于筛选具有特定标签的教室
+     * @param type    教室类型，用于筛选特定类型的教室
+     * @return 返回一个包含教室分页数据的 {@code PageDTO<ClassroomDTO>} 对象
+     */
+    @Override
+    public PageDTO<ClassroomDTO> getClassroomPage(
+            int page,
+            int size,
+            boolean isDesc,
+            String keyword,
+            String tag,
+            String type
+    ) {
+        String tagUuid = null;
+        String typeUuid = null;
+        if (tag != null) {
+            ClassroomTagDO getTag = classroomTagDAO.getTagByUuid(tag);
+            if (getTag != null) {
+                tagUuid = getTag.getClassTagUuid();
+            }
+        }
+        if (type != null) {
+            ClassroomTypeDO getType = classroomTypeDAO.getTypeByUuid(type);
+            if (getType != null) {
+                typeUuid = getType.getClassTypeUuid();
+            }
+        }
+        Page<ClassroomDO> classroomPage = classroomDAO.getClassroomPage(page, size, isDesc, keyword, tagUuid, typeUuid);
+        return ProjectUtil.convertPageToPageDTO(classroomPage, ClassroomDTO.class);
     }
 }

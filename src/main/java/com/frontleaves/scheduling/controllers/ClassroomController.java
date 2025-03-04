@@ -28,15 +28,20 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.models.dto.ClassroomDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTagDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTypeDTO;
+import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.services.ClassroomService;
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -85,5 +90,26 @@ public class ClassroomController {
     public ResponseEntity<BaseResponse<List<ClassroomTypeDTO>>> getClassroomTypeList() {
         List<ClassroomTypeDTO> getTypes = classroomService.listClassroomTypes();
         return ResultUtil.success("成功", getTypes);
+    }
+
+    @GetMapping("/list")
+    public ResponseEntity<BaseResponse<PageDTO<ClassroomDTO>>> getClassroomPage(
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "20") Integer size,
+            @RequestParam(value = "is_desc", defaultValue = "true") Boolean isDesc,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "tag", required = false) String tag,
+            @RequestParam(value = "type", required = false) String type
+    ) {
+        if (size > 200) {
+            throw new BusinessException("单页查询不允许超过 200", ErrorCode.PARAMETER_INVALID);
+        }
+        PageDTO<ClassroomDTO> classroomList;
+        if (keyword == null || keyword.isBlank()) {
+            classroomList = classroomService.getClassroomPage(page, size, isDesc, null, tag, type);
+        } else {
+            classroomList = classroomService.getClassroomPage(page, size, isDesc, keyword, tag, type);
+        }
+        return ResultUtil.success("教室列表成功", classroomList);
     }
 }

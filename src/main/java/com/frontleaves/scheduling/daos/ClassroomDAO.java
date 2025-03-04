@@ -28,10 +28,13 @@
 
 package com.frontleaves.scheduling.daos;
 
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.mappers.ClassroomMapper;
 import com.frontleaves.scheduling.models.entity.ClassroomDO;
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -52,4 +55,46 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> implements IService<ClassroomDO> {
+
+    /**
+     * 获取教室分页数据
+     * <p>
+     * 该方法用于根据给定的分页参数、排序方式以及查询条件，从数据库中获取教室的分页数据。
+     * 支持通过关键字、标签和类型进行过滤，并且可以指定结果的排序方式（升序或降序）。
+     * </p>
+     *
+     * @param page 分页的页码，从1开始
+     * @param size 每页显示的数据条数
+     * @param isDesc 是否按创建时间降序排列，如果为 {@code true} 则降序，否则升序
+     * @param keyword 查询的关键字，用于模糊匹配教室名称
+     * @param tag 教室标签，用于精确匹配教室的标签
+     * @param type 教室类型，用于精确匹配教室的类型
+     * @return 返回一个包含分页信息和数据的 {@code Page<ClassroomDO>} 对象
+     */
+    public Page<ClassroomDO> getClassroomPage(
+            int page,
+            int size,
+            boolean isDesc,
+            String keyword,
+            @Nullable String tag,
+            @Nullable String type
+    ) {
+        LambdaQueryChainWrapper<ClassroomDO> queryWrapper = this.lambdaQuery();
+        if (keyword != null) {
+            queryWrapper.like(ClassroomDO::getName, keyword);
+        }
+        if (tag != null) {
+            queryWrapper.eq(ClassroomDO::getTag, tag);
+        }
+        if (type != null) {
+            queryWrapper.eq(ClassroomDO::getType, type);
+        }
+        if (isDesc) {
+            queryWrapper.orderByDesc(ClassroomDO::getCreatedAt);
+        } else {
+            queryWrapper.orderByAsc(ClassroomDO::getCreatedAt);
+        }
+
+        return queryWrapper.page(new Page<>(page, size));
+    }
 }

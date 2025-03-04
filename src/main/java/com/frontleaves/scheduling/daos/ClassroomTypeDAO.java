@@ -28,13 +28,17 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassroomTypeMapper;
 import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
+import com.xlf.utility.util.ConvertUtil;
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RList;
+import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
@@ -81,5 +85,31 @@ public class ClassroomTypeDAO extends ServiceImpl<ClassroomTypeMapper, Classroom
             return types.readAll();
         }
         return List.of();
+    }
+
+    /**
+     * 通过 UUID 获取教室类型
+     * <p>
+     * 该方法用于根据给定的 {@code type} 参数从 Redis 缓存中获取对应的 {@code ClassroomTypeDO} 对象。
+     * 如果缓存中不存在，则从数据库中查询并加载到缓存中。如果在数据库中也未找到对应记录，则返回 {@code null}。
+     * </p>
+     *
+     * @param type 教室类型的 UUID
+     * @return 返回与给定 UUID 对应的 {@code ClassroomTypeDO} 对象，如果没有找到则返回 {@code null}
+     */
+    @Nullable
+    public ClassroomTypeDO getTypeByUuid(String type) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.CLASSROOM_TYPE_UUID + type);
+        if (!map.isExists()) {
+            ClassroomTypeDO classroomTypeDO = this.getById(type);
+            if (classroomTypeDO != null) {
+                map.putAll(ConvertUtil.convertObjectToMapString(classroomTypeDO));
+                map.expire(Duration.ofSeconds(86400));
+                return classroomTypeDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, ClassroomTypeDO.class);
+        }
+        return null;
     }
 }
