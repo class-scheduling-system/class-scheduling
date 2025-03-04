@@ -1,10 +1,11 @@
 package com.frontleaves.scheduling.models.vo;
 
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 校区视图对象
@@ -21,28 +22,28 @@ public class CampusVO {
     /**
      * 校区名称
      */
-    @NotNull
+    @NotNull(message = "校区名称不能为空")
     private String campusName;
     /**
      * 校区编码
      */
-    @NotNull
+    @NotNull(message = "校区编码不能为空")
     private String campusCode;
     /**
      * 校区描述
      */
-    @NotNull
+    @NotNull(message = "校区描述不能为空")
     private String campusDesc;
     /**
      * 校区状态 0:禁用，1:启用
      */
-    @Pattern(regexp = "^[01]$",
-            message = "校区状态只能为0或1")
-    @NotNull
+    @Min(value = 0, message = "校区状态只能为 0（禁用）或 1（启用）")
+    @Max(value = 1, message = "校区状态只能为 0（禁用）或 1（启用）")
+    @NotNull(message = "校区状态不能为空")
     private Integer campusStatus;
     /**
      * 校区地址
      */
-    @NotNull
+    @NotNull(message = "校区地址不能为空")
     private String campusAddress;
 }
