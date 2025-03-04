@@ -47,6 +47,8 @@ class UserTest {
     private MajorDAO majorDAO;
     @Resource
     private StudentDAO studentDAO;
+    @Resource
+    private TeacherDAO teacherDAO;
     private UserDO setUpUser;
 
     /**
@@ -182,6 +184,37 @@ class UserTest {
     }
 
     @Test
+    void testCheckAddUserStu(){
+        UserAddVO addVO = new UserAddVO(
+                SystemConstant.getRoleStudent(),
+                "testAddUser",
+                PasswordUtil.encrypt("123456Aa"),
+                "testAddUser@test.com",
+                "13800000001",
+                List.of("operate"),
+                departmentDAO.lambdaQuery().list().get(0).getDepartmentUuid(),
+                0
+        );
+        Assertions.assertThrows(BusinessException.class, ()->
+                userService.checkAddUser(addVO)) ;
+    }
+
+    @Test
+    void testCheckAddUserTea(){
+        UserAddVO addVO = new UserAddVO(
+                SystemConstant.getRoleTeacher(),
+                "testAddUser",
+                PasswordUtil.encrypt("123456Aa"),
+                "testAddUser@test.com",
+                "13800000001",
+                List.of("operate"),
+                departmentDAO.lambdaQuery().list().get(0).getDepartmentUuid(),
+                0
+        );
+        Assertions.assertThrows(BusinessException.class, ()->
+                userService.checkAddUser(addVO)) ;
+    }
+    @Test
     void testDeleteUser() {
         log.debug("测试删除用户");
         userService.deleteUser(setUpUser.getUserUuid(), new MockHttpServletRequest());
@@ -245,12 +278,82 @@ class UserTest {
                 StringConstant.Redis.USER_MAIL + userDO.getEmail());
         RBucket<String> userTelBucket = redisson.getBucket(
                 StringConstant.Redis.USER_TEL + userDO.getPhone());
+        RMap<String, String> studentUuidMap = redisson.getMap(
+                StringConstant.Redis.STUDENT_UUID + setUpStudent.getStudentUuid());
+        RBucket<String> studentIdBucket = redisson.getBucket(
+                StringConstant.Redis.STUDENT_ID + setUpStudent.getId());
+        RBucket<String> studentUserUuidBucket = redisson.getBucket(
+                StringConstant.Redis.STUDENT_USER_UUID + setUpStudent.getUserUuid());
         Assertions.assertFalse(userUuidMap.isExists());
         Assertions.assertFalse(userNameBucket.isExists());
         Assertions.assertFalse(userMailBucket.isExists());
         Assertions.assertFalse(userTelBucket.isExists());
-    }
+        Assertions.assertFalse(studentUuidMap.isExists());
+        Assertions.assertFalse(studentIdBucket.isExists());
+        Assertions.assertFalse(studentUserUuidBucket.isExists());
 
+    }
+    @Test
+    void testDeleteUserWithTeacher(){
+        UserDO userDO = new UserDO();
+        userDO.setUserUuid(UuidUtil.generateUuidNoDash())
+                .setName("testDeleteUserWithTeacher")
+                .setPassword(PasswordUtil.encrypt("123456Aa"))
+                .setEmail("testDeleteUserWithTeacher@test.com")
+                .setPhone("13800000111")
+                .setStatus(1)
+                .setBan(0)
+                .setPermission("[\"user:unit:department:tag:category:delete\"]")
+                .setRoleUuid(SystemConstant.getRoleTeacher());
+        if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
+            userDAO.lambdaUpdate().eq(UserDO::getName, userDO.getName()).remove();
+        }
+        userDAO.save(userDO);
+        TeacherDO setUpTeacher = new TeacherDO();
+        setUpTeacher.setTeacherUuid(UuidUtil.generateUuidNoDash())
+                .setUnitUuid(getDepartmentByName().getDepartmentUuid())
+                .setUserUuid(userDO.getUserUuid())
+                .setId("123456")
+                .setName("testDeleteUserWithTeacher")
+                .setEnglishName("testDeleteUserWithTeacher")
+                .setEthnic("汉族")
+                .setSex(1)
+                .setPhone("14452873800")
+                .setEmail("qwerasdfzxcv@qwer.com")
+                .setJobTitle("教授")
+                .setDesc("这是一个教授");
+        if (teacherDAO.lambdaQuery().eq(TeacherDO::getId, setUpTeacher.getId()).one() == null) {
+            teacherDAO.lambdaUpdate().eq(TeacherDO::getId, setUpTeacher.getId()).remove();
+        }
+        teacherDAO.save(setUpTeacher);
+        userService.deleteUser(userDO.getUserUuid(), new MockHttpServletRequest());
+        UserDO userDODeleted = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one();
+        TeacherDO teacherDO = teacherDAO.lambdaQuery().eq(
+                TeacherDO::getTeacherUuid, setUpTeacher.getTeacherUuid()).one();
+        Assertions.assertNull(userDODeleted);
+        Assertions.assertNull(teacherDO);
+        RMap<String, String> userUuidMap = redisson.getMap(
+                StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+        RBucket<String> userNameBucket = redisson.getBucket(
+                StringConstant.Redis.USER_NAME + userDO.getName());
+        RBucket<String> userMailBucket = redisson.getBucket(
+                StringConstant.Redis.USER_MAIL + userDO.getEmail());
+        RBucket<String> userTelBucket = redisson.getBucket(
+                StringConstant.Redis.USER_TEL + userDO.getPhone());
+        RMap<String,String> teacherUuidMap = redisson.getMap(
+                StringConstant.Redis.TEACHER_UUID + setUpTeacher.getTeacherUuid());
+        RBucket<String> teacherIdBucket = redisson.getBucket(
+                StringConstant.Redis.TEACHER_ID + setUpTeacher.getId());
+        RBucket<String> teacherUserUuidBucket = redisson.getBucket(
+                StringConstant.Redis.TEACHER_USER_UUID + setUpTeacher.getUserUuid());
+        Assertions.assertFalse(userUuidMap.isExists());
+        Assertions.assertFalse(userNameBucket.isExists());
+        Assertions.assertFalse(userMailBucket.isExists());
+        Assertions.assertFalse(userTelBucket.isExists());
+        Assertions.assertFalse(teacherUuidMap.isExists());
+        Assertions.assertFalse(teacherIdBucket.isExists());
+        Assertions.assertFalse(teacherUserUuidBucket.isExists());
+    }
     @Test
     void testDeleteUserWithOtherRole() {
         UserDO userDO = new UserDO();
