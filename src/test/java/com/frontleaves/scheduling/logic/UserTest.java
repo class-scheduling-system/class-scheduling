@@ -220,7 +220,7 @@ class UserTest {
         StudentDO setUpStudent = new StudentDO();
         setUpStudent.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("1")
-                .setName("ZhangSan1314")
+                .setName("testDeleteUserWithStudent")
                 .setGender(1)
                 .setGrade("2022")
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
