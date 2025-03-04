@@ -22,8 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
-import java.time.Duration;
-
 /**
  * 部门 数据访问对象
  *
@@ -64,41 +62,65 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
         return null;
     }
 
+    /**
+     * 删除指定的部门
+     *
+     * @param departmentDO 需要删除的部门对象
+     * @throws ServerInternalErrorException 如果删除操作失败
+     */
     @Transactional
     public void deleteDepartment(DepartmentDO departmentDO) throws ServerInternalErrorException {
-
-
-
-    }
-
-    @Transactional
-    public void updateDepartment(DepartmentDO departmentDO) {
-        redisson.getKeys().deleteByPattern(StringConstant.Redis.DEPARTMENT_LIST);
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.DEPARTMENT_LIST + "*");
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
-            //this.deleteDepartmentRedis(departmentDO.getDepartmentUuid());
-            this.updateById(departmentDO);
+            transaction.getMap(StringConstant.Redis.DEPARTMENT_UUID + departmentDO.getDepartmentUuid()).delete();
             transaction.commit();
+            this.removeById(departmentDO);
         } catch (Exception e) {
             transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
-
     }
 
-    private void deleteDepartmentRedis(@NotNull RTransaction rTransaction, @NotNull DepartmentDO departmentDO) {
 
+    /**
+     * 更新指定的部门信息
+     *
+     * @param departmentDO 需要更新的部门对象
+     */
+    @Transactional
+    public void updateDepartment(DepartmentDO departmentDO) {
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.DEPARTMENT_LIST + "*");
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            transaction.getMap(StringConstant.Redis.DEPARTMENT_UUID + departmentDO.getDepartmentUuid()).delete();
+            transaction.commit();
+            this.updateById(departmentDO);
+        } catch (Exception e) {
+            transaction.rollback();
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
     }
 
+
+    /**
+     * 根据分页参数和查询条件获取部门列表
+     *
+     * @param page 分页页码
+     * @param size 每页大小
+     * @param isDesc 是否按降序排序
+     * @param name 部门名称查询条件
+     * @return 分页后的部门列表
+     */
     public Page<DepartmentDO> getDepartmentList(@NotNull Integer page, @NotNull Integer size, Boolean isDesc, String name) {
         LambdaQueryChainWrapper<DepartmentDO> query = this.lambdaQuery();
         if (name != null && !name.isEmpty()) {
             query.like(DepartmentDO::getDepartmentName, name);
         }
-        if(Boolean.TRUE.equals(isDesc)) {
-            query.orderByDesc(DepartmentDO::getDepartmentCode);
+        if (Boolean.TRUE.equals(isDesc)) {
+            query.orderByDesc(DepartmentDO::getCreatedAt);
         } else {
-            query.orderByAsc(DepartmentDO::getDepartmentCode);
+            query.orderByAsc(DepartmentDO::getCreatedAt);
         }
         return query.page(new Page<>(page, size));
     }

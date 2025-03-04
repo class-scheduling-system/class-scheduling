@@ -1,9 +1,9 @@
 package com.frontleaves.scheduling.controllers;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.frontleaves.scheduling.models.dto.DepartmentDTO;
 
-import com.frontleaves.scheduling.models.vo.DepartmentAddVO;
+import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.vo.DepartmentVO;
 import com.frontleaves.scheduling.services.DepartmentService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
@@ -33,14 +33,14 @@ public class DepartmentController {
      * 添加新部门的接口
      * 该方法通过POST请求接收部门信息，并进行验证和处理，返回新创建的部门信息
      *
-     * @param departmentAddVO 部门添加请求对象，包含需要验证的部门信息
+     * @param departmentVO 部门添加请求对象，包含需要验证的部门信息
      * @return 返回包含成功消息和新创建部门数据的响应实体
      */
     @PostMapping("")
     public ResponseEntity<BaseResponse<DepartmentDTO>> addDepartment(
-            @RequestBody @Validated DepartmentAddVO departmentAddVO) {
+            @RequestBody @Validated DepartmentVO departmentVO) {
         // 调用服务层方法，处理部门添加逻辑
-        DepartmentDTO departmentDTO=departmentService.addDepartment(departmentAddVO);
+        DepartmentDTO departmentDTO=departmentService.addDepartment(departmentVO);
         // 使用ResultUtil工具类生成成功响应，包含成功消息和部门数据
         return ResultUtil.success("部门创建成功",departmentDTO);
     }
@@ -67,6 +67,16 @@ public class DepartmentController {
         // 使用ResultUtil工具类生成包含“查询成功”消息和部门信息的响应实体返回
         return ResultUtil.success("查询成功", departmentDTO);
     }
+    /**
+     * 删除部门
+     *
+     * @param departmentUuid 部门的唯一标识符（UUID）
+     * @return 返回包含成功消息的响应实体
+     *
+     * 此方法首先会检查传入的部门UUID是否为空或空白，如果为空或空白，则抛出业务异常，
+     * 表示参数错误接着，调用部门服务的deleteDepartment方法删除部门最后，使用ResultUtil
+     * 工具类生成包含“删除成功”消息的响应实体返回
+     */
 
     @DeleteMapping("/{department_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteDepartment(
@@ -75,13 +85,36 @@ public class DepartmentController {
         return ResultUtil.success("删除成功");
     }
 
+    /**
+     * 更新部门信息
+     *
+     * @param departmentUuid 部门的唯一标识符（UUID）
+     * @param departmentVO 部门添加请求对象，包含需要验证的部门信息
+     * @return 返回包含成功消息和更新后的部门数据的响应实体
+     *
+     * 此方法首先会检查传入的部门UUID是否为空或空白，如果为空或空白，则抛出业务异常，
+     * 表示参数错误接着，调用部门服务的updateDepartment方法更新部门信息最后，使用ResultUtil
+     * 工具类生成包含“部门修改成功”消息和更新后的部门数据的响应实体返回
+     */
     @PutMapping("/{department_uuid}")
     public ResponseEntity<BaseResponse<DepartmentDTO>> updateDepartment(
             @PathVariable("department_uuid") String departmentUuid,
-            @RequestBody DepartmentAddVO departmentAddVO) {
-        DepartmentDTO departmentDTO= departmentService.updateDepartment(departmentUuid, departmentAddVO);
+            @RequestBody DepartmentVO departmentVO) {
+        DepartmentDTO departmentDTO= departmentService.updateDepartment(departmentUuid, departmentVO);
         return ResultUtil.success("部门修改成功", departmentDTO);
     }
+    /**
+     * 获取部门列表
+     *
+     * @param page 页码，默认为1
+     * @param size 每页大小，默认为20
+     * @param isDesc 是否降序排列，默认为true
+     * @param name 部门名称，可选参数
+     * @return 返回包含部门列表的响应实体
+     *
+     * 此方法用于获取部门列表，支持分页、排序和名称过滤功能。
+     * 通过调用部门服务的getDepartmentList方法获取部门列表，并使用ResultUtil工具类生成响应返回
+     */
 
     @GetMapping("")
     public ResponseEntity<BaseResponse<PageDTO<DepartmentDTO>>> getDepartmentList(

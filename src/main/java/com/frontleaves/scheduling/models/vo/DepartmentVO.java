@@ -17,7 +17,7 @@ import java.util.Date;
 @TableName(value = "cs_department")
 @Data
 @AllArgsConstructor
-public class DepartmentAddVO {
+public class DepartmentVO {
     /**
      * 部门编码
      */
