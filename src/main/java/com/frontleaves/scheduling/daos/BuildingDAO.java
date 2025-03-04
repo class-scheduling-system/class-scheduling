@@ -89,7 +89,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             }
             return ProjectUtil.queryAndCache(queryWrapper, page, size, map);
         } else {
-            return ProjectUtil.getPageForMap(map, BuildingDO.class);
+            return ProjectUtil.convertMapToPage(map, BuildingDO.class);
         }
     }
 
@@ -173,7 +173,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             }
             return ProjectUtil.queryAndCache(queryWrapper, page, size, map);
         } else {
-            return ProjectUtil.getPageForMap(map, BuildingDO.class);
+            return ProjectUtil.convertMapToPage(map, BuildingDO.class);
         }
     }
 

@@ -30,7 +30,11 @@ package com.frontleaves.scheduling.models.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.frontleaves.scheduling.models.entity.ClassroomDO;
+import jakarta.annotation.Nullable;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -47,6 +51,9 @@ import java.sql.Timestamp;
  * @since v1.0.0
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
 public class ClassroomDTO {
 
     /**
@@ -87,6 +94,7 @@ public class ClassroomDTO {
     /**
      * 教室标签，json格式存储
      */
+    @Nullable
     private String tag;
 
     /**
@@ -102,6 +110,7 @@ public class ClassroomDTO {
     /**
      * 考场容量
      */
+    @Nullable
     private Integer examinationRoomCapacity;
 
     /**
@@ -122,11 +131,13 @@ public class ClassroomDTO {
     /**
      * 教室描述
      */
+    @Nullable
     private String description;
 
     /**
      * 管理部门
      */
+    @Nullable
     private String managementDepartment;
 
     /**
@@ -137,6 +148,7 @@ public class ClassroomDTO {
     /**
      * 桌椅类型
      */
+    @Nullable
     private String tablesChairsType;
 
     /**

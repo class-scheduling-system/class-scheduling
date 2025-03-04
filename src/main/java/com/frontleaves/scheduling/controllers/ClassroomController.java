@@ -92,6 +92,19 @@ public class ClassroomController {
         return ResultUtil.success("成功", getTypes);
     }
 
+    /**
+     * 获取教室列表分页数据
+     * <p>
+     * 该方法用于根据给定的参数获取教室信息的分页数据。支持通过关键字、标签和类型进行过滤，并允许指定分页参数。
+     *
+     * @param page    分页的页码，从1开始，默认值为1
+     * @param size    每页显示的数据条数，默认值为20，最大值为200
+     * @param isDesc  是否按降序排序，默认值为true
+     * @param keyword 查询的关键字，可选参数
+     * @param tag     查询的标签，可选参数
+     * @param type    查询的类型，可选参数
+     * @return 包含教室列表分页数据的响应实体
+     */
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<PageDTO<ClassroomDTO>>> getClassroomPage(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
@@ -105,11 +118,7 @@ public class ClassroomController {
             throw new BusinessException("单页查询不允许超过 200", ErrorCode.PARAMETER_INVALID);
         }
         PageDTO<ClassroomDTO> classroomList;
-        if (keyword == null || keyword.isBlank()) {
-            classroomList = classroomService.getClassroomPage(page, size, isDesc, null, tag, type);
-        } else {
-            classroomList = classroomService.getClassroomPage(page, size, isDesc, keyword, tag, type);
-        }
+        classroomList = classroomService.getClassroomPage(page, size, isDesc, keyword, tag, type);
         return ResultUtil.success("教室列表成功", classroomList);
     }
 }

@@ -43,6 +43,7 @@ import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
 import com.frontleaves.scheduling.services.ClassroomService;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -115,19 +116,19 @@ public class ClassroomLogic implements ClassroomService {
             int page,
             int size,
             boolean isDesc,
-            String keyword,
-            String tag,
-            String type
+            @Nullable String keyword,
+            @Nullable String tag,
+            @Nullable String type
     ) {
         String tagUuid = null;
         String typeUuid = null;
-        if (tag != null) {
+        if (tag != null && !tag.isBlank()) {
             ClassroomTagDO getTag = classroomTagDAO.getTagByUuid(tag);
             if (getTag != null) {
                 tagUuid = getTag.getClassTagUuid();
             }
         }
-        if (type != null) {
+        if (type != null && !type.isBlank()) {
             ClassroomTypeDO getType = classroomTypeDAO.getTypeByUuid(type);
             if (getType != null) {
                 typeUuid = getType.getClassTypeUuid();

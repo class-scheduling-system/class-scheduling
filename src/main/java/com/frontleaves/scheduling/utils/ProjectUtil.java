@@ -126,7 +126,7 @@ public class ProjectUtil {
      * @return 创建的分页对象
      */
     @NotNull
-    public static <T> Page<T> getPageForMap(@NotNull Map<String, String> map, Class<T> clazz) {
+    public static <T> Page<T> convertMapToPage(@NotNull Map<String, String> map, Class<T> clazz) {
         Page<T> pageResult = new Page<>(
                 Long.parseLong(map.getOrDefault("current", "1")),
                 Long.parseLong(map.getOrDefault("size", "20"))
