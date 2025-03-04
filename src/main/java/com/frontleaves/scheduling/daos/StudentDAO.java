@@ -212,11 +212,13 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
                             StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
                     studentMap.putAll(ConvertUtil.convertObjectToMapString(studentDO));
                     studentMap.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
                     return studentDO;
                 }
             } else {
                 return this.getStudentByUuid(tryGetStudentByUserUuid.get());
             }
+            transaction.rollback();
             return null;
         } catch (Exception e) {
             transaction.rollback();
