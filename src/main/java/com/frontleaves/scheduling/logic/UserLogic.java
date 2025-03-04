@@ -323,15 +323,17 @@ public class UserLogic implements UserService {
         }
         if (roleDTO.getRoleUuid().equals(SystemConstant.getRoleStudent())) {
             StudentDO studentDO = studentDAO.getStudentByUserUuid(userUuid);
-            assert studentDO != null;
             log.debug("删除学生信息");
-            studentDAO.deleteStudent(studentDO);
+            if (studentDO != null) {
+                studentDAO.deleteStudent(studentDO);
+            }
             userDAO.deleteUser(userDO);
         } else if (roleDTO.getRoleUuid().equals(SystemConstant.getRoleTeacher())) {
             TeacherDO teacherDO = teacherDAO.getTeacherByUserUuid(userUuid);
-            assert teacherDO != null;
             log.debug("删除教师信息");
-            teacherDAO.deleteTeacher(teacherDO);
+            if (teacherDO != null) {
+                teacherDAO.deleteTeacher(teacherDO);
+            }
             userDAO.deleteUser(userDO);
         } else {
             log.debug("删除用户信息");
