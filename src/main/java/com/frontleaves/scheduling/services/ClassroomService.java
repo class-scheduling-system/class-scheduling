@@ -28,7 +28,7 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.ClassroomDTO;
+import com.frontleaves.scheduling.models.dto.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTagDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTypeDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
@@ -83,7 +83,7 @@ public interface ClassroomService {
      * @param type    教室类型，用于筛选特定类型的教室
      * @return 返回一个包含教室分页数据的 {@code PageDTO<ClassroomDTO>} 对象
      */
-    PageDTO<ClassroomDTO> getClassroomPage(
+    PageDTO<ClassroomInfoDTO> getClassroomPage(
             int page,
             int size,
             boolean isDesc,

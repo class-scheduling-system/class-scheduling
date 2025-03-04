@@ -28,7 +28,7 @@
 
 package com.frontleaves.scheduling.controllers;
 
-import com.frontleaves.scheduling.models.dto.ClassroomDTO;
+import com.frontleaves.scheduling.models.dto.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTagDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTypeDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
@@ -106,7 +106,7 @@ public class ClassroomController {
      * @return 包含教室列表分页数据的响应实体
      */
     @GetMapping("/list")
-    public ResponseEntity<BaseResponse<PageDTO<ClassroomDTO>>> getClassroomPage(
+    public ResponseEntity<BaseResponse<PageDTO<ClassroomInfoDTO>>> getClassroomPage(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "20") Integer size,
             @RequestParam(value = "is_desc", defaultValue = "true") Boolean isDesc,
@@ -117,8 +117,7 @@ public class ClassroomController {
         if (size > 200) {
             throw new BusinessException("单页查询不允许超过 200", ErrorCode.PARAMETER_INVALID);
         }
-        PageDTO<ClassroomDTO> classroomList;
-        classroomList = classroomService.getClassroomPage(page, size, isDesc, keyword, tag, type);
+        PageDTO<ClassroomInfoDTO> classroomList = classroomService.getClassroomPage(page, size, isDesc, keyword, tag, type);
         return ResultUtil.success("教室列表成功", classroomList);
     }
 }

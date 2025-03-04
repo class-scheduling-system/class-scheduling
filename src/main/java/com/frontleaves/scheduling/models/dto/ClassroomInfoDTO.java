@@ -28,127 +28,54 @@
 
 package com.frontleaves.scheduling.models.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.frontleaves.scheduling.models.entity.ClassroomDO;
-import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.util.List;
 
 /**
- * 教室数据传输对象
+ * 教室信息数据传输对象
  * <p>
- * 该类是 {@code ClassroomDO} 实体类的 DTO，用于在数据传输过程中传递教室信息。
+ * 该类用于在数据传输过程中传递教室的详细信息，包括教室的基本信息、类型和标签。
+ * 其中，{@code classroom} 属性包含教室的基本信息，如教室编号、名称等；
+ * {@code type} 属性包含教室的类型信息，如教室类型名称、描述等；
+ * {@code tag} 属性包含教室的标签信息，如标签名称、描述等。
  * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
- * @see ClassroomDO
  * @since v1.0.0
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
-public class ClassroomDTO {
+public class ClassroomInfoDTO {
 
     /**
-     * 教室主键
+     * 教室基本信息
      */
-    private String classroomUuid;
+    private ClassroomDTO classroom;
 
     /**
-     * 教室编号
+     * 教室类型信息
      */
-    private String number;
+    private ClassroomTypeDTO type;
 
     /**
-     * 教室名称
+     * 教室标签信息
      */
-    private String name;
+    private List<ClassroomTagDTO> tag;
 
     /**
-     * 校区主键
+     * 校区信息
      */
-    private String campusUuid;
+    private CampusDTO campus;
 
     /**
-     * 楼栋主键
+     * 楼栋信息
      */
-    private String buildingUuid;
-
-    /**
-     * 楼层
-     */
-    private Integer floor;
-
-    /**
-     * 教室容量
-     */
-    private Integer capacity;
-
-    /**
-     * 是否是考场
-     */
-    private Boolean examinationRoom;
-
-    /**
-     * 考场容量
-     */
-    @Nullable
-    private Integer examinationRoomCapacity;
-
-    /**
-     * 是否是多媒体教室
-     */
-    private Boolean isMultimedia;
-
-    /**
-     * 是否有空调
-     */
-    private Boolean isAirConditioned;
-
-    /**
-     * 教室状态 0:禁用 1:启用
-     */
-    private Boolean status;
-
-    /**
-     * 教室描述
-     */
-    @Nullable
-    private String description;
-
-    /**
-     * 管理部门
-     */
-    @Nullable
-    private String managementDepartment;
-
-    /**
-     * 教室面积
-     */
-    private BigDecimal area;
-
-    /**
-     * 桌椅类型
-     */
-    @Nullable
-    private String tablesChairsType;
-
-    /**
-     * 创建时间，时间戳以数字格式返回
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间，时间戳以数字格式返回
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp updatedAt;
+    private BuildingDTO building;
 }

@@ -88,7 +88,8 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> impl
         if (!map.isExists()) {
             LambdaQueryChainWrapper<ClassroomDO> queryWrapper = this.lambdaQuery();
             if (tag != null) {
-                queryWrapper.eq(ClassroomDO::getTag, tag);
+                // tag 存储 JSON 字符串，使用 like 进行模糊匹配
+                queryWrapper.like(ClassroomDO::getTag, tag);
             }
             if (type != null) {
                 queryWrapper.eq(ClassroomDO::getType, type);

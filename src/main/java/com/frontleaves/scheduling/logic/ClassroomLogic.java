@@ -30,22 +30,19 @@ package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.frontleaves.scheduling.daos.ClassroomDAO;
-import com.frontleaves.scheduling.daos.ClassroomTagDAO;
-import com.frontleaves.scheduling.daos.ClassroomTypeDAO;
-import com.frontleaves.scheduling.models.dto.ClassroomDTO;
-import com.frontleaves.scheduling.models.dto.ClassroomTagDTO;
-import com.frontleaves.scheduling.models.dto.ClassroomTypeDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.ClassroomDO;
 import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
 import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
 import com.frontleaves.scheduling.services.ClassroomService;
-import com.frontleaves.scheduling.utils.ProjectUtil;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONArray;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -64,6 +61,8 @@ public class ClassroomLogic implements ClassroomService {
     private final ClassroomTagDAO classroomTagDAO;
     private final ClassroomTypeDAO classroomTypeDAO;
     private final ClassroomDAO classroomDAO;
+    private final CampusDAO campusDAO;
+    private final BuildingDAO buildingDAO;
 
     /**
      * 获取教室标签列表
@@ -112,7 +111,7 @@ public class ClassroomLogic implements ClassroomService {
      * @return 返回一个包含教室分页数据的 {@code PageDTO<ClassroomDTO>} 对象
      */
     @Override
-    public PageDTO<ClassroomDTO> getClassroomPage(
+    public PageDTO<ClassroomInfoDTO> getClassroomPage(
             int page,
             int size,
             boolean isDesc,
@@ -134,7 +133,47 @@ public class ClassroomLogic implements ClassroomService {
                 typeUuid = getType.getClassTypeUuid();
             }
         }
+        if (keyword != null && keyword.isBlank()) {
+            keyword = null;
+        }
         Page<ClassroomDO> classroomPage = classroomDAO.getClassroomPage(page, size, isDesc, keyword, tagUuid, typeUuid);
-        return ProjectUtil.convertPageToPageDTO(classroomPage, ClassroomDTO.class);
+        PageDTO<ClassroomInfoDTO> classroomInfoDTO = new PageDTO<>();
+        BeanUtil.copyProperties(classroomPage, classroomInfoDTO, "records");
+        classroomInfoDTO.setRecords(
+                classroomPage.getRecords()
+                        .stream()
+                        .map(getRecord -> new ClassroomInfoDTO()
+                                .setClassroom(BeanUtil.toBean(getRecord, ClassroomDTO.class))
+                                .setTag(getTagListForJson(getRecord.getTag()))
+                                .setType(BeanUtil.toBean(classroomTypeDAO.getTypeByUuid(getRecord.getType()), ClassroomTypeDTO.class))
+                                .setCampus(BeanUtil.toBean(campusDAO.getCampusByUuid(getRecord.getCampusUuid()), CampusDTO.class))
+                                .setBuilding(BeanUtil.toBean(buildingDAO.getBuildingByUuid(getRecord.getBuildingUuid()), BuildingDTO.class)))
+                        .toList()
+        );
+        return classroomInfoDTO;
+    }
+
+    /**
+     * 从 JSON 字符串中解析标签列表
+     * <p>
+     * 该方法接收一个包含标签 UUID 的 JSON 字符串，从中提取每个 UUID 并查询数据库获取对应的标签信息，
+     * 然后将这些标签信息转换为 {@code ClassroomTagDTO} 对象，并返回一个包含所有标签的列表。
+     * 如果传入的 JSON 字符串为空或无法解析，则返回空列表。
+     *
+     * @param getJsonTags 包含标签 UUID 的 JSON 字符串
+     * @return 根据传入的 JSON 字符串解析得到的标签列表
+     */
+    private @NotNull List<ClassroomTagDTO> getTagListForJson(String getJsonTags) {
+        List<ClassroomTagDTO> tags = new ArrayList<>();
+        if (getJsonTags != null && !getJsonTags.isBlank()) {
+            JSONArray getTags = new JSONArray(getJsonTags);
+            getTags.forEach(tagUuidStr -> {
+                ClassroomTagDO tagDO = classroomTagDAO.getTagByUuid(tagUuidStr.toString());
+                if (tagDO != null) {
+                    tags.add(BeanUtil.toBean(tagDO, ClassroomTagDTO.class));
+                }
+            });
+        }
+        return tags;
     }
 }

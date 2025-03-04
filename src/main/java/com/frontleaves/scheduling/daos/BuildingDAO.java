@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapp
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.BuildingMapper;
 import com.frontleaves.scheduling.models.entity.BuildingDO;
@@ -12,11 +13,14 @@ import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.redisson.api.*;
+import org.redisson.api.RBucket;
+import org.redisson.api.RKeys;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
@@ -32,34 +36,36 @@ import java.time.Duration;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> implements IService<BuildingDO> {
     private final RedissonClient redisson;
 
     /**
-     * 从 Redis 中删除教学楼相关缓存
+     * 从 Redis 中删除指定教学楼的相关缓存数据
      * <p>
-     * 该方法用于在执行教学楼信息删除操作时，清除 Redis 中与该教学楼相关的所有缓存数据。通过 Redisson 提供的事务功能来确保缓存删除操作的一致性。
-     * 具体来说，该方法会删除以下三个缓存：
-     * 1. 教学楼 UUID 对应的缓存数据。
-     * 2. 教学楼名称对应的缓存数据。
-     * 3. 教学楼所在校区 UUID 对应的缓存数据。
-     * </p>
+     * 该方法根据传入的教学楼信息，删除与之相关的所有 Redis 缓存条目。具体来说，它会删除以下几类缓存：
+     * <ul>
+     *     <li>以 {@code StringConstant.Redis.BUILDING_LIST + "*"} 为模式的所有缓存条目</li>
+     *     <li>以 {@code StringConstant.Redis.CLASSROOM_LIST + "*"} 为模式的所有缓存条目</li>
+     *     <li>以 {@code StringConstant.Redis.BUILDING_UUID + buildingDO.getBuildingUuid()} 为键的缓存条目</li>
+     *     <li>以 {@code StringConstant.Redis.BUILDING_NAME + buildingDO.getBuildingName()} 为键的缓存条目</li>
+     *     <li>以 {@code StringConstant.Redis.BUILDING_CAMPUS + buildingDO.getCampusUuid()} 为键的缓存条目</li>
+     * </ul>
+     * 删除完成后，会记录删除的总条数。
      *
-     * @param transaction Redisson 事务对象，用于保证缓存删除操作的原子性
-     * @param buildingDO 教学楼实体对象，包含需要删除的教学楼信息
+     * @param buildingDO 教学楼的数据对象，包含教学楼的 UUID、名称和校区 UUID 等信息
      */
-    private void deleteBuildingRedis(@NotNull RTransaction transaction, @NotNull BuildingDO buildingDO) {
-        // 使用 Redisson 事务处理
-        RMap<String, String> buildingMap = transaction.getMap(StringConstant.Redis.BUILDING_UUID + buildingDO.getBuildingUuid());
-        buildingMap.delete();
-
-        RMap<String, String> buildingNameMap = transaction.getMap(StringConstant.Redis.BUILDING_NAME + buildingDO.getBuildingName());
-        buildingNameMap.delete();
-
-        RMap<String, String> buildingCampusMap = transaction.getMap(StringConstant.Redis.BUILDING_CAMPUS + buildingDO.getCampusUuid());
-        buildingCampusMap.delete();
+    private void deleteBuildingRedis(@NotNull BuildingDO buildingDO) {
+        RKeys keys = redisson.getKeys();
+        long checkTotal = 0;
+        checkTotal += keys.deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*");
+        checkTotal += keys.deleteByPattern(StringConstant.Redis.CLASSROOM_LIST + "*");
+        checkTotal += keys.delete(StringConstant.Redis.BUILDING_UUID + buildingDO.getBuildingUuid());
+        checkTotal += keys.delete(StringConstant.Redis.BUILDING_NAME + buildingDO.getBuildingName());
+        checkTotal += keys.delete(StringConstant.Redis.BUILDING_CAMPUS + buildingDO.getCampusUuid());
+        log.debug(LogConstant.DAO + "删除教学楼缓存数据，共删除 {} 条数据", checkTotal);
     }
 
     /**
@@ -68,9 +74,9 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      * 该方法用于根据给定的关键字从数据库中查询教学楼列表，并支持分页和排序。首先尝试从 Redis 缓存中读取数据，如果缓存中没有数据，则从数据库查询并缓存结果。
      * </p>
      *
-     * @param page 分页的页码
-     * @param size 每页的大小
-     * @param isDesc 是否降序排列，默认为升序
+     * @param page    分页的页码
+     * @param size    每页的大小
+     * @param isDesc  是否降序排列，默认为升序
      * @param keyword 查询关键字，用于匹配教学楼名称
      * @return 返回包含教学楼信息的分页对象
      */
@@ -156,9 +162,9 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      * </p>
      *
      * @param campusUuid 校区的 UUID
-     * @param page 分页的页码
-     * @param size 每页的大小
-     * @param isDesc 是否降序排列，默认为升序
+     * @param page       分页的页码
+     * @param size       每页的大小
+     * @param isDesc     是否降序排列，默认为升序
      * @return 返回包含教学楼信息的分页对象
      */
     public Page<BuildingDO> getBuildingByCampus(String campusUuid, int page, int size, boolean isDesc) {
@@ -180,50 +186,29 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
     /**
      * 更新教学楼信息
      * <p>
-     * 该方法用于更新指定的教学楼信息。它首先在 Redis 中删除与该教学楼相关的缓存数据，然后更新数据库中的记录。
-     * 整个过程在一个事务中进行，确保数据的一致性。如果在操作过程中发生任何异常，将抛出 {@code ServerInternalErrorException} 异常，并回滚事务。
+     * 该方法用于更新指定的教学楼信息。首先从 Redis 中删除与该教学楼相关的所有缓存数据，然后在数据库中更新教学楼信息。
+     * 通过事务管理确保操作的一致性。
      * </p>
      *
-     * @param buildingDO 待更新的教学楼实体对象，包含需要更新的信息
-     * @throws ServerInternalErrorException 如果在更新过程中发生异常，则抛出此异常
+     * @param buildingDO 教学楼实体对象，包含需要更新的教学楼信息
      */
-    @Transactional
-    public void updateBuilding(BuildingDO buildingDO) throws ServerInternalErrorException {
-        redisson.getKeys().deleteByPattern(StringConstant.Redis.BUILDING_LIST);
-        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
-        try {
-            this.deleteBuildingRedis(transaction, buildingDO);
-            this.updateById(buildingDO);
-            transaction.commit();
-        } catch (Exception e) {
-            transaction.rollback();
-            log.error(StringConstant.DATABASE_OPERATION_FAILED, e);
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-        }
+    public void updateBuilding(BuildingDO buildingDO) {
+        this.deleteBuildingRedis(buildingDO);
+        this.updateById(buildingDO);
     }
 
     /**
      * 删除教学楼信息
      * <p>
-     * 该方法用于从数据库和 Redis 缓存中删除指定的教学楼信息。操作通过 Redisson 事务处理，确保数据的一致性。
-     * 如果在删除过程中发生异常，将抛出 {@code ServerInternalErrorException} 异常，并附带错误信息 {@code DATABASE_OPERATION_FAILED}。
+     * 该方法用于删除指定的教学楼信息。首先从 Redis 中删除与该教学楼相关的所有缓存数据，然后从数据库中删除对应的记录。
+     * 整个过程在一个事务中进行，确保数据的一致性。如果在操作过程中发生任何异常，将抛出 {@code ServerInternalErrorException} 异常，并回滚事务。
      * </p>
      *
-     * @param buildingDO 教学楼实体对象，包含需要删除的教学楼信息
-     * @throws ServerInternalErrorException 如果在删除过程中发生异常
+     * @param buildingDO 待删除的教学楼实体对象，包含需要删除的信息
+     * @throws ServerInternalErrorException 如果在删除过程中发生异常，则抛出此异常
      */
-    @Transactional
     public void deleteBuilding(BuildingDO buildingDO) {
-        redisson.getKeys().deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*");
-        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
-        try {
-            this.deleteBuildingRedis(transaction, buildingDO);
-            this.removeById(buildingDO.getBuildingUuid());
-            transaction.commit();
-        } catch (Exception e) {
-            transaction.rollback();
-            log.error(StringConstant.DATABASE_OPERATION_FAILED, e);
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-        }
+        this.deleteBuildingRedis(buildingDO);
+        this.removeById(buildingDO.getBuildingUuid());
     }
 }
