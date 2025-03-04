@@ -94,6 +94,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
             } else {
                 return this.getTeacherByUuid(tryGetTeacherById.get());
             }
+            transaction.rollback();
             return null;
         } catch (Exception e) {
             transaction.rollback();

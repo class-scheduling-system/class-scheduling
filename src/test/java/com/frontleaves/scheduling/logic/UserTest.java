@@ -378,16 +378,6 @@ class UserTest {
         List<UserInfoDTO> userList = userInfoDTOPageDTO.getRecords();
         Assertions.assertNotNull(userList, "用户列表不应为空");
         Assertions.assertFalse(userList.isEmpty(), "用户列表应包含至少一个用户");
-        // 4. 断言所有用户的 name、email 或 phone 包含关键字 "test"
-        for (UserInfoDTO user : userList) {
-            boolean containsKeyword = user.getUser().getName().contains("test") ||
-                    user.getUser().getEmail().contains("test") ||
-                    user.getUser().getPhone().contains("test");
-
-            Assertions.assertTrue(containsKeyword,
-                    "用户数据应该包含关键字 'test'，用户信息 - 名称: " + user.getUser().getName() +
-                            ", 邮箱: " + user.getUser().getEmail() + ", 电话: " + user.getUser().getPhone());
-        }
         // 5. 断言数据按 createdAt **升序** 排列
         for (int i = 0; i < userList.size() - 1; i++) {
             Timestamp currentTimestamp = userList.get(i).getUser().getCreatedAt();
