@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CampusMapper;
 import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -137,7 +139,7 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
         } catch (Exception e) {
             // 如果发生异常，回滚事务，确保数据一致性
             transaction.rollback();
-            throw e;
+            throw new BusinessException("更新校园信息失败", ErrorCode.OPERATION_ERROR);
         }
         return this.lambdaQuery().eq(
                 CampusDO::getCampusUuid, campusDO.getCampusUuid()).one();
@@ -150,13 +152,9 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
      * @param transaction Redis事务对象，用于执行删除操作
      */
     private void deleteUserRedis(@NotNull CampusDO campusDO, @NotNull RTransaction transaction) {
-        // 删除校园UUID相关的缓存
         transaction.getMap(StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid()).delete();
-        // 删除校园代码相关的缓存
         transaction.getBucket(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode()).delete();
-        // 删除校园名称相关的缓存
         transaction.getBucket(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName()).delete();
-        // 提交事务，确保缓存数据被正确删除
         transaction.commit();
     }
 }

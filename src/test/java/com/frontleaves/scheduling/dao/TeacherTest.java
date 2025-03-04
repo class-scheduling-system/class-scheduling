@@ -47,10 +47,10 @@ class TeacherTest {
      * @return 部门数据
      */
     private DepartmentDO getDepartmentByName() {
-        DepartmentDO departmentDO = departmentDAO.lambdaQuery().eq(DepartmentDO::getDepartmentName,
-                "信息智能工程学院").one();
+        DepartmentDO departmentDO = departmentDAO.lambdaQuery().list().get(0);
         if (departmentDO == null) {
-            throw new BusinessException("[dao.StudentTest]单元测试通过部门名称找不到部门数据", ErrorCode.OPERATION_ERROR);
+            throw new BusinessException("[dao.TeacherTest]单元测试通过找不到部门数据",
+                    ErrorCode.OPERATION_ERROR);
         }
         return departmentDO;
     }

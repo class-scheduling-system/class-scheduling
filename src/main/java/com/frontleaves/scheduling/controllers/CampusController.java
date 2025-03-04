@@ -43,6 +43,14 @@ public class CampusController {
         return ResultUtil.success("添加校区成功",campusDTO);
     }
 
+    /**
+     * 更新校区信息的接口方法
+     * 使用PUT请求，请求路径为/{campus_uuid}
+     *
+     * @param campusUuid 校区的唯一标识符，用于定位要更新的校区
+     * @param campusVO 包含更新后的校区信息的请求体，经过验证确保数据的合法性
+     * @return 返回一个包含更新后的校区信息的响应实体
+     */
     @PutMapping("/{campus_uuid}")
     public ResponseEntity<BaseResponse<CampusDTO>> updateCampus(
             @PathVariable("campus_uuid") String campusUuid,

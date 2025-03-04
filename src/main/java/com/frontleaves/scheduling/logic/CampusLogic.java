@@ -31,6 +31,11 @@ import org.springframework.stereotype.Service;
 public class CampusLogic implements CampusService {
     private final CampusDAO campusDAO;
 
+    /**
+     * 添加校园
+     * @param campusVO 校园的视图对象，包含需要添加的校园详细信息
+     * @return 返回添加成功的校园信息
+     */
     @Override
     public CampusDTO addCampus(CampusVO campusVO) {
         //数据交换
@@ -41,6 +46,14 @@ public class CampusLogic implements CampusService {
         return BeanUtil.copyProperties(newCampusDO, CampusDTO.class);
     }
 
+    /**
+     * 校验添加校区的输入信息是否合法
+     * 此方法主要通过检查校区信息的各个字段是否为空或重复来确保数据的合法性
+     * 验证不通过将抛出异常，提示相应的错误信息
+     *
+     * @param campusVO 校区视图对象，包含了校区的相关信息
+     * @throws BusinessException 当校区信息不合法时抛出此异常，包含错误信息和错误代码
+     */
     @Override
     public void checkAddCampusVO(CampusVO campusVO) {
         if (campusVO.getCampusName().isEmpty()) {
@@ -52,22 +65,31 @@ public class CampusLogic implements CampusService {
         if (campusVO.getCampusDesc().isEmpty()) {
             throw new BusinessException("校区描述不能为空", ErrorCode.BODY_ERROR);
         }
+        //为Integer类型的属性赋值时，需要判断是否为空
         if (campusVO.getCampusStatus() == null) {
             throw new BusinessException("校区状态不能为空", ErrorCode.BODY_ERROR);
         }
         if (campusVO.getCampusAddress().isEmpty()) {
             throw new BusinessException("校区地址不能为空", ErrorCode.BODY_ERROR);
         }
-        //检查唯一键是否重复
         if (campusDAO.getCampusByCode(campusVO.getCampusCode()) != null) {
             throw new BusinessException("校区编码已存在", ErrorCode.BODY_ERROR);
         }
-        //检查校区名称是否重复
         if (campusDAO.getCampusByName(campusVO.getCampusName()) != null) {
             throw new BusinessException("校区名称已存在", ErrorCode.BODY_ERROR);
         }
     }
 
+    /**
+     * 检查并更新校区信息
+     * 此方法首先验证校区的唯一性标识（UUID），然后检查校区名称和编码的唯一性
+     * 如果校区不存在，或名称、编码重复，将抛出异常
+     *
+     * @param campusUuid 校区的唯一性标识（UUID）
+     * @param campusVO 待更新的校区信息对象
+     * @return 返回更新前的校区信息对象
+     * @throws BusinessException 如果校区不存在或校区名称、编码重复
+     */
     @Override
     public CampusDO checkUpdateCampusVO(String campusUuid, CampusVO campusVO) {
         //检查校区是否存在
@@ -75,12 +97,14 @@ public class CampusLogic implements CampusService {
         if (campusDO == null) {
             throw new BusinessException("校区不存在", ErrorCode.OPERATION_FAILED);
         }
+
         //检查校区名称是否重复
         if (campusVO.getCampusName() != null
                 && !campusVO.getCampusName().equals(campusDO.getCampusName())
                 && campusDAO.getCampusByName(campusVO.getCampusName()) != null) {
             throw new BusinessException("校区名称已存在", ErrorCode.BODY_ERROR);
         }
+
         //检查校区编码是否重复
         if (campusVO.getCampusCode() != null
                 && !campusVO.getCampusCode().equals(campusDO.getCampusCode())
@@ -91,6 +115,12 @@ public class CampusLogic implements CampusService {
         return campusDO;
     }
 
+    /**
+     * 更新校区信息
+     * @param campusVO 包含要更新的校区信息的视图对象
+     * @param campusOldDO 校区的数据对象，包含校区的当前信息
+     * @return 返回更新后的校区信息
+     */
     @Override
     public CampusDTO updateCampus(CampusVO campusVO, CampusDO campusOldDO) {
         //数据交换
