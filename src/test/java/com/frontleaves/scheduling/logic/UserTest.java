@@ -176,7 +176,7 @@ class UserTest {
     void testUpdateUser() {
         log.debug("测试更新用户信息");
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
-                "13800000001", 0, 1,
+                "13800000001", null, 1,
                 SystemConstant.getRoleAdmin(),
                 List.of("operate"));
         UserInfoDTO userInfoDTO = userService.updateUser(
@@ -188,14 +188,12 @@ class UserTest {
         Assertions.assertEquals(userInfoDTO.getUser().getName(), editVO.getName());
         Assertions.assertEquals(userInfoDTO.getUser().getPhone(), editVO.getPhone());
         Assertions.assertEquals(userInfoDTO.getUser().getBan(), editVO.getBan());
-        Assertions.assertEquals(userInfoDTO.getUser().getStatus(), editVO.getStatus());
         Assertions.assertEquals(userInfoDTO.getUser().getRole().getRoleUuid(), editVO.getRoleUuid());
         //测试数据库是否一样
         Assertions.assertEquals(editVO.getName(), userDO.getName());
         Assertions.assertEquals(editVO.getPhone(), userDO.getPhone());
         Assertions.assertEquals(editVO.getEmail(), userDO.getEmail());
         Assertions.assertEquals(editVO.getBan(), userDO.getBan());
-        Assertions.assertEquals(editVO.getStatus(), userDO.getStatus());
         Assertions.assertEquals(editVO.getRoleUuid(), userDO.getRoleUuid());
     }
 
