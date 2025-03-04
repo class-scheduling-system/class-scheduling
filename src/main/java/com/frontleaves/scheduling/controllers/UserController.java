@@ -113,8 +113,7 @@ public class UserController {
     public ResponseEntity<BaseResponse<UserAddInfoDTO>> addUser(
             @RequestBody UserAddVO userAddVO
     ) {
-        userService.checkAddUser(userAddVO);
-        UserAddInfoDTO userInfoDTO = userService.addUser(userAddVO);
+        UserAddInfoDTO userInfoDTO = userService.addUser(userAddVO,userService.checkAddUser(userAddVO));
         return ResultUtil.success("添加用户成功", userInfoDTO);
     }
 

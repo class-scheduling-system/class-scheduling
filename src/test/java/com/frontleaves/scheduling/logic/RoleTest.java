@@ -12,7 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @Slf4j
 @SpringBootTest
-public class RoleTest {
+class RoleTest {
     @Resource
     private RoleService roleService;
 
@@ -32,8 +32,17 @@ public class RoleTest {
 
     @Test
     void testGetRoleNoMatching() {
-        Assertions.assertThrows(BusinessException.class, () -> {
-            roleService.getRole("not-exist");
-        });
+        Assertions.assertThrows(BusinessException.class, () -> roleService.getRole("not-exist"));
     }
+
+    @Test
+    void testCheckPageAndSizeNotThrow() {
+        Assertions.assertDoesNotThrow(() -> roleService.checkPageAndSize(1, 10));
+    }
+
+    @Test
+    void testCheckPageAndSizeThrow() {
+        Assertions.assertThrows(BusinessException.class, () -> roleService.checkPageAndSize(0, 10));
+    }
+
 }

@@ -63,25 +63,6 @@ public class BuildingLogic implements BuildingService {
     private final CampusDAO campusDAO;
 
     /**
-     * 获取教学楼列表
-     * <p>
-     * 该方法用于分页查询系统中所有的教学楼信息。通过指定的页码、每页大小以及排序方式，返回符合条件的教学楼数据。
-     * 返回的数据封装在 {@code PageDTO<BuildingDTO>} 中，其中包含分页信息和教学楼的基本信息。
-     * </p>
-     *
-     * @param page   当前页码，从1开始
-     * @param size   每页显示的记录数
-     * @param isDesc 排序方式，true 表示降序，false 表示升序
-     * @return 包含分页信息和教学楼数据的 {@code PageDTO<BuildingDTO>}
-     */
-    @Override
-    @NotNull
-    public PageDTO<BuildingDTO> getBuildingList(int page, int size, boolean isDesc) {
-        Page<BuildingDO> buildingList = buildingDAO.getBuildingList(page, size, isDesc);
-        return ProjectUtil.convertPageToPageDTO(buildingList, BuildingDTO.class);
-    }
-
-    /**
      * 获取包含关键词的教学楼列表
      * <p>
      * 该方法用于分页查询系统中所有名称或相关信息包含指定关键词的教学楼信息。
@@ -98,8 +79,8 @@ public class BuildingLogic implements BuildingService {
      */
     @Override
     @NotNull
-    public PageDTO<BuildingDTO> getBuildingListHasKeyword(int page, int size, boolean isDesc, String keyword) {
-        Page<BuildingDO> buildingList = buildingDAO.getBuildingListHasKeyword(page, size, isDesc, keyword);
+    public PageDTO<BuildingDTO> getBuildingList(int page, int size, boolean isDesc, String keyword) {
+        Page<BuildingDO> buildingList = buildingDAO.getBuildingList(page, size, isDesc, keyword);
         return ProjectUtil.convertPageToPageDTO(buildingList, BuildingDTO.class);
     }
 

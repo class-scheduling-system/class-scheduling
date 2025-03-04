@@ -12,6 +12,7 @@ import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMap;
 import org.redisson.api.RTransaction;
 import org.redisson.api.RedissonClient;
@@ -21,10 +22,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
+import java.time.Duration;
+
 /**
  * 部门 数据访问对象
+ *
  * @author FLASHLACK
  */
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> implements

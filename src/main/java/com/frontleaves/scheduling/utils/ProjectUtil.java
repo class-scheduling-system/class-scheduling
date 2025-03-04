@@ -80,17 +80,23 @@ public class ProjectUtil {
     /**
      * 将分页对象转换为分页数据传输对象
      * <p>
-     * 该方法接收一个 {@code Page<T>} 对象，并将其转换为对应的 {@code PageDTO<T>} 对象。
-     * 转换过程中，如果当前页码不为0，则会创建一个新的 {@code PageDTO<T>} 对象，并设置总记录数、每页大小、当前页码和记录列表。
-     * 如果当前页码为0，则返回一个默认的空 {@code PageDTO<T>} 对象。
+     * 该方法接收一个 {@code Page<T>} 对象和目标类型的类，将其转换为对应的 {@code PageDTO<E>} 对象。
+     * 转换过程中，如果分页对象为空，则返回一个新的空的 {@code PageDTO} 对象。
+     * 如果分页对象不为空且当前页码不为0，则创建一个新的 {@code PageDTO} 对象，并设置总记录数、每页大小、当前页码和记录列表。
+     * 记录列表会从 JSON 格式的字符串转换为目标类型列表。
      * </p>
      *
-     * @param page 分页对象，不能为空
-     * @param <T>  记录的类型
+     * @param page 分页对象，可以为空
+     * @param clazz 目标类型的类
+     * @param <T> 源分页对象中记录的泛型类型
+     * @param <E> 目标分页数据传输对象中记录的泛型类型
      * @return 转换后的分页数据传输对象
      */
     @NotNull
-    public static <T, E> PageDTO<E> convertPageToPageDTO(@NotNull Page<T> page, Class<E> clazz) {
+    public static <T, E> PageDTO<E> convertPageToPageDTO(Page<T> page, Class<E> clazz) {
+        if (page == null) {
+            return new PageDTO<>();
+        }
         if (page.getCurrent() != 0) {
             PageDTO<E> pageDTO = new PageDTO<>(page.getTotal(), page.getSize());
             pageDTO

@@ -29,6 +29,7 @@
 package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.daos.RoleDAO;
+import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.RoleDTO;
 import com.frontleaves.scheduling.models.entity.RoleDO;
 import jakarta.annotation.Resource;
@@ -36,6 +37,10 @@ import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 角色测试类
@@ -49,7 +54,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 @RequiredArgsConstructor
 class RoleTest {
-    @Resource private RoleDAO roleDAO;
+    @Resource
+    private RoleDAO roleDAO;
 
     @Test
     void testGetRoleByName() {
@@ -72,5 +78,71 @@ class RoleTest {
         // 测试角色
         RoleDTO getRole = roleDAO.getRoleByUuid("null");
         Assertions.assertNull(getRole);
+    }
+
+    @Test
+    void testGetRoleDtoPageDTOAsc() {
+        // 测试角色
+        PageDTO<RoleDTO> roleDTOPageDTO = roleDAO.getRoleDtoPageDTO(1, 10, false, "");
+        Assertions.assertNotNull(roleDTOPageDTO);
+        Assertions.assertTrue(roleDTOPageDTO.getTotal() >= 1, "总页数应该大于等于 1");
+        // 判断是否为正序（根据 createdAt 字段）
+        List<RoleDTO> content = roleDTOPageDTO.getRecords();
+        for (int i = 0; i < content.size() - 1; i++) {
+            Timestamp currentTimestamp = content.get(i).getCreatedAt();
+            Timestamp nextTimestamp = content.get(i + 1).getCreatedAt();
+            // 将 Timestamp 转换为 LocalDateTime
+            LocalDateTime currentCreatedAt = currentTimestamp.toLocalDateTime();
+            LocalDateTime nextCreatedAt = nextTimestamp.toLocalDateTime();
+            // 检查当前项的 createdAt 是否严格大于下一项的 createdAt
+            Assertions.assertFalse(currentCreatedAt.isAfter(nextCreatedAt),
+                    "数据应该按正序排列，当前数据顺序错误");
+        }
+    }
+
+    @Test
+    void testGetRoleDtoPageDTODesc() {
+        // 测试角色
+        PageDTO<RoleDTO> roleDTOPageDTO = roleDAO.getRoleDtoPageDTO(1, 10, true, "");
+        Assertions.assertNotNull(roleDTOPageDTO);
+        Assertions.assertTrue(roleDTOPageDTO.getTotal() >= 1, "总页数应该大于等于 1");
+        // 判断是否为正序（根据 createdAt 字段）
+        List<RoleDTO> content = roleDTOPageDTO.getRecords();
+        for (int i = 0; i < content.size() - 1; i++) {
+            Timestamp currentTimestamp = content.get(i).getCreatedAt();
+            Timestamp nextTimestamp = content.get(i + 1).getCreatedAt();
+            // 将 Timestamp 转换为 LocalDateTime
+            LocalDateTime currentCreatedAt = currentTimestamp.toLocalDateTime();
+            LocalDateTime nextCreatedAt = nextTimestamp.toLocalDateTime();
+            // 检查当前项的 createdAt 是否严格大于下一项的 createdAt
+            Assertions.assertFalse(currentCreatedAt.isBefore(nextCreatedAt),
+                    "数据应该按降序排列，当前数据顺序错误");
+        }
+    }
+
+    @Test
+    void testGetRoleDtoPageDTOAscBySearch() {
+        // 测试角色
+        String search = "管理员";
+        PageDTO<RoleDTO> roleDTOPageDTO = roleDAO.getRoleDtoPageDTO(1, 10, true, search);
+        Assertions.assertNotNull(roleDTOPageDTO);
+        Assertions.assertTrue(roleDTOPageDTO.getTotal() >= 1, "总页数应该大于等于 1");
+        for (RoleDTO roleDTO : roleDTOPageDTO.getRecords()) {
+            // 断言用记录中包含关键字
+            boolean containsKeyword = roleDTO.getRoleName().contains(search);
+            Assertions.assertTrue(containsKeyword, "应包含关键字");
+        }
+        // 判断是否为正序（根据 createdAt 字段）
+        List<RoleDTO> content = roleDTOPageDTO.getRecords();
+        for (int i = 0; i < content.size() - 1; i++) {
+            Timestamp currentTimestamp = content.get(i).getCreatedAt();
+            Timestamp nextTimestamp = content.get(i + 1).getCreatedAt();
+            // 将 Timestamp 转换为 LocalDateTime
+            LocalDateTime currentCreatedAt = currentTimestamp.toLocalDateTime();
+            LocalDateTime nextCreatedAt = nextTimestamp.toLocalDateTime();
+            // 检查当前项的 createdAt 是否严格大于下一项的 createdAt
+            Assertions.assertFalse(currentCreatedAt.isAfter(nextCreatedAt),
+                    "数据应该按正序排列，当前数据顺序错误");
+        }
     }
 }
