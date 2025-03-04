@@ -1,16 +1,23 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.DepartmentMapper;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RMap;
+import org.redisson.api.RTransaction;
 import org.redisson.api.RedissonClient;
+import org.redisson.api.TransactionOptions;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
@@ -50,5 +57,44 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
             return BeanUtil.toBean(map, DepartmentDO.class);
         }
         return null;
+    }
+
+    @Transactional
+    public void deleteDepartment(DepartmentDO departmentDO) throws ServerInternalErrorException {
+
+
+
+    }
+
+    @Transactional
+    public void updateDepartment(DepartmentDO departmentDO) {
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.DEPARTMENT_LIST);
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            //this.deleteDepartmentRedis(departmentDO.getDepartmentUuid());
+            this.updateById(departmentDO);
+            transaction.commit();
+        } catch (Exception e) {
+            transaction.rollback();
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+
+    }
+
+    private void deleteDepartmentRedis(@NotNull RTransaction rTransaction, @NotNull DepartmentDO departmentDO) {
+
+    }
+
+    public Page<DepartmentDO> getDepartmentList(@NotNull Integer page, @NotNull Integer size, Boolean isDesc, String name) {
+        LambdaQueryChainWrapper<DepartmentDO> query = this.lambdaQuery();
+        if (name != null && !name.isEmpty()) {
+            query.like(DepartmentDO::getDepartmentName, name);
+        }
+        if(Boolean.TRUE.equals(isDesc)) {
+            query.orderByDesc(DepartmentDO::getDepartmentCode);
+        } else {
+            query.orderByAsc(DepartmentDO::getDepartmentCode);
+        }
+        return query.page(new Page<>(page, size));
     }
 }

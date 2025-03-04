@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.services;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.frontleaves.scheduling.models.dto.DepartmentDTO;
 
 import com.frontleaves.scheduling.models.vo.DepartmentAddVO;
@@ -12,4 +13,10 @@ public interface DepartmentService {
     DepartmentDTO addDepartment(DepartmentAddVO departmentAddVOO);
 
     DepartmentDTO getDepartment(String departmentUuid);
+
+    void deleteDepartment(String departmentUuid);
+
+    DepartmentDTO updateDepartment(String departmentUuid, DepartmentAddVO departmentAddVO);
+
+    PageDTO<DepartmentDTO> getDepartmentList(int page, int size, boolean isDesc,String name);
 }

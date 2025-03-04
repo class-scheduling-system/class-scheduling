@@ -1,6 +1,8 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.BuildingDAO;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
@@ -13,6 +15,7 @@ import com.frontleaves.scheduling.models.entity.UnitCategoryDO;
 import com.frontleaves.scheduling.models.entity.UnitTypeDO;
 import com.frontleaves.scheduling.models.vo.DepartmentAddVO;
 import com.frontleaves.scheduling.services.DepartmentService;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;
@@ -85,5 +88,37 @@ public class DepartmentLogic implements DepartmentService {
             throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
         }
          return BeanUtil.toBean(departmentDTO, DepartmentDTO.class);
+    }
+
+    @Override
+    public void deleteDepartment(String departmentUuid) throws BusinessException {
+        DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(departmentUuid);
+        if (departmentDO != null) {
+            departmentDAO.deleteDepartment(departmentDO);
+        } else {
+            throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
+        }
+    }
+
+    @Override
+    public DepartmentDTO updateDepartment(String departmentUuid, DepartmentAddVO departmentAddVO) {
+        DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(departmentUuid);
+        if (departmentDO != null) {
+            BeanUtil.copyProperties(departmentAddVO, departmentDO);
+            departmentDAO.updateDepartment(departmentDO);
+            return BeanUtil.toBean(departmentDO, DepartmentDTO.class);
+        }
+        return null;
+    }
+
+    @Override
+    public PageDTO<DepartmentDTO> getDepartmentList(int page, int size, boolean isDesc,String name) {
+        Page<DepartmentDO> departmentList = departmentDAO.getDepartmentList(page,size,isDesc,name);
+        if (departmentList.getTotal() == 0) {
+            return new PageDTO<>();
+        }else {
+            return ProjectUtil.convertPageToPageDTO(departmentList, DepartmentDTO.class);
+        }
+
     }
 }
