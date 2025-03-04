@@ -1,7 +1,6 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -37,35 +36,6 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> implements IService<BuildingDO> {
     private final RedissonClient redisson;
-
-    /**
-     * 查询并缓存分页数据
-     * <p>
-     * 该方法用于根据给定的查询条件从数据库中获取分页数据，并将结果缓存到 Redis 中。如果查询成功，返回包含查询结果的分页对象。
-     * 缓存的数据包括记录、当前页码、每页大小、总记录数和总页数。缓存的有效期为 1 小时。
-     * </p>
-     *
-     * @param queryWrapper 查询条件包装器，用于构建查询条件
-     * @param page 分页的页码
-     * @param size 每页的大小
-     * @param map 用于存储缓存数据的 Redis Map 对象
-     * @return 返回包含查询结果的分页对象，如果查询失败则返回 null
-     */
-    @Nullable
-    private <T> Page<T> queryAndCache(@NotNull LambdaQueryChainWrapper<T> queryWrapper, int page, int size, RMap<String, String> map) {
-        Page<T> buildingPage = queryWrapper.page(new Page<>(page, size));
-
-        if (buildingPage.getCurrent() != 0) {
-            map.put("records", JSONUtil.toJsonStr(buildingPage.getRecords()));
-            map.put("current", String.valueOf(buildingPage.getCurrent()));
-            map.put("size", String.valueOf(buildingPage.getSize()));
-            map.put("total", String.valueOf(buildingPage.getTotal()));
-            map.put("pages", String.valueOf(buildingPage.getPages()));
-            map.expire(Duration.ofSeconds(3600));
-            return buildingPage;
-        }
-        return null;
-    }
 
     /**
      * 从 Redis 中删除教学楼相关缓存
@@ -117,7 +87,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             if (keyword != null) {
                 queryWrapper.like(BuildingDO::getBuildingName, keyword);
             }
-            return this.queryAndCache(queryWrapper, page, size, map);
+            return ProjectUtil.queryAndCache(queryWrapper, page, size, map);
         } else {
             return ProjectUtil.getPageForMap(map, BuildingDO.class);
         }
@@ -201,7 +171,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             } else {
                 queryWrapper.orderByAsc(BuildingDO::getCreatedAt);
             }
-            return this.queryAndCache(queryWrapper, page, size, map);
+            return ProjectUtil.queryAndCache(queryWrapper, page, size, map);
         } else {
             return ProjectUtil.getPageForMap(map, BuildingDO.class);
         }
