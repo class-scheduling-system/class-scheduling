@@ -259,7 +259,8 @@ class UserTest {
         // 1. 创建 MockHttpServletRequest
         MockHttpServletRequest request = new MockHttpServletRequest();
         // 2. 调用 userService.getUserList 获取包含 "test" 关键字的用户列表
-        PageDTO<UserInfoDTO> userInfoDTOPageDTO = userService.getUserList(1, 10, "test", false, request);
+        PageDTO<UserInfoDTO> userInfoDTOPageDTO = userService.getUserList(
+                1, 10, "test", false, request);
         // 3. 断言返回数据不为空
         Assertions.assertNotNull(userInfoDTOPageDTO, "返回的用户分页数据不应为空");
         List<UserInfoDTO> userList = userInfoDTOPageDTO.getRecords();
