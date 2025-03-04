@@ -179,7 +179,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     public void deleteTeacher(TeacherDO teacherDO) throws ServerInternalErrorException {
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
-            this.lambdaUpdate().eq(TeacherDO::getId, teacherDO.getId()).remove();
+            this.removeById(teacherDO);
             transaction.getBucket(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
             transaction.getMap(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
             transaction.getBucket(StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid()).delete();

@@ -48,6 +48,7 @@ class UserTest {
     @Resource
     private StudentDAO studentDAO;
     private UserDO setUpUser;
+
     /**
      * 通过部门 名称获取部门数据
      *
@@ -199,14 +200,15 @@ class UserTest {
         Assertions.assertFalse(userMailBucket.isExists());
         Assertions.assertFalse(userTelBucket.isExists());
     }
+
     @Test
-    void testDeleteUserWithStudent (){
+    void testDeleteUserWithStudent() {
         UserDO userDO = new UserDO();
         userDO.setUserUuid(UuidUtil.generateUuidNoDash())
-                .setName("logicUserTest")
+                .setName("deleteUserWithStudent")
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
-                .setEmail("logicUserTest@test.com")
-                .setPhone("13800000000")
+                .setEmail("deleteUserWithStudent@test.com")
+                .setPhone("13800000111")
                 .setStatus(1)
                 .setBan(0)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
@@ -248,6 +250,40 @@ class UserTest {
         Assertions.assertFalse(userMailBucket.isExists());
         Assertions.assertFalse(userTelBucket.isExists());
     }
+
+    @Test
+    void testDeleteUserWithOtherRole() {
+        UserDO userDO = new UserDO();
+        userDO.setUserUuid(UuidUtil.generateUuidNoDash())
+                .setName("testDeleteUserWithOtherRole")
+                .setPassword(PasswordUtil.encrypt("123456Aa"))
+                .setEmail("testDeleteUserWithOtherRole@test.com")
+                .setPhone("13800000222")
+                .setStatus(1)
+                .setBan(0)
+                .setPermission("[\"user:unit:department:tag:category:delete\"]")
+                .setRoleUuid(SystemConstant.getRoleLeader());
+        if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
+            userDAO.lambdaUpdate().eq(UserDO::getName, userDO.getName()).remove();
+        }
+        userDAO.save(userDO);
+        userService.deleteUser(userDO.getUserUuid(), new MockHttpServletRequest());
+        UserDO userDODeleted = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one();
+        Assertions.assertNull(userDODeleted);
+        RMap<String, String> userUuidMap = redisson.getMap(
+                StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+        RBucket<String> userNameBucket = redisson.getBucket(
+                StringConstant.Redis.USER_NAME + userDO.getName());
+        RBucket<String> userMailBucket = redisson.getBucket(
+                StringConstant.Redis.USER_MAIL + userDO.getEmail());
+        RBucket<String> userTelBucket = redisson.getBucket(
+                StringConstant.Redis.USER_TEL + userDO.getPhone());
+        Assertions.assertFalse(userUuidMap.isExists());
+        Assertions.assertFalse(userNameBucket.isExists());
+        Assertions.assertFalse(userMailBucket.isExists());
+        Assertions.assertFalse(userTelBucket.isExists());
+    }
+
     @Test
     void testUpdateUser() {
         log.debug("测试更新用户信息");
