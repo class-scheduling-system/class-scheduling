@@ -220,6 +220,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
             this.deleteUserRedis(userDO, transaction);
         } catch (Exception e) {
             transaction.rollback();
+            log.debug("删除用户失败", e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }

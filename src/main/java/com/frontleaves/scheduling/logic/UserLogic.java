@@ -322,19 +322,26 @@ public class UserLogic implements UserService {
             throw new ServerInternalErrorException("角色不存在，意料之外的错误");
         }
         if (roleDTO.getRoleUuid().equals(SystemConstant.getRoleStudent())) {
-            StudentDO studentDO = studentDAO.lambdaQuery().eq(StudentDO::getUserUuid, userUuid).one();
+            StudentDO studentDO = studentDAO.getStudentByUserUuid(userUuid);
             assert studentDO != null;
             log.debug("删除学生信息");
             studentDAO.deleteStudent(studentDO);
             userDAO.deleteUser(userDO);
         } else if (roleDTO.getRoleUuid().equals(SystemConstant.getRoleTeacher())) {
-            TeacherDO teacherDO = teacherDAO.lambdaQuery().eq(TeacherDO::getUserUuid, userUuid).one();
+            TeacherDO teacherDO = teacherDAO.getTeacherByUserUuid(userUuid);
             assert teacherDO != null;
             log.debug("删除教师信息");
             teacherDAO.deleteTeacher(teacherDO);
             userDAO.deleteUser(userDO);
         } else {
             log.debug("删除用户信息");
+            StudentDO studentDO = studentDAO.getStudentByUserUuid(userUuid);
+            TeacherDO teacherDO = teacherDAO.getTeacherByUserUuid(userUuid);
+            if (studentDO != null) {
+                studentDAO.deleteStudent(studentDO);
+            } else if (teacherDO != null) {
+                teacherDAO.deleteTeacher(teacherDO);
+            }
             userDAO.deleteUser(userDO);
         }
     }
