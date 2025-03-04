@@ -30,12 +30,16 @@ package com.frontleaves.scheduling.utils;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.redisson.api.RMap;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -132,5 +136,34 @@ public class ProjectUtil {
                 .setRecords(records)
                 .setTotal(Long.parseLong(map.getOrDefault("total", "0")));
         return pageResult;
+    }
+
+    /**
+     * 查询并缓存分页数据
+     * <p>
+     * 该方法用于根据给定的查询条件从数据库中获取分页数据，并将结果缓存到 Redis 中。如果查询成功，返回包含查询结果的分页对象。
+     * 缓存的数据包括记录、当前页码、每页大小、总记录数和总页数。缓存的有效期为 1 小时。
+     * </p>
+     *
+     * @param queryWrapper 查询条件包装器，用于构建查询条件
+     * @param page 分页的页码
+     * @param size 每页的大小
+     * @param map 用于存储缓存数据的 Redis Map 对象
+     * @return 返回包含查询结果的分页对象，如果查询失败则返回 null
+     */
+    @Nullable
+    public static  <T> Page<T> queryAndCache(@NotNull LambdaQueryChainWrapper<T> queryWrapper, int page, int size, RMap<String, String> map) {
+        Page<T> buildingPage = queryWrapper.page(new Page<>(page, size));
+
+        if (buildingPage.getCurrent() != 0) {
+            map.put("records", JSONUtil.toJsonStr(buildingPage.getRecords()));
+            map.put("current", String.valueOf(buildingPage.getCurrent()));
+            map.put("size", String.valueOf(buildingPage.getSize()));
+            map.put("total", String.valueOf(buildingPage.getTotal()));
+            map.put("pages", String.valueOf(buildingPage.getPages()));
+            map.expire(Duration.ofSeconds(3600));
+            return buildingPage;
+        }
+        return null;
     }
 }
