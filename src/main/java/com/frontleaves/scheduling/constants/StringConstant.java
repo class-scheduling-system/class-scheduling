@@ -83,6 +83,8 @@ public class StringConstant {
         public static final String CAMPUS_NAME = "campus:name:";
         public static final String CAMPUS_CODE = "campus:code:";
         public static final String DEPARTMENT_UUID = "department:uuid:";
+        public static final String CLASSROOM_TAG_LIST = "classroom:tag:list";
+        public static final String CLASSROOM_TYPE_LIST = "classroom:type:list";
 
         private Redis() {
             log.error("Redis 不能被实例化");

@@ -30,10 +30,16 @@ package com.frontleaves.scheduling.daos;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassroomTypeMapper;
 import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RList;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
+
+import java.time.Duration;
+import java.util.List;
 
 /**
  * 教室类型数据访问对象
@@ -51,4 +57,29 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class ClassroomTypeDAO extends ServiceImpl<ClassroomTypeMapper, ClassroomTypeDO> implements IService<ClassroomTypeDO> {
+    private final RedissonClient redisson;
+
+    /**
+     * 获取所有教室类型
+     * <p>
+     * 该方法用于从 Redis 缓存中获取所有的 {@code ClassroomTypeDO} 对象列表。如果缓存中不存在，则从数据库中查询并加载到缓存中。
+     * 如果数据库中也不存在任何记录，则返回空列表。
+     * </p>
+     *
+     * @return 返回一个包含所有教室类型的 {@code List<ClassroomTypeDO>}，如果没有找到任何类型则返回 {@code null}
+     */
+    public List<ClassroomTypeDO> getTypes() {
+        RList<ClassroomTypeDO> types = redisson.getList(StringConstant.Redis.CLASSROOM_TYPE_LIST);
+        if (!types.isExists()) {
+            List<ClassroomTypeDO> getList = this.lambdaQuery().list();
+            if (!getList.isEmpty()) {
+                types.addAll(getList);
+                types.expire(Duration.ofSeconds(3600));
+                return getList;
+            }
+        } else {
+            return types.readAll();
+        }
+        return List.of();
+    }
 }

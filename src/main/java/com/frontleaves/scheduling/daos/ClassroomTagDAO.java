@@ -30,10 +30,16 @@ package com.frontleaves.scheduling.daos;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassroomTagMapper;
 import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RList;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
+
+import java.time.Duration;
+import java.util.List;
 
 /**
  * 教室标签数据访问对象
@@ -51,4 +57,29 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class ClassroomTagDAO extends ServiceImpl<ClassroomTagMapper, ClassroomTagDO> implements IService<ClassroomTagDO> {
+    private final RedissonClient redisson;
+
+    /**
+     * 获取所有教室标签
+     * <p>
+     * 该方法用于从 Redis 缓存中获取所有的 {@code ClassroomTagDO} 对象列表。如果缓存中不存在，则从数据库中查询并加载到缓存中。
+     * 如果数据库中也不存在任何记录，则返回空列表。
+     * </p>
+     *
+     * @return 返回一个包含所有教室标签的 {@code List<ClassroomTagDO>}，如果没有找到任何标签则返回 {@code null}
+     */
+    public List<ClassroomTagDO> getTags() {
+        RList<ClassroomTagDO> tags = redisson.getList(StringConstant.Redis.CLASSROOM_TAG_LIST);
+        if (!tags.isExists()) {
+            List<ClassroomTagDO> getList = this.lambdaQuery().list();
+            if (!getList.isEmpty()) {
+                tags.addAll(getList);
+                tags.expire(Duration.ofSeconds(3600));
+                return getList;
+            }
+        } else {
+            return tags.readAll();
+        }
+        return List.of();
+    }
 }
