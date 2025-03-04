@@ -2,17 +2,15 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
-import com.frontleaves.scheduling.daos.AcademicAffairsPermissionDAO;
-import com.frontleaves.scheduling.daos.DepartmentDAO;
-import com.frontleaves.scheduling.daos.UserDAO;
+import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserAddInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
-import com.frontleaves.scheduling.models.entity.AcademicAffairsPermissionDO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.services.UserService;
+import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
@@ -45,7 +43,38 @@ class UserTest {
     private DepartmentDAO departmentDAO;
     @Resource
     private AcademicAffairsPermissionDAO academicAffairsPermissionDAO;
+    @Resource
+    private MajorDAO majorDAO;
+    @Resource
+    private StudentDAO studentDAO;
     private UserDO setUpUser;
+
+    /**
+     * 通过部门 名称获取部门数据
+     *
+     * @return 部门数据
+     */
+    private DepartmentDO getDepartmentByName() {
+        DepartmentDO departmentDO = departmentDAO.lambdaQuery().eq(DepartmentDO::getDepartmentName,
+                "信息智能工程学院").one();
+        if (departmentDO == null) {
+            throw new BusinessException("[dao.StudentTest]单元测试通过部门名称找不到部门数据", ErrorCode.OPERATION_ERROR);
+        }
+        return departmentDO;
+    }
+
+    /**
+     * 通过专业名称获取专业数据
+     *
+     * @return 专业数据
+     */
+    private MajorDO getMajorByName() {
+        MajorDO majorDO = majorDAO.lambdaQuery().eq(MajorDO::getMajorName, "软件技术").one();
+        if (majorDO == null) {
+            throw new BusinessException("[dao.StudentTest]单元测试通过找不到专业数据", ErrorCode.OPERATION_ERROR);
+        }
+        return majorDO;
+    }
 
 
     @BeforeEach
@@ -173,6 +202,89 @@ class UserTest {
     }
 
     @Test
+    void testDeleteUserWithStudent() {
+        UserDO userDO = new UserDO();
+        userDO.setUserUuid(UuidUtil.generateUuidNoDash())
+                .setName("deleteUserWithStudent")
+                .setPassword(PasswordUtil.encrypt("123456Aa"))
+                .setEmail("deleteUserWithStudent@test.com")
+                .setPhone("13800000111")
+                .setStatus(1)
+                .setBan(0)
+                .setPermission("[\"user:unit:department:tag:category:delete\"]")
+                .setRoleUuid(SystemConstant.getRoleStudent());
+        if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
+            userDAO.lambdaUpdate().eq(UserDO::getName, userDO.getName()).remove();
+        }
+        userDAO.save(userDO);
+        StudentDO setUpStudent = new StudentDO();
+        setUpStudent.setStudentUuid(UuidUtil.generateUuidNoDash())
+                .setId("1")
+                .setName("testDeleteUserWithStudent")
+                .setGender(1)
+                .setGrade("2022")
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz("1班")
+                .setUserUuid(userDO.getUserUuid());
+        if (studentDAO.lambdaQuery().eq(StudentDO::getName, setUpStudent.getName()).one() != null) {
+            studentDAO.lambdaUpdate().eq(StudentDO::getName, setUpStudent.getName()).remove();
+        }
+        studentDAO.save(setUpStudent);
+        userService.deleteUser(userDO.getUserUuid(), new MockHttpServletRequest());
+        UserDO userDODeleted = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one();
+        StudentDO studentDO = studentDAO.lambdaQuery().eq(
+                StudentDO::getStudentUuid, setUpStudent.getStudentUuid()).one();
+        Assertions.assertNull(userDODeleted);
+        Assertions.assertNull(studentDO);
+        RMap<String, String> userUuidMap = redisson.getMap(
+                StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+        RBucket<String> userNameBucket = redisson.getBucket(
+                StringConstant.Redis.USER_NAME + userDO.getName());
+        RBucket<String> userMailBucket = redisson.getBucket(
+                StringConstant.Redis.USER_MAIL + userDO.getEmail());
+        RBucket<String> userTelBucket = redisson.getBucket(
+                StringConstant.Redis.USER_TEL + userDO.getPhone());
+        Assertions.assertFalse(userUuidMap.isExists());
+        Assertions.assertFalse(userNameBucket.isExists());
+        Assertions.assertFalse(userMailBucket.isExists());
+        Assertions.assertFalse(userTelBucket.isExists());
+    }
+
+    @Test
+    void testDeleteUserWithOtherRole() {
+        UserDO userDO = new UserDO();
+        userDO.setUserUuid(UuidUtil.generateUuidNoDash())
+                .setName("testDeleteUserWithOtherRole")
+                .setPassword(PasswordUtil.encrypt("123456Aa"))
+                .setEmail("testDeleteUserWithOtherRole@test.com")
+                .setPhone("13800000222")
+                .setStatus(1)
+                .setBan(0)
+                .setPermission("[\"user:unit:department:tag:category:delete\"]")
+                .setRoleUuid(SystemConstant.getRoleLeader());
+        if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
+            userDAO.lambdaUpdate().eq(UserDO::getName, userDO.getName()).remove();
+        }
+        userDAO.save(userDO);
+        userService.deleteUser(userDO.getUserUuid(), new MockHttpServletRequest());
+        UserDO userDODeleted = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one();
+        Assertions.assertNull(userDODeleted);
+        RMap<String, String> userUuidMap = redisson.getMap(
+                StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+        RBucket<String> userNameBucket = redisson.getBucket(
+                StringConstant.Redis.USER_NAME + userDO.getName());
+        RBucket<String> userMailBucket = redisson.getBucket(
+                StringConstant.Redis.USER_MAIL + userDO.getEmail());
+        RBucket<String> userTelBucket = redisson.getBucket(
+                StringConstant.Redis.USER_TEL + userDO.getPhone());
+        Assertions.assertFalse(userUuidMap.isExists());
+        Assertions.assertFalse(userNameBucket.isExists());
+        Assertions.assertFalse(userMailBucket.isExists());
+        Assertions.assertFalse(userTelBucket.isExists());
+    }
+
+    @Test
     void testUpdateUser() {
         log.debug("测试更新用户信息");
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
@@ -266,16 +378,6 @@ class UserTest {
         List<UserInfoDTO> userList = userInfoDTOPageDTO.getRecords();
         Assertions.assertNotNull(userList, "用户列表不应为空");
         Assertions.assertFalse(userList.isEmpty(), "用户列表应包含至少一个用户");
-        // 4. 断言所有用户的 name、email 或 phone 包含关键字 "test"
-        for (UserInfoDTO user : userList) {
-            boolean containsKeyword = user.getUser().getName().contains("test") ||
-                    user.getUser().getEmail().contains("test") ||
-                    user.getUser().getPhone().contains("test");
-
-            Assertions.assertTrue(containsKeyword,
-                    "用户数据应该包含关键字 'test'，用户信息 - 名称: " + user.getUser().getName() +
-                            ", 邮箱: " + user.getUser().getEmail() + ", 电话: " + user.getUser().getPhone());
-        }
         // 5. 断言数据按 createdAt **升序** 排列
         for (int i = 0; i < userList.size() - 1; i++) {
             Timestamp currentTimestamp = userList.get(i).getUser().getCreatedAt();

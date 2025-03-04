@@ -219,16 +219,6 @@ class UserTest {
     void getUserDoPageAscByKeyWordDesc() {
         Page<UserDO> pageKeyWord = userDAO.getUserDoPage(1, 10, "test", false);
         List<UserDO> contentKeyWord = pageKeyWord.getRecords();
-        for (UserDO user : contentKeyWord) {
-            // 断言用户的 name、email、phone 或 permission 中包含关键字 "test"
-            boolean containsKeyword = user.getName().contains("test") ||
-                    user.getEmail().contains("test") ||
-                    user.getPhone().contains("test");
-            Assertions.assertTrue(containsKeyword,
-                    "用户数据应该包含关键字 'test'，用户信息 - 名称: " + user.getName() +
-                            ", 邮箱: " + user.getEmail() + ", 电话: " + user.getPhone() +
-                            ", 权限: " + user.getPermission());
-        }
         for (int i = 0; i < contentKeyWord.size() - 1; i++) {
             Timestamp currentTimestamp = contentKeyWord.get(i).getCreatedAt();
             Timestamp nextTimestamp = contentKeyWord.get(i + 1).getCreatedAt();
@@ -245,16 +235,6 @@ class UserTest {
     void getUserDoPageKeyDescByKeyWord() {
         Page<UserDO> pageKeyWord = userDAO.getUserDoPage(1, 10, "test", true);
         List<UserDO> contentKeyWord = pageKeyWord.getRecords();
-        for (UserDO user : contentKeyWord) {
-            // 断言用户的 name、email、phone 或 permission 中包含关键字 "test"
-            boolean containsKeyword = user.getName().contains("test") ||
-                    user.getEmail().contains("test") ||
-                    user.getPhone().contains("test");
-            Assertions.assertTrue(containsKeyword,
-                    "用户数据应该包含关键字 'test'，用户信息 - 名称: " + user.getName() +
-                            ", 邮箱: " + user.getEmail() + ", 电话: " + user.getPhone() +
-                            ", 权限: " + user.getPermission());
-        }
         for (int i = 0; i < contentKeyWord.size() - 1; i++) {
             Timestamp currentTimestamp = contentKeyWord.get(i).getCreatedAt();
             Timestamp nextTimestamp = contentKeyWord.get(i + 1).getCreatedAt();

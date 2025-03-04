@@ -176,12 +176,13 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
     public void deleteStudent(StudentDO studentDO) throws ServerInternalErrorException {
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
-            this.lambdaUpdate().eq(StudentDO::getId, studentDO.getId()).remove();
+            this.lambdaUpdate().eq(StudentDO::getStudentUuid, studentDO.getStudentUuid()).remove();
             transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
             transaction.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
             transaction.getBucket(StringConstant.Redis.STUDENT_USER_UUID + studentDO.getUserUuid()).delete();
             transaction.commit();
         } catch (Exception e) {
+            log.debug("删除学生信息失败", e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
@@ -211,11 +212,13 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
                             StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
                     studentMap.putAll(ConvertUtil.convertObjectToMapString(studentDO));
                     studentMap.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
                     return studentDO;
                 }
             } else {
                 return this.getStudentByUuid(tryGetStudentByUserUuid.get());
             }
+            transaction.rollback();
             return null;
         } catch (Exception e) {
             transaction.rollback();
