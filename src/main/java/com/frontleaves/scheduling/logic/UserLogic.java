@@ -321,6 +321,7 @@ public class UserLogic implements UserService {
         if (roleDTO == null) {
             throw new ServerInternalErrorException("角色不存在，意料之外的错误");
         }
+        // TODO-20250305001: 优化删除用户逻辑
         if (roleDTO.getRoleUuid().equals(SystemConstant.getRoleStudent())) {
             StudentDO studentDO = studentDAO.getStudentByUserUuid(userUuid);
             assert studentDO != null;
