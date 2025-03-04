@@ -1,6 +1,8 @@
 package com.frontleaves.scheduling.models.vo;
 
 import com.frontleaves.scheduling.constants.StringConstant;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -31,7 +33,11 @@ public class UserEditVO {
     @Pattern(regexp = StringConstant.Regular.PHONE_REGULAR_EXPRESSION_ABLE_EMPTY,
             message = "手机号格式不正确")
     private String phone;
+    @Min(value = 0, message = "账号状态只能为 0（禁用）或 1（启用）")
+    @Max(value = 1, message = "账号状态只能为 0（禁用）或 1（启用）")
     private Integer status;
+    @Min(value = 0, message = "账号是否被封禁只能为 0（未封禁）或 1（已封禁）")
+    @Max(value = 1, message = "账号是否被封禁只能为 0（未封禁）或 1（已封禁）")
     private Integer ban;
     @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY,
             message = "角色 UUID 格式不正确")
