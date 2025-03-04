@@ -432,9 +432,6 @@ public class UserLogic implements UserService {
             HttpServletRequest request
     ) {
         Page<UserDO> userDoPage = userDAO.getUserDoPage(page, size, keyWord, isDesc);
-        if (userDoPage.getTotal() < 1) {
-            throw new BusinessException("用户数据为空", ErrorCode.OPERATION_ERROR);
-        }
         List<UserInfoDTO> userInfoDTOList = userDoPage
                 .getRecords().stream()
                 .map(userDO -> {
