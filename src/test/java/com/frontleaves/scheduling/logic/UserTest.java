@@ -146,6 +146,22 @@ class UserTest {
             redisson.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone()).delete();
         }
     }
+    @Test
+    void testCheckAddUser() {
+        log.debug("测试添加用户检查");
+        UserAddVO addVO = new UserAddVO(
+                SystemConstant.getRoleLeader(),
+                "testAddUser",
+                PasswordUtil.encrypt("123456Aa"),
+                "testAddUser@test.com",
+                "13800000001",
+                List.of("operate"),
+                "",
+                0
+        );
+        Assertions.assertThrows(BusinessException.class,( )->
+                userService.checkAddUser(addVO));
+    }
 
     @Test
     void testAddUserWithAcademic() {
