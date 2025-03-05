@@ -151,5 +151,6 @@ class CampusTest {
         campusService.deleteCampus(campusDO);
         Assertions.assertNull(
                 campusDAO.lambdaQuery().eq(CampusDO::getCampusUuid,campusDO.getCampusUuid()).one());
+        campusDAO.save(campusDO);
     }
 }

@@ -19,7 +19,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.List;
 
 /**
  * 教学楼数据访问对象
@@ -236,20 +235,9 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      * @param campusUuid 校区的唯一标识符UUID
      */
     public void deleteBuildingByCampusUuid(String campusUuid) {
-        // 查询与校区UUID关联的所有建筑列表
-        List<BuildingDO> buildingList = this.lambdaQuery()
-                .eq(BuildingDO::getCampusUuid, campusUuid)
-                .list();
-        // 如果建筑列表为空，则直接返回，无需进一步操作
-        if (buildingList.isEmpty()) {
-            return;
-        }
         RKeys keys = redisson.getKeys();
-        // 删除教学楼对应缓存
-        for (BuildingDO buildingDO : buildingList) {
-            keys.deleteByPattern(StringConstant.Redis.BUILDING_UUID + buildingDO.getBuildingUuid());
-            keys.deleteByPattern(StringConstant.Redis.BUILDING_NAME + buildingDO.getBuildingName());
-        }
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_UUID + "*");
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_NAME + "*");
         // 删除列表缓存
         keys.deleteByPattern(StringConstant.Redis.BUILDING_CAMPUS + campusUuid + "*");
         keys.deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*");

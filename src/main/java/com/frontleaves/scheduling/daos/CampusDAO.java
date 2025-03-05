@@ -168,6 +168,8 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
      * @param campusDO 校园数据对象，包含要删除的校园的信息
      */
     public void deleteCampus(CampusDO campusDO) {
+        RKeys keys = redisson.getKeys();
+        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_LIST + "*");
         // 创建Redis事务，使用默认的事务选项
         RTransaction rTransaction = redisson.createTransaction(TransactionOptions.defaults());
         try {

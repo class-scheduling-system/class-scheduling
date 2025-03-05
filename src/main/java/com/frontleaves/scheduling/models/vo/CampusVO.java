@@ -35,7 +35,7 @@ public class CampusVO {
     @NotNull(message = "校区描述不能为空")
     private String campusDesc;
     /**
-     * 校区状态 0:禁用，1:启用
+     * 校区状态 0:禁用，1:启用，默认为1
      */
     @Min(value = 0, message = "校区状态只能为 0（禁用）或 1（启用）")
     @Max(value = 1, message = "校区状态只能为 0（禁用）或 1（启用）")

@@ -1,10 +1,8 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.frontleaves.scheduling.daos.BuildingDAO;
 import com.frontleaves.scheduling.daos.CampusDAO;
 import com.frontleaves.scheduling.models.dto.CampusDTO;
-import com.frontleaves.scheduling.models.entity.BuildingDO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import com.frontleaves.scheduling.services.CampusService;
@@ -32,7 +30,6 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CampusLogic implements CampusService {
     private final CampusDAO campusDAO;
-    private final BuildingDAO buildingDAO;
 
     /**
      * 添加校园
@@ -60,22 +57,15 @@ public class CampusLogic implements CampusService {
      */
     @Override
     public void checkAddCampusVO(CampusVO campusVO) {
-        if (campusVO.getCampusName().isEmpty()) {
-            throw new BusinessException("校区名称不能为空", ErrorCode.BODY_ERROR);
+        if (campusVO == null) {
+            throw new BusinessException("校区信息不能为空", ErrorCode.BODY_ERROR);
         }
-        if (campusVO.getCampusCode().isEmpty()) {
-            throw new BusinessException("校区编码不能为空", ErrorCode.BODY_ERROR);
-        }
-        if (campusVO.getCampusDesc().isEmpty()) {
-            throw new BusinessException("校区描述不能为空", ErrorCode.BODY_ERROR);
-        }
-        //为Integer类型的属性赋值时，需要判断是否为空
-        if (campusVO.getCampusStatus() == null) {
-            throw new BusinessException("校区状态不能为空", ErrorCode.BODY_ERROR);
-        }
-        if (campusVO.getCampusAddress().isEmpty()) {
-            throw new BusinessException("校区地址不能为空", ErrorCode.BODY_ERROR);
-        }
+
+        checkFieldNotEmpty(campusVO.getCampusName(), "校区名称");
+        checkFieldNotEmpty(campusVO.getCampusCode(), "校区编码");
+        checkFieldNotEmpty(campusVO.getCampusDesc(), "校区描述");
+        checkFieldNotNull(campusVO.getCampusStatus());
+        checkFieldNotEmpty(campusVO.getCampusAddress(), "校区地址");
         if (campusDAO.getCampusByCode(campusVO.getCampusCode()) != null) {
             throw new BusinessException("校区编码已存在", ErrorCode.BODY_ERROR);
         }
@@ -83,6 +73,30 @@ public class CampusLogic implements CampusService {
             throw new BusinessException("校区名称已存在", ErrorCode.BODY_ERROR);
         }
     }
+
+    /**
+     * 检查字段是否为空
+     *
+     * @param field     字段
+     * @param fieldName 字段名称
+     */
+    private void checkFieldNotEmpty(String field, String fieldName) {
+        if (field == null || field.isEmpty()) {
+            throw new BusinessException(fieldName + "不能为空", ErrorCode.BODY_ERROR);
+        }
+    }
+
+    /**
+     * 检查字段是否为空
+     *
+     * @param field 字段
+     */
+    private void checkFieldNotNull(Object field) {
+        if (field == null) {
+            throw new BusinessException("校区状态" + "不能为空", ErrorCode.BODY_ERROR);
+        }
+    }
+
 
     /**
      * 检查并更新校区信息
@@ -148,11 +162,6 @@ public class CampusLogic implements CampusService {
         if (campusDO == null) {
             throw new BusinessException("删除校区时，校区不存在", ErrorCode.OPERATION_FAILED);
         }
-        //检查是否存在校区的教学楼
-        if (buildingDAO.lambdaQuery().eq(BuildingDO::getCampusUuid, campusDO.getCampusUuid()).count() > 0) {
-            buildingDAO.deleteBuildingByCampusUuid(campusDO.getCampusUuid());
-        }
-
         campusDAO.deleteCampus(campusDO);
     }
 
