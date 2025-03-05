@@ -48,7 +48,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      * </p>
      *
      * @param transaction Redisson 事务对象，用于保证缓存删除操作的原子性
-     * @param buildingDO 教学楼实体对象，包含需要删除的教学楼信息
+     * @param buildingDO  教学楼实体对象，包含需要删除的教学楼信息
      */
     private void deleteBuildingRedis(@NotNull RTransaction transaction, @NotNull BuildingDO buildingDO) {
         // 使用 Redisson 事务处理
@@ -68,9 +68,9 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      * 该方法用于根据给定的关键字从数据库中查询教学楼列表，并支持分页和排序。首先尝试从 Redis 缓存中读取数据，如果缓存中没有数据，则从数据库查询并缓存结果。
      * </p>
      *
-     * @param page 分页的页码
-     * @param size 每页的大小
-     * @param isDesc 是否降序排列，默认为升序
+     * @param page    分页的页码
+     * @param size    每页的大小
+     * @param isDesc  是否降序排列，默认为升序
      * @param keyword 查询关键字，用于匹配教学楼名称
      * @return 返回包含教学楼信息的分页对象
      */
@@ -156,9 +156,9 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      * </p>
      *
      * @param campusUuid 校区的 UUID
-     * @param page 分页的页码
-     * @param size 每页的大小
-     * @param isDesc 是否降序排列，默认为升序
+     * @param page       分页的页码
+     * @param size       每页的大小
+     * @param isDesc     是否降序排列，默认为升序
      * @return 返回包含教学楼信息的分页对象
      */
     public Page<BuildingDO> getBuildingByCampus(String campusUuid, int page, int size, boolean isDesc) {
@@ -225,5 +225,23 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             log.error(StringConstant.DATABASE_OPERATION_FAILED, e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+    }
+
+    /**
+     * 根据校区UUID删除所有属于该校区的建筑信息
+     * 此方法首先查询与给定校区UUID关联的所有建筑对象，然后删除与这些建筑相关的缓存，
+     * 最后从数据库中删除这些建筑信息
+     *
+     * @param campusUuid 校区的唯一标识符UUID
+     */
+    public void deleteBuildingByCampusUuid(String campusUuid) {
+        RKeys keys = redisson.getKeys();
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_UUID + "*");
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_NAME + "*");
+        // 删除列表缓存
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_CAMPUS + campusUuid + "*");
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*");
+        // 从数据库中删除与校区UUID关联的所有建筑信息
+        this.lambdaUpdate().eq(BuildingDO::getCampusUuid, campusUuid).remove();
     }
 }
