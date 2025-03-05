@@ -204,13 +204,11 @@ public class UserLogic implements UserService {
         if (roleDTO == null) {
             throw new BusinessException("无此类用户角色", ErrorCode.BODY_ERROR);
         }
-
         // 禁止添加学生或教师类型用户
         if (SystemConstant.getRoleStudent().equals(roleDTO.getRoleUuid())
                 || SystemConstant.getRoleTeacher().equals(roleDTO.getRoleUuid())) {
             throw new BusinessException("此类用户数据不允许添加", ErrorCode.BODY_ERROR);
         }
-
         // 检查用户信息是否存在重复
         log.debug("检查用户是否存在开始前");
         this.checkUserExist(userAddVO.getName(), userAddVO.getEmail(), userAddVO.getPhone());
@@ -221,6 +219,12 @@ public class UserLogic implements UserService {
                 return true;
             }
             throw new BusinessException("教务部门不能为空", ErrorCode.BODY_ERROR);
+        }
+        if (userAddVO.getDepartment() != null && !userAddVO.getDepartment().isEmpty()){
+            throw new BusinessException("不添加教务的情况下，此处不应有部门数据", ErrorCode.BODY_ERROR);
+        }
+        if (userAddVO.getType() != null){
+            throw new BusinessException("不添加教务的情况下，此处不应有权限类型数据", ErrorCode.BODY_ERROR);
         }
         return false;
     }
@@ -242,12 +246,14 @@ public class UserLogic implements UserService {
             userDO.setPassword(PasswordUtil.encrypt(userDO.getPassword()));
         }
         userDO.setRoleUuid(roleDTO.getRoleUuid());
-        checkPermission(userDO, userAddVO.getPermission());
+        if (userAddVO.getPermission() != null) {
+            checkPermission(userDO, userAddVO.getPermission());
+        }
         log.debug("添加用户UserDO: {}", userDO);
         userDAO.save(userDO);
         if (Boolean.TRUE.equals(isAcademic)) {
-            if (userAddVO.getDepartment() == null && userAddVO.getType() == null) {
-                throw new BusinessException("部门不能为空", ErrorCode.BODY_ERROR);
+            if (userAddVO.getDepartment().isEmpty() && userAddVO.getType() == null) {
+                throw new BusinessException("添加部门数据缺少部门Uuid或权限类型 ", ErrorCode.BODY_ERROR);
             }
             DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(userAddVO.getDepartment());
             if (departmentDO == null) {
