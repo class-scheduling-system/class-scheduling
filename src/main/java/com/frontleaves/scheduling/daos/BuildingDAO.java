@@ -19,6 +19,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 教学楼数据访问对象
@@ -225,5 +226,34 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
             log.error(StringConstant.DATABASE_OPERATION_FAILED, e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+    }
+
+    /**
+     * 根据校区UUID删除所有属于该校区的建筑信息
+     * 此方法首先查询与给定校区UUID关联的所有建筑对象，然后删除与这些建筑相关的缓存，
+     * 最后从数据库中删除这些建筑信息
+     *
+     * @param campusUuid 校区的唯一标识符UUID
+     */
+    public void deleteBuildingByCampusUuid(String campusUuid) {
+        // 查询与校区UUID关联的所有建筑列表
+        List<BuildingDO> buildingList = this.lambdaQuery()
+                .eq(BuildingDO::getCampusUuid, campusUuid)
+                .list();
+        // 如果建筑列表为空，则直接返回，无需进一步操作
+        if (buildingList.isEmpty()) {
+            return;
+        }
+        RKeys keys = redisson.getKeys();
+        // 删除教学楼对应缓存
+        for (BuildingDO buildingDO : buildingList) {
+            keys.deleteByPattern(StringConstant.Redis.BUILDING_UUID + buildingDO.getBuildingUuid());
+            keys.deleteByPattern(StringConstant.Redis.BUILDING_NAME + buildingDO.getBuildingName());
+        }
+        // 删除列表缓存
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_CAMPUS + campusUuid + "*");
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*");
+        // 从数据库中删除与校区UUID关联的所有建筑信息
+        this.lambdaUpdate().eq(BuildingDO::getCampusUuid, campusUuid).remove();
     }
 }

@@ -158,7 +158,17 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
         transaction.commit();
     }
 
+    /**
+     * 删除校园信息
+     * <p>
+     * 此方法负责删除数据库中的校园信息，并同步更新Redis缓存
+     * 它通过创建一个Redis事务来确保操作的原子性，防止在删除过程中发生数据不一致的情况
+     * </p>
+     *
+     * @param campusDO 校园数据对象，包含要删除的校园的信息
+     */
     public void deleteCampus(CampusDO campusDO) {
+        // 创建Redis事务，使用默认的事务选项
         RTransaction rTransaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             this.removeById(campusDO.getCampusUuid());
@@ -167,6 +177,5 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
             rTransaction.rollback();
             throw new BusinessException("删除校园信息失败", ErrorCode.OPERATION_ERROR);
         }
-
     }
 }

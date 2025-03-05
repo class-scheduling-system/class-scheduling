@@ -60,6 +60,14 @@ public class CampusController {
         CampusDTO campusDTO = campusService.updateCampus(campusVO,campusDO);
         return ResultUtil.success("更新校区成功", campusDTO);
     }
+
+    /**
+     * 删除校区接口
+     * 使用DELETE请求，请求路径为/{campus_uuid}
+     *
+     * @param campusUuid 校区的唯一标识符，用于定位要删除的校区
+     * @return 返回一个包含成功消息和删除校区的唯一标识符的响应实体
+     */
     @DeleteMapping("/{campus_uuid}")
     public ResponseEntity<BaseResponse<String>> deleteCampus(
             @PathVariable("campus_uuid") String campusUuid

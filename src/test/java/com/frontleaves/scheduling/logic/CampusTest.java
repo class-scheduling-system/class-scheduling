@@ -144,4 +144,12 @@ class CampusTest {
         campusDAO.removeById(campusDO);
         campusDAO.removeById(campusDO1);
     }
+
+    @Test
+    void testDeleteCampus (){
+        CampusDO campusDO = campusDAO.lambdaQuery().list().get(0);
+        campusService.deleteCampus(campusDO);
+        Assertions.assertNull(
+                campusDAO.lambdaQuery().eq(CampusDO::getCampusUuid,campusDO.getCampusUuid()).one());
+    }
 }

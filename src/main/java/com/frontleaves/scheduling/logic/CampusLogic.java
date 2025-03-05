@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.BuildingDAO;
 import com.frontleaves.scheduling.daos.CampusDAO;
 import com.frontleaves.scheduling.models.dto.CampusDTO;
+import com.frontleaves.scheduling.models.entity.BuildingDO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import com.frontleaves.scheduling.services.CampusService;
@@ -35,6 +36,7 @@ public class CampusLogic implements CampusService {
 
     /**
      * 添加校园
+     *
      * @param campusVO 校园的视图对象，包含需要添加的校园详细信息
      * @return 返回添加成功的校园信息
      */
@@ -88,7 +90,7 @@ public class CampusLogic implements CampusService {
      * 如果校区不存在，或名称、编码重复，将抛出异常
      *
      * @param campusUuid 校区的唯一性标识（UUID）
-     * @param campusVO 待更新的校区信息对象
+     * @param campusVO   待更新的校区信息对象
      * @return 返回更新前的校区信息对象
      * @throws BusinessException 如果校区不存在或校区名称、编码重复
      */
@@ -119,7 +121,8 @@ public class CampusLogic implements CampusService {
 
     /**
      * 更新校区信息
-     * @param campusVO 包含要更新的校区信息的视图对象
+     *
+     * @param campusVO    包含要更新的校区信息的视图对象
      * @param campusOldDO 校区的数据对象，包含校区的当前信息
      * @return 返回更新后的校区信息
      */
@@ -137,12 +140,6 @@ public class CampusLogic implements CampusService {
         if (campusDO == null) {
             throw new BusinessException("校区不存在", ErrorCode.OPERATION_FAILED);
         }
-        //检查是否可以删除
-        if (buildingDAO.getBuildingByCampus(
-                campusUuid,1,1,false).getTotal() >= 1){
-            throw new BusinessException("此校区有教学楼存在，无法删除",ErrorCode.OPERATION_ERROR);
-        }
-
         return campusDO;
     }
 
@@ -151,6 +148,11 @@ public class CampusLogic implements CampusService {
         if (campusDO == null) {
             throw new BusinessException("删除校区时，校区不存在", ErrorCode.OPERATION_FAILED);
         }
+        //检查是否存在校区的教学楼
+        if (buildingDAO.lambdaQuery().eq(BuildingDO::getCampusUuid, campusDO.getCampusUuid()).count() > 0) {
+            buildingDAO.deleteBuildingByCampusUuid(campusDO.getCampusUuid());
+        }
+
         campusDAO.deleteCampus(campusDO);
     }
 
