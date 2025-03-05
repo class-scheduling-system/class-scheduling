@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.models.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -54,7 +55,7 @@ public class ClassroomTypeDO {
     /**
      * 教室类型主键
      */
-    @TableId("class_type_uuid")
+    @TableId(value = "class_type_uuid", type = IdType.ASSIGN_UUID)
     private String classTypeUuid;
 
     /**

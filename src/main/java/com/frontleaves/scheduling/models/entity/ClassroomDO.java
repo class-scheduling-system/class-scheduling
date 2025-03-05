@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.models.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -28,7 +29,7 @@ public class ClassroomDO {
     /**
      * 教室主键
      */
-    @TableId("classroom_uuid")
+    @TableId(value = "classroom_uuid", type = IdType.ASSIGN_UUID)
     private String classroomUuid;
 
     /**
@@ -59,7 +60,7 @@ public class ClassroomDO {
      * 楼层
      */
     @TableField("floor")
-    private Integer floor;
+    private String floor;
 
     /**
      * 教室类型

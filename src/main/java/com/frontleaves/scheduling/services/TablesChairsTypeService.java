@@ -26,60 +26,32 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.services;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
-import lombok.experimental.Accessors;
-
-import java.sql.Timestamp;
+import com.frontleaves.scheduling.models.dto.TablesChairsTypeDTO;
 
 /**
- * 教室标签实体类
+ * 桌椅类型服务接口
  * <p>
- * 该类对应数据库表：`cs_classroom_tag`，用于表示教室标签的相关信息。
- * 主键 {@code classTagUuid} 采用 UUID 自动生成。
+ * 该接口提供了管理桌椅类型相关的基础方法，包括添加、删除、更新和查询桌椅类型等操作。
+ * 具体实现细节由实现类决定。
  * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
-@Data
-@TableName("cs_classroom_tag")
-@Accessors(chain = true)
-public class ClassroomTagDO {
+public interface TablesChairsTypeService {
 
     /**
-     * 教室标签主键
+     * 根据 UUID 获取桌椅类型信息
+     * <p>
+     * 该方法通过传入的 {@code uuid} 参数，从数据库中查询对应的桌椅类型信息，并将其转换为 {@code TablesChairsTypeDTO} 对象返回。
+     * 如果没有找到对应的桌椅类型信息，则返回 {@code null}。
+     * </p>
+     *
+     * @param uuid 桌椅类型的唯一标识符
+     * @return 返回与指定 UUID 对应的桌椅类型信息的 DTO 对象，如果没有找到则返回 {@code null}
      */
-    @TableId(value = "class_tag_uuid", type = IdType.ASSIGN_UUID)
-    private String classTagUuid;
-
-    /**
-     * 教室标签名称
-     */
-    @TableField("name")
-    private String name;
-
-    /**
-     * 教室标签描述
-     */
-    @TableField("description")
-    private String description;
-
-    /**
-     * 创建时间
-     */
-    @TableField("created_at")
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    @TableField("updated_at")
-    private Timestamp updatedAt;
+    TablesChairsTypeDTO getTablesChairsTypeByUuid(String uuid);
 }

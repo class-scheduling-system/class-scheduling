@@ -29,13 +29,17 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.ClassroomDO;
 import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
 import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
+import com.frontleaves.scheduling.models.vo.ClassroomVO;
 import com.frontleaves.scheduling.services.ClassroomService;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
@@ -168,6 +172,98 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
         campusCache.clear();
         buildingCache.clear();
         return classroomInfoDTO;
+    }
+
+    /**
+     * 根据 UUID 获取教室类型
+     * <p>
+     * 该方法用于根据给定的 UUID 获取对应的教室类型信息。如果找到匹配的记录，则返回一个 {@code ClassroomTypeDTO} 对象，否则返回 {@code null}。
+     * </p>
+     *
+     * @param uuid 教室类型的唯一标识符
+     * @return 返回与给定 UUID 匹配的教室类型数据传输对象，如果没有找到匹配的记录则返回 {@code null}
+     */
+    @Override
+    public @Nullable ClassroomTypeDTO getClassroomTypeByUuid(String uuid) {
+        ClassroomTypeDO classroomTypeDO = classroomTypeDAO.getTypeByUuid(uuid);
+        if (classroomTypeDO == null) {
+            return null;
+        }
+        return BeanUtil.toBean(classroomTypeDO, ClassroomTypeDTO.class);
+    }
+
+    /**
+     * 根据 UUID 获取教室标签
+     * <p>
+     * 该方法用于根据给定的 UUID 获取对应的教室标签信息。如果找到匹配的记录，则返回一个 {@code ClassroomTagDTO} 对象，否则返回 {@code null}。
+     * </p>
+     *
+     * @param uuid 教室标签的唯一标识符
+     * @return 返回与指定 UUID 匹配的教室标签信息，如果没有找到匹配的记录则返回 {@code null}
+     */
+    @Override
+    public @Nullable ClassroomTagDTO getClassroomTagByUuid(String uuid) {
+        ClassroomTagDO classroomTagDO = classroomTagDAO.getTagByUuid(uuid);
+        if (classroomTagDO == null) {
+            return null;
+        }
+        return BeanUtil.toBean(classroomTagDO, ClassroomTagDTO.class);
+    }
+
+    /**
+     * 添加新教室
+     * <p>
+     * 该方法用于根据传入的 {@code ClassroomVO} 对象添加一个新的教室记录。首先，将 {@code ClassroomVO} 转换为
+     * {@code ClassroomDO} 对象并保存到数据库中。接着，通过新创建的教室 UUID 从数据库中获取刚刚添加的教室记录。
+     * 如果未能成功获取教室记录，则抛出一个 {@code ServerInternalErrorException} 异常。最后，构建一个包含教室信息、标签、类型、所属校区及所在楼宇等详细信息的
+     * {@code ClassroomInfoDTO} 对象并返回。
+     *
+     * @param classroomVO 用于表示要添加的新教室的基本信息
+     * @return 包含新增教室详细信息的 {@code ClassroomInfoDTO} 对象
+     */
+    @Override
+    public ClassroomInfoDTO addClassroom(ClassroomVO classroomVO) {
+        ClassroomDO newClassroom = BeanUtil.toBean(classroomVO, ClassroomDO.class);
+        if (classroomVO.getTag() != null && !classroomVO.getTag().isEmpty()) {
+            newClassroom.setTag(JSONUtil.toJsonStr(classroomVO.getTag()));
+        } else {
+            newClassroom.setTag("[]");
+        }
+        if (classroomVO.getManagementDepartment() == null || classroomVO.getManagementDepartment().isBlank()) {
+            newClassroom.setManagementDepartment(null);
+        }
+        if (classroomVO.getTablesChairsType() == null || classroomVO.getTablesChairsType().isBlank()) {
+            newClassroom.setTablesChairsType(null);
+        }
+        classroomDAO.save(newClassroom);
+        ClassroomDO classroom = classroomDAO.getClassroomByUuid(newClassroom.getClassroomUuid());
+        if (classroom == null) {
+            throw new ServerInternalErrorException(StringConstant.UNKNOWN_ERROR);
+        }
+        return new ClassroomInfoDTO()
+                .setClassroom(BeanUtil.toBean(classroom, ClassroomDTO.class))
+                .setTag(getTagListForJson(classroom.getTag()))
+                .setType(BeanUtil.toBean(classroomTypeDAO.getTypeByUuid(classroom.getType()), ClassroomTypeDTO.class))
+                .setCampus(BeanUtil.toBean(campusDAO.getCampusByUuid(classroom.getCampusUuid()), CampusDTO.class))
+                .setBuilding(BeanUtil.toBean(buildingDAO.getBuildingByUuid(classroom.getBuildingUuid()), BuildingDTO.class));
+    }
+
+    /**
+     * 根据教室编号获取教室信息
+     * <p>
+     * 该方法用于根据给定的教室编号获取对应的教室信息。如果找到匹配的记录，则返回一个 {@code ClassroomDTO} 对象，否则返回 {@code null}。
+     * </p>
+     *
+     * @param number 教室编号
+     * @return 返回与给定教室编号匹配的教室数据传输对象，如果没有找到匹配的记录则返回 {@code null}
+     */
+    @Override
+    public ClassroomDTO getClassroomByNumber(String number) {
+        ClassroomDO classroomDO = classroomDAO.getClassroomByNumber(number);
+        if (classroomDO == null) {
+            return null;
+        }
+        return BeanUtil.toBean(classroomDO, ClassroomDTO.class);
     }
 
     /**

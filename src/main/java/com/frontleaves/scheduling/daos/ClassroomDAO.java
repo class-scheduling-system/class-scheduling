@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -36,11 +37,16 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassroomMapper;
 import com.frontleaves.scheduling.models.entity.ClassroomDO;
 import com.frontleaves.scheduling.utils.ProjectUtil;
+import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
+
+import java.time.Duration;
+import java.util.Optional;
 
 /**
  * 教室标签数据访问对象
@@ -108,5 +114,61 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> impl
         } else {
             return ProjectUtil.convertMapToPage(map, ClassroomDO.class);
         }
+    }
+
+    /**
+     * 根据教室 UUID 获取教室信息
+     * <p>
+     * 该方法通过传入的教室 UUID 从 Redis 缓存中查找教室信息。如果缓存中不存在，则从数据库中查询，并将结果缓存到 Redis 中。
+     * 如果数据库中也不存在对应的教室信息，则返回 null。
+     * </p>
+     *
+     * @param classroomUuid 教室的唯一标识符 {@code String}
+     * @return 返回教室信息，如果找不到则返回 null {@code ClassroomDO}
+     */
+    @Nullable
+    public ClassroomDO getClassroomByUuid(String classroomUuid) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.CLASSROOM_UUID + classroomUuid);
+        if (!map.isExists()) {
+            ClassroomDO classroomDO = this.getById(classroomUuid);
+            if (classroomDO != null) {
+                map.putAll(ConvertUtil.convertObjectToMapString(classroomDO));
+                map.expire(Duration.ofSeconds(3600));
+                return classroomDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, ClassroomDO.class);
+        }
+        return null;
+    }
+
+    /**
+     * 根据教室编号获取教室信息
+     * <p>
+     * 该方法通过传入的教室编号从 Redis 缓存中查找教室信息。如果缓存中不存在，则从数据库中查询，并将结果缓存到 Redis 中。
+     * 如果数据库中也不存在对应的教室信息，则返回 null。
+     * </p>
+     *
+     * @param number 教室编号 {@code String}
+     * @return 返回教室信息，如果找不到则返回 null {@code ClassroomDO}
+     */
+    public ClassroomDO getClassroomByNumber(String number) {
+        RBucket<String> bucket = redisson.getBucket(StringConstant.Redis.CLASSROOM_NUMBER + number);
+        if (!bucket.isExists()) {
+            ClassroomDO classroomDO = this.lambdaQuery().eq(ClassroomDO::getNumber, number).one();
+            if (classroomDO != null) {
+                bucket.set(classroomDO.getClassroomUuid());
+                bucket.expire(Duration.ofSeconds(3600));
+                Optional.ofNullable(redisson.getMap(StringConstant.Redis.CLASSROOM_UUID + classroomDO.getNumber()))
+                        .ifPresent(map -> {
+                            map.putAll(ConvertUtil.convertObjectToMapString(classroomDO));
+                            map.expire(Duration.ofSeconds(3600));
+                        });
+                return classroomDO;
+            }
+        } else {
+            return this.getById(bucket.get());
+        }
+        return null;
     }
 }

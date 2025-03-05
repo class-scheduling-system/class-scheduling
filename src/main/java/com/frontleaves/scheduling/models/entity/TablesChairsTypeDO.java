@@ -38,38 +38,45 @@ import lombok.experimental.Accessors;
 import java.sql.Timestamp;
 
 /**
- * 教室标签实体类
+ * 桌椅类型实体类
  * <p>
- * 该类对应数据库表：`cs_classroom_tag`，用于表示教室标签的相关信息。
- * 主键 {@code classTagUuid} 采用 UUID 自动生成。
+ * 对应数据库表：`cs_tables_chairs_type`
+ * 该类用于表示桌椅类型的详细信息，包括名称、描述、图片等。
+ * 主键采用 UUID 自动生成。
  * </p>
  *
- * @author xiao_lfeng
- * @version v1.0.0
  * @since v1.0.0
+ * @version v1.0.0
+ * @author xiao_lfeng
  */
 @Data
-@TableName("cs_classroom_tag")
+@TableName("cs_tables_chairs_type")
 @Accessors(chain = true)
-public class ClassroomTagDO {
+public class TablesChairsTypeDO {
 
     /**
-     * 教室标签主键
+     * 桌椅类型主键
      */
-    @TableId(value = "class_tag_uuid", type = IdType.ASSIGN_UUID)
-    private String classTagUuid;
+    @TableId(value = "tables_chairs_type_uuid", type = IdType.ASSIGN_UUID)
+    private String tablesChairsTypeUuid;
 
     /**
-     * 教室标签名称
+     * 桌椅类型名称
      */
     @TableField("name")
     private String name;
 
     /**
-     * 教室标签描述
+     * 桌椅类型描述
      */
     @TableField("description")
     private String description;
+
+    /**
+     * 桌椅类型图片，存储为 Base64 字符串
+     */
+    @TableField("base64_img")
+    private String base64Img;
 
     /**
      * 创建时间

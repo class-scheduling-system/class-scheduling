@@ -43,6 +43,7 @@ import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -94,14 +95,19 @@ public class BuildingLogic implements BuildingService {
      * @return 查询到的教学楼信息，以 {@code BuildingDTO} 形式返回
      */
     @Override
-    public BuildingDTO getBuilding(@NotNull String building) {
+    @Nullable
+    public BuildingDTO getBuildingByUuidOrName(@NotNull String building) {
         BuildingDO buildingDTO;
         if (building.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             buildingDTO = buildingDAO.getBuildingByUuid(building);
         } else {
             buildingDTO = buildingDAO.getBuildingByName(building);
         }
-        return BeanUtil.toBean(buildingDTO, BuildingDTO.class);
+        if (buildingDTO != null) {
+            return BeanUtil.toBean(buildingDTO, BuildingDTO.class);
+        } else {
+            return null;
+        }
     }
 
     /**

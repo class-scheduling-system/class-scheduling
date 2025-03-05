@@ -45,6 +45,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * 教学楼控制器
  * <p>
@@ -114,8 +117,13 @@ public class BuildingController {
         if (building == null || building.isBlank()) {
             throw new BusinessException("教学楼UUID/名称不能为空", ErrorCode.PARAMETER_INVALID);
         }
-        BuildingDTO getBuildingDTO = buildingService.getBuilding(building);
-        return ResultUtil.success("获取教学楼信息成功", getBuildingDTO);
+        AtomicReference<BuildingDTO> buildingDTO = new AtomicReference<>();
+        Optional.ofNullable(buildingService.getBuildingByUuidOrName(building))
+                .ifPresentOrElse(buildingDTO::set,
+                        () -> {
+                            throw new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST);
+                        });
+        return ResultUtil.success("获取教学楼成功", buildingDTO.get());
     }
 
     /**

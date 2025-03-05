@@ -26,60 +26,24 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.mappers;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
-import lombok.experimental.Accessors;
-
-import java.sql.Timestamp;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.frontleaves.scheduling.models.entity.TablesChairsTypeDO;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
- * 教室标签实体类
+ * 桌椅类型表映射器
  * <p>
- * 该类对应数据库表：`cs_classroom_tag`，用于表示教室标签的相关信息。
- * 主键 {@code classTagUuid} 采用 UUID 自动生成。
+ * 该类用于定义桌椅类型表的数据库操作映射器。
+ * 继承自 {@code BaseMapper<TablesChairsTypeDO>}，提供了基本的 CRUD 操作。
  * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
+ * @see TablesChairsTypeDO
  * @since v1.0.0
  */
-@Data
-@TableName("cs_classroom_tag")
-@Accessors(chain = true)
-public class ClassroomTagDO {
-
-    /**
-     * 教室标签主键
-     */
-    @TableId(value = "class_tag_uuid", type = IdType.ASSIGN_UUID)
-    private String classTagUuid;
-
-    /**
-     * 教室标签名称
-     */
-    @TableField("name")
-    private String name;
-
-    /**
-     * 教室标签描述
-     */
-    @TableField("description")
-    private String description;
-
-    /**
-     * 创建时间
-     */
-    @TableField("created_at")
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    @TableField("updated_at")
-    private Timestamp updatedAt;
+@Mapper
+public interface TablesChairsTypeMapper extends BaseMapper<TablesChairsTypeDO> {
 }

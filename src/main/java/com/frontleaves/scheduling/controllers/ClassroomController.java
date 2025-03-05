@@ -32,19 +32,20 @@ import com.frontleaves.scheduling.models.dto.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTagDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTypeDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.services.ClassroomService;
+import com.frontleaves.scheduling.models.vo.ClassroomVO;
+import com.frontleaves.scheduling.services.*;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 教室控制器
@@ -56,11 +57,16 @@ import java.util.List;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/classroom")
 public class ClassroomController {
     private final ClassroomService classroomService;
+    private final BuildingService buildingService;
+    private final CampusService campusService;
+    private final DepartmentService departmentService;
+    private final TablesChairsTypeService tablesChairsTypeService;
 
     /**
      * 获取教室标签列表
@@ -119,5 +125,50 @@ public class ClassroomController {
         }
         PageDTO<ClassroomInfoDTO> classroomList = classroomService.getClassroomPage(page, size, isDesc, keyword, tag, type);
         return ResultUtil.success("教室列表成功", classroomList);
+    }
+
+    /**
+     * 添加教室
+     * <p>
+     * 该方法用于根据传入的 {@code ClassroomVO} 对象添加一个新的教室。在添加过程中，会进行一系列数据可用性检查，确保关联的教学楼、校区、教室类型、管理部门以及桌椅类型均存在。
+     * 如果任何一项数据不存在，则抛出 {@code BusinessException} 异常，并附带相应的错误码。如果所有数据验证通过，则调用服务层的方法将新的教室信息保存到数据库中，并返回包含成功信息及新教室详情的响应。
+     *
+     * @param classroomVO 包含待添加教室详细信息的视图对象
+     * @return 响应实体，包含操作结果和新创建的教室信息
+     */
+    @PostMapping("")
+    public ResponseEntity<BaseResponse<ClassroomInfoDTO>> addClassroom(
+            @RequestBody @Validated ClassroomVO classroomVO
+    ) {
+        // 数据是否存在
+        Optional.ofNullable(classroomService.getClassroomByNumber(classroomVO.getNumber()))
+                .ifPresent(data -> {
+                    throw new BusinessException("教室已存在", ErrorCode.EXISTED);
+                });
+        // 数据可用性检查
+        Optional.ofNullable(buildingService.getBuildingByUuidOrName(classroomVO.getBuildingUuid()))
+                .orElseThrow(() -> new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST));
+        Optional.ofNullable(campusService.getCampusByUuid(classroomVO.getCampusUuid()))
+                .orElseThrow(() -> new BusinessException("校区不存在", ErrorCode.NOT_EXIST));
+        Optional.ofNullable(classroomService.getClassroomTypeByUuid(classroomVO.getType()))
+                .orElseThrow(() -> new BusinessException("教室类型不存在", ErrorCode.NOT_EXIST));
+        Optional.ofNullable(classroomVO.getManagementDepartment())
+                .filter(value -> !value.isBlank())
+                .ifPresent(data -> Optional.ofNullable(departmentService.getDepartmentByUuid(data))
+                        .orElseThrow(() -> new BusinessException("管理部门不存在", ErrorCode.NOT_EXIST))
+                );
+        Optional.ofNullable(classroomVO.getTablesChairsType())
+                .filter(value -> !value.isBlank())
+                .ifPresent(data -> Optional.ofNullable(tablesChairsTypeService.getTablesChairsTypeByUuid(data))
+                        .orElseThrow(() -> new BusinessException("桌椅类型不存在", ErrorCode.NOT_EXIST))
+                );
+        Optional.ofNullable(classroomVO.getTag())
+                .ifPresent(list -> list
+                        .forEach(tag -> Optional.ofNullable(classroomService.getClassroomTagByUuid(tag))
+                                .orElseThrow(() -> new BusinessException("教室标签不存在", ErrorCode.NOT_EXIST))
+                        ));
+        // 数据检查完成添加教室
+        ClassroomInfoDTO classroomInfoDTO = classroomService.addClassroom(classroomVO);
+        return ResultUtil.success("添加教室成功", classroomInfoDTO);
     }
 }

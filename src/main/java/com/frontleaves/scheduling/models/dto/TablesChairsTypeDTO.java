@@ -26,50 +26,54 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.models.dto;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
 
 /**
- * 教室标签实体类
+ * 桌椅类型数据传输对象
  * <p>
- * 该类对应数据库表：`cs_classroom_tag`，用于表示教室标签的相关信息。
- * 主键 {@code classTagUuid} 采用 UUID 自动生成。
+ * 用于传输和表示桌椅类型的相关信息。该类包含了桌椅类型的主键、名称、描述、图片（以 Base64 字符串形式存储）、创建时间和更新时间等属性。
  * </p>
  *
- * @author xiao_lfeng
  * @version v1.0.0
+ * @author  xiao_lfeng
  * @since v1.0.0
  */
 @Data
-@TableName("cs_classroom_tag")
+@NoArgsConstructor
+@AllArgsConstructor
 @Accessors(chain = true)
-public class ClassroomTagDO {
+public class TablesChairsTypeDTO {
 
     /**
-     * 教室标签主键
+     * 桌椅类型主键
      */
-    @TableId(value = "class_tag_uuid", type = IdType.ASSIGN_UUID)
-    private String classTagUuid;
+    private String tablesChairsTypeUuid;
 
     /**
-     * 教室标签名称
+     * 桌椅类型名称
      */
     @TableField("name")
     private String name;
 
     /**
-     * 教室标签描述
+     * 桌椅类型描述
      */
     @TableField("description")
     private String description;
+
+    /**
+     * 桌椅类型图片，存储为 Base64 字符串
+     */
+    @TableField("base64_img")
+    private String base64Img;
 
     /**
      * 创建时间

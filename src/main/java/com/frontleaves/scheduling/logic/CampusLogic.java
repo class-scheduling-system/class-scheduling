@@ -26,60 +26,51 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.logic;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
-import lombok.experimental.Accessors;
-
-import java.sql.Timestamp;
+import cn.hutool.core.bean.BeanUtil;
+import com.frontleaves.scheduling.daos.CampusDAO;
+import com.frontleaves.scheduling.models.dto.CampusDTO;
+import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.services.CampusService;
+import jakarta.annotation.Nullable;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 /**
- * 教室标签实体类
+ * 校园逻辑处理类
  * <p>
- * 该类对应数据库表：`cs_classroom_tag`，用于表示教室标签的相关信息。
- * 主键 {@code classTagUuid} 采用 UUID 自动生成。
+ * 该类通过依赖注入的方式获取 {@link CampusDAO} 实例，并利用其实现对校区数据的访问和操作。主要功能包括根据校区唯一标识符查询校区信息等。
  * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
-@Data
-@TableName("cs_classroom_tag")
-@Accessors(chain = true)
-public class ClassroomTagDO {
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class CampusLogic implements CampusService {
+    private final CampusDAO campusDAO;
 
     /**
-     * 教室标签主键
+     * 根据校区唯一标识符获取校区信息
+     * <p>
+     * 该方法通过提供的校区唯一标识符 {@code campusUuid} 查询对应的校区信息，并返回一个包含校区详细信息的 {@link CampusDTO} 对象。
+     * 如果找不到与给定 {@code campusUuid} 匹配的校区，则返回 null。
+     * </p>
+     *
+     * @param campusUuid 校区的唯一标识符
+     * @return 返回与给定唯一标识符匹配的校区信息，如果未找到则返回 null
      */
-    @TableId(value = "class_tag_uuid", type = IdType.ASSIGN_UUID)
-    private String classTagUuid;
-
-    /**
-     * 教室标签名称
-     */
-    @TableField("name")
-    private String name;
-
-    /**
-     * 教室标签描述
-     */
-    @TableField("description")
-    private String description;
-
-    /**
-     * 创建时间
-     */
-    @TableField("created_at")
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    @TableField("updated_at")
-    private Timestamp updatedAt;
+    @Override
+    @Nullable
+    public CampusDTO getCampusByUuid(String campusUuid) {
+        CampusDO campusDO = campusDAO.getCampusByUuid(campusUuid);
+        if (campusDO == null) {
+            return null;
+        }
+        return BeanUtil.toBean(campusDO, CampusDTO.class);
+    }
 }

@@ -28,10 +28,8 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.ClassroomInfoDTO;
-import com.frontleaves.scheduling.models.dto.ClassroomTagDTO;
-import com.frontleaves.scheduling.models.dto.ClassroomTypeDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.vo.ClassroomVO;
 import jakarta.annotation.Nullable;
 
 import java.util.List;
@@ -91,4 +89,52 @@ public interface ClassroomService {
             @Nullable String tag,
             @Nullable String type
     );
+
+    /**
+     * 根据 UUID 获取教室类型
+     * <p>
+     * 该方法用于根据给定的 UUID 获取对应的教室类型信息。如果找到匹配的记录，则返回一个 {@code ClassroomTypeDTO} 对象，否则返回 {@code null}。
+     * </p>
+     *
+     * @param uuid 教室类型的唯一标识符
+     * @return 返回与给定 UUID 匹配的教室类型数据传输对象，如果没有找到匹配的记录则返回 {@code null}
+     */
+    @Nullable
+    ClassroomTypeDTO getClassroomTypeByUuid(String uuid);
+
+    /**
+     * 根据 UUID 获取教室标签
+     * <p>
+     * 该方法用于根据给定的 UUID 获取对应的教室标签信息。如果找到匹配的记录，则返回一个 {@code ClassroomTagDTO} 对象，否则返回 {@code null}。
+     * </p>
+     *
+     * @param uuid 教室标签的唯一标识符
+     * @return 返回与指定 UUID 匹配的教室标签信息，如果没有找到匹配的记录则返回 {@code null}
+     */
+    @Nullable
+    ClassroomTagDTO getClassroomTagByUuid(String uuid);
+
+    /**
+     * 添加新教室
+     * <p>
+     * 该方法用于根据传入的 {@code ClassroomVO} 对象添加一个新的教室记录。首先，将 {@code ClassroomVO} 转换为
+     * {@code ClassroomDO} 对象并保存到数据库中。接着，通过新创建的教室 UUID 从数据库中获取刚刚添加的教室记录。
+     * 如果未能成功获取教室记录，则抛出一个 {@code ServerInternalErrorException} 异常。最后，构建一个包含教室信息、标签、类型、所属校区及所在楼宇等详细信息的
+     * {@code ClassroomInfoDTO} 对象并返回。
+     *
+     * @param classroomVO 用于表示要添加的新教室的基本信息
+     * @return 包含新增教室详细信息的 {@code ClassroomInfoDTO} 对象
+     */
+    ClassroomInfoDTO addClassroom(ClassroomVO classroomVO);
+
+    /**
+     * 根据教室编号获取教室信息
+     * <p>
+     * 该方法用于根据给定的教室编号获取对应的教室信息。如果找到匹配的记录，则返回一个 {@code ClassroomDTO} 对象，否则返回 {@code null}。
+     * </p>
+     *
+     * @param number 教室编号
+     * @return 返回与给定教室编号匹配的教室数据传输对象，如果没有找到匹配的记录则返回 {@code null}
+     */
+    ClassroomDTO getClassroomByNumber(String number);
 }

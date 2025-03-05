@@ -51,6 +51,7 @@ public class StringConstant {
     public static final String DATABASE_OPERATION_FAILED = "数据库操作失败";
     public static final String REDIS_OPERATION_FAILED = "缓存操作失败";
     public static final String USER_DATA_NOT_EXIST = "用户数据不存在";
+    public static final String UNKNOWN_ERROR = "未知错误";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -88,6 +89,9 @@ public class StringConstant {
         public static final String CLASSROOM_TYPE_LIST = "classroom:type:list";
         public static final String CLASSROOM_TYPE_UUID = "classroom:type:uuid:";
         public static final String CLASSROOM_LIST = "classroom:list:";
+        public static final String CLASSROOM_UUID = "classroom:uuid:";
+        public static final String CLASSROOM_NUMBER = "classroom:number:";
+        public static final String TABLES_CHAIRS_UUID = "tc:uuid:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
