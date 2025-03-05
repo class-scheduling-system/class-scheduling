@@ -1,9 +1,7 @@
 package com.frontleaves.scheduling.models.vo;
 
 import com.frontleaves.scheduling.constants.StringConstant;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -47,12 +45,16 @@ public class UserAddVO {
      */
     private List<String> permission;
     /**
-     * 用户部门ID,若选为教务，则必需
+     * 用户部门UUID,若选为教务，则必需，若角色不为教务，这应该为删除此字段
      */
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION,
+            message = "用户部门UUID格式不正确")
     private String department;
     /**
-     * 权限类型，若选为教务，则必需，1代表所有权限，2代表教务权限
+     * 权限类型，若选为教务，则必需，1代表所有权限，2代表教务权限，若角色不为教务，这应该删除此字段
      */
+    @Max(value = 1,message = "权限类型不正确")
+    @Min(value = 0,message = "权限类型不正确")
     private Integer type;
 
 }
