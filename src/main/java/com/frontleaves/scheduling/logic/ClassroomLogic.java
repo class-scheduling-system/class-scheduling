@@ -36,7 +36,6 @@ import com.frontleaves.scheduling.models.entity.ClassroomDO;
 import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
 import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
 import com.frontleaves.scheduling.services.ClassroomService;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
@@ -56,13 +55,28 @@ import java.util.List;
  * @since v1.0.0
  */
 @Service
-@RequiredArgsConstructor
-public class ClassroomLogic implements ClassroomService {
-    private final ClassroomTagDAO classroomTagDAO;
-    private final ClassroomTypeDAO classroomTypeDAO;
-    private final ClassroomDAO classroomDAO;
-    private final CampusDAO campusDAO;
-    private final BuildingDAO buildingDAO;
+public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomService {
+
+    /**
+     * 教室逻辑处理构造函数
+     * <p>
+     * 该构造函数用于初始化教室逻辑处理类，通过注入多个数据访问对象来提供对教室、标签、类型、校园和建筑等信息的访问与操作能力。
+     * <p>
+     * @param classroomTagDAO 用于管理教室标签的数据访问对象
+     * @param classroomTypeDAO 用于管理教室类型的数据访问对象
+     * @param classroomDAO 用于管理教室基本信息的数据访问对象
+     * @param campusDAO 用于管理校园信息的数据访问对象
+     * @param buildingDAO 用于管理建筑物信息的数据访问对象
+     */
+    public ClassroomLogic(
+            ClassroomTagDAO classroomTagDAO,
+            ClassroomTypeDAO classroomTypeDAO,
+            ClassroomDAO classroomDAO,
+            CampusDAO campusDAO,
+            BuildingDAO buildingDAO
+    ) {
+        super(classroomTagDAO, classroomTypeDAO, classroomDAO, campusDAO, buildingDAO);
+    }
 
     /**
      * 获取教室标签列表
@@ -145,11 +159,14 @@ public class ClassroomLogic implements ClassroomService {
                         .map(getRecord -> new ClassroomInfoDTO()
                                 .setClassroom(BeanUtil.toBean(getRecord, ClassroomDTO.class))
                                 .setTag(getTagListForJson(getRecord.getTag()))
-                                .setType(BeanUtil.toBean(classroomTypeDAO.getTypeByUuid(getRecord.getType()), ClassroomTypeDTO.class))
-                                .setCampus(BeanUtil.toBean(campusDAO.getCampusByUuid(getRecord.getCampusUuid()), CampusDTO.class))
-                                .setBuilding(BeanUtil.toBean(buildingDAO.getBuildingByUuid(getRecord.getBuildingUuid()), BuildingDTO.class)))
+                                .setType(this.cacheSaveClassroomType(getRecord.getType()))
+                                .setCampus(this.cacheSaveCampus(getRecord.getCampusUuid()))
+                                .setBuilding(this.cacheSaveBuilding(getRecord.getBuildingUuid())))
                         .toList()
         );
+        classroomTypeCache.clear();
+        campusCache.clear();
+        buildingCache.clear();
         return classroomInfoDTO;
     }
 
