@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.frontleaves.scheduling.daos.BuildingDAO;
 import com.frontleaves.scheduling.daos.CampusDAO;
 import com.frontleaves.scheduling.models.dto.CampusDTO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CampusLogic implements CampusService {
     private final CampusDAO campusDAO;
+    private final BuildingDAO buildingDAO;
 
     /**
      * 添加校园
@@ -129,6 +131,28 @@ public class CampusLogic implements CampusService {
         return BeanUtil.copyProperties(newCampusDO, CampusDTO.class);
     }
 
+    @Override
+    public CampusDO checkDeleteCampus(String campusUuid) {
+        CampusDO campusDO = campusDAO.getCampusByUuid(campusUuid);
+        if (campusDO == null) {
+            throw new BusinessException("校区不存在", ErrorCode.OPERATION_FAILED);
+        }
+        //检查是否可以删除
+        if (buildingDAO.getBuildingByCampus(
+                campusUuid,1,1,false).getTotal() >= 1){
+            throw new BusinessException("此校区有教学楼存在，无法删除",ErrorCode.OPERATION_ERROR);
+        }
+
+        return campusDO;
+    }
+
+    @Override
+    public void deleteCampus(CampusDO campusDO) {
+        if (campusDO == null) {
+            throw new BusinessException("删除校区时，校区不存在", ErrorCode.OPERATION_FAILED);
+        }
+        campusDAO.deleteCampus(campusDO);
+    }
 
     /**
      * 交换校区信息

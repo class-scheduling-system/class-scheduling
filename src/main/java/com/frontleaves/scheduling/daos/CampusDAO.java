@@ -157,4 +157,16 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
         transaction.getBucket(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName()).delete();
         transaction.commit();
     }
+
+    public void deleteCampus(CampusDO campusDO) {
+        RTransaction rTransaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            this.removeById(campusDO.getCampusUuid());
+            this.deleteUserRedis(campusDO, rTransaction);
+        } catch (Exception e) {
+            rTransaction.rollback();
+            throw new BusinessException("删除校园信息失败", ErrorCode.OPERATION_ERROR);
+        }
+
+    }
 }

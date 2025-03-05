@@ -57,4 +57,18 @@ public interface CampusService {
             CampusVO campusVO,
             CampusDO campusOldDO);
 
+    /**
+     * 检查删除校区信息
+     * @param campusUuid 校区唯一标识符
+     * @return 返回一个包含校区数据的对象，表示校验通过后的校区信息
+     */
+    CampusDO checkDeleteCampus(
+            String campusUuid);
+
+    /**
+     * 删除校区信息
+     * @param campusDO 校区数据对象
+     */
+    void deleteCampus(
+            CampusDO campusDO);
 }

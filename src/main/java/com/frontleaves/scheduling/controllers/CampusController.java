@@ -60,4 +60,12 @@ public class CampusController {
         CampusDTO campusDTO = campusService.updateCampus(campusVO,campusDO);
         return ResultUtil.success("更新校区成功", campusDTO);
     }
+    @DeleteMapping("/{campus_uuid}")
+    public ResponseEntity<BaseResponse<String>> deleteCampus(
+            @PathVariable("campus_uuid") String campusUuid
+    ) {
+        CampusDO campusDO =  campusService.checkDeleteCampus(campusUuid);
+        campusService.deleteCampus(campusDO);
+        return ResultUtil.success("删除校区成功", campusUuid);
+    }
 }
