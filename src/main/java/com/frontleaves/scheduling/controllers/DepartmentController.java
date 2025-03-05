@@ -16,12 +16,13 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 部门控制器类
+ * 部门控制器
  * <p>
- * 该类提供了与部门相关的 RESTful API 接口，包括添加新部门的功能。
- * </p>
+ * 该类提供了处理部门相关请求的 RESTful API，包括添加、查询、删除和更新部门信息等功能。
  *
- * @author FLASHLACK
+ * @author qiyu
+ * @version v1.0.0
+ * @since v1.0.0
  */
 @Slf4j
 @RestController
