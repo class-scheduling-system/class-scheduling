@@ -242,7 +242,9 @@ public class UserLogic implements UserService {
             userDO.setPassword(PasswordUtil.encrypt(userDO.getPassword()));
         }
         userDO.setRoleUuid(roleDTO.getRoleUuid());
-        checkPermission(userDO, userAddVO.getPermission());
+        if (userAddVO.getPermission() != null) {
+            checkPermission(userDO, userAddVO.getPermission());
+        }
         log.debug("添加用户UserDO: {}", userDO);
         userDAO.save(userDO);
         if (Boolean.TRUE.equals(isAcademic)) {
