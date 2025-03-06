@@ -29,16 +29,13 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherMapper;
-import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
-import com.frontleaves.scheduling.models.entity.multiple.TeacherAndUserDO;
+import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
@@ -51,7 +48,6 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * 教师数据访问对象
@@ -238,17 +234,18 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     /**
      * 获取教师列表
      *
-     * @param page     页码
-     * @param size     每页数量
-     * @param isDesc   是否按创建时间降序排序
-     * @param status   教师状态
-     * @param name     教师姓名
+     * @param page   页码
+     * @param size   每页数量
+     * @param isDesc 是否按创建时间降序排序
+     * @param status 教师状态
+     * @param name   教师姓名
      * @return 返回包含教师列表的分页对象
      */
-    public PageDTO<TeacherAndUserDO> getTeacherList(Integer page, Integer size, Boolean isDesc, String departmentUuid, @Nullable Integer status, String name) {
+    @Nullable
+    public List<UserAndTeacherDO> getTeacherList(Integer page, Integer size, Boolean isDesc, String departmentUuid, @Nullable Integer status, String name) {
         // 计算分页的起始位置
         Integer startPage = (page - 1) * size;
-        List<TeacherAndUserDO> getTeacherDO;
+        List<UserAndTeacherDO> getTeacherDO;
         // 根据是否降序选择不同的查询方法
         String reStatus;
         if (status == null) {
@@ -256,13 +253,19 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
         } else {
             reStatus = String.valueOf(status);
         }
+        if (departmentUuid != null && departmentUuid.isBlank()) {
+            departmentUuid = null;
+        }
+        if (name != null && name.isBlank()) {
+            name = null;
+        }
         if (Boolean.TRUE.equals(isDesc)) {
             getTeacherDO = this.baseMapper.getTeacherAndUserQueryDesc(
                     departmentUuid,
                     reStatus,
                     name,
-                    0,
-                    2
+                    startPage,
+                    size
             );
         } else {
             getTeacherDO = this.baseMapper.getTeacherAndUserQueryAsc(
@@ -273,19 +276,10 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
                     size
             );
         }
-
-        // 创建分页返回对象
-        PageDTO<TeacherAndUserDO> teacherDOPage = new PageDTO<>();
-
-        // 设置分页数据
-        if (getTeacherDO != null && !getTeacherDO.isEmpty()) {
-            teacherDOPage.setRecords(getTeacherDO);
-            teacherDOPage.setTotal((long) getTeacherDO.size());
-            teacherDOPage.setSize((long)size);
-            teacherDOPage.setCurrent((long)page);
+        if (getTeacherDO.isEmpty()) {
+            return null;
         }
-
-        return teacherDOPage;
+        return getTeacherDO;
     }
 
     /**

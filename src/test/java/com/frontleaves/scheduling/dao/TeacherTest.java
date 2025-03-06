@@ -5,11 +5,10 @@ import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
-import com.frontleaves.scheduling.models.entity.multiple.TeacherAndUserDO;
+import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
@@ -28,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.List;
 
 @SpringBootTest
 @Slf4j
@@ -271,7 +271,7 @@ class TeacherTest {
     @Test
     void testGetTeacherList() {
         DepartmentDO departmentDO = departmentDAO.lambdaQuery().list().get(0);
-        PageDTO<TeacherAndUserDO> teacherList = teacherDAO.getTeacherList(1, 20, true, null, null, null);
+        List<UserAndTeacherDO> teacherList = teacherDAO.getTeacherList(1, 20, true, "", null, "");
         log.debug("{}", teacherList);
         Assertions.assertNotNull(teacherList);
     }

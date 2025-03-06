@@ -1,7 +1,6 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
@@ -12,10 +11,9 @@ import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
-import com.frontleaves.scheduling.models.entity.multiple.TeacherAndUserDO;
+import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
 import com.frontleaves.scheduling.services.TeacherService;
-import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;
@@ -23,6 +21,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -113,9 +113,9 @@ public class TeacherLogic implements TeacherService {
     @Override
     public PageDTO<TeacherDTO> getTeacherList(Integer page, Integer size, Boolean isDesc, String department, String status, String name) {
         // 调用DAO层方法获取教师列表
-        PageDTO<TeacherAndUserDO> teacherList;
+        List<UserAndTeacherDO> teacherList;
         if (status == null || status.isBlank()) {
-            teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, null, name);
+            teacherList = teacherDAO.getTeacherList(page, size, isDesc, null, null, null);
         } else {
             if (Boolean.parseBoolean(status)) {
                 teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, 1, name);
@@ -124,11 +124,18 @@ public class TeacherLogic implements TeacherService {
             }
         }
         // 检查获取的教师列表是否为空，如果为空则返回一个空的PageDTO对象
-        if (teacherList.getTotal() == 0) {
+        if (teacherList == null || teacherList.isEmpty()) {
             return new PageDTO<>();
         } else {
-            // 如果教师列表不为空，则将其转换为PageDTO<TeacherDTO>对象并返回
-            return null;
+            // 将获取的教师列表转换为TeacherDTO对象列表
+            List<TeacherDTO> teacherDTOList = teacherList.stream()
+                        .map(teacher -> BeanUtil.toBean(teacher.getTeacher(), TeacherDTO.class))
+                        .toList();
+            return new PageDTO<TeacherDTO>()
+                    .setTotal((long) teacherList.size())
+                    .setSize(Long.valueOf(size))
+                    .setRecords(teacherDTOList)
+                    .setCurrent(Long.valueOf(page));
         }
     }
 
