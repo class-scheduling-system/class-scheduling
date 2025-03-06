@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.RoleDTO;
 import com.frontleaves.scheduling.services.RoleService;
@@ -41,6 +42,7 @@ public class RoleController {
      * @param role 角色ID或角色名称
      * @return 包含角色详细信息的响应实体，其中数据部分为 {@code BaseResponse<RoleDTO>} 类型
      */
+    @RequestLogin
     @GetMapping("")
     public ResponseEntity<BaseResponse<RoleDTO>> getRole(
             @RequestParam("role_uuid") String role
@@ -65,6 +67,7 @@ public class RoleController {
      * @param search 搜索关键字
      * @return 包含角色列表信息的响应实体，其中数据部分为 {@code BaseResponse<PageDTO<RoleDTO>>} 类型
      */
+    @RequestLogin
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<PageDTO<RoleDTO>>> getRoleList(
             @RequestParam(value = "page", defaultValue = "1") Integer page,

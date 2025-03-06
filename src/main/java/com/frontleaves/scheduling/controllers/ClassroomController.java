@@ -28,6 +28,8 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestLogin;
+import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTagDTO;
@@ -79,6 +81,7 @@ public class ClassroomController {
      *
      * @return 包含教室标签列表的 {@code ResponseEntity} 对象，其中 {@code BaseResponse} 中的数据部分为 {@code List<ClassroomTagDTO>} 类型
      */
+    @RequestLogin
     @GetMapping("/tags")
     public ResponseEntity<BaseResponse<List<ClassroomTagDTO>>> getClassroomTagList() {
         List<ClassroomTagDTO> getTags = classroomService.listClassroomTags();
@@ -94,6 +97,7 @@ public class ClassroomController {
      *
      * @return 包含教室类型列表的 {@code ResponseEntity} 对象，其中 {@code BaseResponse} 中的数据部分为 {@code List<ClassroomTypeDTO>} 类型
      */
+    @RequestLogin
     @GetMapping("/types")
     public ResponseEntity<BaseResponse<List<ClassroomTypeDTO>>> getClassroomTypeList() {
         List<ClassroomTypeDTO> getTypes = classroomService.listClassroomTypes();
@@ -113,6 +117,7 @@ public class ClassroomController {
      * @param type    查询的类型，可选参数
      * @return 包含教室列表分页数据的响应实体
      */
+    @RequestLogin
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<PageDTO<ClassroomInfoDTO>>> getClassroomPage(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
@@ -138,6 +143,7 @@ public class ClassroomController {
      * @param classroomVO 包含待添加教室详细信息的视图对象
      * @return 响应实体，包含操作结果和新创建的教室信息
      */
+    @RequestRole({"管理员"})
     @PostMapping("")
     public ResponseEntity<BaseResponse<ClassroomInfoDTO>> addClassroom(
             @RequestBody @Validated ClassroomVO classroomVO
@@ -163,6 +169,7 @@ public class ClassroomController {
      * @param classroomVO 包含待编辑教室详细信息的视图对象
      * @return 响应实体，包含操作结果和新创建的教室信息
      */
+    @RequestRole({"管理员"})
     @PutMapping("/{classroom_uuid}")
     public ResponseEntity<BaseResponse<ClassroomInfoDTO>> editClassroom(
             @PathVariable("classroom_uuid") String classroomUuid,
@@ -191,6 +198,7 @@ public class ClassroomController {
      * @param classroomUuid 教室的唯一标识符，必须符合 UUID 格式（不含中划线）
      * @return 包含成功或失败信息的 ResponseEntity 对象
      */
+    @RequestRole({"管理员"})
     @DeleteMapping("/{classroom_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteClassroom(
             @PathVariable("classroom_uuid") String classroomUuid

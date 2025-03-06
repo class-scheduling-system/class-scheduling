@@ -29,6 +29,7 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestLogin;
+import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserAddInfoDTO;
 import com.frontleaves.scheduling.models.dto.UserInfoDTO;
@@ -93,6 +94,7 @@ public class UserController {
      * @param request  HTTP请求对象，用于从中提取用户Token
      * @return UserDO 用户信息对象，包含用户的详细信息
      */
+    @RequestRole({"管理员"})
     @GetMapping("/{user_uuid}")
     public ResponseEntity<BaseResponse<UserInfoDTO>> userGetInfo(
             @PathVariable("user_uuid") String userUuid,
@@ -109,6 +111,7 @@ public class UserController {
      * @param userAddVO 用户添加视图对象
      * @return 用户信息数据传输对象
      */
+    @RequestRole({"管理员"})
     @PostMapping("")
     public ResponseEntity<BaseResponse<UserAddInfoDTO>> addUser(
             @RequestBody @Validated UserAddVO userAddVO
@@ -123,6 +126,7 @@ public class UserController {
      * @param userUuid 用户唯一标识符
      * @return 空数据的响应实体，表示删除操作已成功处理
      */
+    @RequestRole({"管理员"})
     @DeleteMapping("/{user_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteUser(
             @PathVariable("user_uuid") String userUuid,
@@ -141,6 +145,7 @@ public class UserController {
      * @param request    HTTP请求对象
      * @return 用户信息数据传输对象
      */
+    @RequestRole({"管理员"})
     @PutMapping("/{user_uuid}")
     public ResponseEntity<BaseResponse<UserInfoDTO>> updateUser(
             @PathVariable("user_uuid") String userUuid,
@@ -165,6 +170,7 @@ public class UserController {
      * @param request HTTP请求对象
      * @return 用户信息数据传输对象分页列表
      */
+    @RequestRole({"管理员"})
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<PageDTO<UserInfoDTO>>> getUserList(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
