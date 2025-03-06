@@ -36,6 +36,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassroomMapper;
 import com.frontleaves.scheduling.models.entity.ClassroomDO;
+import com.frontleaves.scheduling.utils.ProjectOption;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
@@ -137,7 +138,7 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> impl
                 return classroomDO;
             }
         } else {
-            return BeanUtil.toBean(map, ClassroomDO.class);
+            return BeanUtil.toBean(map, ClassroomDO.class, ProjectOption.replaceBlankToNull());
         }
         return null;
     }
