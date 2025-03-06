@@ -141,7 +141,7 @@ public class UserLogic implements UserService {
             StudentDO studentDO = studentDAO.getStudentByUserUuid(userByRequest.getUserUuid());
             assert studentDO != null;
             userInfoDTO.setStudent(BeanUtil.toBean(studentDO, StudentDTO.class));
-        } else if ("教师".equals(role.getRoleName())) {
+        } else if (role.getRoleUuid().equals(SystemConstant.getRoleTeacher())) {
             TeacherDO teacherDO = teacherDAO.getTeacherByUserUuid(userByRequest.getUserUuid());
             assert teacherDO != null;
             userInfoDTO.setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class));
@@ -172,9 +172,8 @@ public class UserLogic implements UserService {
             StudentDO studentDO = studentDAO.lambdaQuery().eq(StudentDO::getUserUuid, userUuid).one();
             assert studentDO != null;
             userInfoDTO.setStudent(BeanUtil.toBean(studentDO, StudentDTO.class));
-        }
-        if (roleDTO.getRoleUuid().equals(SystemConstant.getRoleTeacher())) {
-            TeacherDO teacherDO = teacherDAO.lambdaQuery().eq(TeacherDO::getUserUuid, userUuid).one();
+        } else if (roleDTO.getRoleUuid().equals(SystemConstant.getRoleTeacher())) {
+        TeacherDO teacherDO = teacherDAO.lambdaQuery().eq(TeacherDO::getUserUuid, userUuid).one();
             assert teacherDO != null;
             userInfoDTO.setTeacher(BeanUtil.toBean(teacherDO, TeacherDTO.class));
         }
@@ -367,7 +366,8 @@ public class UserLogic implements UserService {
         if (userOldDO == null) {
             throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
         }
-
+        log.debug("验证用户名唯一性");
+        log.debug("用户编辑数据：{}", userEditVO);
         // 验证用户名唯一性
         if (!userEditVO.getName().isEmpty()
                 && !userEditVO.getName().equals(userOldDO.getName())
@@ -417,7 +417,7 @@ public class UserLogic implements UserService {
     @Transactional
     public UserInfoDTO updateUser(@NotNull String userUuid, UserEditVO userEditVO, HttpServletRequest request) {
         UserDO userOldDO = userDAO.getUserByUuid(userUuid);
-        RoleDTO roleOldDTO = checkUpdateDate(userOldDO, userEditVO, request);
+        RoleDTO roleOldDTO = this.checkUpdateDate(userOldDO, userEditVO, request);
         log.debug("更新用户信息开始");
         UserDO userNewDO = this.exchangeOfUserData(userEditVO, userOldDO);
         userDAO.updateUser(userOldDO, userNewDO);
@@ -510,11 +510,7 @@ public class UserLogic implements UserService {
             log.debug("改变用户角色");
             RoleDTO roleNewDTO = roleDAO.getRoleByUuid(userEditVO.getRoleUuid());
             if (roleNewDTO == null) {
-                throw new BusinessException(StringConstant.USER_DATA_NOT_EXIST, ErrorCode.BODY_ERROR);
-            }
-            if (roleNewDTO.getRoleUuid().equals(SystemConstant.getRoleStudent())
-                    || roleNewDTO.getRoleUuid().equals(SystemConstant.getRoleTeacher())) {
-                throw new BusinessException("不允许将角色编辑为学生或者老师", ErrorCode.BODY_ERROR);
+                throw new BusinessException("要改变的用户角色不存在", ErrorCode.BODY_ERROR);
             }
             userDO.setRoleUuid(userEditVO.getRoleUuid());
         }
