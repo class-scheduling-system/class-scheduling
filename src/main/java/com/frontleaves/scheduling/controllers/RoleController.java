@@ -64,7 +64,7 @@ public class RoleController {
      * @param page   当前页数
      * @param size   每页显示数量
      * @param isDesc 是否降序
-     * @param search 搜索关键字
+     * @param keyword 搜索关键字
      * @return 包含角色列表信息的响应实体，其中数据部分为 {@code BaseResponse<PageDTO<RoleDTO>>} 类型
      */
     @RequestLogin
@@ -73,10 +73,10 @@ public class RoleController {
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "10") Integer size,
             @RequestParam(value = "is_desc", defaultValue = "false") Boolean isDesc,
-            @RequestParam(value = "search", required = false) String search
+            @RequestParam(value = "keyword", required = false) String keyword
     ) {
         roleService.checkPageAndSize(page, size);
-        PageDTO<RoleDTO> roleList = roleService.getRoleList(page, size, isDesc, search);
+        PageDTO<RoleDTO> roleList = roleService.getRoleList(page, size, isDesc, keyword);
         return ResultUtil.success("角色列表获取成功", roleList);
     }
 }
