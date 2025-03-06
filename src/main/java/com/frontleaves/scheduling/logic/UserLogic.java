@@ -416,7 +416,7 @@ public class UserLogic implements UserService {
     @Transactional
     public UserInfoDTO updateUser(@NotNull String userUuid, UserEditVO userEditVO, HttpServletRequest request) {
         UserDO userOldDO = userDAO.getUserByUuid(userUuid);
-        RoleDTO roleOldDTO = checkUpdateDate(userOldDO, userEditVO, request);
+        RoleDTO roleOldDTO = this.checkUpdateDate(userOldDO, userEditVO, request);
         log.debug("更新用户信息开始");
         UserDO userNewDO = this.exchangeOfUserData(userEditVO, userOldDO);
         userDAO.updateUser(userOldDO, userNewDO);
