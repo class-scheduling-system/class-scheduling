@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTagDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTypeDTO;
@@ -167,6 +168,9 @@ public class ClassroomController {
             @PathVariable("classroom_uuid") String classroomUuid,
             @RequestBody @Validated ClassroomVO classroomVO
     ) {
+        if (!classroomUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+            throw new BusinessException("教室主键不合法", ErrorCode.PARAMETER_INVALID);
+        }
         // 数据是否存在
         Optional.ofNullable(classroomService.getClassroomByUuid(classroomUuid))
                 .orElseThrow(() -> new BusinessException("教室不存在", ErrorCode.NOT_EXIST));
@@ -175,6 +179,27 @@ public class ClassroomController {
         // 数据检查完成编辑教室
         ClassroomInfoDTO classroomInfoDTO = classroomService.editClassroom(classroomUuid, classroomVO);
         return ResultUtil.success("编辑教室成功", classroomInfoDTO);
+    }
+
+    /**
+     * 删除教室
+     * <p>
+     * 该方法通过给定的教室 UUID 删除指定的教室。如果提供的教室 UUID 不符合 UUID 格式，
+     * 将抛出 {@code BusinessException} 异常，并返回相应的错误信息。
+     * 成功删除后，将返回一个成功的响应消息。
+     *
+     * @param classroomUuid 教室的唯一标识符，必须符合 UUID 格式（不含中划线）
+     * @return 包含成功或失败信息的 ResponseEntity 对象
+     */
+    @DeleteMapping("/{classroom_uuid}")
+    public ResponseEntity<BaseResponse<Void>> deleteClassroom(
+            @PathVariable("classroom_uuid") String classroomUuid
+    ) {
+        if (!classroomUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+            throw new BusinessException("教室主键不合法", ErrorCode.PARAMETER_INVALID);
+        }
+        classroomService.deleteClassroom(classroomUuid);
+        return ResultUtil.success("删除教室成功");
     }
 
     /**

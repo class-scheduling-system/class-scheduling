@@ -161,4 +161,14 @@ public interface ClassroomService {
      * @return 响应实体，包含操作结果和新创建的教室信息
      */
     ClassroomInfoDTO editClassroom(String classroomUuid, ClassroomVO classroomVO);
+
+    /**
+     * 删除教室
+     * <p>
+     * 根据给定的教室唯一标识符 {@code classroomUuid}，从系统中删除对应的教室记录。
+     * 该操作不可逆，请谨慎使用。删除后，与该教室相关的所有数据将被清除。
+     *
+     * @param classroomUuid 教室的唯一标识符，用于定位需要删除的具体教室
+     */
+    void deleteClassroom(String classroomUuid);
 }

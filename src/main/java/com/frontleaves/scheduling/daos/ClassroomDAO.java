@@ -74,12 +74,12 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> impl
      * 如果 Redis 中存在缓存，则直接从缓存中读取数据并返回；否则，从数据库查询并将结果缓存到 Redis 中。
      * </p>
      *
-     * @param page 分页页码，从1开始
-     * @param size 每页显示的记录数
-     * @param isDesc 是否降序排列，true表示降序，false表示升序
+     * @param page    分页页码，从1开始
+     * @param size    每页显示的记录数
+     * @param isDesc  是否降序排列，true表示降序，false表示升序
      * @param keyword 搜索关键字，用于匹配教室名称或编号，可为空
-     * @param tag 教室标签，用于精确匹配，可为空
-     * @param type 教室类型，用于精确匹配，可为空
+     * @param tag     教室标签，用于精确匹配，可为空
+     * @param type    教室类型，用于精确匹配，可为空
      * @return 返回包含教室信息的分页对象 {@code Page<ClassroomDO>}
      */
     public Page<ClassroomDO> getClassroomPage(
@@ -187,5 +187,29 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> impl
                     rKeys.delete(StringConstant.Redis.CLASSROOM_NUMBER + classroomDO.getNumber());
                 });
         this.updateById(classroomDO);
+    }
+
+    /**
+     * 删除教室信息
+     * <p>
+     * 该方法用于根据传入的教室 UUID 删除对应的教室信息。首先会从数据库中查找该教室信息，如果找到，则删除 Redis 中与该教室相关的缓存，
+     * 然后从数据库中删除该教室记录。如果删除成功，返回 true；否则，返回 false。
+     * </p>
+     *
+     * @param classroomUuid 教室的唯一标识符 {@code String}
+     * @return 如果删除成功，返回 true；否则，返回 false
+     */
+    public boolean deleteClassroom(String classroomUuid) {
+        ClassroomDO classroomDO = this.getById(classroomUuid);
+        if (classroomDO != null) {
+            Optional.ofNullable(redisson.getKeys())
+                    .ifPresent(rKeys -> {
+                        rKeys.delete(StringConstant.Redis.CLASSROOM_UUID + classroomDO.getClassroomUuid());
+                        rKeys.delete(StringConstant.Redis.CLASSROOM_NUMBER + classroomDO.getNumber());
+                    });
+            this.removeById(classroomDO);
+            return true;
+        }
+        return false;
     }
 }

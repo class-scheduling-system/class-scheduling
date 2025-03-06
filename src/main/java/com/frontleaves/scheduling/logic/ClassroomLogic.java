@@ -39,6 +39,8 @@ import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
 import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
 import com.frontleaves.scheduling.models.vo.ClassroomVO;
 import com.frontleaves.scheduling.services.ClassroomService;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -299,6 +301,21 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
                 .setType(BeanUtil.toBean(classroomTypeDAO.getTypeByUuid(classroom.getType()), ClassroomTypeDTO.class))
                 .setCampus(BeanUtil.toBean(campusDAO.getCampusByUuid(classroom.getCampusUuid()), CampusDTO.class))
                 .setBuilding(BeanUtil.toBean(buildingDAO.getBuildingByUuid(classroom.getBuildingUuid()), BuildingDTO.class));
+    }
+
+    /**
+     * 删除教室
+     * <p>
+     * 根据给定的教室唯一标识符 {@code classroomUuid}，从系统中删除对应的教室记录。
+     * 该操作不可逆，请谨慎使用。删除后，与该教室相关的所有数据将被清除。
+     *
+     * @param classroomUuid 教室的唯一标识符，用于定位需要删除的具体教室
+     */
+    @Override
+    public void deleteClassroom(String classroomUuid) {
+        if (!classroomDAO.deleteClassroom(classroomUuid)) {
+            throw new BusinessException("教室不存在", ErrorCode.NOT_EXIST);
+        }
     }
 
     /**
