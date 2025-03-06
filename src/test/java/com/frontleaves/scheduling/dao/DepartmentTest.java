@@ -19,6 +19,8 @@ import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.Date;
+
 @SpringBootTest
 @Slf4j
 class DepartmentTest {
@@ -90,24 +92,44 @@ class DepartmentTest {
 
     @Test
     void testUpdateDepartment() {
-        // 查询并获取第一个部门对象，用于后续的更新操作
         DepartmentDO departmentDO = departmentDAO.lambdaQuery().list().get(0);
-
-        // 修改部门名称
-        departmentDO.setDepartmentName("测试");
-
-        // 执行更新部门的操作
-        departmentDAO.updateDepartment(departmentDO);
-
-        // 尝试根据部门的唯一标识符获取被更新的部门信息
+        DepartmentDO newdepartmentDO = new DepartmentDO();
+        newdepartmentDO.setDepartmentUuid(departmentDO.getDepartmentUuid())
+                       .setDepartmentCode("1111")
+                       .setDepartmentName("测试部门")
+                       .setDepartmentOrder(99)
+                       .setDepartmentEnglishName("Test Department")
+                       .setDepartmentShortName("TD")
+                       .setDepartmentAddress("测试地址")
+                       .setIsEntity(true)
+                       .setAdministrativeHead("测试负责人")
+                       .setPartyCommitteeHead("测试党支部书记")
+                       .setEstablishmentDate(new Date(System.currentTimeMillis()))
+                       .setExpirationDate(new Date(System.currentTimeMillis() + 31536000000L))
+                       .setIsTeachingCollege(true)
+                       .setIsEnabled(true);
+        departmentDAO.updateDepartment(newdepartmentDO);
         DepartmentDO getDepartment = departmentDAO.lambdaQuery()
-                .eq(DepartmentDO::getDepartmentUuid, departmentDO.getDepartmentUuid())
+                .eq(DepartmentDO::getDepartmentUuid, newdepartmentDO.getDepartmentUuid())
                 .one();
-
-        // 验证更新操作是否成功，即验证数据库中是否真的存在该部门，并且名称已被修改
-        Assertions.assertNotNull(getDepartment);
-        Assertions.assertEquals("测试", getDepartment.getDepartmentName());
+        Assertions.assertEquals(getDepartment.getDepartmentCode(), newdepartmentDO.getDepartmentCode());
+        Assertions.assertEquals(getDepartment.getDepartmentName(), newdepartmentDO.getDepartmentName());
+        Assertions.assertEquals(getDepartment.getDepartmentOrder(), newdepartmentDO.getDepartmentOrder());
+        Assertions.assertEquals(getDepartment.getDepartmentEnglishName(), newdepartmentDO.getDepartmentEnglishName());
+        Assertions.assertEquals(getDepartment.getDepartmentShortName(), newdepartmentDO.getDepartmentShortName());
+        Assertions.assertEquals(getDepartment.getDepartmentAddress(), newdepartmentDO.getDepartmentAddress());
+        Assertions.assertEquals(getDepartment.getIsEntity(), newdepartmentDO.getIsEntity());
+        Assertions.assertEquals(getDepartment.getAdministrativeHead(), newdepartmentDO.getAdministrativeHead());
+        Assertions.assertEquals(getDepartment.getPartyCommitteeHead(), newdepartmentDO.getPartyCommitteeHead());
+        // 不涉及小时分钟秒，到日期截止
+        Assertions.assertTrue(getDepartment.getEstablishmentDate().before(newdepartmentDO.getEstablishmentDate()));
+        Assertions.assertTrue(getDepartment.getExpirationDate().before(newdepartmentDO.getExpirationDate()));
+        Assertions.assertEquals(getDepartment.getIsTeachingCollege(), newdepartmentDO.getIsTeachingCollege());
+        Assertions.assertEquals(getDepartment.getIsEnabled(), newdepartmentDO.getIsEnabled());
+        // 验证Redis缓存是否被清除
+        RMap<String, String> map = redisson.getMap(
+                StringConstant.Redis.DEPARTMENT_UUID + newdepartmentDO.getDepartmentUuid());
+        Assertions.assertFalse(map.isExists());
     }
-
 
 }

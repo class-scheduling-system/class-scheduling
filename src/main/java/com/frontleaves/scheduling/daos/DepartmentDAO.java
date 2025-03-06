@@ -110,8 +110,8 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             transaction.getMap(StringConstant.Redis.DEPARTMENT_UUID + departmentDO.getDepartmentUuid()).delete();
-            transaction.commit();
             this.updateById(departmentDO);
+            transaction.commit();
         } catch (Exception e) {
             transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);

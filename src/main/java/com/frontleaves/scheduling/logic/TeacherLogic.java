@@ -12,6 +12,7 @@ import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.multiple.TeacherAndUserDO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
 import com.frontleaves.scheduling.services.TeacherService;
 import com.frontleaves.scheduling.utils.ProjectUtil;
@@ -112,13 +113,22 @@ public class TeacherLogic implements TeacherService {
     @Override
     public PageDTO<TeacherDTO> getTeacherList(Integer page, Integer size, Boolean isDesc, String department, String status, String name) {
         // 调用DAO层方法获取教师列表
-        Page<TeacherDO> teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, status, name);
+        PageDTO<TeacherAndUserDO> teacherList;
+        if (status == null || status.isBlank()) {
+            teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, null, name);
+        } else {
+            if (Boolean.parseBoolean(status)) {
+                teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, 1, name);
+            } else {
+                teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, 0, name);
+            }
+        }
         // 检查获取的教师列表是否为空，如果为空则返回一个空的PageDTO对象
         if (teacherList.getTotal() == 0) {
             return new PageDTO<>();
         } else {
             // 如果教师列表不为空，则将其转换为PageDTO<TeacherDTO>对象并返回
-            return ProjectUtil.convertPageToPageDTO(teacherList, TeacherDTO.class);
+            return null;
         }
     }
 

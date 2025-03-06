@@ -1,0 +1,8 @@
+<configuration>
+    <settings>
+        <!-- 开启下划线转驼峰 -->
+        <setting name="mapUnderscoreToCamelCase" value="true" />
+        <setting name="autoMappingBehavior" value="FULL"/>
+    </settings>
+    <!-- 其他配置 -->
+</configuration>

@@ -30,12 +30,44 @@ package com.frontleaves.scheduling.mappers;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
+import com.frontleaves.scheduling.models.entity.multiple.TeacherAndUserDO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
 
 /**
  * 教师映射器
+ *
  * @author FLASHLACK
  */
 @Mapper
 public interface TeacherMapper extends BaseMapper<TeacherDO> {
+
+    @Select("""
+            SELECT
+                cs_teacher.teacher_uuid AS teacher_teacherUuid,
+                cs_user.user_uuid AS user_userUuid
+            FROM cs_teacher
+            LEFT JOIN cs_user ON cs_teacher.user_uuid = cs_user.user_uuid
+            WHERE (#{departmentUuid} IS NULL OR cs_teacher.unit_uuid = #{departmentUuid})
+            AND (#{status} IS NULL OR #{status} = '' OR cs_user.status = #{status})
+            AND (#{name} IS NULL OR cs_teacher.name LIKE CONCAT('%', #{name}, '%'))
+            ORDER BY cs_teacher.created_at DESC
+            LIMIT #{page}, #{size}
+            """)
+    @Result(property = "user.userUuid", column = "user_userUuid")
+    @Result(property = "teacher.teacherUuid", column = "teacher_teacherUuid")
+    List<TeacherAndUserDO> getTeacherAndUserQueryDesc(String departmentUuid, String status, String name, Integer page, Integer size);
+
+    @Select("""
+            SELECT * FROM cs_teacher
+            LEFT JOIN cs_user ON cs_teacher.user_uuid = cs_user.user_uuid
+            WHERE (#{departmentUuid} IS NULL OR cs_teacher.unit_uuid = #{departmentUuid})
+            AND (#{status} IS NULL OR #{status} = '' OR cs_user.status = #{status})
+            AND (#{name} IS NULL OR cs_teacher.name LIKE CONCAT('%', #{name}, '%'))
+            LIMIT #{page}, #{size}
+            """)
+    List<TeacherAndUserDO> getTeacherAndUserQueryAsc(String departmentUuid, String status, String name, Integer page, Integer size);
 }
