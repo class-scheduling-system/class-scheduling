@@ -51,6 +51,7 @@ public class StringConstant {
     public static final String DATABASE_OPERATION_FAILED = "数据库操作失败";
     public static final String REDIS_OPERATION_FAILED = "缓存操作失败";
     public static final String USER_DATA_NOT_EXIST = "用户数据不存在";
+    public static final String DEPARTMENT_DELETE_FAILED = "删除部门失败";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");

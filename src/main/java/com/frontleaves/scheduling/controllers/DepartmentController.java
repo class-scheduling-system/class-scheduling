@@ -82,6 +82,9 @@ public class DepartmentController {
     @DeleteMapping("/{department_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteDepartment(
             @PathVariable("department_uuid") String departmentUuid) {
+        if (departmentUuid == null || departmentUuid.isBlank()) {
+            throw new BusinessException("部门UUID不能为空", ErrorCode.PARAMETER_ERROR);
+        }
         departmentService.deleteDepartment(departmentUuid);
         return ResultUtil.success("删除成功");
     }
@@ -101,6 +104,9 @@ public class DepartmentController {
     public ResponseEntity<BaseResponse<DepartmentDTO>> updateDepartment(
             @PathVariable("department_uuid") String departmentUuid,
             @RequestBody DepartmentVO departmentVO) {
+        if (departmentUuid == null || departmentUuid.isBlank()) {
+            throw new BusinessException("部门UUID不能为空", ErrorCode.PARAMETER_ERROR);
+        }
         DepartmentDTO departmentDTO= departmentService.updateDepartment(departmentUuid, departmentVO);
         return ResultUtil.success("部门修改成功", departmentDTO);
     }

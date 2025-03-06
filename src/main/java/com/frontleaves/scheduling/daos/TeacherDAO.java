@@ -29,6 +29,8 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
@@ -179,7 +181,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     public void deleteTeacher(TeacherDO teacherDO) throws ServerInternalErrorException {
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
-            this.lambdaUpdate().eq(TeacherDO::getId, teacherDO.getId()).remove();
+            this.removeById(teacherDO);
             transaction.getBucket(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
             transaction.getMap(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
             transaction.getBucket(StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid()).delete();
@@ -227,5 +229,37 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
 
+    }
+
+    public Page<TeacherDO> getTeacherList(Integer page, Integer size, Boolean isDesc, String department, String status, String name) {
+        LambdaQueryChainWrapper<TeacherDO> query = this.lambdaQuery();
+        if (name != null && !name.isEmpty()) {
+            query.eq(TeacherDO::getName, name);
+        }
+        if (Boolean.TRUE.equals(isDesc)) {
+            query.orderByDesc(TeacherDO::getCreatedAt);
+        } else {
+            query.orderByAsc(TeacherDO::getCreatedAt);
+        }
+        if (department != null && !department.isEmpty()) {
+            query.eq(TeacherDO::getUnitUuid, department);
+        }
+        /*if (status != null && !status.isEmpty()) {
+            query.eq(TeacherDO::getStatus, status);
+        }*/
+        return query.page(new Page<>(page, size));
+    }
+
+    public void updateTeacher(TeacherDO teacherDO) {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            this.updateById(teacherDO);
+            transaction.getBucket(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
+            transaction.getMap(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
+            transaction.getBucket(StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid()).delete();
+            transaction.commit();
+        } catch (Exception e) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
     }
 }

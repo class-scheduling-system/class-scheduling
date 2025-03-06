@@ -8,6 +8,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.DepartmentMapper;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.validation.constraints.NotNull;
@@ -17,6 +19,7 @@ import org.redisson.api.RMap;
 import org.redisson.api.RTransaction;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.TransactionOptions;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,10 +77,23 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             transaction.getMap(StringConstant.Redis.DEPARTMENT_UUID + departmentDO.getDepartmentUuid()).delete();
-            transaction.commit();
             this.removeById(departmentDO);
+            transaction.commit();
+        } catch (DataIntegrityViolationException e) {
+            transaction.rollback();
+            if (e.getMessage().contains("cs_course_library")) {
+                throw new BusinessException("删除部门失败，部门下存在课程", ErrorCode.EXISTED);
+            } else if (e.getMessage().contains("cs_major")) {
+                throw new BusinessException("删除部门失败，部门下存在专业", ErrorCode.EXISTED);
+            } else if (e.getMessage().contains("cs_teacher")) {
+                throw new BusinessException("删除部门失败，部门下存在教师", ErrorCode.EXISTED);
+            } else {
+                log.error(StringConstant.DEPARTMENT_DELETE_FAILED, e);
+                throw new BusinessException(StringConstant.DEPARTMENT_DELETE_FAILED, ErrorCode.EXISTED);
+            }
         } catch (Exception e) {
             transaction.rollback();
+            log.error(StringConstant.DEPARTMENT_DELETE_FAILED, e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
