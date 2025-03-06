@@ -16,6 +16,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @SpringBootTest
@@ -152,5 +153,36 @@ class CampusTest {
         Assertions.assertNull(
                 campusDAO.lambdaQuery().eq(CampusDO::getCampusUuid,campusDO.getCampusUuid()).one());
         campusDAO.save(campusDO);
+    }
+
+    /**
+     * 验证校区分页查询结果为空的情况
+     * <p>
+     * 该方法用于测试当查询条件无法匹配到任何校区时，返回的分页数据是否为空。
+     * 具体来说，它执行两次调用 {@code campusService.getPageOfCampus} 方法的操作：
+     * 第一次传入一个确定不存在的校区名称，预期返回的记录列表应为空；
+     * 第二次则传入空值作为校区名称参数，预期能够返回非空的记录列表。
+     * <p>
+     * 此测试确保了系统在处理无效或缺失的查询条件时的行为符合预期。
+     */
+    @Test
+    void testVerifyPageOfCampusHasEmpty() {
+        Optional.ofNullable(campusService.getPageOfCampus(1, 20, true, "不存在的校区"))
+                .ifPresent(pageDTO -> Assertions.assertTrue(pageDTO.getRecords().isEmpty()));
+        Optional.ofNullable(campusService.getPageOfCampus(1, 20, true, null))
+                .ifPresent(pageDTO -> Assertions.assertFalse(pageDTO.getRecords().isEmpty()));
+    }
+
+    /**
+     * 测试获取校区列表
+     * <p>
+     * 该方法用于验证 {@code campusService.getCampusList()} 方法是否能够成功返回一个非空的校区列表。
+     * 如果 {@code campusService.getCampusList()} 返回的列表为空，则测试失败。
+     * <p>
+     * 此测试确保了系统能够正确地从数据源中获取校区信息，并且这些信息在系统中是可用的。
+     */
+    @Test
+    void testGetCampusList() {
+        Assertions.assertFalse(campusService.getCampusList().isEmpty());
     }
 }

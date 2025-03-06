@@ -29,9 +29,13 @@
 package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.CampusDTO;
-import jakarta.annotation.Nullable;
+import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
+import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
+import jakarta.annotation.Nullable;
+
+import java.util.List;
 
 /**
  * 校园服务接口，定义了与校园相关的操作。
@@ -118,4 +122,28 @@ public interface CampusService {
      */
     @Nullable
     CampusDTO getCampusByUuid(String campusUuid);
+
+    /**
+     * 获取校园信息分页数据
+     * <p>
+     * 该方法用于根据指定的分页参数和搜索关键字获取校园信息的分页数据。返回的数据包括符合条件的校园记录列表、总记录数、每页大小、当前页码和总页数。
+     * </p>
+     *
+     * @param page 当前页码，从1开始
+     * @param size 每页显示的记录数
+     * @param isDesc 是否降序排列，默认为false表示升序
+     * @param keyword 搜索关键字，可为空。如果提供，则在查询时会根据此关键字进行模糊匹配
+     * @return 返回一个包含校园信息分页数据的 {@link PageDTO} 对象
+     */
+    PageDTO<CampusDTO> getPageOfCampus(int page, int size, boolean isDesc, @Nullable String keyword);
+
+    /**
+     * 获取校区列表
+     * <p>
+     * 该方法用于获取系统中所有校区的简要信息列表。返回的数据为 {@link ListOfCampusDTO} 对象的列表，每个对象包含校区的主键、名称和编码。
+     * </p>
+     *
+     * @return 返回一个包含所有校区简要信息的 {@code List<ListOfCampusDTO>} 列表
+     */
+    List<ListOfCampusDTO> getCampusList();
 }

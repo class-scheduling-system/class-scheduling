@@ -28,10 +28,10 @@
 
 package com.frontleaves.scheduling.models.dto;
 
-import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
@@ -42,10 +42,10 @@ import java.util.Date;
  *
  * @author FLASHLACK
  */
-@TableName(value = "cs_department")
 @Data
-@Accessors(chain = true)
+@NoArgsConstructor
 @AllArgsConstructor
+@Accessors(chain = true)
 public class DepartmentDTO {
     /**
      * 部门主键，采用 UUID 自动生成

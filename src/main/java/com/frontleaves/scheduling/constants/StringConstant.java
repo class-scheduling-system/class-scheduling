@@ -83,6 +83,8 @@ public class StringConstant {
         public static final String CAMPUS_UUID = "campus:uuid:";
         public static final String CAMPUS_NAME = "campus:name:";
         public static final String CAMPUS_CODE = "campus:code:";
+        public static final String CAMPUS_LIST = "campus:list";
+        public static final String CAMPUS_PAGE_OF_LIST = "campus:page:";
         public static final String DEPARTMENT_UUID = "department:uuid:";
         public static final String CLASSROOM_TAG_LIST = "classroom:tag:list";
         public static final String CLASSROOM_TAG_UUID = "classroom:tag:uuid:";

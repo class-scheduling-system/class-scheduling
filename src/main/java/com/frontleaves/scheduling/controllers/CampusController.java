@@ -2,16 +2,23 @@ package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.CampusDTO;
+import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
+import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import com.frontleaves.scheduling.services.CampusService;
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * 校区控制器
@@ -87,5 +94,55 @@ public class CampusController {
         CampusDO campusDO = campusService.checkDeleteCampus(campusUuid);
         campusService.deleteCampus(campusDO);
         return ResultUtil.success("删除校区成功", campusUuid);
+    }
+
+    /**
+     * 获取校区分页数据
+     * <p>
+     * 该方法用于根据提供的分页参数、关键词以及排序方式，从系统中检索校区信息，并以分页的形式返回。
+     * 支持通过关键词进行模糊搜索，同时允许用户指定结果是否按照降序排列。此接口仅限拥有"管理员"角色的用户访问。
+     *
+     * @param page    请求的数据页码，默认值为 {@code 1}
+     * @param size    每页显示的记录数，默认值为 {@code 20}
+     * @param keyword 用于过滤校区名称或其他属性的关键词，可选参数
+     * @param isDesc  结果排序方式，如果设置为 {@code true} 则表示按降序排列，默认值为 {@code true}
+     * @return 包含了请求状态和校区数据列表的响应实体，其中校区数据被封装在 {@code CampusDTO} 对象中
+     */
+    @RequestRole({"管理员"})
+    @GetMapping("/page")
+    public ResponseEntity<BaseResponse<PageDTO<CampusDTO>>> getCampusPage(
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "20") Integer size,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "is_desc", defaultValue = "true") Boolean isDesc
+    ) {
+        Optional.ofNullable(size)
+                .filter(s -> s > 0)
+                .orElseThrow(() -> new BusinessException("每页显示数量错误", ErrorCode.PARAMETER_INVALID));
+        Optional.of(size)
+                .filter(s -> s <= 200)
+                .orElseThrow(() -> new BusinessException("单页查询不允许超过 200", ErrorCode.PARAMETER_INVALID));
+        Optional.ofNullable(page)
+                .filter(p -> p > 0)
+                .orElseThrow(() -> new BusinessException("页码参数错误", ErrorCode.PARAMETER_INVALID));
+        keyword = Optional.ofNullable(keyword)
+                .filter(key -> !key.isBlank())
+                .orElse(null);
+        PageDTO<CampusDTO> pageOfCampus = campusService.getPageOfCampus(page, size, isDesc, keyword);
+        return ResultUtil.success("获取校区分页数据成功", pageOfCampus);
+    }
+
+    /**
+     * 获取校区列表
+     * <p>
+     * 该方法用于从系统中获取所有校区的列表，并将其封装为 {@code List<ListOfCampusDTO>} 对象返回。此操作需要管理员权限。
+     *
+     * @return 包含校区列表的 {@code ResponseEntity<BaseResponse<List<ListOfCampusDTO>>>} 对象，其中 {@code BaseResponse} 封装了操作结果和消息
+     */
+    @RequestRole({"管理员"})
+    @GetMapping("/list")
+    public ResponseEntity<BaseResponse<List<ListOfCampusDTO>>> getCampusList() {
+        List<ListOfCampusDTO> campusList = campusService.getCampusList();
+        return ResultUtil.success("获取校区列表成功", campusList);
     }
 }

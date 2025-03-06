@@ -1,0 +1,90 @@
+/*
+ * --------------------------------------------------------------------------------
+ * Copyright (c) 2022-NOW(至今) 锋楪技术团队
+ * Author: 锋楪技术团队 (https://www.frontleaves.com)
+ *
+ * 本文件包含锋楪技术团队项目的源代码，项目的所有源代码均遵循 MIT 开源许可证协议。
+ * --------------------------------------------------------------------------------
+ * 许可证声明：
+ *
+ * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
+ *
+ * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
+ * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
+ * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
+ *
+ * 使用本软件即表示您了解此声明并同意其条款。
+ *
+ * 有关 MIT 许可证的更多信息，请查看项目根目录下的 LICENSE 文件或访问：
+ * https://opensource.org/licenses/MIT
+ * --------------------------------------------------------------------------------
+ * 免责声明：
+ *
+ * 使用本软件的风险由用户自担。作者或版权持有人在法律允许的最大范围内，
+ * 对因使用本软件内容而导致的任何直接或间接的损失不承担任何责任。
+ * --------------------------------------------------------------------------------
+ */
+
+package com.frontleaves.scheduling.dao;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.daos.CampusDAO;
+import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
+import com.frontleaves.scheduling.models.entity.CampusDO;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.redisson.api.RedissonClient;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.List;
+
+@Slf4j
+@SpringBootTest
+class CampusTest {
+    @Resource
+    private CampusDAO campusDAO;
+    @Resource
+    private RedissonClient redisson;
+
+    /**
+     * 测试分页查询校园数据的功能
+     * <p>
+     * 该方法首先删除与校园分页列表相关的所有 Redis 键，然后调用 {@code campusDAO.getPageOfCampus} 方法获取第一页的校园数据。
+     * 如果返回的数据总数大于0，则再次调用该方法，传入关键词 "铁" 进行查询，并断言两次查询的结果不同。
+     * 如果返回的数据总数为0，则断言结果为空。
+     */
+    @Test
+    void testPageOfCampus() {
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
+        Page<CampusDO> pageOfCampus = campusDAO.getPageOfCampus(1, 20, true, null);
+        if (pageOfCampus.getTotal() > 0) {
+            Page<CampusDO> keywordCampus = campusDAO.getPageOfCampus(1, 20, true, "铁");
+            Assertions.assertNotEquals(pageOfCampus.getRecords(), keywordCampus.getRecords());
+        } else {
+            Assertions.assertTrue(pageOfCampus.getRecords().isEmpty());
+        }
+    }
+
+    /**
+     * 测试校区列表获取功能
+     * <p>
+     * 该方法用于测试 {@code campusDAO.getCampusList} 方法的功能。具体步骤如下：
+     * <ul>
+     *     <li>调用 {@code campusDAO.getCampusList} 方法获取校区列表。</li>
+     *     <li>断言返回的校区列表不为 {@code null}。</li>
+     *     <li>断言返回的校区列表不为空。</li>
+     * </ul>
+     * 通过这些断言，确保从 Redis 缓存或数据库中获取的校区列表是有效的，并且包含至少一个校区信息。
+     * </p>
+     */
+    @Test
+    void testCampusList() {
+        List<ListOfCampusDTO> campusList = campusDAO.getCampusList();
+        Assertions.assertNotNull(campusList);
+        Assertions.assertFalse(campusList.isEmpty());
+    }
+}
