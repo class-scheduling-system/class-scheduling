@@ -512,10 +512,6 @@ public class UserLogic implements UserService {
             if (roleNewDTO == null) {
                 throw new BusinessException("要改变的用户角色不存在", ErrorCode.BODY_ERROR);
             }
-            if (roleNewDTO.getRoleUuid().equals(SystemConstant.getRoleStudent())
-                    || roleNewDTO.getRoleUuid().equals(SystemConstant.getRoleTeacher())) {
-                throw new BusinessException("不允许将角色编辑为学生或者老师", ErrorCode.BODY_ERROR);
-            }
             userDO.setRoleUuid(userEditVO.getRoleUuid());
         }
         this.checkPermission(userDO, userEditVO.getPermission());
