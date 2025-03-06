@@ -211,4 +211,22 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
         this.deleteBuildingRedis(buildingDO);
         this.removeById(buildingDO.getBuildingUuid());
     }
+
+    /**
+     * 根据校区UUID删除所有属于该校区的建筑信息
+     * 此方法首先查询与给定校区UUID关联的所有建筑对象，然后删除与这些建筑相关的缓存，
+     * 最后从数据库中删除这些建筑信息
+     *
+     * @param campusUuid 校区的唯一标识符UUID
+     */
+    public void deleteBuildingByCampusUuid(String campusUuid) {
+        RKeys keys = redisson.getKeys();
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_UUID + "*");
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_NAME + "*");
+        // 删除列表缓存
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_CAMPUS + campusUuid + "*");
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*");
+        // 从数据库中删除与校区UUID关联的所有建筑信息
+        this.lambdaUpdate().eq(BuildingDO::getCampusUuid, campusUuid).remove();
+    }
 }

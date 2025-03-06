@@ -7,13 +7,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CampusMapper;
 import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.redisson.api.RBucket;
-import org.redisson.api.RMap;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
@@ -25,9 +25,9 @@ import java.time.Duration;
  * 同时，利用Redis进行数据缓存，以提高查询效率。
  * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Repository
 @RequiredArgsConstructor
@@ -101,7 +101,7 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
      * </p>
      *
      * @param rBucket Redis缓存桶，用于存储和获取校区UUID
-     * @param eq 查询条件链，用于构建查询条件
+     * @param eq      查询条件链，用于构建查询条件
      * @return 返回查询到的校区信息，如果未找到则返回null
      */
     @Nullable
@@ -121,5 +121,63 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
             return this.getCampusByUuid(rBucket.get());
         }
         return null;
+    }
+
+    /**
+     * 更新校园信息，并在Redis中删除相关缓存
+     *
+     * @param campusDO 校园信息对象，包含要更新的校园信息
+     * @return 返回更新后的校园信息对象
+     */
+    public CampusDO updateCampus(CampusDO campusDO) {
+        // 创建Redis事务，用于删除与校园相关的缓存
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            // 更新数据库中的校园信息
+            this.updateById(campusDO);
+            this.deleteUserRedis(campusDO, transaction);
+        } catch (Exception e) {
+            // 如果发生异常，回滚事务，确保数据一致性
+            transaction.rollback();
+            throw new BusinessException("更新校园信息失败", ErrorCode.OPERATION_ERROR);
+        }
+        return this.lambdaQuery().eq(
+                CampusDO::getCampusUuid, campusDO.getCampusUuid()).one();
+    }
+
+    /**
+     * 删除与校园相关的Redis缓存
+     *
+     * @param campusDO    校园实体对象，包含校园的UUID、代码和名称
+     * @param transaction Redis事务对象，用于执行删除操作
+     */
+    private void deleteUserRedis(@NotNull CampusDO campusDO, @NotNull RTransaction transaction) {
+        transaction.getMap(StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid()).delete();
+        transaction.getBucket(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode()).delete();
+        transaction.getBucket(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName()).delete();
+        transaction.commit();
+    }
+
+    /**
+     * 删除校园信息
+     * <p>
+     * 此方法负责删除数据库中的校园信息，并同步更新Redis缓存
+     * 它通过创建一个Redis事务来确保操作的原子性，防止在删除过程中发生数据不一致的情况
+     * </p>
+     *
+     * @param campusDO 校园数据对象，包含要删除的校园的信息
+     */
+    public void deleteCampus(CampusDO campusDO) {
+        RKeys keys = redisson.getKeys();
+        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_LIST + "*");
+        // 创建Redis事务，使用默认的事务选项
+        RTransaction rTransaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            this.removeById(campusDO.getCampusUuid());
+            this.deleteUserRedis(campusDO, rTransaction);
+        } catch (Exception e) {
+            rTransaction.rollback();
+            throw new BusinessException("删除校园信息失败", ErrorCode.OPERATION_ERROR);
+        }
     }
 }

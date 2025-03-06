@@ -111,7 +111,7 @@ public class UserController {
      */
     @PostMapping("")
     public ResponseEntity<BaseResponse<UserAddInfoDTO>> addUser(
-            @RequestBody UserAddVO userAddVO
+            @RequestBody @Validated UserAddVO userAddVO
     ) {
         UserAddInfoDTO userInfoDTO = userService.addUser(userAddVO,userService.checkAddUser(userAddVO));
         return ResultUtil.success("添加用户成功", userInfoDTO);
