@@ -138,7 +138,7 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> impl
                 return classroomDO;
             }
         } else {
-            return BeanUtil.toBean(map, ClassroomDO.class, ProjectOption.replaceBlankToNull());
+            return BeanUtil.toBean(map, ClassroomDO.class, ProjectOption.stringBlankToNull());
         }
         return null;
     }
@@ -182,7 +182,7 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> impl
      * @param classroomDO 要更新的教室实体对象 {@code ClassroomDO}
      */
     public void updateClassroom(ClassroomDO classroomDO) {
-        Optional.ofNullable(redisson.getKeys())
+        Optional.of(redisson.getKeys())
                 .ifPresent(rKeys -> {
                     rKeys.delete(StringConstant.Redis.CLASSROOM_UUID + classroomDO.getClassroomUuid());
                     rKeys.delete(StringConstant.Redis.CLASSROOM_NUMBER + classroomDO.getNumber());
@@ -201,7 +201,7 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> impl
      * @return 如果删除成功，返回 true；否则，返回 false
      */
     public boolean deleteClassroom(String classroomUuid) {
-        ClassroomDO classroomDO = this.getById(classroomUuid);
+        ClassroomDO classroomDO = this.getClassroomByUuid(classroomUuid);
         if (classroomDO != null) {
             Optional.ofNullable(redisson.getKeys())
                     .ifPresent(rKeys -> {

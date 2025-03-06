@@ -121,11 +121,96 @@ class ClassroomTest {
         long noRedisNowTime = System.currentTimeMillis();
         Optional.ofNullable(classroomDAO.getClassroomByUuid(classroomDO.getClassroomUuid()))
                 .ifPresent(classroomNoRedis::set);
-        log.info("No Redis Time: {}ms", System.currentTimeMillis() - noRedisNowTime);
+        log.info("[ClassroomUUID] No Redis Time: {}ms", System.currentTimeMillis() - noRedisNowTime);
         long redisNowTime = System.currentTimeMillis();
         Optional.ofNullable(classroomDAO.getClassroomByUuid(classroomDO.getClassroomUuid()))
                 .ifPresent(classroomHasRedis::set);
-        log.info("Redis Time: {}ms", System.currentTimeMillis() - redisNowTime);
+        log.info("[ClassroomUUID] Redis Time: {}ms", System.currentTimeMillis() - redisNowTime);
         Assertions.assertEquals(classroomNoRedis.get(), classroomHasRedis.get());
+    }
+
+    /**
+     * 测试通过教室编号获取教室信息的功能
+     * <p>
+     * 该测试方法首先从数据库中获取一个教室对象，并删除与之关联的 Redis 缓存。然后，分别在没有 Redis 缓存和有 Redis 缓存的情况下，通过教室编号获取教室信息，并记录两次请求的时间差。最后，断言两次获取到的教室信息是否一致。
+     * <p>
+     * 此方法用于验证 Redis 缓存在查询教室信息时的性能提升效果。
+     */
+    @Test
+    void testClassroomByNumber() {
+        ClassroomDO classroomDO = classroomDAO.lambdaQuery().list().get(0);
+        redisson.getKeys().delete(StringConstant.Redis.CLASSROOM_NUMBER + classroomDO.getNumber());
+        redisson.getKeys().delete(StringConstant.Redis.CLASSROOM_UUID + classroomDO.getClassroomUuid());
+
+        AtomicReference<ClassroomDO> classroomNoRedis = new AtomicReference<>();
+        AtomicReference<ClassroomDO> classroomHasRedis = new AtomicReference<>();
+
+        long noRedisNowTime = System.currentTimeMillis();
+        Optional.ofNullable(classroomDAO.getClassroomByNumber(classroomDO.getNumber()))
+                .ifPresent(classroomNoRedis::set);
+        Assertions.assertNotNull(redisson.getBucket(StringConstant.Redis.CLASSROOM_NUMBER + classroomDO.getNumber()).get());
+        log.info("[ClassroomNumber] No Redis Time: {}ms", System.currentTimeMillis() - noRedisNowTime);
+        long redisNowTime = System.currentTimeMillis();
+        Optional.ofNullable(classroomDAO.getClassroomByNumber(classroomDO.getNumber()))
+                .ifPresent(classroomHasRedis::set);
+        log.info("[ClassroomNumber] Redis Time: {}ms", System.currentTimeMillis() - redisNowTime);
+        Assertions.assertEquals(classroomNoRedis.get(), classroomHasRedis.get());
+    }
+
+    /**
+     * 测试编辑教室信息
+     * <p>
+     * 该方法用于测试编辑教室信息的功能。它首先从数据库中获取一个教室对象，然后检查Redis中是否存在与该教室相关的缓存。
+     * 如果存在，则通过调用 {@code updateClassroom} 方法更新教室信息，并再次检查Redis缓存是否已被正确清除。
+     * 该测试确保了在编辑教室信息后，相关缓存能够被正确地删除，以保证数据的一致性。
+     */
+    @Test
+    void testEditClassroom() {
+        ClassroomDO classroomDO = classroomDAO.lambdaQuery().list().get(0);
+        classroomDAO.getClassroomByUuid(classroomDO.getClassroomUuid());
+        classroomDAO.getClassroomByNumber(classroomDO.getNumber());
+        Assertions.assertTrue(redisson.getMap(StringConstant.Redis.CLASSROOM_UUID + classroomDO.getClassroomUuid()).isExists());
+        Assertions.assertTrue(redisson.getBucket(StringConstant.Redis.CLASSROOM_NUMBER + classroomDO.getNumber()).isExists());
+        Optional.of(classroomDO)
+                .ifPresent(data -> {
+                    classroomDAO.updateClassroom(data);
+                    Assertions.assertFalse(redisson.getBucket(StringConstant.Redis.CLASSROOM_NUMBER + data.getNumber()).isExists());
+                    Assertions.assertFalse(redisson.getMap(StringConstant.Redis.CLASSROOM_UUID + data.getClassroomUuid()).isExists());
+                });
+    }
+
+    /**
+     * 测试删除教室功能
+     * <p>
+     * 该测试方法验证了删除教室的功能是否正常工作。具体步骤如下：
+     * <ol>
+     *     <li>从数据库中获取一个教室信息。</li>
+     *     <li>通过教室的UUID和编号在Redis中检查是否存在相应的键值对。</li>
+     *     <li>调用 {@code deleteClassroom} 方法删除指定的教室。</li>
+     *     <li>再次检查Redis中相应的键值对是否已被删除。</li>
+     *     <li>通过UUID检查数据库中是否已成功删除该教室记录。</li>
+     * </ol>
+     * <p>
+     * 如果所有检查都通过，则表示删除教室功能正常。
+     */
+    @Test
+    void testDeleteClassroom() {
+        ClassroomDO classroomDO = classroomDAO.lambdaQuery().list().get(0);
+        classroomDAO.getClassroomByUuid(classroomDO.getClassroomUuid());
+        classroomDAO.getClassroomByNumber(classroomDO.getNumber());
+        Assertions.assertTrue(redisson.getMap(StringConstant.Redis.CLASSROOM_UUID + classroomDO.getClassroomUuid()).isExists());
+        Assertions.assertTrue(redisson.getBucket(StringConstant.Redis.CLASSROOM_NUMBER + classroomDO.getNumber()).isExists());
+        classroomDAO.deleteClassroom(classroomDO.getClassroomUuid());
+        Assertions.assertFalse(redisson.getBucket(StringConstant.Redis.CLASSROOM_NUMBER + classroomDO.getNumber()).isExists());
+        Assertions.assertFalse(redisson.getMap(StringConstant.Redis.CLASSROOM_UUID + classroomDO.getClassroomUuid()).isExists());
+        classroomDAO.getOptById(classroomDO.getClassroomUuid())
+                .ifPresentOrElse(classroom -> {
+                    log.info("Delete Classroom Failed: {}", classroom);
+                    Assertions.fail();
+                }, () -> {
+                    log.info("Delete Classroom Success");
+                    Assertions.assertTrue(true);
+                });
+
     }
 }

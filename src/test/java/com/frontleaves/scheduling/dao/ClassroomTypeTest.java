@@ -40,6 +40,8 @@ import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 教室类型测试类
@@ -71,12 +73,39 @@ class ClassroomTypeTest {
      * </p>
      */
     @Test
-    void getClassroomType() {
+    void testGetClassroomType() {
         redisson.getKeys().delete(StringConstant.Redis.CLASSROOM_TYPE_LIST);
         List<ClassroomTypeDO> types = classroomTypeDAO.getTypes();
         log.debug(LogConstant.DEBUG + "数据库获取 types: {}", types);
         List<ClassroomTypeDO> types2 = classroomTypeDAO.getTypes();
         log.debug(LogConstant.DEBUG + "缓存获取 types: {}", types2);
         Assertions.assertEquals(types, types2);
+    }
+
+    /**
+     * 通过 UUID 获取教室类型测试
+     * <p>
+     * 该方法用于测试从数据库和缓存中通过 UUID 获取教室类型的功能。首先，它会清除 Redis 缓存中的指定教室类型数据。
+     * 然后，从数据库中获取指定 UUID 的教室类型，并记录调试信息。接着，再次尝试从缓存中获取相同 UUID 的教室类型，并记录调试信息。
+     * 最后，验证两次获取的结果是否一致，确保数据的一致性和缓存的正确性。
+     * </p>
+     */
+    @Test
+    void testGetClassroomTestByUuid() {
+        ClassroomTypeDO classroomTagDO = classroomTypeDAO.lambdaQuery().list().get(0);
+        redisson.getKeys().delete(StringConstant.Redis.CLASSROOM_TYPE_UUID + classroomTagDO.getClassTypeUuid());
+
+        AtomicReference<ClassroomTypeDO> classroomNoRedis = new AtomicReference<>();
+        AtomicReference<ClassroomTypeDO> classroomHasRedis = new AtomicReference<>();
+
+        long noRedisNowTime = System.currentTimeMillis();
+        Optional.ofNullable(classroomTypeDAO.getTypeByUuid(classroomTagDO.getClassTypeUuid()))
+                .ifPresent(classroomNoRedis::set);
+        log.info("[ClassroomTagUUID] No Redis Time: {}ms", System.currentTimeMillis() - noRedisNowTime);
+        long redisNowTime = System.currentTimeMillis();
+        Optional.ofNullable(classroomTypeDAO.getTypeByUuid(classroomTagDO.getClassTypeUuid()))
+                .ifPresent(classroomHasRedis::set);
+        log.info("[ClassroomTagUUID] Redis Time: {}ms", System.currentTimeMillis() - redisNowTime);
+        Assertions.assertEquals(classroomNoRedis.get(), classroomHasRedis.get());
     }
 }

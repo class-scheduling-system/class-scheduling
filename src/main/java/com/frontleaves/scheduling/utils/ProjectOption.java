@@ -49,15 +49,15 @@ public class ProjectOption {
     }
 
     /**
-     * 将空白字符串替换为 null
+     * 将空字符串转换为 null 的复制选项
      * <p>
-     * 该方法返回一个 {@code CopyOptions} 实例，其中定义了一个字段值编辑器。
-     * 该编辑器会检查每个字段的值，如果字段值是一个空白字符串（仅包含空格、制表符或换行符），则将其替换为 {@code null}。
-     * 对于非字符串类型的字段值或非空白字符串，其值保持不变。
+     * 该方法返回一个 {@code CopyOptions} 实例，该实例配置了一个字段值编辑器。
+     * 该编辑器会检查所有字段值，如果字段值是空字符串（即只包含空白字符），则将其替换为 {@code null}。
+     * 这有助于在对象复制过程中处理不需要的空字符串，确保数据的一致性和整洁性。
      *
-     * @return 返回配置好的 {@code CopyOptions} 实例
+     * @return 返回一个配置了将空字符串转换为 {@code null} 的 {@code CopyOptions} 实例
      */
-    public static CopyOptions replaceBlankToNull() {
+    public static CopyOptions stringBlankToNull() {
         return CopyOptions.create()
                 .setFieldValueEditor((fieldName, fieldValue) -> {
                     if (fieldValue instanceof String str && str.isBlank()) {

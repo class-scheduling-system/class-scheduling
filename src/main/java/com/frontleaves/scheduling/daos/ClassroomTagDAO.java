@@ -34,6 +34,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassroomTagMapper;
 import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
+import com.frontleaves.scheduling.utils.ProjectOption;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
@@ -108,7 +109,7 @@ public class ClassroomTagDAO extends ServiceImpl<ClassroomTagMapper, ClassroomTa
                 return tagDO;
             }
         } else {
-            return BeanUtil.toBean(map, ClassroomTagDO.class);
+            return BeanUtil.toBean(map, ClassroomTagDO.class, ProjectOption.stringBlankToNull());
         }
         return null;
     }
