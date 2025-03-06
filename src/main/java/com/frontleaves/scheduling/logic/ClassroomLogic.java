@@ -223,18 +223,7 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
      */
     @Override
     public ClassroomInfoDTO addClassroom(ClassroomVO classroomVO) {
-        ClassroomDO newClassroom = BeanUtil.toBean(classroomVO, ClassroomDO.class);
-        if (classroomVO.getTag() != null && !classroomVO.getTag().isEmpty()) {
-            newClassroom.setTag(JSONUtil.toJsonStr(classroomVO.getTag()));
-        } else {
-            newClassroom.setTag("[]");
-        }
-        if (classroomVO.getManagementDepartment() == null || classroomVO.getManagementDepartment().isBlank()) {
-            newClassroom.setManagementDepartment(null);
-        }
-        if (classroomVO.getTablesChairsType() == null || classroomVO.getTablesChairsType().isBlank()) {
-            newClassroom.setTablesChairsType(null);
-        }
+        ClassroomDO newClassroom = this.classroomDataVerify(classroomVO);
         classroomDAO.save(newClassroom);
         ClassroomDO classroom = classroomDAO.getClassroomByUuid(newClassroom.getClassroomUuid());
         if (classroom == null) {
@@ -264,6 +253,77 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
             return null;
         }
         return BeanUtil.toBean(classroomDO, ClassroomDTO.class);
+    }
+
+    /**
+     * 根据教室 UUID 获取教室信息
+     * <p>
+     * 该方法用于根据给定的教室 UUID 获取对应的教室信息。如果找到匹配的记录，则返回一个 {@code ClassroomDTO} 对象，否则返回 {@code null}。
+     * </p>
+     *
+     * @param classroomUuid 教室的唯一标识符
+     * @return 返回与给定教室 UUID 匹配的教室数据传输对象，如果没有找到匹配的记录则返回 {@code null}
+     */
+    @Override
+    public ClassroomDTO getClassroomByUuid(String classroomUuid) {
+        ClassroomDO classroomDO = classroomDAO.getClassroomByUuid(classroomUuid);
+        if (classroomDO == null) {
+            return null;
+        }
+        return BeanUtil.toBean(classroomDO, ClassroomDTO.class);
+    }
+
+    /**
+     * 编辑教室
+     * <p>
+     * 该方法用于根据传入的 {@code ClassroomVO} 对象编辑指定的教室。在编辑过程中，会进行一系列数据可用性检查，确保关联的教学楼、校区、教室类型、管理部门以及桌椅类型均存在。
+     * 如果任何一项数据不存在，则抛出 {@code BusinessException} 异常，并附带相应的错误码。如果所有数据验证通过，则调用服务层的方法将新的教室信息保存到数据库中，并返回包含成功信息及新教室详情的响应。
+     * </p>
+     *
+     * @param classroomUuid 教室的唯一标识符
+     * @param classroomVO   包含待编辑教室详细信息的视图对象
+     * @return 响应实体，包含操作结果和新创建的教室信息
+     */
+    @Override
+    public ClassroomInfoDTO editClassroom(String classroomUuid, ClassroomVO classroomVO) {
+        ClassroomDO classroomDO = this.classroomDataVerify(classroomVO)
+                        .setClassroomUuid(classroomUuid);
+        classroomDAO.updateClassroom(classroomDO);
+        ClassroomDO classroom = classroomDAO.getClassroomByUuid(classroomUuid);
+        if (classroom == null) {
+            throw new ServerInternalErrorException(StringConstant.UNKNOWN_ERROR);
+        }
+        return new ClassroomInfoDTO()
+                .setClassroom(BeanUtil.toBean(classroom, ClassroomDTO.class))
+                .setTag(getTagListForJson(classroom.getTag()))
+                .setType(BeanUtil.toBean(classroomTypeDAO.getTypeByUuid(classroom.getType()), ClassroomTypeDTO.class))
+                .setCampus(BeanUtil.toBean(campusDAO.getCampusByUuid(classroom.getCampusUuid()), CampusDTO.class))
+                .setBuilding(BeanUtil.toBean(buildingDAO.getBuildingByUuid(classroom.getBuildingUuid()), BuildingDTO.class));
+    }
+
+    /**
+     * 验证并转换教室数据
+     * <p>
+     * 该方法接收一个 {@code ClassroomVO} 对象，将其转换为 {@code ClassroomDO} 对象，并进行必要的验证和处理。
+     * 具体包括：将标签字段转换为 JSON 字符串，如果标签为空则设置为默认值 "[]"；如果管理单位或桌椅类型为空白字符串，则设置为 null。
+     *
+     * @param classroomVO 教室视图对象，包含需要验证和转换的数据
+     * @return 经过验证和处理后的教室数据对象
+     */
+    private @NotNull ClassroomDO classroomDataVerify(@NotNull ClassroomVO classroomVO) {
+        ClassroomDO classroomDO = BeanUtil.toBean(classroomVO, ClassroomDO.class);
+        if (classroomVO.getTag() != null && !classroomVO.getTag().isEmpty()) {
+            classroomDO.setTag(JSONUtil.toJsonStr(classroomVO.getTag()));
+        } else {
+            classroomDO.setTag("[]");
+        }
+        if (classroomVO.getManagementDepartment() == null || classroomVO.getManagementDepartment().isBlank()) {
+            classroomDO.setManagementDepartment(null);
+        }
+        if (classroomVO.getTablesChairsType() == null || classroomVO.getTablesChairsType().isBlank()) {
+            classroomDO.setTablesChairsType(null);
+        }
+        return classroomDO;
     }
 
     /**

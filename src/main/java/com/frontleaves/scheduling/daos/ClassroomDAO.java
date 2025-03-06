@@ -171,4 +171,21 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> impl
         }
         return null;
     }
+
+    /**
+     * 更新教室信息
+     * <p>
+     * 该方法用于更新教室信息。首先会删除 Redis 中与该教室相关的缓存，然后调用 MyBatis-Plus 的 updateById 方法将更新后的教室信息保存到数据库中。
+     * </p>
+     *
+     * @param classroomDO 要更新的教室实体对象 {@code ClassroomDO}
+     */
+    public void updateClassroom(ClassroomDO classroomDO) {
+        Optional.ofNullable(redisson.getKeys())
+                .ifPresent(rKeys -> {
+                    rKeys.delete(StringConstant.Redis.CLASSROOM_UUID + classroomDO.getClassroomUuid());
+                    rKeys.delete(StringConstant.Redis.CLASSROOM_NUMBER + classroomDO.getNumber());
+                });
+        this.updateById(classroomDO);
+    }
 }

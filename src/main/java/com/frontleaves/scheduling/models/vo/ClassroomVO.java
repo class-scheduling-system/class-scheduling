@@ -106,7 +106,7 @@ public class ClassroomVO {
      * 格式必须符合正则表达式 ^(B?\\d+|G){4}，表示以B开头的数字、纯数字或字母G，长度为4个字符。
      */
     @NotNull(message = "楼层不能为空")
-    @Pattern(regexp = "^(B?\\d+|G){1,4}", message = "楼层输入有误")
+    @Pattern(regexp = "^(B?\\d{1,3}|G)$", message = "楼层输入有误")
     private String floor;
 
     /**
@@ -122,15 +122,13 @@ public class ClassroomVO {
     private String type;
 
     /**
-     * 教室标签
+     * 教室标签列表
      * <p>
-     * 该字段用于存储与教室相关的标签列表。不能为空，用于帮助分类和搜索教室。
-     * 该字段通过 {@code @NotNull} 注解进行非空验证，确保提交的表单中必须包含有效的教室标签。
-     * 标签列表中的每个元素应为字符串，表示特定��签的UUID或标识符。
-     * 标签可以用于标识教室的特性，如：计算机设备、音频设备、投影设备等。
+     * 该变量用于存储与教室相关的标签，每个标签必须符合 UUID 格式且不含中划线。
+     * 具体格式要求见 {@code StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION}。
+     * 如果输入的标签不符合指定的正则表达式，则会抛出相应的错误信息。
      */
-    @NotNull(message = "教室标签不能为空")
-    private List<String> tag;
+    private List<@Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "教室标签输入有误") String> tag;
 
     /**
      * 教室容量

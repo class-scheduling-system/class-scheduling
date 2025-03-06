@@ -137,4 +137,28 @@ public interface ClassroomService {
      * @return 返回与给定教室编号匹配的教室数据传输对象，如果没有找到匹配的记录则返回 {@code null}
      */
     ClassroomDTO getClassroomByNumber(String number);
+
+    /**
+     * 根据教室 UUID 获取教室信息
+     * <p>
+     * 该方法用于根据给定的教室 UUID 获取对应的教室信息。如果找到匹配的记录，则返回一个 {@code ClassroomDTO} 对象，否则返回 {@code null}。
+     * </p>
+     *
+     * @param classroomUuid 教室的唯一标识符
+     * @return 返回与给定教室 UUID 匹配的教室数据传输对象，如果没有找到匹配的记录则返回 {@code null}
+     */
+    ClassroomDTO getClassroomByUuid(String classroomUuid);
+
+    /**
+     * 编辑教室
+     * <p>
+     * 该方法用于根据传入的 {@code ClassroomVO} 对象编辑指定的教室。在编辑过程中，会进行一系列数据可用性检查，确保关联的教学楼、校区、教室类型、管理部门以及桌椅类型均存在。
+     * 如果任何一项数据不存在，则抛出 {@code BusinessException} 异常，并附带相应的错误码。如果所有数据验证通过，则调用服务层的方法将新的教室信息保存到数据库中，并返回包含成功信息及新教室详情的响应。
+     * </p>
+     *
+     * @param classroomUuid 教室的唯一标识符
+     * @param classroomVO   包含待编辑教室详细信息的视图对象
+     * @return 响应实体，包含操作结果和新创建的教室信息
+     */
+    ClassroomInfoDTO editClassroom(String classroomUuid, ClassroomVO classroomVO);
 }

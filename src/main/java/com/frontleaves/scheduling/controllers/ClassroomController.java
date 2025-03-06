@@ -40,6 +40,7 @@ import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -146,6 +147,51 @@ public class ClassroomController {
                     throw new BusinessException("教室已存在", ErrorCode.EXISTED);
                 });
         // 数据可用性检查
+        this.verifyClassroomDataHasExist(classroomVO);
+        // 数据检查完成添加教室
+        ClassroomInfoDTO classroomInfoDTO = classroomService.addClassroom(classroomVO);
+        return ResultUtil.success("添加教室成功", classroomInfoDTO);
+    }
+
+    /**
+     * 编辑教室
+     * <p>
+     * 该方法用于根据传入的 {@code ClassroomVO} 对象编辑指定的教室。在编辑过程中，会进行一系列数据可用性检查，确保关联的教学楼、校区、教室类型、管理部门以及桌椅类型均存在。
+     * 如果任何一项数据不存在，则抛出 {@code BusinessException} 异常，并附带相应的错误码。如果所有数据验证通过，则调用服务层的方法将新的教室信息保存到数据库中，并返回包含成功信息及新教室详情的响应。
+     *
+     * @param classroomVO 包含待编辑教室详细信息的视图对象
+     * @return 响应实体，包含操作结果和新创建的教室信息
+     */
+    @PutMapping("/{classroom_uuid}")
+    public ResponseEntity<BaseResponse<ClassroomInfoDTO>> editClassroom(
+            @PathVariable("classroom_uuid") String classroomUuid,
+            @RequestBody @Validated ClassroomVO classroomVO
+    ) {
+        // 数据是否存在
+        Optional.ofNullable(classroomService.getClassroomByUuid(classroomUuid))
+                .orElseThrow(() -> new BusinessException("教室不存在", ErrorCode.NOT_EXIST));
+        // 数据可用性检查
+        this.verifyClassroomDataHasExist(classroomVO);
+        // 数据检查完成编辑教室
+        ClassroomInfoDTO classroomInfoDTO = classroomService.editClassroom(classroomUuid, classroomVO);
+        return ResultUtil.success("编辑教室成功", classroomInfoDTO);
+    }
+
+    /**
+     * 验证教室数据是否存在
+     * <p>此方法用于验证传入的 {@code ClassroomVO} 对象中关联的数据实体是否在系统中存在。如果任何关联的数据实体不存在，则抛出相应的业务异常。</p>
+     *
+     * @param classroomVO 包含教室信息的对象，不能为空
+     * @throws BusinessException 如果以下任一情况发生时抛出：<ul>
+     *                           <li>教学楼不存在</li>
+     *                           <li>校区不存在</li>
+     *                           <li>教室类型不存在</li>
+     *                           <li>管理部门不存在</li>
+     *                           <li>桌椅类型不存在</li>
+     *                           <li>教室标签不存在</li>
+     *                           </ul>
+     */
+    private void verifyClassroomDataHasExist(@NotNull ClassroomVO classroomVO) {
         Optional.ofNullable(buildingService.getBuildingByUuidOrName(classroomVO.getBuildingUuid()))
                 .orElseThrow(() -> new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST));
         Optional.ofNullable(campusService.getCampusByUuid(classroomVO.getCampusUuid()))
@@ -167,8 +213,5 @@ public class ClassroomController {
                         .forEach(tag -> Optional.ofNullable(classroomService.getClassroomTagByUuid(tag))
                                 .orElseThrow(() -> new BusinessException("教室标签不存在", ErrorCode.NOT_EXIST))
                         ));
-        // 数据检查完成添加教室
-        ClassroomInfoDTO classroomInfoDTO = classroomService.addClassroom(classroomVO);
-        return ResultUtil.success("添加教室成功", classroomInfoDTO);
     }
 }
