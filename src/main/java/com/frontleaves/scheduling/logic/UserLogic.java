@@ -366,7 +366,8 @@ public class UserLogic implements UserService {
         if (userOldDO == null) {
             throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
         }
-
+        log.debug("验证用户名唯一性");
+        log.debug("用户编辑数据：{}", userEditVO);
         // 验证用户名唯一性
         if (!userEditVO.getName().isEmpty()
                 && !userEditVO.getName().equals(userOldDO.getName())
@@ -509,7 +510,7 @@ public class UserLogic implements UserService {
             log.debug("改变用户角色");
             RoleDTO roleNewDTO = roleDAO.getRoleByUuid(userEditVO.getRoleUuid());
             if (roleNewDTO == null) {
-                throw new BusinessException(StringConstant.USER_DATA_NOT_EXIST, ErrorCode.BODY_ERROR);
+                throw new BusinessException("要改变的用户角色不存在", ErrorCode.BODY_ERROR);
             }
             if (roleNewDTO.getRoleUuid().equals(SystemConstant.getRoleStudent())
                     || roleNewDTO.getRoleUuid().equals(SystemConstant.getRoleTeacher())) {
