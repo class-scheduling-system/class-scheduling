@@ -153,7 +153,7 @@ public class BuildingLogic implements BuildingService {
                     .setBuildingName(buildingName)
                     .setCampusUuid(campusUuid)
                     .setStatus(status);
-            buildingDAO.save(buildingDO);
+            buildingDAO.addBuilding(buildingDO);
         } else {
             throw new BusinessException("校区不存在", ErrorCode.NOT_EXIST);
         }

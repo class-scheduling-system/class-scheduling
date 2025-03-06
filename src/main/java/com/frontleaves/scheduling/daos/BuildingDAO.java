@@ -23,6 +23,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * 教学楼数据访问对象
@@ -228,5 +229,19 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
         keys.deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*");
         // 从数据库中删除与校区UUID关联的所有建筑信息
         this.lambdaUpdate().eq(BuildingDO::getCampusUuid, campusUuid).remove();
+    }
+
+    /**
+     * 添加建筑信息
+     * <p>
+     * 该方法用于向系统中添加一个新的建筑信息。在添加新的建筑之前，会先清除 Redis 中所有与建筑列表相关的缓存数据，以确保数据的一致性。
+     * 随后，将新的建筑信息保存到数据库中。
+     *
+     * @param buildingDO 包含建筑详细信息的对象 {@code BuildingDO}
+     */
+    public void addBuilding(BuildingDO buildingDO) {
+        Optional.ofNullable(redisson.getKeys())
+                .ifPresent(keys -> keys.deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*"));
+        this.save(buildingDO);
     }
 }
