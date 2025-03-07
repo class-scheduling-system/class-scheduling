@@ -132,4 +132,9 @@ class DepartmentTest {
         Assertions.assertFalse(map.isExists());
     }
 
+    @Test
+    void testGetDepartmentList() {
+
+    }
+
 }

@@ -207,22 +207,37 @@ public class TeacherLogic implements TeacherService {
         teacherDAO.deleteTeacher(teacherDO);
     }
 
+    /**
+     * 更新教师信息
+     *
+     * @param teacherUuid 教师的唯一标识符
+     * @param teacherVO 包含教师更新信息的视图对象
+     *
+     * 此方法首先根据教师的UUID从数据库中获取教师对象如果教师对象存在，则根据提供的教师视图对象中的信息更新教师对象
+     * 如果视图对象中包含了单位UUID，则验证该单位是否存在如果单位不存在，则抛出业务异常
+     * 同样，如果视图对象中包含了用户UUID，则验证该用户是否存在如果用户不存在，则抛出业务异常
+     * 最后，将视图对象中的属性复制到教师对象中，并更新数据库中的教师信息
+     */
     @Override
     public void updateTeacher(String teacherUuid, TeacherVO teacherVO) {
+        // 根据UUID获取教师对象
         TeacherDO teacherDO = teacherDAO.getTeacherByUuid(teacherUuid);
         if (teacherDO != null) {
+            // 如果教师视图对象中包含单位UUID，则检查单位是否存在
             if (teacherVO.getUnitUuid() != null) {
                 DepartmentDO getDepartment = departmentDAO.getDepartmentByUuid(teacherVO.getUnitUuid());
                 if (getDepartment == null) {
                     throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
                 }
             }
+            // 如果教师视图对象中包含用户UUID，则检查用户是否存在
             if (teacherVO.getUserUuid() != null) {
                 UserDO getUser = userDAO.getUserByUuid(teacherVO.getUserUuid());
                 if (getUser == null) {
                     throw new BusinessException("用户不存在", ErrorCode.NOT_EXIST);
                 }
             }
+            // 将视图对象中的属性复制到教师对象中，并更新数据库中的教师信息
             BeanUtils.copyProperties(teacherVO, teacherDO);
             teacherDAO.updateTeacher(teacherDO);
         }
