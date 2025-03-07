@@ -51,10 +51,10 @@ class StudentTest {
      * @return 部门数据
      */
     private DepartmentDO getDepartmentByName() {
-        DepartmentDO departmentDO = departmentDAO.lambdaQuery().eq(DepartmentDO::getDepartmentName,
-                "信息智能工程学院").one();
+        DepartmentDO departmentDO = departmentDAO.lambdaQuery().list().get(0);
         if (departmentDO == null) {
-            throw new BusinessException("[dao.StudentTest]单元测试通过部门名称找不到部门数据", ErrorCode.OPERATION_ERROR);
+            throw new BusinessException("[dao.StudentTest]单元测试通过找不到部门数据",
+                    ErrorCode.OPERATION_ERROR);
         }
         return departmentDO;
     }
@@ -65,9 +65,10 @@ class StudentTest {
      * @return 专业数据
      */
     private MajorDO getMajorByName() {
-        MajorDO majorDO = majorDAO.lambdaQuery().eq(MajorDO::getMajorName, "软件技术").one();
+        MajorDO majorDO = majorDAO.lambdaQuery().list().get(0);
         if (majorDO == null) {
-            throw new BusinessException("[dao.StudentTest]单元测试通过找不到专业数据", ErrorCode.OPERATION_ERROR);
+            throw new BusinessException("[dao.StudentTest]单元测试通过找不到专业数据",
+                    ErrorCode.OPERATION_ERROR);
         }
         return majorDO;
     }

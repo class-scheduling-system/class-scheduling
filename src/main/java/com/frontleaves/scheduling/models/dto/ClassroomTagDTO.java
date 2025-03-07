@@ -26,46 +26,58 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.services;
+package com.frontleaves.scheduling.models.dto;
 
-import com.frontleaves.scheduling.models.dto.DepartmentDTO;
-import jakarta.annotation.Nullable;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.vo.DepartmentVO;
-import org.springframework.stereotype.Service;
+import java.sql.Timestamp;
 
-@Service
 /**
- * 部门服务接口，定义了部门相关的操作。
+ * 教室标签数据传输对象
  * <p>
- * 该接口提供了部门管理相关的基础方法，包括添加、删除、更新和查询部门信息等。具体实现细节由实现类决定。
+ * 该类是 {@code ClassroomTagDO} 实体类的 DTO，用于在数据传输过程中传递教室标签信息。
+ * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
+ * @see ClassroomTagDO
  * @since v1.0.0
  */
-public interface DepartmentService {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+public class ClassroomTagDTO {
 
     /**
-     * 根据部门唯一标识获取部门信息
-     * <p>
-     * 该方法通过传入的部门唯一标识 {@code departmentUuid} 查询对应的部门信息。如果查询到的部门信息存在，则将其转换为 {@link DepartmentDTO} 对象并返回；如果未找到对应部门，则返回 {@code null}。
-     * </p>
-     *
-     * @param departmentUuid 部门的唯一标识
-     * @return 如果找到对应的部门信息，则返回 {@link DepartmentDTO} 对象；否则返回 {@code null}
+     * 教室标签主键
      */
-    @Nullable
-    DepartmentDTO getDepartmentByUuid(String departmentUuid);
+    private String classTagUuid;
 
-    DepartmentDTO addDepartment(DepartmentVO departmentVOO);
+    /**
+     * 教室标签名称
+     */
+    private String name;
 
-    DepartmentDTO getDepartment(String departmentUuid);
+    /**
+     * 教室标签描述
+     */
+    private String description;
 
-    void deleteDepartment(String departmentUuid);
+    /**
+     * 创建时间
+     */
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
+    private Timestamp createdAt;
 
-    DepartmentDTO updateDepartment(String departmentUuid, DepartmentVO departmentVO);
-
-    PageDTO<DepartmentDTO> getDepartmentList(int page, int size, boolean isDesc, String name);
+    /**
+     * 更新时间
+     */
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
+    private Timestamp updatedAt;
 }

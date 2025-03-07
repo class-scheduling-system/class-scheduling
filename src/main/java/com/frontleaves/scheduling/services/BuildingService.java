@@ -32,6 +32,7 @@ import com.frontleaves.scheduling.models.dto.BuildingDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.xlf.utility.exception.BusinessException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 教学楼服务接口
@@ -76,7 +77,8 @@ public interface BuildingService {
      * @param building 教学楼的唯一标识符，用于定位特定的教学楼记录
      * @return 包含指定教学楼详细信息的数据传输对象 {@code BuildingDTO}；如果找不到对应的教学楼，行为依据具体实现而定
      */
-    BuildingDTO getBuilding(String building);
+    @Nullable
+    BuildingDTO getBuildingByUuidOrName(String building);
 
     /**
      * 根据校区获取教学楼列表

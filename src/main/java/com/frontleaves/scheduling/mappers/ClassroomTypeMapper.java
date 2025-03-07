@@ -26,46 +26,24 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.services;
+package com.frontleaves.scheduling.mappers;
 
-import com.frontleaves.scheduling.models.dto.DepartmentDTO;
-import jakarta.annotation.Nullable;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
+import org.apache.ibatis.annotations.Mapper;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.vo.DepartmentVO;
-import org.springframework.stereotype.Service;
-
-@Service
 /**
- * 部门服务接口，定义了部门相关的操作。
+ * 教室类型映射器
  * <p>
- * 该接口提供了部门管理相关的基础方法，包括添加、删除、更新和查询部门信息等。具体实现细节由实现类决定。
+ * 该类用于定义教室类型表的数据库操作映射器。
+ * 通过继承 {@code BaseMapper} 接口，提供了对 {@code ClassroomTypeDO} 实体类的基本增删改查功能。
+ * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
+ * @see ClassroomTypeDO
  * @since v1.0.0
  */
-public interface DepartmentService {
-
-    /**
-     * 根据部门唯一标识获取部门信息
-     * <p>
-     * 该方法通过传入的部门唯一标识 {@code departmentUuid} 查询对应的部门信息。如果查询到的部门信息存在，则将其转换为 {@link DepartmentDTO} 对象并返回；如果未找到对应部门，则返回 {@code null}。
-     * </p>
-     *
-     * @param departmentUuid 部门的唯一标识
-     * @return 如果找到对应的部门信息，则返回 {@link DepartmentDTO} 对象；否则返回 {@code null}
-     */
-    @Nullable
-    DepartmentDTO getDepartmentByUuid(String departmentUuid);
-
-    DepartmentDTO addDepartment(DepartmentVO departmentVOO);
-
-    DepartmentDTO getDepartment(String departmentUuid);
-
-    void deleteDepartment(String departmentUuid);
-
-    DepartmentDTO updateDepartment(String departmentUuid, DepartmentVO departmentVO);
-
-    PageDTO<DepartmentDTO> getDepartmentList(int page, int size, boolean isDesc, String name);
+@Mapper
+public interface ClassroomTypeMapper extends BaseMapper<ClassroomTypeDO> {
 }

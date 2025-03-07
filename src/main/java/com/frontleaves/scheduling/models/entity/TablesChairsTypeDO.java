@@ -26,46 +26,67 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.services;
+package com.frontleaves.scheduling.models.entity;
 
-import com.frontleaves.scheduling.models.dto.DepartmentDTO;
-import jakarta.annotation.Nullable;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+import lombok.experimental.Accessors;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.vo.DepartmentVO;
-import org.springframework.stereotype.Service;
+import java.sql.Timestamp;
 
-@Service
 /**
- * 部门服务接口，定义了部门相关的操作。
+ * 桌椅类型实体类
  * <p>
- * 该接口提供了部门管理相关的基础方法，包括添加、删除、更新和查询部门信息等。具体实现细节由实现类决定。
+ * 对应数据库表：`cs_tables_chairs_type`
+ * 该类用于表示桌椅类型的详细信息，包括名称、描述、图片等。
+ * 主键采用 UUID 自动生成。
+ * </p>
  *
- * @author xiao_lfeng
- * @version v1.0.0
  * @since v1.0.0
+ * @version v1.0.0
+ * @author xiao_lfeng
  */
-public interface DepartmentService {
+@Data
+@TableName("cs_tables_chairs_type")
+@Accessors(chain = true)
+public class TablesChairsTypeDO {
 
     /**
-     * 根据部门唯一标识获取部门信息
-     * <p>
-     * 该方法通过传入的部门唯一标识 {@code departmentUuid} 查询对应的部门信息。如果查询到的部门信息存在，则将其转换为 {@link DepartmentDTO} 对象并返回；如果未找到对应部门，则返回 {@code null}。
-     * </p>
-     *
-     * @param departmentUuid 部门的唯一标识
-     * @return 如果找到对应的部门信息，则返回 {@link DepartmentDTO} 对象；否则返回 {@code null}
+     * 桌椅类型主键
      */
-    @Nullable
-    DepartmentDTO getDepartmentByUuid(String departmentUuid);
+    @TableId(value = "tables_chairs_type_uuid", type = IdType.ASSIGN_UUID)
+    private String tablesChairsTypeUuid;
 
-    DepartmentDTO addDepartment(DepartmentVO departmentVOO);
+    /**
+     * 桌椅类型名称
+     */
+    @TableField("name")
+    private String name;
 
-    DepartmentDTO getDepartment(String departmentUuid);
+    /**
+     * 桌椅类型描述
+     */
+    @TableField("description")
+    private String description;
 
-    void deleteDepartment(String departmentUuid);
+    /**
+     * 桌椅类型图片，存储为 Base64 字符串
+     */
+    @TableField("base64_img")
+    private String base64Img;
 
-    DepartmentDTO updateDepartment(String departmentUuid, DepartmentVO departmentVO);
+    /**
+     * 创建时间
+     */
+    @TableField("created_at")
+    private Timestamp createdAt;
 
-    PageDTO<DepartmentDTO> getDepartmentList(int page, int size, boolean isDesc, String name);
+    /**
+     * 更新时间
+     */
+    @TableField("updated_at")
+    private Timestamp updatedAt;
 }

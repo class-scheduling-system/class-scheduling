@@ -26,46 +26,44 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.services;
+package com.frontleaves.scheduling.utils;
 
-import com.frontleaves.scheduling.models.dto.DepartmentDTO;
-import jakarta.annotation.Nullable;
+import cn.hutool.core.bean.copier.CopyOptions;
+import lombok.extern.slf4j.Slf4j;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.vo.DepartmentVO;
-import org.springframework.stereotype.Service;
-
-@Service
 /**
- * 部门服务接口，定义了部门相关的操作。
+ * 项目选项工具类
  * <p>
- * 该接口提供了部门管理相关的基础方法，包括添加、删除、更新和查询部门信息等。具体实现细节由实现类决定。
+ * 该类提供了与项目配置相关的静态方法，主要用于创建和修改 {@code CopyOptions} 实例。
+ * 通过这些方法可以方便地设置字段值编辑器等选项，以满足特定的项目需求。
  *
  * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
-public interface DepartmentService {
+@Slf4j
+public class ProjectOption {
+
+    private ProjectOption() {
+        log.error("ProjectOption 不能被实例化");
+    }
 
     /**
-     * 根据部门唯一标识获取部门信息
+     * 将空字符串转换为 null 的复制选项
      * <p>
-     * 该方法通过传入的部门唯一标识 {@code departmentUuid} 查询对应的部门信息。如果查询到的部门信息存在，则将其转换为 {@link DepartmentDTO} 对象并返回；如果未找到对应部门，则返回 {@code null}。
-     * </p>
+     * 该方法返回一个 {@code CopyOptions} 实例，该实例配置了一个字段值编辑器。
+     * 该编辑器会检查所有字段值，如果字段值是空字符串（即只包含空白字符），则将其替换为 {@code null}。
+     * 这有助于在对象复制过程中处理不需要的空字符串，确保数据的一致性和整洁性。
      *
-     * @param departmentUuid 部门的唯一标识
-     * @return 如果找到对应的部门信息，则返回 {@link DepartmentDTO} 对象；否则返回 {@code null}
+     * @return 返回一个配置了将空字符串转换为 {@code null} 的 {@code CopyOptions} 实例
      */
-    @Nullable
-    DepartmentDTO getDepartmentByUuid(String departmentUuid);
-
-    DepartmentDTO addDepartment(DepartmentVO departmentVOO);
-
-    DepartmentDTO getDepartment(String departmentUuid);
-
-    void deleteDepartment(String departmentUuid);
-
-    DepartmentDTO updateDepartment(String departmentUuid, DepartmentVO departmentVO);
-
-    PageDTO<DepartmentDTO> getDepartmentList(int page, int size, boolean isDesc, String name);
+    public static CopyOptions stringBlankToNull() {
+        return CopyOptions.create()
+                .setFieldValueEditor((fieldName, fieldValue) -> {
+                    if (fieldValue instanceof String str && str.isBlank()) {
+                        return null;
+                    }
+                    return fieldValue;
+                });
+    }
 }

@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.RoleDTO;
 import com.frontleaves.scheduling.services.RoleService;
@@ -41,6 +42,7 @@ public class RoleController {
      * @param role 角色ID或角色名称
      * @return 包含角色详细信息的响应实体，其中数据部分为 {@code BaseResponse<RoleDTO>} 类型
      */
+    @RequestLogin
     @GetMapping("")
     public ResponseEntity<BaseResponse<RoleDTO>> getRole(
             @RequestParam("role_uuid") String role
@@ -62,18 +64,19 @@ public class RoleController {
      * @param page   当前页数
      * @param size   每页显示数量
      * @param isDesc 是否降序
-     * @param search 搜索关键字
+     * @param keyword 搜索关键字
      * @return 包含角色列表信息的响应实体，其中数据部分为 {@code BaseResponse<PageDTO<RoleDTO>>} 类型
      */
+    @RequestLogin
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<PageDTO<RoleDTO>>> getRoleList(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "10") Integer size,
             @RequestParam(value = "is_desc", defaultValue = "false") Boolean isDesc,
-            @RequestParam(value = "search", required = false) String search
+            @RequestParam(value = "keyword", required = false) String keyword
     ) {
         roleService.checkPageAndSize(page, size);
-        PageDTO<RoleDTO> roleList = roleService.getRoleList(page, size, isDesc, search);
+        PageDTO<RoleDTO> roleList = roleService.getRoleList(page, size, isDesc, keyword);
         return ResultUtil.success("角色列表获取成功", roleList);
     }
 }

@@ -28,148 +28,126 @@
 
 package com.frontleaves.scheduling.models.dto;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.frontleaves.scheduling.models.entity.ClassroomDO;
+import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.Date;
 
 /**
- * 部门信息实体类
+ * 教室数据传输对象
+ * <p>
+ * 该类是 {@code ClassroomDO} 实体类的 DTO，用于在数据传输过程中传递教室信息。
+ * </p>
  *
- * @author FLASHLACK
+ * @author xiao_lfeng
+ * @version v1.0.0
+ * @see ClassroomDO
+ * @since v1.0.0
  */
-@TableName(value = "cs_department")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
-public class DepartmentDTO {
-    /**
-     * 部门主键，采用 UUID 自动生成
-     */
-    @TableId(value = "department_uuid", type = IdType.ASSIGN_UUID)
-    private String departmentUuid;
+public class ClassroomDTO {
 
     /**
-     * 部门编码
+     * 教室主键
      */
-    private String departmentCode;
+    private String classroomUuid;
 
     /**
-     * 部门名称
+     * 教室编号
      */
-    private String departmentName;
+    private String number;
 
     /**
-     * 部门排序 默认100
+     * 教室名称
      */
-    private Integer departmentOrder;
+    private String name;
 
     /**
-     * 部门英文名称
+     * 校区主键
      */
-    private String departmentEnglishName;
+    private String campusUuid;
 
     /**
-     * 部门简称
+     * 楼栋主键
      */
-    private String departmentShortName;
+    private String buildingUuid;
 
     /**
-     * 部门地址
+     * 楼层
      */
-    private String departmentAddress;
+    private String floor;
 
     /**
-     * 是否实体部门
+     * 教室容量
      */
-    private Boolean isEntity;
+    private Integer capacity;
 
     /**
-     * 行政负责人
+     * 是否是考场
      */
-    private String administrativeHead;
+    private Boolean examinationRoom;
 
     /**
-     * 党委负责人
+     * 考场容量
      */
-    private String partyCommitteeHead;
+    @Nullable
+    private Integer examinationRoomCapacity;
 
     /**
-     * 成立日期，默认当前日期
+     * 是否是多媒体教室
      */
-    private Date establishmentDate;
+    private Boolean isMultimedia;
 
     /**
-     * 失效日期
+     * 是否有空调
      */
-    private Date expirationDate;
+    private Boolean isAirConditioned;
 
     /**
-     * 单位类别
+     * 教室状态 0:禁用 1:启用
      */
-    private String unitCategory;
+    private Boolean status;
 
     /**
-     * 单位办别
+     * 教室描述
      */
-    private String unitType;
+    @Nullable
+    private String description;
 
     /**
-     * 上级部门
+     * 管理部门
      */
-    private String parentDepartment;
+    @Nullable
+    private String managementDepartment;
 
     /**
-     * 分配教学楼
+     * 教室面积
      */
-    private String assignedTeachingBuilding;
+    private BigDecimal area;
 
     /**
-     * 是否为开课院系
+     * 桌椅类型
      */
-    private Boolean isTeachingCollege;
+    @Nullable
+    private String tablesChairsType;
 
     /**
-     * 是否为上课院系
-     */
-    private Boolean isAttendingCollege;
-
-    /**
-     * 固定电话
-     */
-    private String fixedPhone;
-
-    /**
-     * 备注
-     */
-    private String remark;
-
-    /**
-     * 是否为开课教研室
-     */
-    private Boolean isTeachingOffice;
-
-    /**
-     * 是否启用
-     */
-    private Boolean isEnabled;
-
-    /**
-     * 创建时间，自动填充
+     * 创建时间，时间戳以数字格式返回
      */
     @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp createdAt;
 
     /**
-     * 更新时间，自动填充
+     * 更新时间，时间戳以数字格式返回
      */
     @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp updatedAt;
