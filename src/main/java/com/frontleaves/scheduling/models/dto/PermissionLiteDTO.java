@@ -26,36 +26,42 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.models.dto;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 /**
- * 提供日志记录中使用的常量字符串，旨在统一和标准化日志输出的前缀。
- * 包含服务、控制器、数据访问层、工具类、异常、不同日志级别等标识，
- * 便于日志分析和系统维护时快速识别日志来源与重要性。
+ * 权限轻量级数据传输对象
+ * <p>
+ * 该类用于在系统中传递权限的基本信息，包括权限的唯一标识符、权限键和权限名称。
+ * 适用于需要快速获取或传递权限基本信息的场景。通过使用 {@code PermissionLiteDTO}，
+ * 可以减少不必要的数据传输，提高系统性能。
+ * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-public class LogConstant {
-    public static final String SERVICE = "[SERV] ";
-    public static final String CONTROLLER = "[CTRL] ";
-    public static final String DAO = "[DAO] ";
-    public static final String UTIL = "[UTIL] ";
-    public static final String EXCEPTION = "[EXCP] ";
-    public static final String INFO = "[INFO] ";
-    public static final String WARN = "[WARN] ";
-    public static final String ERROR = "[ERRO] ";
-    public static final String DEBUG = "[DEBG] ";
-    public static final String TRACE = "[TRAC] ";
-    public static final String ASPECT = "[ASPT] ";
-    public static final String TEST = "[TEST] ";
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+public class PermissionLiteDTO {
+    /**
+     * 权限主键，采用 UUID 自动生成
+     */
+    private String permissionUuid;
 
+    /**
+     * 权限键
+     */
+    private String permissionKey;
 
-    private LogConstant() {
-        log.error("LogConstant 不能被实例化");
-    }
+    /**
+     * 权限名称
+     */
+    private String name;
 }

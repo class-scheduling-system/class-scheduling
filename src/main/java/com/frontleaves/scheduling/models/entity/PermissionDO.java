@@ -7,8 +7,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.io.Serializable;
-
 /**
  * 权限表实体类
  * <p>
@@ -22,7 +20,7 @@ import java.io.Serializable;
 @Data
 @TableName(value = "cs_permission")
 @Accessors(chain = true)
-public class PermissionDO implements Serializable {
+public class PermissionDO {
 
     /**
      * 权限主键，采用 UUID 自动生成

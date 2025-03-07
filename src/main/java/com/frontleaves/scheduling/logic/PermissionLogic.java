@@ -28,9 +28,12 @@
 
 package com.frontleaves.scheduling.logic;
 
+import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.frontleaves.scheduling.daos.PermissionDAO;
 import com.frontleaves.scheduling.daos.RoleDAO;
-import com.frontleaves.scheduling.models.dto.RoleDTO;
-import com.frontleaves.scheduling.models.dto.UserDTO;
+import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.entity.PermissionDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.services.PermissionService;
 import com.frontleaves.scheduling.utils.ProjectUtil;
@@ -60,6 +63,7 @@ import java.util.List;
 public class PermissionLogic implements PermissionService {
 
     private final RoleDAO roleDAO;
+    private final PermissionDAO permissionDAO;
 
     /**
      * 检查用户权限是否包含指定的父级权限
@@ -140,5 +144,44 @@ public class PermissionLogic implements PermissionService {
             }
         }
         return false;
+    }
+
+    /**
+     * 获取权限分页数据
+     * <p>
+     * 该方法用于获取权限信息的分页数据。根据提供的参数，返回指定页码和每页大小的权限列表，并支持按指定字段排序。
+     * </p>
+     *
+     * @param page    当前页码，从1开始
+     * @param size    每页显示的记录数
+     * @param keyword 排序字段，例如 {@code "name"} 或 {@code "permissionKey"}
+     * @param isDesc  是否降序排列，如果为 {@code true} 则降序，否则升序
+     * @return 返回一个包含权限分页数据的 {@code PageDTO<PermissionDTO>} 对象
+     */
+    @Override
+    public PageDTO<PermissionDTO> getPermissionPage(int page, int size, String keyword, boolean isDesc) {
+        Page<PermissionDO> getPermissionPage = permissionDAO.getPermissionPage(page, size, keyword, isDesc);
+        if (getPermissionPage == null) {
+            return new PageDTO<>();
+        }
+        return ProjectUtil.convertPageToPageDTO(getPermissionPage, PermissionDTO.class);
+    }
+
+    /**
+     * 获取所有权限的轻量级列表
+     * <p>
+     * 该方法用于获取系统中所有权限的基本信息，并以 {@code PermissionLiteDTO} 对象的形式返回。每个 {@code PermissionLiteDTO} 包含权限的唯一标识符、权限键和权限名称。
+     * 适用于需要快速获取或传递权限基本信息的场景，可以减少不必要的数据传输，提高系统性能。
+     * </p>
+     *
+     * @return 返回一个包含所有权限基本信息的 {@code List<PermissionLiteDTO>} 列表
+     */
+    @Override
+    public List<PermissionLiteDTO> getPermissionList() {
+        List<PermissionDO> permissionList = permissionDAO.getPermissionList();
+        if (permissionList == null) {
+            return new ArrayList<>();
+        }
+        return BeanUtil.copyToList(permissionList, PermissionLiteDTO.class);
     }
 }
