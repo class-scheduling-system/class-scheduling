@@ -32,7 +32,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
@@ -44,15 +43,7 @@ import java.util.List;
 @Mapper
 public interface TeacherMapper extends BaseMapper<TeacherDO> {
 
-    List<UserAndTeacherDO> getTeacherAndUserQueryDesc(String departmentUuid, String status, String name, Integer page, Integer size);
+    List<UserAndTeacherDO> getTeacherAndUserQueryDesc(String departmentUuid, Integer status, String name, Integer page, Integer size);
 
-    @Select("""
-            SELECT * FROM cs_teacher
-            LEFT JOIN cs_user ON cs_teacher.user_uuid = cs_user.user_uuid
-            WHERE (#{departmentUuid} IS NULL OR cs_teacher.unit_uuid = #{departmentUuid})
-            AND (#{status} IS NULL OR #{status} = '' OR cs_user.status = #{status})
-            AND (#{name} IS NULL OR cs_teacher.name LIKE CONCAT('%', #{name}, '%'))
-            LIMIT #{page}, #{size}
-            """)
-    List<UserAndTeacherDO> getTeacherAndUserQueryAsc(String departmentUuid, String status, String name, Integer page, Integer size);
+    List<UserAndTeacherDO> getTeacherAndUserQueryAsc(String departmentUuid, Integer status, String name, Integer page, Integer size);
 }

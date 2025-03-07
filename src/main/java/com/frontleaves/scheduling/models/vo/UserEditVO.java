@@ -31,7 +31,7 @@ public class UserEditVO {
     @Pattern(regexp = StringConstant.Regular.PHONE_REGULAR_EXPRESSION_ABLE_EMPTY,
             message = "手机号格式不正确")
     private String phone;
-    private Integer status;
+    private Short status;
     private Integer ban;
     @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY,
             message = "角色 UUID 格式不正确")

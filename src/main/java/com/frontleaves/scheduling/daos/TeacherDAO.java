@@ -245,24 +245,14 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     public List<UserAndTeacherDO> getTeacherList(Integer page, Integer size, Boolean isDesc, String departmentUuid, @Nullable Integer status, String name) {
         // 计算分页的起始位置
         Integer startPage = (page - 1) * size;
+
         List<UserAndTeacherDO> getTeacherDO;
+
         // 根据是否降序选择不同的查询方法
-        String reStatus;
-        if (status == null) {
-            reStatus = "";
-        } else {
-            reStatus = String.valueOf(status);
-        }
-        if (departmentUuid != null && departmentUuid.isBlank()) {
-            departmentUuid = null;
-        }
-        if (name != null && name.isBlank()) {
-            name = null;
-        }
         if (Boolean.TRUE.equals(isDesc)) {
             getTeacherDO = this.baseMapper.getTeacherAndUserQueryDesc(
                     departmentUuid,
-                    reStatus,
+                    status,
                     name,
                     startPage,
                     size
@@ -270,16 +260,14 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
         } else {
             getTeacherDO = this.baseMapper.getTeacherAndUserQueryAsc(
                     departmentUuid,
-                    reStatus,
+                    status,
                     name,
                     startPage,
                     size
             );
         }
-        if (getTeacherDO.isEmpty()) {
-            return null;
-        }
-        return getTeacherDO;
+
+        return getTeacherDO.isEmpty() ? null : getTeacherDO;
     }
 
     /**

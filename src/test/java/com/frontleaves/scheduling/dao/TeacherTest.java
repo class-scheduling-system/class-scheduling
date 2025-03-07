@@ -271,7 +271,7 @@ class TeacherTest {
     @Test
     void testGetTeacherList() {
         DepartmentDO departmentDO = departmentDAO.lambdaQuery().list().get(0);
-        List<UserAndTeacherDO> teacherList = teacherDAO.getTeacherList(1, 20, true, "", null, "");
+        List<UserAndTeacherDO> teacherList = teacherDAO.getTeacherList(1, 20, true, null, null, null);
         log.debug("{}", teacherList);
         Assertions.assertNotNull(teacherList);
     }
