@@ -1,9 +1,11 @@
 package com.frontleaves.scheduling.models.vo;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.frontleaves.scheduling.constants.StringConstant;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -83,24 +85,26 @@ public class DepartmentVO {
      * 单位类别
      */
     @NotBlank(message = "单位类别不能为空")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "单位类别格式不正确")
     private String unitCategory;
 
     /**
      * 单位办别
      */
     @NotBlank(message = "单位办别不能为空")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "单位办别格式不正确")
     private String unitType;
 
     /**
      * 上级部门
      */
-    @NotBlank(message = "上级部门不能为空")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "上级部门格式不正确")
     private String parentDepartment;
 
     /**
      * 分配教学楼
      */
-    @NotBlank(message = "分配教学楼不能为空")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "分配教学楼格式不正确")
     private String assignedTeachingBuilding;
 
     /**
