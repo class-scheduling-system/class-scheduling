@@ -70,7 +70,7 @@ class TeacherTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("teacherDAOTest@qwer.com")
                 .setPhone("14452873800")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setRoleUuid(SystemConstant.getRoleTeacher())
                 .setPermission("[\"user:role:edit\"]");
@@ -192,7 +192,7 @@ class TeacherTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("teacherDAONewTestUser@qwer.com")
                 .setPhone("15859273800")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setRoleUuid(SystemConstant.getRoleTeacher())
                 .setPermission("[\"user:role:edit\"]");
@@ -221,7 +221,7 @@ class TeacherTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("logicUserTest@test.com")
                 .setPhone("13800000000")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
                 .setRoleUuid(SystemConstant.getRoleTeacher());
