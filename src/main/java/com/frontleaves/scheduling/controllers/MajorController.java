@@ -2,6 +2,7 @@ package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.models.dto.MajorDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.vo.MajorVO;
 import com.frontleaves.scheduling.services.MajorService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.javassist.NotFoundException;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.BeanUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,12 +39,18 @@ public class MajorController {
      * 主要功能包括验证传入的专业信息是否有效,以及将新专业信息保存到数据库中.
      * </p>
      *
-     * @param majorDTO 新专业的详细信息，包括专业名称、所属学院等
+     * @param majorVO 新专业的详细信息，包括专业名称、所属学院等
      * @return 返回一个包含新创建专业信息的ResponseEntity对象
      */
     @PostMapping("")
-    public ResponseEntity<BaseResponse<MajorDTO>> addMajor(@RequestBody MajorDTO majorDTO) {
+    public ResponseEntity<BaseResponse<MajorDTO>> addMajor(@RequestBody MajorVO majorVO) {
+        // VO -> DTO
+        MajorDTO majorDTO = new MajorDTO();
+        BeanUtils.copyProperties(majorVO, majorDTO);
+
+        // 调用 Service 层方法创建专业信息
         MajorDTO created = majorService.createMajor(majorDTO);
+        // 返回DTO给前端
         return ResultUtil.success("专业创建成功", created);
     }
 
@@ -53,15 +61,18 @@ public class MajorController {
      * 主要功能包括验证传入的专业信息是否有效,以及将修改后的专业信息保存到数据库中.
      * </p>
      *
-     * @param majorDTO 修改后的专业详细信息,包括专业名称、所属学院等
+     * @param majorVO 修改后的专业详细信息,包括专业名称、所属学院等
      */
     @PutMapping("/{major_uuid}")
     public ResponseEntity<BaseResponse<MajorDTO>> updateMajor(
             @PathVariable("major_uuid") String majorUuid,
-            @RequestBody MajorDTO majorDTO
+            @RequestBody MajorVO majorVO
     ) throws NotFoundException {
         log.info("===> 进入 updateMajor 方法, majorUuid: {}", majorUuid);
 
+        // VO -> DTO
+        MajorDTO majorDTO = new MajorDTO();
+        BeanUtils.copyProperties(majorVO, majorDTO);
         MajorDTO updated = majorService.updateMajor(majorUuid, majorDTO);
         return ResultUtil.success("专业修改成功", updated);
     }
