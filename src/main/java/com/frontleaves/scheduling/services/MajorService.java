@@ -2,8 +2,8 @@ package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.MajorDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.entity.MajorDO;
 import com.xlf.utility.exception.BusinessException;
-import org.apache.ibatis.javassist.NotFoundException;
 
 /**
  * 专业服务接口
@@ -29,26 +29,26 @@ public interface MajorService {
      * 修改专业
      *
      * @param majorUuid 专业主键
-     * @param majorDTO 专业信息
+     * @param majorDTO  专业信息
      * @return 修改后的专业信息
      */
-    MajorDTO updateMajor(String majorUuid, MajorDTO majorDTO) throws NotFoundException;
+    MajorDO updateMajor(String majorUuid, MajorDO majorDTO) throws BusinessException;
 
     /**
      * 删除专业
      *
      * @param majorUuid 专业主键
      */
-    void deleteMajor(String majorUuid) throws BusinessException, NotFoundException;
+    void deleteMajor(String majorUuid) throws BusinessException;
 
     /**
      * 查询专业详情
      *
      * @param majorUuid 专业主键
      * @return 专业详情
-     * @throws NotFoundException 当专业不存在时抛出异常
+     * @throws BusinessException 当专业不存在时抛出异常
      */
-    MajorDTO getMajor(String majorUuid) throws NotFoundException;
+    MajorDTO getMajor(String majorUuid) throws BusinessException;
 
     /**
      * 查询专业列表(管理员)

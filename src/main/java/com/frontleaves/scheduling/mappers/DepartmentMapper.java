@@ -1,9 +1,9 @@
 package com.frontleaves.scheduling.mappers;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
@@ -19,10 +19,10 @@ public interface DepartmentMapper extends BaseMapper<DepartmentDO> {
      *
      * @param departmentName 部门名称
      */
-    @Select("""
-        SELECT department_uuid
-        FROM cs_department
-        WHERE department_name LIKE CONCAT('%', #{departmentName}, '%')
-""")
-    List<String> getDepartmentUuidByName(String departmentName);
+    default List<String> getDepartmentUuidByName(String departmentName) {
+        QueryWrapper<DepartmentDO> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("department_uuid")
+                .like("department_name", departmentName);
+        return this.selectObjs(queryWrapper);
+    }
 }

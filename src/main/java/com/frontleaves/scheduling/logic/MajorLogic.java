@@ -1,10 +1,7 @@
 package com.frontleaves.scheduling.logic;
 
-import cn.hutool.core.text.CharSequenceUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.daos.MajorDAO;
-import com.frontleaves.scheduling.mappers.DepartmentMapper;
 import com.frontleaves.scheduling.models.dto.MajorDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.entity.MajorDO;
@@ -13,12 +10,12 @@ import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.javassist.NotFoundException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.function.Function;
+
+import static com.frontleaves.scheduling.constants.StringConstant.Major.MAJOR_NOT_FOUND;
 
 /**
  * 专业业务逻辑的实现
@@ -35,8 +32,6 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class MajorLogic implements MajorService {
     private final MajorDAO majorDAO;
-    private final DepartmentMapper departmentMapper;
-    private static final String MAJOR_NOT_FOUND = "专业不存在";
 
     /**
      * 创建专业信息
@@ -64,20 +59,24 @@ public class MajorLogic implements MajorService {
      * @param majorUuid 专业唯一标识符
      * @param majorDTO  包含专业更新信息的数据传输对象
      * @return 更新后的专业数据传输对象
-     * @throws NotFoundException 如果指定专业的唯一标识符不存在,则抛出此异常
      */
     @Override
-    public MajorDTO updateMajor(String majorUuid, MajorDTO majorDTO) throws NotFoundException {
-        MajorDO majorDO = majorDAO.getById(majorUuid);
+    public MajorDO updateMajor(String majorUuid, MajorDO majorDTO) {
+        // 先从缓存中获取数据;如果没有,再从数据库中获取
+        MajorDO majorDO = majorDAO.getMajorByUuid(majorUuid);
         // 验证专业存在
         if (majorDO == null) {
-            throw new NotFoundException(MAJOR_NOT_FOUND);
+            throw new BusinessException(MAJOR_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
 
-        // 把 DTO 里的变动字段覆盖上去
+        // 把 DTO 里的变动字段覆盖上去,排除主键、创建时间、更新时间字段
         BeanUtils.copyProperties(majorDTO, majorDO, "majorUuid", "createAt", "updatedAt");
-        majorDO.setMajorUuid(majorUuid);
-        majorDAO.updateById(majorDO);
+
+        // 调用 DAO 更新数据
+        boolean updatedSuccess = majorDAO.updateById(majorDO);
+        if (!updatedSuccess) {
+            throw new BusinessException("专业更新失败", ErrorCode.OPERATION_FAILED);
+        }
 
         // 返回更新后的数据
         MajorDTO updated = new MajorDTO();
@@ -94,31 +93,25 @@ public class MajorLogic implements MajorService {
      * </p>
      *
      * @param majorUuid 专业的唯一标识符
-     * @throws NotFoundException 如果专业不存在或删除失败
      */
     @Override
-    public void deleteMajor(String majorUuid) throws NotFoundException {
+    public void deleteMajor(String majorUuid) {
         // 检查专业是否存在
-        MajorDO majorDO = majorDAO.getById(majorUuid);
+        MajorDO majorDO = majorDAO.getMajorByUuid(majorUuid);
         if (majorDO == null) {
-            throw new NotFoundException(MAJOR_NOT_FOUND);
+            throw new BusinessException(MAJOR_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
 
         // 检查专业是否被系统引用
-        if (majorDO.getMajorStatus() == 1) {
+        if (majorDAO.isReferenced(majorUuid)) {
             throw new BusinessException("该专业正在被系统引用,无法删除", ErrorCode.OPERATION_FAILED);
         }
-
-        // 进行二次确认
-        log.warn("即将删除专业[{}],请确认是否继续", majorUuid);
 
         // 执行删除
         boolean removed = majorDAO.removeById(majorUuid);
         if (!removed) {
             throw new IllegalStateException("专业删除失败");
         }
-        // 确认删除成功后，记录日志
-        log.info("专业 [{}] 已成功删除", majorUuid);
     }
 
     /**
@@ -126,13 +119,12 @@ public class MajorLogic implements MajorService {
      *
      * @param majorUuid 专业UUID，用于唯一标识一个专业
      * @return MajorDTO 专业信息的DTO对象，包含专业的主要信息
-     * @throws NotFoundException 如果找不到对应专业的信息，则抛出NotFoundException异常
      */
     @Override
-    public MajorDTO getMajor(String majorUuid) throws NotFoundException {
-        MajorDO majorDO = majorDAO.getById(majorUuid);
+    public MajorDTO getMajor(String majorUuid) {
+        MajorDO majorDO = majorDAO.getMajorByUuid(majorUuid);
         if (majorDO == null) {
-            throw new NotFoundException(MAJOR_NOT_FOUND);
+            throw new BusinessException(MAJOR_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
         // 将实体转换为 DTO
         MajorDTO majorDTO = new MajorDTO();
@@ -141,108 +133,72 @@ public class MajorLogic implements MajorService {
     }
 
     /**
-     * 管理员查询专业列表方法
-     * <p>
-     * 该方法支持分页查询，并可根据部门UUID和专业名称进行模糊搜索;
-     * 还支持根据创建时间进行升序或降序排序
-     * </p>
+     * 管理员端获取专业列表
+     * 该方法允许管理员根据分页参数、排序方式、所属院系和专业名称来获取专业信息列表
      *
-     * @param page       当前页码，从1开始
-     * @param size       每页记录数
-     * @param isDesc     是否按创建时间降序排序，true为降序，false为升序，null默认为降序
-     * @param department 部门UUID，用于模糊搜索
-     * @param name       专业名称，用于模糊搜索
-     * @return 返回封装了专业信息的分页对象
+     * @param page 页码,从1开始
+     * @param size 每页记录数
+     * @param isDesc 是否降序排序的标志,true表示降序,false表示升序
+     * @param department 所属院系名称,可用于筛选
+     * @param name 专业名称,可用于筛选
+     * @return 返回一个PageDTO对象, 其中包含分页的专业信息
      */
     @Override
     public PageDTO<MajorDTO> listMajorsForAdmin(int page, int size, Boolean isDesc, String department, String name) {
-        return listMajors(page, size, isDesc, department, name, majorDO -> {
-            MajorDTO majorAdminDTO = new MajorDTO();
-            BeanUtils.copyProperties(majorDO, majorAdminDTO);
-            return majorAdminDTO;
-        });
+        return getPageDTO(page, size, isDesc, department, name);
     }
 
     /**
-     * 教务查询专业列表方法
+     * 获取学术专业列表的分页信息
+     * 此方法用于根据指定的分页参数、排序方式、院系和专业名称来获取专业信息的分页列表
      *
-     * @param page       页码
-     * @param size       每页大小
-     * @param isDesc     是否按创建时间降序排序
-     * @param department 学院UUID，用于筛选属于特定学院的专业
-     * @param name       专业名称，用于模糊搜索
-     * @return 返回一个分页对象，包含专业信息
+     * @param page     页码,从1开始,用于指定获取哪一页的数据
+     * @param size     每页大小,用于指定每页包含的专业数量
+     * @param isDesc   是否降序排列,用于指定专业列表的排序方式
+     * @param department 院系名称,用于筛选属于特定院系的专业
+     * @param name     专业名称,用于筛选名称中包含特定关键字的专业
+     * @return 返回一个PageDTO对象, 其中包含根据给定参数筛选和排序后的专业信息列表
      */
     @Override
     public PageDTO<MajorDTO> listMajorsForAcademic(int page, int size, Boolean isDesc, String department, String name) {
-        return listMajors(page, size, isDesc, department, name, majorDO -> {
-            MajorDTO majorAcademicDTO = new MajorDTO();
-            BeanUtils.copyProperties(majorDO, majorAcademicDTO);
-            return majorAcademicDTO;
-        });
+        return getPageDTO(page, size, isDesc, department, name);
     }
 
-
     /**
-     * 学生查询专业列表方法
+     * 获取学生可选专业的分页列表
+     * 此方法允许根据部门和专业名称筛选结果,并支持排序和分页
      *
-     * @param page       页码
-     * @param size       每页大小
-     * @param isDesc     是否按降序排序
-     * @param department 学院标识
-     * @param name       专业名称
-     * @return 分页的专业信息DTO
+     * @param page       页码,从1开始
+     * @param size       每页的记录数
+     * @param isDesc     是否降序排序的标志
+     * @param department 部门名称,用于筛选专业
+     * @param name       专业名称,用于进一步筛选结果
+     * @return 返回一个包含专业信息的PageDTO对象
      */
     @Override
     public PageDTO<MajorDTO> listMajorsForStudent(int page, int size, Boolean isDesc, String department, String name) {
-        return listMajors(page, size, isDesc, department, name, majorDO -> {
-            MajorDTO majorStudentDTO = new MajorDTO();
-            BeanUtils.copyProperties(majorDO, majorStudentDTO);
-            return majorStudentDTO;
-        });
+        return getPageDTO(page, size, isDesc, department, name);
     }
 
     /**
-     * 分页查询专业信息列表
+     * 获取专业信息的分页DTO
      *
-     * @param <T>        返回结果泛型类型
-     * @param page       当前页码（从1开始）
-     * @param size       每页记录数
-     * @param isDesc    是否按创建时间倒序排序（true=倒序，false=正序，null=默认排序）
-     * @param department 学院名称（模糊查询条件）
-     * @param name       专业名称（模糊查询条件）
-     * @param converter  DO到DTO的转换函数
-     * @return           分页结果对象，包含转换后的DTO列表和分页信息
-     * @throws BusinessException 当指定学院不存在时抛出
+     * @param page       页码,表示请求的是第几页数据
+     * @param size       每页大小,即每页包含的专业信息数量
+     * @param isDesc     是否降序排列,用于指定查询结果的排序方式
+     * @param department 部门名称,用于筛选属于特定部门的专业
+     * @param name       专业名称,用于筛选名称中包含特定关键字的专业
+     * @return 返回一个PageDTO对象, 其中包含查询到的专业信息列表和分页相关数据
      */
-    private <T> PageDTO<T> listMajors(int page, int size, Boolean isDesc, String department, String name, Function<MajorDO, T> converter) {
-        // 初始化分页参数和查询构造器
-        Page<MajorDO> pageParam = new Page<>(page, size);
-        LambdaQueryWrapper<MajorDO> queryWrapper = new LambdaQueryWrapper<>();
-
-        // 学院名称过滤逻辑
-        if (CharSequenceUtil.isNotBlank(department)) {
-            List<String> departmentUuids = departmentMapper.getDepartmentUuidByName(department);
-            if (departmentUuids.isEmpty()) {
-                throw new BusinessException("学院不存在", ErrorCode.BODY_ERROR);
-            } else {
-                queryWrapper.in(MajorDO::getDepartmentUuid, departmentUuids);
-            }
-        }
-        // 专业名称模糊查询
-        if (CharSequenceUtil.isNotBlank(name)) {
-            queryWrapper.like(MajorDO::getMajorName, name);
-        }
-        // 排序逻辑（默认按创建时间排序）
-        queryWrapper.orderBy(isDesc == null || isDesc, false, MajorDO::getCreatedAt);
-
-        // 执行分页查询并转换结果
-        Page<MajorDO> resultPage = majorDAO.page(pageParam, queryWrapper);
-        List<T> dtoList = resultPage.getRecords().stream().map(converter).toList();
-
+    private PageDTO<MajorDTO> getPageDTO(int page, int size, Boolean isDesc, String department, String name) {
+        Page<MajorDO> resultPage = majorDAO.listMajors(page, size, isDesc, department, name);
+        List<MajorDTO> dtoList = resultPage.getRecords().stream().map(majorDO -> {
+            MajorDTO majorDTO = new MajorDTO();
+            BeanUtils.copyProperties(majorDO, majorDTO);
+            return majorDTO;
+        }).toList();
         return new PageDTO<>(dtoList, resultPage.getTotal(), resultPage.getSize(), resultPage.getCurrent());
     }
-
 }
 
 
