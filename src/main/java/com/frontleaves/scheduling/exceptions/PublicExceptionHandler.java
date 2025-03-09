@@ -32,11 +32,14 @@ import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.PublicExceptionHandlerAbstract;
+import jakarta.validation.UnexpectedTypeException;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import java.util.Map;
 
 /**
  * 公共异常处理器
@@ -51,8 +54,31 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @ControllerAdvice
 public class PublicExceptionHandler extends PublicExceptionHandlerAbstract {
 
+    /**
+     * 处理 HttpMessageNotReadableException 异常
+     * <p>
+     * 该方法用于处理在请求体无法读取时抛出的 {@code HttpMessageNotReadableException} 异常。
+     * 当请求体格式不正确或无法解析时，此异常会被触发。该方法返回一个包含错误信息的响应实体。
+     *
+     * @param e 发生的 {@code HttpMessageNotReadableException} 异常实例
+     * @return 包含错误码和错误消息的响应实体
+     */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<BaseResponse<Void>> handleHttpMessageNotReadableException(@NotNull HttpMessageNotReadableException ignored) {
-        return ResultUtil.error(ErrorCode.BODY_ERROR, "消息不可读", null);
+    public ResponseEntity<BaseResponse<Map<String, String>>> handleHttpMessageNotReadableException(@NotNull HttpMessageNotReadableException e) {
+        return ResultUtil.error(ErrorCode.BODY_ERROR, "消息不可读", Map.of("message", e.getMessage()));
+    }
+
+    /**
+     * 处理 UnexpectedTypeException 异常
+     * <p>
+     * 该方法用于处理在参数类型不符合预期时抛出的 {@code UnexpectedTypeException} 异常。
+     * 当请求中的参数类型错误或无法解析时，此异常会被触发。该方法返回一个包含错误信息的响应实体。
+     *
+     * @param e 发生的 {@code UnexpectedTypeException} 异常实例
+     * @return 包含错误码和错误消息的响应实体
+     */
+    @ExceptionHandler(UnexpectedTypeException.class)
+    public ResponseEntity<BaseResponse<Map<String, String>>> handleUnexpectedTypeException(@NotNull UnexpectedTypeException e) {
+        return ResultUtil.error(ErrorCode.OPERATION_INVALID, "参数类型错误", Map.of("message", e.getMessage()));
     }
 }

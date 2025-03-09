@@ -36,6 +36,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UserMapper;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
@@ -218,6 +220,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
             this.deleteUserRedis(userDO, transaction);
         } catch (Exception e) {
             transaction.rollback();
+            log.debug("删除用户失败", e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
@@ -229,7 +232,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * @param transaction 事务
      */
     private void deleteUserRedis(@NotNull UserDO userDO, @NotNull RTransaction transaction) {
-        transaction.getBucket(StringConstant.Redis.USER_UUID + userDO.getUserUuid()).delete();
+        transaction.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid()).delete();
         transaction.getBucket(StringConstant.Redis.USER_NAME + userDO.getName()).delete();
         transaction.getBucket(StringConstant.Redis.USER_MAIL + userDO.getEmail()).delete();
         transaction.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone()).delete();
@@ -246,6 +249,14 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      */
     public void updateUser(UserDO userOldDO, UserDO userNewDO) throws ServerInternalErrorException {
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        if (userOldDO == null || userNewDO == null) {
+            throw new BusinessException("UserDAO.updateUser: userOldDO or userNewDO is null",
+                    ErrorCode.OPERATION_ERROR);
+        }
+        if (userNewDO.getUserUuid() == null) {
+            throw new BusinessException("UserDAO.updateUser: userNewDO.getUserUuid() is null",
+                    ErrorCode.OPERATION_ERROR);
+        }
         try {
             this.updateById(userNewDO);
             this.deleteUserRedis(userOldDO, transaction);
@@ -262,13 +273,22 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
      * 该方法用于从数据库中查询用户列表，并支持分页、关键词搜索以及排序。根据传入的参数，可以实现对用户名称、邮箱或电话进行模糊匹配，
      * 并按照创建时间升序或降序排列结果。
      *
-     * @param page 当前页码，必须为正整数
-     * @param size 每页显示的记录数，必须为正整数
+     * @param page    当前页码，必须为正整数
+     * @param size    每页显示的记录数，必须为正整数
      * @param keyword 可选参数，用于在用户的姓名、邮箱和电话字段中进行模糊搜索
-     * @param isDesc 布尔值，指定结果是否按创建时间降序排列；如果为 {@code true} 则降序，否则升序
+     * @param isDesc  布尔值，指定结果是否按创建时间降序排列；如果为 {@code true} 则降序，否则升序
      * @return 返回一个包含当前请求页面数据及总条目数等信息的 {@code Page<UserDO>} 对象
      */
-    public Page<UserDO> getUserList(@NotNull Integer page, @NotNull Integer size, String keyword, Boolean isDesc) {
+    public Page<UserDO> getUserDoPage(
+            @NotNull Integer page,
+            @NotNull Integer size,
+            String keyword,
+            boolean isDesc
+    ) {
+        if (page <= 0 || size <= 0) {
+            throw new BusinessException("UserDAO内page和size为空", ErrorCode.OPERATION_ERROR);
+        }
+
         LambdaQueryChainWrapper<UserDO> query = this.lambdaQuery();
         if (keyword != null && !keyword.isEmpty()) {
             query

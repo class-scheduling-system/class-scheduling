@@ -56,7 +56,7 @@ public class CampusDO {
     /**
      * 校区主键
      */
-    @TableId(value = "campus_uuid", type = IdType.INPUT)
+    @TableId(value = "campus_uuid", type = IdType.ASSIGN_UUID)
     private String campusUuid;
 
     /**

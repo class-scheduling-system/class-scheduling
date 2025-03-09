@@ -92,22 +92,31 @@ public interface UserService {
             String userUuid,
             HttpServletRequest request);
 
-    /**
-     * 检查添加用户
-     *
-     * @param userAddVO 用户添加数据
-     */
-    void checkAddUser(
-            UserAddVO userAddVO);
+   /**
+ * 检查添加用户数据的合法性。
+ * <p>
+ * 该方法用于验证用户在注册或添加时提交的数据是否符合系统规则，包括但不限于：
+ * - 用户角色的有效性检查：确保提供的角色UUID对应的角色存在，并且不允许添加学生或教师类型用户。
+ * - 用户唯一性检查：通过用户名、邮箱和手机号确保用户信息的唯一性。
+ * 如果检测到任何违反规则的情况，则抛出相应的异常。
+ *
+ * @param userAddVO 用户添加数据对象，包含用户的基本信息和角色信息
+ * @return boolean 返回是否允为教务
+ */
+boolean checkAddUser(
+        UserAddVO userAddVO);
+
 
     /**
      * 添加用户
      *
      * @param userAddVO 用户添加数据
+     * @param isAcademic 是否为教务
      * @return 用户信息数据传输对象
      */
     UserAddInfoDTO addUser(
-            UserAddVO userAddVO
+            UserAddVO userAddVO,
+            Boolean isAcademic
     );
 
     /**
@@ -129,7 +138,7 @@ public interface UserService {
             HttpServletRequest request);
 
     /**
-     * 检查编辑用户数据合规性
+     * 更新用户信息
      *
      * @param userUuid   用户唯一标识符
      * @param userEditVO 用户编辑数据

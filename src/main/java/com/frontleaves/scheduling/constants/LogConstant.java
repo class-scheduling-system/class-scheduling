@@ -52,6 +52,7 @@ public class LogConstant {
     public static final String DEBUG = "[DEBG] ";
     public static final String TRACE = "[TRAC] ";
     public static final String ASPECT = "[ASPT] ";
+    public static final String TEST = "[TEST] ";
 
 
     private LogConstant() {

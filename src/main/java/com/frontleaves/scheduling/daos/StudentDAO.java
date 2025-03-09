@@ -42,10 +42,7 @@ import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
-import org.redisson.api.RMap;
-import org.redisson.api.RTransaction;
-import org.redisson.api.RedissonClient;
-import org.redisson.api.TransactionOptions;
+import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
@@ -80,18 +77,30 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
      */
     @Nullable
     public StudentDO getStudentById(String id) {
-        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_ID + id);
-        if (!map.isExists()) {
-            StudentDO studentDO = this.lambdaQuery().eq(StudentDO::getId, id).one();
-            if (studentDO != null) {
-                map.putAll(ConvertUtil.convertObjectToMapString(studentDO));
-                map.expire(Duration.ofSeconds(86400));
-                return studentDO;
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            RBucket<String> tryGetStudentId = transaction.getBucket(StringConstant.Redis.STUDENT_ID + id);
+            if (!tryGetStudentId.isExists()) {
+                StudentDO studentDO = this.lambdaQuery().eq(StudentDO::getId, id).one();
+                if (studentDO != null) {
+                    tryGetStudentId.set(studentDO.getStudentUuid());
+                    tryGetStudentId.expire(Duration.ofSeconds(86400));
+                    RMap<String, String> studentMap = transaction.getMap(
+                            StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
+                    studentMap.putAll(ConvertUtil.convertObjectToMapString(studentDO));
+                    studentMap.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
+                    return studentDO;
+                }
+            } else {
+                return this.getStudentByUuid(tryGetStudentId.get());
             }
-        } else {
-            return BeanUtil.toBean(map, StudentDO.class);
+            return null;
+        } catch (Exception e) {
+            transaction.rollback();
+            log.error(LogConstant.DAO + "根据学生ID获取学生信息失败", e);
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
-        return null;
     }
 
     /**
@@ -99,6 +108,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
      * <p>该方法首先尝试从Redis缓存中根据给定的UUID查找学生信息。如果在Redis中找不到，则会尝试从数据库中查询。
      * 如果从数据库中成功查找到学生信息，会将该信息存入Redis，并设置过期时间为一天（86400秒），然后返回该学生信息。
      * 如果既在Redis中也未在数据库中找到学生信息，则返回null。
+     *
      * @param studentUuid 学生的唯一标识符 {@code String}
      * @return 返回与给定UUID对应的学生信息对象 {@code StudentDO}，若未找到则返回null
      */
@@ -135,7 +145,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
         try {
             if (studentDO != null) {
                 transaction.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
-                transaction.getBucket(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
+                transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
                 this.lambdaUpdate()
                         .eq(StudentDO::getStudentUuid, studentDO.getStudentUuid())
                         .set(StudentDO::getUserUuid, userUuid)
@@ -165,12 +175,14 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
      */
     public void deleteStudent(StudentDO studentDO) throws ServerInternalErrorException {
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
-        try  {
-            this.lambdaUpdate().eq(StudentDO::getId, studentDO.getId()).remove();
-            transaction.getBucket(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
+        try {
+            this.lambdaUpdate().eq(StudentDO::getStudentUuid, studentDO.getStudentUuid()).remove();
+            transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
             transaction.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
+            transaction.getBucket(StringConstant.Redis.STUDENT_USER_UUID + studentDO.getUserUuid()).delete();
             transaction.commit();
         } catch (Exception e) {
+            log.debug("删除学生信息失败", e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
@@ -187,18 +199,32 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
      * @throws ServerInternalErrorException 当执行数据库查询或缓存操作时遇到错误
      */
     public StudentDO getStudentByUserUuid(String userUuid) {
-        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_USER_UUID + userUuid);
-        if (!map.isExists()) {
-            StudentDO studentDO = this.lambdaQuery().eq(StudentDO::getUserUuid, userUuid).one();
-            if (studentDO != null) {
-                map.putAll(ConvertUtil.convertObjectToMapString(studentDO));
-                map.expire(Duration.ofSeconds(86400));
-                return studentDO;
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            RBucket<String> tryGetStudentByUserUuid = transaction.getBucket(
+                    StringConstant.Redis.STUDENT_USER_UUID + userUuid);
+            if (!tryGetStudentByUserUuid.isExists()) {
+                StudentDO studentDO = this.lambdaQuery().eq(StudentDO::getUserUuid, userUuid).one();
+                if (studentDO != null) {
+                    tryGetStudentByUserUuid.set(studentDO.getStudentUuid());
+                    tryGetStudentByUserUuid.expire(Duration.ofSeconds(86400));
+                    RMap<String, String> studentMap = transaction.getMap(
+                            StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
+                    studentMap.putAll(ConvertUtil.convertObjectToMapString(studentDO));
+                    studentMap.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
+                    return studentDO;
+                }
+            } else {
+                return this.getStudentByUuid(tryGetStudentByUserUuid.get());
             }
-        } else {
-            return BeanUtil.toBean(map, StudentDO.class);
+            transaction.rollback();
+            return null;
+        } catch (Exception e) {
+            transaction.rollback();
+            log.error(LogConstant.DAO + "通过用户 UUID 获取学生信息失败", e);
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
-        return null;
     }
 }
 

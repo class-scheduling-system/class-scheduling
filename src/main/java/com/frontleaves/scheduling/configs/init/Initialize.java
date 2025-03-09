@@ -75,6 +75,7 @@ public class Initialize {
 
         // 初始化数据库完整性检查
         this.checkTable();
+        this.initClearRedis();
         this.checkSystemTable();
         this.writeRoleInfo();
         this.initTestUser();
@@ -92,7 +93,7 @@ public class Initialize {
                     \u001B[38;5;111m  / /   / / __ `/ ___/ ___/ \u001B[32m  \\__ \\/ ___/ __ \\/ _ \\/ __  / / / / / / __ \\/ __ `/
                     \u001B[38;5;111m / /___/ / /_/ (__  |__  )  \u001B[32m ___/ / /__/ / / /  __/ /_/ / /_/ / / / / / / /_/ /\s
                     \u001B[38;5;111m \\____/_/\\__,_/____/____/ \u001B[32m  /____/\\___/_/ /_/\\___/\\__,_/\\__,_/_/_/_/ /_/\\__, / \s
-                    \t\t\t\u001B[33m::: {} :::\t\t\t\t ::: {} ::: \t\u001B[32m       /____/  \s
+                    \t\t\t\u001B[33m::: {} :::\t\t\t\t ::: {} ::: \t\u001B[32m       /____/  \u001B[0m\s
                     """, SystemConstant.getSYSTEM_AUTHOR(), SystemConstant.getSYSTEM_VERSION()
             );
         };
@@ -134,6 +135,19 @@ public class Initialize {
         init.checkDatabase("cs_class_assignment");
 
         log.info("[INIT] 数据库检查完成");
+    }
+
+    /**
+     * 初始化清空 Redis 缓存
+     * <p>
+     * 该方法用于在系统初始化阶段清空 Redis 中的所有缓存数据。此操作将删除 Redis 中的所有键值对，确保系统从一个干净的状态开始运行。
+     * 清空操作前后会记录日志信息，以便于调试和监控。
+     * </p>
+     */
+    private void initClearRedis() {
+        log.info("[INIT] 清空 Redis 缓存");
+        redissonClient.getKeys().flushall();
+        log.debug("[INIT] 清空 Redis 缓存完成");
     }
 
     /**
@@ -188,7 +202,7 @@ public class Initialize {
      */
     private void writeRoleInfo() {
         SystemConstant.setRoleAdmin(init.loadRoleContent("管理员"));
-        SystemConstant.setRoleTeacher(init.loadRoleContent("教师"));
+        SystemConstant.setRoleTeacher(init.loadRoleContent("老师"));
         SystemConstant.setRoleStudent(init.loadRoleContent("学生"));
         SystemConstant.setRoleLeader(init.loadRoleContent("管理"));
         SystemConstant.setRoleAcademic(init.loadRoleContent("教务"));

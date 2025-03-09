@@ -30,12 +30,16 @@ package com.frontleaves.scheduling.utils;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.redisson.api.RMap;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -80,17 +84,23 @@ public class ProjectUtil {
     /**
      * 将分页对象转换为分页数据传输对象
      * <p>
-     * 该方法接收一个 {@code Page<T>} 对象，并将其转换为对应的 {@code PageDTO<T>} 对象。
-     * 转换过程中，如果当前页码不为0，则会创建一个新的 {@code PageDTO<T>} 对象，并设置总记录数、每页大小、当前页码和记录列表。
-     * 如果当前页码为0，则返回一个默认的空 {@code PageDTO<T>} 对象。
+     * 该方法接收一个 {@code Page<T>} 对象和目标类型的类，将其转换为对应的 {@code PageDTO<E>} 对象。
+     * 转换过程中，如果分页对象为空，则返回一个新的空的 {@code PageDTO} 对象。
+     * 如果分页对象不为空且当前页码不为0，则创建一个新的 {@code PageDTO} 对象，并设置总记录数、每页大小、当前页码和记录列表。
+     * 记录列表会从 JSON 格式的字符串转换为目标类型列表。
      * </p>
      *
-     * @param page 分页对象，不能为空
-     * @param <T>  记录的类型
+     * @param page  分页对象，可以为空
+     * @param clazz 目标类型的类
+     * @param <T>   源分页对象中记录的泛型类型
+     * @param <E>   目标分页数据传输对象中记录的泛型类型
      * @return 转换后的分页数据传输对象
      */
     @NotNull
-    public static <T, E> PageDTO<E> convertPageToPageDTO(@NotNull Page<T> page, Class<E> clazz) {
+    public static <T, E> PageDTO<E> convertPageToPageDTO(Page<T> page, Class<E> clazz) {
+        if (page == null) {
+            return new PageDTO<>();
+        }
         if (page.getCurrent() != 0) {
             PageDTO<E> pageDTO = new PageDTO<>(page.getTotal(), page.getSize());
             pageDTO
@@ -116,7 +126,7 @@ public class ProjectUtil {
      * @return 创建的分页对象
      */
     @NotNull
-    public static <T> Page<T> getPageForMap(@NotNull Map<String, String> map, Class<T> clazz) {
+    public static <T> Page<T> convertMapToPage(@NotNull Map<String, String> map, Class<T> clazz) {
         Page<T> pageResult = new Page<>(
                 Long.parseLong(map.getOrDefault("current", "1")),
                 Long.parseLong(map.getOrDefault("size", "20"))
@@ -126,5 +136,34 @@ public class ProjectUtil {
                 .setRecords(records)
                 .setTotal(Long.parseLong(map.getOrDefault("total", "0")));
         return pageResult;
+    }
+
+    /**
+     * 查询并缓存分页数据
+     * <p>
+     * 该方法用于根据给定的查询条件从数据库中获取分页数据，并将结果缓存到 Redis 中。如果查询成功，返回包含查询结果的分页对象。
+     * 缓存的数据包括记录、当前页码、每页大小、总记录数和总页数。缓存的有效期为 1 小时。
+     * </p>
+     *
+     * @param queryWrapper 查询条件包装器，用于构建查询条件
+     * @param page         分页的页码
+     * @param size         每页的大小
+     * @param map          用于存储缓存数据的 Redis Map 对象
+     * @return 返回包含查询结果的分页对象，如果查询失败则返回 null
+     */
+    @Nullable
+    public static <T> Page<T> queryAndCache(@NotNull LambdaQueryChainWrapper<T> queryWrapper, int page, int size, RMap<String, String> map) {
+        Page<T> buildingPage = queryWrapper.page(new Page<>(page, size));
+
+        if (buildingPage.getCurrent() != 0) {
+            map.put("records", JSONUtil.toJsonStr(buildingPage.getRecords()));
+            map.put("current", String.valueOf(buildingPage.getCurrent()));
+            map.put("size", String.valueOf(buildingPage.getSize()));
+            map.put("total", String.valueOf(buildingPage.getTotal()));
+            map.put("pages", String.valueOf(buildingPage.getPages()));
+            map.expire(Duration.ofSeconds(3600));
+            return buildingPage;
+        }
+        return null;
     }
 }

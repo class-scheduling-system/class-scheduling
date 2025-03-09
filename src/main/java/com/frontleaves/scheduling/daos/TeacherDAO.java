@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.daos;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherMapper;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
@@ -41,10 +42,7 @@ import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RMap;
-import org.redisson.api.RTransaction;
-import org.redisson.api.RedissonClient;
-import org.redisson.api.TransactionOptions;
+import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
@@ -77,18 +75,32 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
      */
     @Nullable
     public TeacherDO getTeacherById(String id) {
-        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TEACHER_ID + id);
-        if (!map.isExists()) {
-            TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getId, id).one();
-            if (teacherDO != null) {
-                map.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
-                map.expire(Duration.ofSeconds(86400));
-                return teacherDO;
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            RBucket<String> tryGetTeacherById = transaction.getBucket(StringConstant.Redis.TEACHER_ID + id);
+            if (!tryGetTeacherById.isExists()) {
+                TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getId, id).one();
+                if (teacherDO != null) {
+                    tryGetTeacherById.set(teacherDO.getTeacherUuid());
+                    tryGetTeacherById.expire(Duration.ofSeconds(86400));
+                    RMap<String, String> teacherMap = transaction.getMap(
+                            StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()
+                    );
+                    teacherMap.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
+                    teacherMap.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
+                    return teacherDO;
+                }
+            } else {
+                return this.getTeacherByUuid(tryGetTeacherById.get());
             }
-        } else {
-            return BeanUtil.toBean(map, TeacherDO.class);
+            transaction.rollback();
+            return null;
+        } catch (Exception e) {
+            transaction.rollback();
+            log.error("获取教师信息失败", e);
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
-        return null;
     }
 
     /**
@@ -117,7 +129,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     }
 
     /**
-     * 更新教师的用户 UUID
+     * 更新教师的 用户UUID
      * <p>
      * 该方法用于更新指定教师的用户 UUID。首先，通过 {@code teacherId} 获取教师信息。
      * 如果教师信息存在，则删除 Redis 中与该教师相关的缓存数据，并更新数据库中的用户 UUID。
@@ -129,8 +141,10 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
      * @throws BusinessException            如果未找到对应的教师信息
      * @throws ServerInternalErrorException 如果更新教师信息失败
      */
-    public void updateUserUuid(String userUuid, String teacherId) throws BusinessException, ServerInternalErrorException {
+    public void updateUserUuid(String userUuid, String teacherId)
+            throws BusinessException, ServerInternalErrorException {
         TeacherDO teacherDO = this.getTeacherById(teacherId);
+        log.debug(LogConstant.DAO + "teacherDO: {}", teacherDO);
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             if (teacherDO != null) {
@@ -166,9 +180,10 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
     public void deleteTeacher(TeacherDO teacherDO) throws ServerInternalErrorException {
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
-            this.lambdaUpdate().eq(TeacherDO::getId, teacherDO.getId()).remove();
+            this.removeById(teacherDO);
             transaction.getBucket(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
-            transaction.getBucket(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
+            transaction.getMap(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
+            transaction.getBucket(StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid()).delete();
             transaction.commit();
         } catch (Exception e) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
@@ -186,17 +201,33 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
      * @return 返回教师信息，如果未找到则返回 null
      */
     public TeacherDO getTeacherByUserUuid(String userUuid) {
-        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TEACHER_USER_UUID + userUuid);
-        if (!map.isExists()) {
-            TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getUserUuid, userUuid).one();
-            if (teacherDO != null) {
-                map.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
-                map.expire(Duration.ofSeconds(86400));
-                return teacherDO;
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            RBucket<String> tryGetTeacherByUserUuid = transaction.getBucket(
+                    StringConstant.Redis.TEACHER_USER_UUID + userUuid);
+            if (!tryGetTeacherByUserUuid.isExists()) {
+                TeacherDO teacherDO = this.lambdaQuery().eq(TeacherDO::getUserUuid, userUuid).one();
+                if (teacherDO != null) {
+                    tryGetTeacherByUserUuid.set(teacherDO.getTeacherUuid());
+                    tryGetTeacherByUserUuid.expire(Duration.ofSeconds(86400));
+                    RMap<String, String> teacherMap = transaction.getMap(
+                            StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()
+                    );
+                    teacherMap.putAll(ConvertUtil.convertObjectToMapString(teacherDO));
+                    teacherMap.expire(Duration.ofSeconds(86400));
+                    transaction.commit();
+                    return teacherDO;
+                }
+            } else {
+                return this.getTeacherByUuid(tryGetTeacherByUserUuid.get());
             }
-        } else {
-            return BeanUtil.toBean(map, TeacherDO.class);
+            transaction.rollback();
+            return null;
+        } catch (Exception e) {
+            transaction.rollback();
+            log.error("通过用户 UUID 获取教师信息失败", e);
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
-        return null;
+
     }
 }
