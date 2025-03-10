@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -143,6 +143,52 @@ class RoleTest {
             // 检查当前项的 createdAt 是否严格大于下一项的 createdAt
             Assertions.assertFalse(currentCreatedAt.isAfter(nextCreatedAt),
                     "数据应该按正序排列，当前数据顺序错误");
+        }
+    }
+
+    @Test
+    void testGetActiveRoles() {
+        // 测试获取有效角色列表
+        List<RoleDO> activeRoles = roleDAO.getActiveRoles();
+        Assertions.assertNotNull(activeRoles);
+        Assertions.assertFalse(activeRoles.isEmpty(), "有效角色列表不应为空");
+
+        // 验证所有角色的状态都为 1
+        for (RoleDO roleDO : activeRoles) {
+            Assertions.assertNotNull(roleDO.getRoleUuid(), "角色UUID不应为空");
+            Assertions.assertNotNull(roleDO.getRoleName(), "角色名称不应为空");
+            Assertions.assertEquals(1, roleDO.getRoleStatus(), "角色状态应为有效(1)");
+        }
+    }
+
+    @Test
+    void testGetActiveRolesExcludesInactiveRoles() {
+        // 获取所有角色（包括未激活的）
+        List<RoleDO> allRoles = roleDAO.lambdaQuery().list();
+
+        // 获取激活角色列表
+        List<RoleDO> activeRoles = roleDAO.getActiveRoles();
+
+        // 确保任何状态为0的角色都没有出现在结果中
+        long inactiveRolesCount = allRoles.stream()
+                .filter(role -> role.getRoleStatus() == 0)
+                .count();
+
+        // 如果存在未激活角色，验证它们是否被排除
+        if (inactiveRolesCount > 0) {
+            // 获取所有未激活角色的UUID
+            List<String> inactiveRoleUuids = allRoles.stream()
+                    .filter(role -> role.getRoleStatus() == 0)
+                    .map(RoleDO::getRoleUuid)
+                    .toList();
+
+            // 确保激活角色列表中没有未激活角色的UUID
+            if (activeRoles != null) {
+                for (RoleDO activeRole : activeRoles) {
+                    Assertions.assertFalse(inactiveRoleUuids.contains(activeRole.getRoleUuid()),
+                            "未激活角色不应出现在列表中");
+                }
+            }
         }
     }
 }
