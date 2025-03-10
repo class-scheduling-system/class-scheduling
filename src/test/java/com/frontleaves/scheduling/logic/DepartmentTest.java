@@ -6,16 +6,21 @@ import com.frontleaves.scheduling.models.dto.DepartmentDTO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.vo.DepartmentVO;
 import com.frontleaves.scheduling.services.DepartmentService;
+import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DuplicateKeyException;
 
 import java.util.Date;
+import java.util.UUID;
 
 @SpringBootTest
 @Slf4j
@@ -26,6 +31,9 @@ import java.util.Date;
     private RedissonClient redisson;
     @Resource
     private DepartmentService departmentService;
+
+    private DepartmentDO testDepartment;
+    private String nonExistentUuid;
 
     @Test
     void testAddDepartment() {
@@ -147,4 +155,141 @@ import java.util.Date;
         // 清理Redis缓存
         redisson.getBucket(StringConstant.Redis.DEPARTMENT_UUID + departmentDO.getDepartmentUuid()).delete();
     }
+
+    @BeforeEach
+    void setUp() {
+        // 从数据库获取一个现有部门用于测试
+        testDepartment = departmentDAO.lambdaQuery().last("LIMIT 1").one();
+
+        // 生成一个不存在的UUID用于测试
+        // 去掉破折号，确保格式符合系统要求
+        nonExistentUuid = UUID.randomUUID().toString().replace("-", "");
+        while (departmentDAO.getDepartmentByUuid(nonExistentUuid) != null) {
+            nonExistentUuid = UUID.randomUUID().toString().replace("-", "");
+        }
+
+        log.debug("测试准备完成，使用部门UUID: {}", testDepartment.getDepartmentUuid());
+        log.debug("非存在部门UUID: {}", nonExistentUuid);
+    }
+
+    /**
+     * 测试正常情况下的getDepartment方法
+     * 预期：能够成功获取现有部门的信息
+     */
+    @Test
+    void testGetDepartmentSuccess() {
+        log.debug("测试正常获取部门信息");
+
+        // 删除Redis缓存，确保从数据库获取
+        redisson.getKeys().delete(StringConstant.Redis.DEPARTMENT_UUID + testDepartment.getDepartmentUuid());
+
+        // 调用getDepartment方法
+        DepartmentDTO departmentDTO = departmentService.getDepartment(testDepartment.getDepartmentUuid());
+
+        // 验证结果
+        Assertions.assertNotNull(departmentDTO, "返回的部门DTO不应为空");
+        Assertions.assertEquals(testDepartment.getDepartmentUuid(), departmentDTO.getDepartmentUuid());
+        Assertions.assertEquals(testDepartment.getDepartmentName(), departmentDTO.getDepartmentName());
+        Assertions.assertEquals(testDepartment.getDepartmentCode(), departmentDTO.getDepartmentCode());
+
+        // 验证Redis缓存是否已创建
+        RMap<String, String> map = redisson.getMap(
+                StringConstant.Redis.DEPARTMENT_UUID + testDepartment.getDepartmentUuid());
+        Assertions.assertTrue(map.isExists(), "Redis缓存应该被创建");
+    }
+
+    /**
+     * 测试从Redis缓存获取部门信息
+     * 预期：能够从Redis缓存中获取部门信息
+     */
+    @Test
+    void testGetDepartmentFromRedisCache() {
+        log.debug("测试从Redis缓存获取部门信息");
+
+        // 先调用一次getDepartment确保Redis缓存已创建
+        departmentService.getDepartment(testDepartment.getDepartmentUuid());
+
+        // 确认Redis缓存存在
+        RMap<String, String> map = redisson.getMap(
+                StringConstant.Redis.DEPARTMENT_UUID + testDepartment.getDepartmentUuid());
+        Assertions.assertTrue(map.isExists(), "Redis缓存应该存在");
+
+        // 再次调用getDepartment方法（此时应从缓存获取）
+        DepartmentDTO departmentDTO = departmentService.getDepartment(testDepartment.getDepartmentUuid());
+
+        // 验证结果
+        Assertions.assertNotNull(departmentDTO, "从缓存获取的部门DTO不应为空");
+        Assertions.assertEquals(testDepartment.getDepartmentUuid(), departmentDTO.getDepartmentUuid());
+        Assertions.assertEquals(testDepartment.getDepartmentName(), departmentDTO.getDepartmentName());
+    }
+
+    /**
+     * 测试不存在的部门UUID
+     * 预期：抛出业务异常，提示"部门不存在"
+     */
+    @Test
+    void testGetDepartmentNotExist() {
+        log.debug("测试获取不存在的部门");
+
+        // 断言调用getDepartment时会抛出BusinessException异常
+        BusinessException exception = Assertions.assertThrows(BusinessException.class, () ->
+                departmentService.getDepartment(nonExistentUuid));
+
+        // 验证异常信息和错误码
+        Assertions.assertEquals("部门不存在", exception.getMessage());
+        Assertions.assertEquals(ErrorCode.NOT_EXIST, exception.getErrorCode());
+    }
+
+    /**
+     * 测试无效的UUID格式
+     * 预期：抛出业务异常，提示"部门不存在"
+     */
+    @Test
+    void testGetDepartmentWithInvalidUuid() {
+        log.debug("测试使用无效UUID格式");
+
+        // 使用带破折号的UUID格式，这应该会与正则表达式不匹配
+        String invalidUuid = UUID.randomUUID().toString(); // 带破折号的UUID
+
+        // 断言调用getDepartment时会抛出BusinessException异常
+        BusinessException exception = Assertions.assertThrows(BusinessException.class, () ->
+                departmentService.getDepartment(invalidUuid));
+
+        // 验证异常信息和错误码
+        Assertions.assertEquals("部门不存在", exception.getMessage());
+        Assertions.assertEquals(ErrorCode.NOT_EXIST, exception.getErrorCode());
+    }
+
+    /**
+     * 测试空UUID
+     * 预期：抛出业务异常，提示"部门不存在"
+     */
+    @Test
+    void testGetDepartmentWithEmptyUuid() {
+        log.debug("测试使用空UUID");
+
+        // 断言调用getDepartment时会抛出BusinessException异常
+        BusinessException exception = Assertions.assertThrows(BusinessException.class, () ->
+                departmentService.getDepartment(""));
+
+        // 验证异常信息和错误码
+        Assertions.assertEquals("部门不存在", exception.getMessage());
+        Assertions.assertEquals(ErrorCode.NOT_EXIST, exception.getErrorCode());
+    }
+
+    /**
+     * 测试传入null作为UUID
+     * 预期：由于@NotNull注解的存在，应该抛出NullPointerException
+     * 注：根据实际代码实现，可能会抛出不同的异常类型
+     */
+    @Test
+    void testGetDepartmentWithNullUuid() {
+        log.debug("测试使用null作为UUID");
+
+        // 断言调用getDepartment时会抛出NullPointerException异常
+        Assertions.assertThrows(NullPointerException.class, () ->
+                departmentService.getDepartment(null));
+    }
+
+
 }
