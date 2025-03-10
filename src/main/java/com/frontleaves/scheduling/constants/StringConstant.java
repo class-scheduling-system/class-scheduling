@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -53,6 +53,8 @@ public class StringConstant {
     public static final String USER_DATA_NOT_EXIST = "用户数据不存在";
     public static final String DEPARTMENT_DELETE_FAILED = "删除部门失败";
     public static final String UNKNOWN_ERROR = "未知错误";
+    public static final String TEACHER_NOT_EXIST = "教师不存在";
+    public static final String USER_NOT_EXIST = "用户不存在";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");

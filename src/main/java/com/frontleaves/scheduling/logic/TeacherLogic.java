@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -54,7 +55,7 @@ public class TeacherLogic implements TeacherService {
         UserDO userDO = userDAO.getUserByUuid(teacherVO.getUserUuid());
         // 如果用户不存在，抛出业务异常
         if (userDO == null) {
-            throw new BusinessException("用户不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.USER_NOT_EXIST, ErrorCode.NOT_EXIST);
         }
 
         // 创建一个新的TeacherDO对象
@@ -90,7 +91,7 @@ public class TeacherLogic implements TeacherService {
         }
         // 如果教师信息不存在，抛出业务异常
         if (teacherDTO == null) {
-            throw new BusinessException("教师不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.TEACHER_NOT_EXIST, ErrorCode.NOT_EXIST);
         }
         // 将教师信息转换为目标DTO类并返回
         return BeanUtil.toBean(teacherDTO, TeacherDTO.class);
@@ -115,7 +116,7 @@ public class TeacherLogic implements TeacherService {
         // 调用DAO层方法获取教师列表
         List<UserAndTeacherDO> teacherList;
         if (status == null || status.isBlank()) {
-            teacherList = teacherDAO.getTeacherList(page, size, isDesc, null, null, null);
+            teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, null, name);
         } else {
             if (Boolean.parseBoolean(status)) {
                 teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, 1, name);
@@ -123,17 +124,22 @@ public class TeacherLogic implements TeacherService {
                 teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, 0, name);
             }
         }
-        // 检查获取的教师列表是否为空，如果为空则返回一个空的PageDTO对象
+        
+        // 如果查询结果为null，应该返回一个空的PageDTO对象
         if (teacherList == null || teacherList.isEmpty()) {
-            return new PageDTO<>();
+            return new PageDTO<TeacherDTO>()
+                    .setTotal(0L)
+                    .setSize(Long.valueOf(size))
+                    .setRecords(new ArrayList<>())
+                    .setCurrent(Long.valueOf(page));
         } else {
             // 将获取的教师列表转换为TeacherDTO对象列表
             List<TeacherDTO> teacherDTOList = teacherList.stream()
-                        .map(teacher -> BeanUtil
-                                .toBean(teacher.getTeacher(), TeacherDTO.class)
-                                .setStatus(teacher.getUser() != null ? teacher.getUser().getStatus() : 2)
-                        )
-                        .toList();
+                    .map(teacher -> BeanUtil
+                            .toBean(teacher.getTeacher(), TeacherDTO.class)
+                            .setStatus(teacher.getUser() != null ? teacher.getUser().getStatus() : 2)
+                    )
+                    .toList();
             return new PageDTO<TeacherDTO>()
                     .setTotal((long) teacherList.size())
                     .setSize(Long.valueOf(size))
@@ -158,7 +164,7 @@ public class TeacherLogic implements TeacherService {
         TeacherDO teacherDO = teacherDAO.getTeacherByUuid(teacherUuid);
         // 如果教师不存在，抛出异常
         if (teacherDO == null) {
-            throw new BusinessException("教师不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.TEACHER_NOT_EXIST, ErrorCode.NOT_EXIST);
         }
         // 如果教师未注册，抛出异常
         if (teacherDO.getUserUuid() == null || teacherDO.getUserUuid().isBlank()) {
@@ -170,7 +176,7 @@ public class TeacherLogic implements TeacherService {
         UserDO newUserDO = BeanUtil.toBean(oldUserDO, UserDO.class);
         // 如果用户不存在，抛出异常
         if (oldUserDO == null) {
-            throw new BusinessException("用户不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.USER_NOT_EXIST, ErrorCode.NOT_EXIST);
         }
         // 更新用户状态为禁用或不禁用
         newUserDO.setStatus((short) (Boolean.compare(disable, true) == 0 ? 0 : 1));
@@ -195,7 +201,7 @@ public class TeacherLogic implements TeacherService {
 
         // 检查教师是否存在，如果不存在则抛出异常
         if (teacherDO == null) {
-            throw new BusinessException("教师不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.TEACHER_NOT_EXIST, ErrorCode.NOT_EXIST);
         }
 
         // 检查教师是否已注册，如果已注册则抛出异常
@@ -234,7 +240,7 @@ public class TeacherLogic implements TeacherService {
             if (teacherVO.getUserUuid() != null) {
                 UserDO getUser = userDAO.getUserByUuid(teacherVO.getUserUuid());
                 if (getUser == null) {
-                    throw new BusinessException("用户不存在", ErrorCode.NOT_EXIST);
+                    throw new BusinessException(StringConstant.USER_NOT_EXIST, ErrorCode.NOT_EXIST);
                 }
             }
             // 将视图对象中的属性复制到教师对象中，并更新数据库中的教师信息
