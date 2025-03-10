@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.frontleaves.scheduling.mappers.TeacherMapper">
+    <!-- 结果映射 -->
+    <resultMap id="userAndTeacherResultMap" type="com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO">
+        <!-- User 映射 -->
+        <association property="user" javaType="com.frontleaves.scheduling.models.entity.UserDO">
+            <id property="userUuid" column="user_uuid"/>
+            <result property="name" column="user_name"/>
+            <result property="password" column="password"/>
+            <result property="email" column="user_email"/>
+            <result property="phone" column="user_phone"/>
+            <result property="status" column="status"/>
+            <result property="ban" column="ban"/>
+            <result property="roleUuid" column="role_uuid"/>
+            <result property="permission" column="permission"/>
+            <result property="createdAt" column="user_created_at"/>
+            <result property="updatedAt" column="user_updated_at"/>
+        </association>
+
+        <!-- Teacher 映射 -->
+        <association property="teacher" javaType="com.frontleaves.scheduling.models.entity.TeacherDO">
+            <id property="teacherUuid" column="teacher_uuid"/>
+            <result property="unitUuid" column="unit_uuid"/>
+            <result property="userUuid" column="teacher_user_uuid"/>
+            <result property="id" column="id"/>
+            <result property="name" column="teacher_name"/>
+            <result property="englishName" column="english_name"/>
+            <result property="ethnic" column="ethnic"/>
+            <result property="sex" column="sex"/>
+            <result property="phone" column="teacher_phone"/>
+            <result property="email" column="teacher_email"/>
+            <result property="jobTitle" column="job_title"/>
+            <result property="desc" column="desc"/>
+            <result property="createdAt" column="teacher_created_at"/>
+            <result property="updatedAt" column="teacher_updated_at"/>
+        </association>
+    </resultMap>
+
+    <!-- SQL片段复用 -->
+    <sql id="teacherUserColumns">
+        t.teacher_uuid,
+        t.unit_uuid,
+        t.user_uuid AS teacher_user_uuid,
+        t.id,
+        t.name AS teacher_name,
+        t.english_name,
+        t.ethnic,
+        t.sex,
+        t.phone AS teacher_phone,
+        t.email AS teacher_email,
+        t.job_title,
+        t.`desc`,
+        t.created_at AS teacher_created_at,
+        t.updated_at AS teacher_updated_at,
+
+        u.user_uuid,
+        u.name AS user_name,
+        u.password,
+        u.email AS user_email,
+        u.phone AS user_phone,
+        u.status,
+        u.ban,
+        u.role_uuid,
+        u.permission,
+        u.created_at AS user_created_at,
+        u.updated_at AS user_updated_at
+    </sql>
+
+    <!-- 条件查询SQL片段 -->
+    <sql id="whereConditions">
+        <where>
+            <if test="departmentUuid != null and departmentUuid != ''">
+                t.unit_uuid = #{departmentUuid}
+            </if>
+            <if test="status != null">
+                AND u.status = #{status}
+            </if>
+            <if test="name != null and name != ''">
+                AND t.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <!-- 降序查询 -->
+    <select id="getTeacherAndUserQueryDesc" resultMap="userAndTeacherResultMap">
+        SELECT
+            <include refid="teacherUserColumns"/>
+        FROM cs_teacher t
+        LEFT JOIN cs_user u ON t.user_uuid = u.user_uuid
+        <include refid="whereConditions"/>
+        ORDER BY t.teacher_uuid DESC
+        LIMIT #{page}, #{size}
+    </select>
+
+    <!-- 升序查询 -->
+    <select id="getTeacherAndUserQueryAsc" resultMap="userAndTeacherResultMap">
+        SELECT
+            <include refid="teacherUserColumns"/>
+        FROM cs_teacher t
+        LEFT JOIN cs_user u ON t.user_uuid = u.user_uuid
+        <include refid="whereConditions"/>
+        ORDER BY t.teacher_uuid
+        LIMIT #{page}, #{size}
+    </select>
+</mapper>

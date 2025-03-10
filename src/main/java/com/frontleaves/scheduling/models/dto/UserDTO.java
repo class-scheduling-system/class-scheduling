@@ -75,7 +75,7 @@ public class UserDTO {
     /**
      * 用户状态 0: 禁用 1: 启用
      */
-    private Integer status;
+    private Short status;
 
     /**
      * 用户是否被封禁 0: 未封禁 1: 已封禁

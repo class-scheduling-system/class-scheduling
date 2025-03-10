@@ -89,7 +89,7 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("logicUserTest@test.com")
                 .setPhone("13800000000")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
                 .setRoleUuid(SystemConstant.getRoleAdmin());
@@ -262,7 +262,7 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("deleteUserWithStudent@test.com")
                 .setPhone("13800000111")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
                 .setRoleUuid(SystemConstant.getRoleStudent());
@@ -322,7 +322,7 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("testDeleteUserWithTeacher@test.com")
                 .setPhone("13800000111")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
                 .setRoleUuid(SystemConstant.getRoleTeacher());
@@ -384,7 +384,7 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("testDeleteUserWithOtherRole@test.com")
                 .setPhone("13800000222")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
                 .setRoleUuid(SystemConstant.getRoleLeader());
@@ -438,7 +438,7 @@ class UserTest {
     void testUpdateUserWithStudent() {
         log.debug("测试更新用户信息改变为学生角色");
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
-                "13800000001", 0, 1,
+                "13800000001", (short) 0, 1,
                 SystemConstant.getRoleStudent(),
                 List.of("operate"));
         String userUuid = setUpUser.getUserUuid();
@@ -453,7 +453,7 @@ class UserTest {
     void testUpdateUserWithTeacher() {
         log.debug("测试更新用户信息改变为教师角色");
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
-                "13800000001", 0, 1,
+                "13800000001", (short) 0, 1,
                 SystemConstant.getRoleTeacher(),
                 List.of("operate"));
         String userUuid = setUpUser.getUserUuid();
@@ -678,7 +678,7 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("existUser@test.com")
                 .setPhone("13800000011")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setRoleUuid(SystemConstant.getRoleAdmin());
         UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, existUser.getName()).one();
@@ -712,7 +712,7 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("existUser@test.com")
                 .setPhone("13800000011")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setRoleUuid(SystemConstant.getRoleAdmin());
         UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, existUser.getName()).one();
@@ -746,7 +746,7 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("existUser@test.com")
                 .setPhone("13800000011")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setRoleUuid(SystemConstant.getRoleAdmin());
         UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, existUser.getName()).one();

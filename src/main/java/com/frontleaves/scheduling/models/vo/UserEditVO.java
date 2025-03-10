@@ -62,7 +62,7 @@ public class UserEditVO {
      */
     @Min(value = 0, message = "账号状态只能为 0（禁用）或 1（启用）")
     @Max(value = 1, message = "账号状态只能为 0（禁用）或 1（启用）")
-    private Integer status;
+    private Short status;
     /**
      * 账号封禁状态
      * <p>

@@ -32,6 +32,7 @@ import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.PublicExceptionHandlerAbstract;
+import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.UnexpectedTypeException;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
@@ -51,6 +52,7 @@ import java.util.Map;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 @ControllerAdvice
 public class PublicExceptionHandler extends PublicExceptionHandlerAbstract {
 

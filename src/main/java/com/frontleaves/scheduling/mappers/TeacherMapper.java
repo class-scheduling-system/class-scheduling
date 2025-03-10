@@ -30,12 +30,20 @@ package com.frontleaves.scheduling.mappers;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
+import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
 import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
 
 /**
  * 教师映射器
+ *
  * @author FLASHLACK
  */
 @Mapper
 public interface TeacherMapper extends BaseMapper<TeacherDO> {
+
+    List<UserAndTeacherDO> getTeacherAndUserQueryDesc(String departmentUuid, Integer status, String name, Integer page, Integer size);
+
+    List<UserAndTeacherDO> getTeacherAndUserQueryAsc(String departmentUuid, Integer status, String name, Integer page, Integer size);
 }

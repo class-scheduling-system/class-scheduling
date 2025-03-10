@@ -83,7 +83,7 @@ class StudentTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("studentDAOTest@qwer.com")
                 .setPhone("14452873800")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setRoleUuid(SystemConstant.getRoleStudent())
                 .setPermission("[\"user:role:edit\"]");
@@ -162,7 +162,7 @@ class StudentTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("studentDAONewTestUser@qwer.com")
                 .setPhone("15859273800")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setRoleUuid(SystemConstant.getRoleStudent())
                 .setPermission("[\"user:role:edit\"]");

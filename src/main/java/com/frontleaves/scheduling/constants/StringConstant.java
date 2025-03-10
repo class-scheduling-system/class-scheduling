@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -51,7 +51,11 @@ public class StringConstant {
     public static final String DATABASE_OPERATION_FAILED = "数据库操作失败";
     public static final String REDIS_OPERATION_FAILED = "缓存操作失败";
     public static final String USER_DATA_NOT_EXIST = "用户数据不存在";
+    public static final String DEPARTMENT_DELETE_FAILED = "删除部门失败";
     public static final String UNKNOWN_ERROR = "未知错误";
+    public static final String TEACHER_NOT_EXIST = "教师不存在";
+    public static final String USER_NOT_EXIST = "用户不存在";
+    public static final String DEPARTMENT_NOT_EXIST = "部门不存在";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -88,6 +92,10 @@ public class StringConstant {
         public static final String CAMPUS_LIST = "campus:list";
         public static final String CAMPUS_PAGE_OF_LIST = "campus:page:";
         public static final String DEPARTMENT_UUID = "department:uuid:";
+        public static final String DEPARTMENT_LIST = "department:list";
+        public static final String UNIT_CATEGORY_UUID = "unit:cate:uuid:";
+        public static final String UNIT_CATEGORY_NAME = "unit:cate:name:";
+        public static final String UNIT_TYPE_UUID = "unit:type:uuid:";
         public static final String CLASSROOM_TAG_LIST = "classroom:tag:list";
         public static final String CLASSROOM_TAG_UUID = "classroom:tag:uuid:";
         public static final String CLASSROOM_TYPE_LIST = "classroom:type:list";
