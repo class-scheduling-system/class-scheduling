@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.LocalDateTime;
 import lombok.Data;
+
+import java.sql.Timestamp;
 
 /**
  * 单位类别 DO
+ * @author qiyu
  */
 @Data
 @TableName("cs_unit_category")
@@ -54,12 +56,12 @@ public class UnitCategoryDO {
      * 创建时间
      */
     @TableField(value = "created_at")
-    private LocalDateTime createdAt;
+    private Timestamp createdAt;
 
     /**
      * 更新时间
      */
     @TableField(value = "updated_at")
-    private LocalDateTime updatedAt;
+    private Timestamp updatedAt;
 }
 

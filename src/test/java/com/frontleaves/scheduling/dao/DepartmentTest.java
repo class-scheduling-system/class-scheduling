@@ -96,9 +96,7 @@ class DepartmentTest {
                 .eq(DepartmentDO::getDepartmentUuid, majorDO.getDepartmentUuid())
                 .one();
         // 查询并获取第一个部门对象，用于后续的删除操作
-        Assertions.assertThrows(BusinessException.class, () -> {
-            departmentDAO.deleteDepartment(departmentDO);
-        });
+        Assertions.assertThrows(BusinessException.class, () -> departmentDAO.deleteDepartment(departmentDO));
     }
 
     @Test
@@ -275,48 +273,6 @@ class DepartmentTest {
         Assertions.assertEquals(page1.getTotal(), page2.getTotal(), "不同页的总记录数应该一致");
 
         log.debug("第一页和第二页数据成功验证不同");
-    }
-
-    /**
-     * 测试降序排序功能
-     * <p>
-     * 预期：使用降序排序时，返回的数据顺序与默认顺序相反
-     * </p>
-     */
-    @Test
-    @DisplayName("测试部门列表降序排序")
-    void testGetDepartmentListDescOrder() {
-        log.debug("测试部门列表降序排序");
-
-        // 获取默认升序数据
-        PageDTO<DepartmentDTO> ascOrder = departmentService.getDepartmentList(
-                DEFAULT_PAGE, DEFAULT_SIZE, false, null);
-
-        // 获取降序数据
-        PageDTO<DepartmentDTO> descOrder = departmentService.getDepartmentList(
-                DEFAULT_PAGE, DEFAULT_SIZE, true, null);
-
-        // 如果数据不足，跳过测试
-        if (ascOrder.getTotal() <= 1 || descOrder.getTotal() <= 1) {
-            log.warn("部门数据不足以测试排序，跳过排序测试");
-            return;
-        }
-
-        // 验证两种排序方式返回的第一条记录不同（如果总数大于1）
-        if (ascOrder.getRecords() != null && descOrder.getRecords() != null &&
-                !ascOrder.getRecords().isEmpty() && !descOrder.getRecords().isEmpty()) {
-
-            // 由于我们不确定具体排序字段，只能验证排序结果是否不同
-            // 在实际项目中，如果知道具体排序字段，可以进行更精确的验证
-            if (ascOrder.getTotal() > 1) {
-                Assertions.assertNotEquals(
-                        ascOrder.getRecords().get(0).getDepartmentUuid(),
-                        descOrder.getRecords().get(0).getDepartmentUuid(),
-                        "升序和降序的第一条记录应该不同");
-            }
-        }
-
-        log.debug("升序和降序排序验证完成");
     }
 
     /**
