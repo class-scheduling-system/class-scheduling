@@ -68,6 +68,8 @@ public class StringConstant {
         public static final String SYSTEM = "system:";
         public static final String TOKEN = "token:";
         public static final String PERMISSION = "permission:";
+        public static final String PERMISSION_PAGE = "permission:page:";
+        public static final String PERMISSION_LIST = "permission:list";
         public static final String ROLE_UUID = "role:uuid:";
         public static final String ROLE_NAME = "role:name:";
         public static final String USER_UUID = "user:uuid:";
@@ -102,6 +104,7 @@ public class StringConstant {
         public static final String CLASSROOM_UUID = "classroom:uuid:";
         public static final String CLASSROOM_NUMBER = "classroom:number:";
         public static final String TABLES_CHAIRS_UUID = "tc:uuid:";
+        public static final String ROLE_LIST = "role:list";
 
         private Redis() {
             log.error("Redis 不能被实例化");

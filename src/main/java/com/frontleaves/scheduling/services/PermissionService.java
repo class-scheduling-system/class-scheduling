@@ -28,16 +28,17 @@
 
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.PermissionDTO;
+import com.frontleaves.scheduling.models.dto.PermissionLiteDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 
 import java.util.List;
 
 /**
- * 权限服务接口，定义了与权限相关的操作方法。
- * 该接口可以被具体实现类继承，以提供具体的业务逻辑。
+ * 权限服务接口
  * <p>
- * 本接口中的方法主要用于处理权限的拆分和验证等基本操作，
- * 以及可能的其他扩展功能。具体实现细节由实现类决定。
+ * 该接口定义了权限管理相关的操作方法，包括权限字符串的拆分、权限检查、获取权限分页数据以及获取所有权限的轻量级列表。
  * </p>
  *
  * @author xiao_lfeng
@@ -68,4 +69,29 @@ public interface PermissionService {
      * @return 如果用户拥有指定的权限则返回 {@code true}，否则返回 {@code false}
      */
     boolean checkPermission(String permission, UserDO userDO);
+
+    /**
+     * 获取权限分页数据
+     * <p>
+     * 该方法用于获取权限信息的分页数据。根据提供的参数，返回指定页码和每页大小的权限列表，并支持按指定字段排序。
+     * </p>
+     *
+     * @param page   当前页码，从1开始
+     * @param size   每页显示的记录数
+     * @param s      排序字段，例如 {@code "name"} 或 {@code "permissionKey"}
+     * @param isDesc 是否降序排列，如果为 {@code true} 则降序，否则升序
+     * @return 返回一个包含权限分页数据的 {@code PageDTO<PermissionDTO>} 对象
+     */
+    PageDTO<PermissionDTO> getPermissionPage(int page, int size, String s, boolean isDesc);
+
+    /**
+     * 获取所有权限的轻量级列表
+     * <p>
+     * 该方法用于获取系统中所有权限的基本信息，并以 {@code PermissionLiteDTO} 对象的形式返回。每个 {@code PermissionLiteDTO} 包含权限的唯一标识符、权限键和权限名称。
+     * 适用于需要快速获取或传递权限基本信息的场景，可以减少不必要的数据传输，提高系统性能。
+     * </p>
+     *
+     * @return 返回一个包含所有权限基本信息的 {@code List<PermissionLiteDTO>} 列表
+     */
+    List<PermissionLiteDTO> getPermissionList();
 }

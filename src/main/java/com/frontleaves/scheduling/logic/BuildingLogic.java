@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -29,22 +29,26 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.BuildingDAO;
 import com.frontleaves.scheduling.daos.CampusDAO;
 import com.frontleaves.scheduling.models.dto.BuildingDTO;
+import com.frontleaves.scheduling.models.dto.CampusDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.entity.BuildingDO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
 import com.frontleaves.scheduling.services.BuildingService;
-import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 教学楼逻辑处理类
@@ -82,7 +86,27 @@ public class BuildingLogic implements BuildingService {
     @NotNull
     public PageDTO<BuildingDTO> getBuildingList(int page, int size, boolean isDesc, String keyword) {
         Page<BuildingDO> buildingList = buildingDAO.getBuildingList(page, size, isDesc, keyword);
-        return ProjectUtil.convertPageToPageDTO(buildingList, BuildingDTO.class);
+
+        // 直接获取BuildingDO列表并进行手动转换
+        List<BuildingDTO> buildingDTOList = new ArrayList<>();
+        for (BuildingDO buildingDO : buildingList.getRecords()) {
+            BuildingDTO buildingDTO = BeanUtil.toBean(buildingDO, BuildingDTO.class);
+            // 手动设置CampusDTO
+            if (buildingDO.getCampusUuid() != null) {
+                CampusDO campusDO = campusDAO.getCampusByUuid(buildingDO.getCampusUuid());
+                if (campusDO != null) {
+                    buildingDTO.setCampus(BeanUtil.toBean(campusDO, CampusDTO.class));
+                }
+            }
+            buildingDTOList.add(buildingDTO);
+        }
+
+        // 创建新的PageDTO并手动设置
+        PageDTO<BuildingDTO> pageDTO = new PageDTO<>(buildingList.getTotal(), buildingList.getSize());
+        pageDTO.setCurrent(buildingList.getCurrent());
+        pageDTO.setRecords(JSONUtil.toJsonStr(buildingDTOList), BuildingDTO.class);
+
+        return pageDTO;
     }
 
     /**
@@ -97,14 +121,24 @@ public class BuildingLogic implements BuildingService {
     @Override
     @Nullable
     public BuildingDTO getBuildingByUuidOrName(@NotNull String building) {
-        BuildingDO buildingDTO;
+        BuildingDO buildingDO;
         if (building.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            buildingDTO = buildingDAO.getBuildingByUuid(building);
+            buildingDO = buildingDAO.getBuildingByUuid(building);
         } else {
-            buildingDTO = buildingDAO.getBuildingByName(building);
+            buildingDO = buildingDAO.getBuildingByName(building);
         }
-        if (buildingDTO != null) {
-            return BeanUtil.toBean(buildingDTO, BuildingDTO.class);
+        if (buildingDO != null) {
+            BuildingDTO buildingDTO = BeanUtil.toBean(buildingDO, BuildingDTO.class);
+
+            // 添加CampusDTO
+            if (buildingDO.getCampusUuid() != null) {
+                CampusDO campusDO = campusDAO.getCampusByUuid(buildingDO.getCampusUuid());
+                if (campusDO != null) {
+                    buildingDTO.setCampus(BeanUtil.toBean(campusDO, CampusDTO.class));
+                }
+            }
+
+            return buildingDTO;
         } else {
             return null;
         }
@@ -128,7 +162,30 @@ public class BuildingLogic implements BuildingService {
         if (buildingList.getTotal() == 0) {
             return new PageDTO<>();
         } else {
-            return ProjectUtil.convertPageToPageDTO(buildingList, BuildingDTO.class);
+            // 获取校区信息
+            CampusDO campusDO = campusDAO.getCampusByUuid(campusUuid);
+            CampusDTO campusDTO = null;
+            if (campusDO != null) {
+                campusDTO = BeanUtil.toBean(campusDO, CampusDTO.class);
+            }
+
+            // 手动转换BuildingDO列表为BuildingDTO列表
+            List<BuildingDTO> buildingDTOList = new ArrayList<>();
+            for (BuildingDO buildingDO : buildingList.getRecords()) {
+                BuildingDTO buildingDTO = BeanUtil.toBean(buildingDO, BuildingDTO.class);
+                // 设置CampusDTO
+                if (campusDTO != null) {
+                    buildingDTO.setCampus(campusDTO);
+                }
+                buildingDTOList.add(buildingDTO);
+            }
+
+            // 创建新的PageDTO并手动设置
+            PageDTO<BuildingDTO> pageDTO = new PageDTO<>(buildingList.getTotal(), buildingList.getSize());
+            pageDTO.setCurrent(buildingList.getCurrent());
+            pageDTO.setRecords(JSONUtil.toJsonStr(buildingDTOList), BuildingDTO.class);
+
+            return pageDTO;
         }
     }
 
@@ -197,7 +254,7 @@ public class BuildingLogic implements BuildingService {
      * <p>
      * 该方法根据给定的教学楼唯一标识 {@code buildingUuid} 删除指定的教学楼。
      * 如果存在与给定 UUID 匹配的教学楼，则从数据库中删除该教学楼。
-     * 如果没有找到匹配的教学楼，将抛出一个 {@link BusinessException} 异常，提示“教学楼不存在”。
+     * 如果没有找到匹配的教学楼，将抛出一个 {@link BusinessException} 异常，提示"教学楼不存在"。
      *
      * @param buildingUuid 教学楼的唯一标识
      * @throws BusinessException 当教学楼不存在时抛出此异常

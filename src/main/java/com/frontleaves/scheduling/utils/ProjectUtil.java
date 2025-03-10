@@ -90,10 +90,10 @@ public class ProjectUtil {
      * 记录列表会从 JSON 格式的字符串转换为目标类型列表。
      * </p>
      *
-     * @param page 分页对象，可以为空
+     * @param page  分页对象，可以为空
      * @param clazz 目标类型的类
-     * @param <T> 源分页对象中记录的泛型类型
-     * @param <E> 目标分页数据传输对象中记录的泛型类型
+     * @param <T>   源分页对象中记录的泛型类型
+     * @param <E>   目标分页数据传输对象中记录的泛型类型
      * @return 转换后的分页数据传输对象
      */
     @NotNull
@@ -146,13 +146,13 @@ public class ProjectUtil {
      * </p>
      *
      * @param queryWrapper 查询条件包装器，用于构建查询条件
-     * @param page 分页的页码
-     * @param size 每页的大小
-     * @param map 用于存储缓存数据的 Redis Map 对象
+     * @param page         分页的页码
+     * @param size         每页的大小
+     * @param map          用于存储缓存数据的 Redis Map 对象
      * @return 返回包含查询结果的分页对象，如果查询失败则返回 null
      */
     @Nullable
-    public static  <T> Page<T> queryAndCache(@NotNull LambdaQueryChainWrapper<T> queryWrapper, int page, int size, RMap<String, String> map) {
+    public static <T> Page<T> queryAndCache(@NotNull LambdaQueryChainWrapper<T> queryWrapper, int page, int size, RMap<String, String> map) {
         Page<T> buildingPage = queryWrapper.page(new Page<>(page, size));
 
         if (buildingPage.getCurrent() != 0) {

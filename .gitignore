@@ -39,4 +39,7 @@ Thumbs.db
 *.logs/
 application-dev.yaml
 db-cli/
+
+### 不同TXT ###
+diff.txt
 diff_output.txt
