@@ -101,19 +101,24 @@ public class DepartmentLogic implements DepartmentService {
         }
 
         //检查教学楼
-        BuildingDO getBuilding = buildingDAO.getBuildingByUuid(departmentVO.getAssignedTeachingBuilding());
-        if (getBuilding == null) {
-            // 抛出异常
-            throw new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST);
-        }
+        if (departmentVO.getAssignedTeachingBuilding() != null && !departmentVO.getAssignedTeachingBuilding().isEmpty()) {
 
+            BuildingDO getBuilding = buildingDAO.getBuildingByUuid(departmentVO.getAssignedTeachingBuilding());
+            if (getBuilding == null) {
+                // 抛出异常
+                throw new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST);
+            }
+        }
         //检查上级部门
+        if (departmentVO.getParentDepartment() != null && !departmentVO.getParentDepartment().isEmpty()) {
+            // 检查上级部门是否存在
+
         DepartmentDO getParentDepartment = departmentDAO.getDepartmentByUuid(departmentVO.getParentDepartment());
         if (getParentDepartment == null) {
             // 抛出异常
             throw new BusinessException("上级部门不存在", ErrorCode.NOT_EXIST);
         }
-
+}
         // 数据拷贝
         DepartmentDO departmentDO = new DepartmentDO();
         // 数据拷贝
@@ -155,11 +160,11 @@ public class DepartmentLogic implements DepartmentService {
        return BeanUtil.toBean(departmentDTO, DepartmentDTO.class);
     }
 
-    /**
+        /**
      * 删除指定的部门
      *
      * @param departmentUuid 部门的唯一标识符
-     * @throws BusinessException 如果部门不存在，则抛出业务异常
+     * @throws BusinessException 如果部门不存在或有依赖关系，则抛出业务异常
      */
     @Override
     public void deleteDepartment(String departmentUuid) throws BusinessException {
@@ -168,8 +173,27 @@ public class DepartmentLogic implements DepartmentService {
 
         // 判断部门是否存在
         if (departmentDO != null) {
-            // 如果部门存在，则调用DAO层删除部门
-            departmentDAO.deleteDepartment(departmentDO);
+            // 检查是否有子部门依赖于此部门
+            Long childCount = departmentDAO.lambdaQuery()
+                    .eq(DepartmentDO::getParentDepartment, departmentUuid)
+                    .count();
+
+            if (childCount > 0) {
+                // 如果有子部门依赖，抛出业务异常
+                throw new BusinessException("删除部门失败，该部门存在子部门", ErrorCode.EXISTED);
+            }
+
+            // 如果部门存在且没有子部门依赖，则调用DAO层删除部门
+            try {
+                departmentDAO.deleteDepartment(departmentDO);
+            } catch (BusinessException e) {
+                // 传递DAO层抛出的业务异常（如部门下存在课程、专业、教师等情况）
+                throw e;
+            } catch (Exception e) {
+                // 处理其他可能的异常
+                log.error("删除部门时发生异常", e);
+                throw new BusinessException("删除部门失败", ErrorCode.OPERATION_FAILED);
+            }
         } else {
             // 如果部门不存在，则抛出业务异常，提示用户错误信息
             throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);

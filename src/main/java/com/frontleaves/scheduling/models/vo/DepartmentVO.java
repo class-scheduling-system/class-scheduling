@@ -8,6 +8,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
@@ -16,8 +18,8 @@ import java.util.Date;
  *
  * @author FLASHLACK
  */
-@TableName(value = "cs_department")
-@Data
+@Getter
+@NoArgsConstructor
 @AllArgsConstructor
 public class DepartmentVO {
     /**
