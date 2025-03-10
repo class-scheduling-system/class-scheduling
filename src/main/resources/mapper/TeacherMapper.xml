@@ -100,7 +100,7 @@
         FROM cs_teacher t
         LEFT JOIN cs_user u ON t.user_uuid = u.user_uuid
         <include refid="whereConditions"/>
-        ORDER BY t.teacher_uuid ASC
+        ORDER BY t.teacher_uuid
         LIMIT #{page}, #{size}
     </select>
 </mapper>

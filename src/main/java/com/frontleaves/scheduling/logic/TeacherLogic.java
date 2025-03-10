@@ -215,14 +215,14 @@ public class TeacherLogic implements TeacherService {
 
     /**
      * 更新教师信息
-     *
-     * @param teacherUuid 教师的唯一标识符
-     * @param teacherVO 包含教师更新信息的视图对象
-     *
+     * <p>
      * 此方法首先根据教师的UUID从数据库中获取教师对象如果教师对象存在，则根据提供的教师视图对象中的信息更新教师对象
      * 如果视图对象中包含了单位UUID，则验证该单位是否存在如果单位不存在，则抛出业务异常
      * 同样，如果视图对象中包含了用户UUID，则验证该用户是否存在如果用户不存在，则抛出业务异常
      * 最后，将视图对象中的属性复制到教师对象中，并更新数据库中的教师信息
+     *
+     * @param teacherUuid 教师的唯一标识符
+     * @param teacherVO 包含教师更新信息的视图对象
      */
     @Override
     public void updateTeacher(String teacherUuid, TeacherVO teacherVO) {

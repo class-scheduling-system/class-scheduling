@@ -5,13 +5,9 @@ import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.TeacherDTO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
-import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
-import com.frontleaves.scheduling.services.TeacherService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
@@ -19,7 +15,10 @@ import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -27,8 +26,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 
 @SpringBootTest
 @Slf4j

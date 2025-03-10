@@ -55,6 +55,7 @@ public class StringConstant {
     public static final String UNKNOWN_ERROR = "未知错误";
     public static final String TEACHER_NOT_EXIST = "教师不存在";
     public static final String USER_NOT_EXIST = "用户不存在";
+    public static final String DEPARTMENT_NOT_EXIST = "部门不存在";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
