@@ -146,6 +146,8 @@ public class StringConstant {
         public static final String USER_NAME_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^[0-9A-Za-z_-]{4,32}$)";
         public static final String PHONE_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^1[3456789]\\d{9}$)";
         public static final String PASSWORD_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$)";
+        public static final String STUDENT_ID_REGULAR_EXPRESSION = "^[a-zA-Z0-9]{4,32}$";
+        public static final String STUDENT_NAME_REGULAR_EXPRESSION = "^[\u4E00-\u9FA5A-Za-z]{2,20}$";
 
         private Regular() {
             log.error("Regular 不能被实例化");

@@ -4,6 +4,9 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * 学生视图对象
@@ -12,6 +15,9 @@ import jakarta.validation.constraints.NotNull;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class StudentVO {
     @NotBlank(message = "学号不能为空")
     private String id;
@@ -32,5 +38,8 @@ public class StudentVO {
 
     @NotBlank(message = "班级不能为空")
     private String clazz;
+
+    @NotBlank(message = "年级不能为空")
+    private String grade;
 
 }
