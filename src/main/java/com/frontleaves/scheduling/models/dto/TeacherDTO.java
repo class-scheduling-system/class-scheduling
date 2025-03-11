@@ -90,11 +90,6 @@ public class TeacherDTO {
     private String desc;
 
     /**
-     * 教师状态（0：禁用，1：启用）
-     */
-    private Boolean status;
-
-    /**
      * 创建时间（单位：毫秒时间戳）
      */
     @JsonFormat(shape = JsonFormat.Shape.NUMBER)

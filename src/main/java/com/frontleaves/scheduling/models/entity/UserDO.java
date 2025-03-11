@@ -83,7 +83,7 @@ public class UserDO {
     /**
      * 用户状态 0: 禁用 1: 启用
      */
-    private Boolean status;
+    private Byte status;
 
     /**
      * 用户是否被封禁 0: 未封禁 1: 已封禁

@@ -68,8 +68,8 @@ class TeacherTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("teacherDAOTest@qwer.com")
                 .setPhone("14452873800")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setRoleUuid(SystemConstant.getRoleTeacher())
                 .setPermission("[\"user:role:edit\"]");
         if (userDAO.lambdaQuery().eq(UserDO::getName, setUpUser.getName()).one() != null) {
@@ -83,7 +83,7 @@ class TeacherTest {
                 .setName("teacherDAOTest")
                 .setEnglishName("ZhangSeng")
                 .setEthnic("汉族")
-                .setSex(1)
+                .setSex(true)
                 .setPhone("14452873800")
                 .setEmail("qwerasdfzxcv@qwer.com")
                 .setJobTitle("教授")
@@ -190,8 +190,8 @@ class TeacherTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("teacherDAONewTestUser@qwer.com")
                 .setPhone("15859273800")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setRoleUuid(SystemConstant.getRoleTeacher())
                 .setPermission("[\"user:role:edit\"]");
         if (userDAO.lambdaQuery().eq(UserDO::getName, newTestUserDO.getName()).one() == null) {
@@ -219,8 +219,8 @@ class TeacherTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("logicUserTest@test.com")
                 .setPhone("13800000000")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
                 .setRoleUuid(SystemConstant.getRoleTeacher());
         if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
@@ -234,7 +234,7 @@ class TeacherTest {
                 .setName("newTeacherDAOTest")
                 .setEnglishName("ZhangSeng123456")
                 .setEthnic("水族")
-                .setSex(0)
+                .setSex(true)
                 .setPhone("14452873811")
                 .setEmail("newTeacherDAOTest@qwer.com")
                 .setJobTitle("老师")
