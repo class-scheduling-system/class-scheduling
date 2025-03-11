@@ -36,7 +36,7 @@ public class TeacherVO {
     @NotBlank(message = "教师英文名不能为空")
     private String englishName;
     /**
-     * 教师名族
+     * 教师民族
      */
     @NotBlank(message = "教师民族不能为空")
     private String ethnic;
@@ -44,7 +44,7 @@ public class TeacherVO {
      * 教师性别 0：女 1：男
      */
     @NotNull(message = "教师性别不能为空")
-    private Integer sex;
+    private Boolean sex;
     /**
      * 教师电话
      */
@@ -61,5 +61,4 @@ public class TeacherVO {
      * 教师描述
      */
     private String desc;
-
 }
