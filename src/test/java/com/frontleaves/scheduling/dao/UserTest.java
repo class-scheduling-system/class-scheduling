@@ -42,7 +42,7 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("12138@qq.com")
                 .setPhone("12345678901")
-                .setStatus(1)
+                .setStatus((short) 1)
                 .setBan(0)
                 .setRoleUuid(SystemConstant.getRoleAdmin())
                 .setPermission("[\"user:unit:department:delete\"]");
@@ -151,7 +151,7 @@ class UserTest {
                 .setName("ZhangSan555")
                 .setEmail("22344234@qq.com")
                 .setPassword(PasswordUtil.encrypt("123456qwerQWER"))
-                .setStatus(0)
+                .setStatus((short) 0)
                 .setBan(1)
                 .setPermission("[\"user:unit\"]");
         userDAO.updateUser(oldUserDO, newUserDO);

@@ -10,3 +10,8 @@ logging:
     path: "./.logs"
   level:
     root: error
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    auto-mapping-behavior: full
+    map-underscore-to-camel-case: true
