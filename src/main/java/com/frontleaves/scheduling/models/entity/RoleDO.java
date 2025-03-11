@@ -66,7 +66,7 @@ public class RoleDO {
     /**
      * 角色状态 0: 禁用 1: 启用
      */
-    private Integer roleStatus;
+    private Boolean roleStatus;
 
     /**
      * 角色权限，JSON 格式

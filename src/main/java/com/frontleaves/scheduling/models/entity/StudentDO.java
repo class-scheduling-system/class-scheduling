@@ -65,15 +65,15 @@ public class StudentDO {
     /**
      * 姓名
      */
-    private String name = "123";
+    private String name;
     /**
      * 性别 0:女 1:男
      */
-    private Integer gender;
+    private Boolean gender;
     /**
      * 年级
      */
-    private String grade;
+    private String gradeUuid;
     /**
      * 学院
      */
@@ -100,4 +100,10 @@ public class StudentDO {
      * 更新时间
      */
     private Timestamp updatedAt;
+
+    /**
+     * 是否毕业 0:未毕业 1:已毕业
+     */
+    @TableField(value = "is_graduated")
+    private Boolean graduated;
 }

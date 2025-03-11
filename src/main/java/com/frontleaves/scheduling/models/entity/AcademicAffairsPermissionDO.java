@@ -40,7 +40,7 @@ public class AcademicAffairsPermissionDO {
      * 类型 0:所有权限, 1:教务权限...
      */
     @TableField("type")
-    private Integer type;
+    private Byte type;
 
     /**
      * 创建时间（默认 `CURRENT_TIMESTAMP`）
