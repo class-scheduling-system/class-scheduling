@@ -35,10 +35,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.mappers.DepartmentMapper;
 import com.frontleaves.scheduling.mappers.MajorMapper;
-import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.MajorDO;
+import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
@@ -66,12 +65,14 @@ import java.util.List;
 public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IService<MajorDO> {
 
     private final RedissonClient redisson;
-    private final DepartmentMapper departmentMapper;
+    private final DepartmentDAO departmentDAO;
+    private final StudentDAO studentDAO;
 
     @Autowired
-    public MajorDAO(RedissonClient redisson, DepartmentMapper departmentMapper) {
+    public MajorDAO(RedissonClient redisson, DepartmentDAO departmentDAO, StudentDAO studentDAO) {
         this.redisson = redisson;
-        this.departmentMapper = departmentMapper;
+        this.departmentDAO = departmentDAO;
+        this.studentDAO = studentDAO;
     }
 
     /**
@@ -98,33 +99,72 @@ public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IServ
      * 判断专业是否被系统中其他数据引用
      *
      * @param majorUuid 专业UUID
-     * @return 如果有引用则返回 true,否则返回 false
      */
-    public boolean isReferenced(String majorUuid) {
-        // 查询引用了指定专业UUID的部分的数量
-        Long count = departmentMapper.selectCount(
-                new LambdaQueryWrapper<DepartmentDO>()
-                        .eq(DepartmentDO::getMajorUuid, majorUuid)
-        );
-        // 若查询结果不为空且大于零,说明该专业被引用
-        return count != null && count > 0;
+    public void isReferenced(String majorUuid) {
+        // 1.检查该专业是否存在
+        MajorDO getMajor = this.getById(majorUuid);
+        if (getMajor == null) {
+            throw new BusinessException("该专业不存在", ErrorCode.BODY_ERROR);
+        }
+
+        // 2. 检查学生是否绑定了该专业
+        List<StudentDO> getStudentList = studentDAO.getStudentByMajorUuid(majorUuid);
+        if (!getStudentList.isEmpty()) {
+            throw new BusinessException("该专业已被学生绑定，无法删除", ErrorCode.BODY_ERROR);
+        }
     }
 
+    /**
+     * 删除专业(仅在未被引用的情况下)
+     *
+     * @param majorUuid 专业 UUID
+     * @return 是否删除成功
+     */
+    public boolean deleteMajor(String majorUuid) {
+        // 检查该专业是否已被其他实体引用
+        this.isReferenced(majorUuid);
+
+        redisson.getKeys().delete(StringConstant.Redis.MAJOR_UUID + majorUuid);
+        int deletedRows = this.getBaseMapper().delete(
+                new LambdaQueryWrapper<MajorDO>().eq(MajorDO::getMajorUuid, majorUuid)
+        );
+        // 根据删除结果返回
+        if (deletedRows > 0) {
+            return true;
+        } else {
+            throw new BusinessException("专业删除失败", ErrorCode.BODY_ERROR);
+        }
+    }
+
+    /**
+     * 查询专业列表
+     *
+     * @param page     页码
+     * @param size     每页记录数
+     * @param isDesc   是否降序排列（null或true为降序，false为升序）
+     * @param department   学院名称，用于模糊查询
+     * @param name     专业名称，用于模糊查询
+     * @return 返回包含专业列表的Page对象
+     */
     public Page<MajorDO> listMajors(int page, int size, Boolean isDesc, String department, String name) {
         Page<MajorDO> pageParam = new Page<>(page, size);
         LambdaQueryWrapper<MajorDO> queryWrapper = new LambdaQueryWrapper<>();
 
+        // 查看学院名称是否为空
         if (CharSequenceUtil.isNotBlank(department)) {
-            List<String> departmentUuids = departmentMapper.getDepartmentUuidByName(department);
+            List<String> departmentUuids = departmentDAO.getDepartmentUuidByName(department);
             if (departmentUuids.isEmpty()) {
                 throw new BusinessException("学院不存在", ErrorCode.BODY_ERROR);
             } else {
                 queryWrapper.in(MajorDO::getDepartmentUuid, departmentUuids);
             }
         }
+
+        // 查看专业名称是否为空
         if (CharSequenceUtil.isNotBlank(name)) {
             queryWrapper.like(MajorDO::getMajorName, name);
         }
+        // 根据isDesc参数决定排序方式
         queryWrapper.orderBy(isDesc == null || isDesc, false, MajorDO::getCreatedAt);
 
         return this.page(pageParam, queryWrapper);

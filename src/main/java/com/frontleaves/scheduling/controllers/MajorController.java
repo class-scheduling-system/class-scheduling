@@ -80,7 +80,7 @@ public class MajorController {
         log.debug("===> 进入 updateMajor 方法, majorUuid: {}", majorUuid);
 
         // 对 majorUuid 进行正则判断
-        if (!majorUuid.matches(StringConstant.Regular.UUID_REGULAR_EXPRESSION)) {
+        if (!majorUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new IllegalArgumentException(MAJOR_UUID_FORMAT_ERROR);
         }
         // VO -> DO
@@ -110,10 +110,9 @@ public class MajorController {
             @PathVariable("major_uuid")
             String majorUuid
     ) {
-        // 业务流程，使用 info 级别
-        log.info("删除专业: {}", majorUuid);
+        log.debug("删除专业: {}", majorUuid);
 
-        if (!majorUuid.matches(StringConstant.Regular.UUID_REGULAR_EXPRESSION)) {
+        if (!majorUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new IllegalArgumentException(MAJOR_UUID_FORMAT_ERROR);
         }
         majorService.deleteMajor(majorUuid);
@@ -136,7 +135,7 @@ public class MajorController {
     ) {
         log.debug("查询专业信息: {}", majorUuid);
 
-        if (!majorUuid.matches(StringConstant.Regular.UUID_REGULAR_EXPRESSION)) {
+        if (!majorUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new IllegalArgumentException(MAJOR_UUID_FORMAT_ERROR);
         }
         // 调用 Service 层方法获取 MajorDO

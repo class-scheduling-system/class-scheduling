@@ -102,10 +102,7 @@ public class MajorLogic implements MajorService {
             throw new BusinessException(MAJOR_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
 
-        // 检查专业是否被系统引用
-        if (majorDAO.isReferenced(majorUuid)) {
-            throw new BusinessException("该专业正在被系统引用,无法删除", ErrorCode.OPERATION_FAILED);
-        }
+        majorDAO.isReferenced(majorUuid);
 
         // 执行删除
         boolean removed = majorDAO.removeById(majorUuid);
@@ -200,6 +197,3 @@ public class MajorLogic implements MajorService {
         return new PageDTO<>(dtoList, resultPage.getTotal(), resultPage.getSize(), resultPage.getCurrent());
     }
 }
-
-
-

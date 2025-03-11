@@ -143,5 +143,4 @@ public class DepartmentDO {
      */
     private Timestamp updatedAt;
 
-    private String majorUuid;
 }

@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 部门 数据访问对象
@@ -139,5 +141,18 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
             query.orderByAsc(DepartmentDO::getCreatedAt);
         }
         return query.page(new Page<>(page, size));
+    }
+
+    /**
+     * 根据部门名称获取部门UUID列表
+     *
+     * @param departmentName 部门名称，用于模糊查询
+     * @return 包含匹配部门名称的所有部门UUID的列表
+     */
+    public List<String> getDepartmentUuidByName(String departmentName) {
+        QueryWrapper<DepartmentDO> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("department_uuid").
+                like("department_name", departmentName);
+        return this.listObjs(queryWrapper, Object::toString);
     }
 }
