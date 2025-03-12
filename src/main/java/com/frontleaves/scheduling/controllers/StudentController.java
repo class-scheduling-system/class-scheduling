@@ -15,6 +15,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 /**
  * 学生控制器
  *
@@ -42,14 +45,16 @@ public class StudentController {
         HttpHeaders headers = new HttpHeaders();
         // 设置内容类型为二进制流
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        // 设置内容处置为附件形式，指定文件名为"学生导入模板.xlsx"
-        headers.setContentDispositionFormData("attachment", "学生导入模板.xlsx");
+
+        // 使用UTF-8编码文件名，解决中文文件名问题
+        String fileName = URLEncoder.encode("学生导入模板.xlsx", StandardCharsets.UTF_8)
+                .replace("\\+", "%20");
+
+        // 使用RFC 5987编码格式设置文件名
+        headers.add(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"" + fileName + "\"; filename*=UTF-8''" + fileName);
         // 设置内容长度
         headers.setContentLength(bytes.length);
-        // 添加自定义状态头（客户端可以读取这些头）
-        headers.add("output", "Success");
-        headers.add("code", "200");
-        headers.add("message", "获取模板成功");
         // 返回带有文件内容的ResponseEntity
         return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
     }
