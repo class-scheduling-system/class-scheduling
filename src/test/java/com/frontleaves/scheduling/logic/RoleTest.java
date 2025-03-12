@@ -85,7 +85,7 @@ class RoleTest {
             Assertions.assertEquals(roleLite.getRoleName(), fullRole.getRoleName(), "角色名称应一致");
             
             // 验证完整DTO中的状态为有效
-            Assertions.assertEquals(1, fullRole.getRoleStatus(), "角色状态应为有效(1)");
+            Assertions.assertEquals(true, fullRole.getRoleStatus(), "角色状态应为有效(1)");
         }
     }
 }

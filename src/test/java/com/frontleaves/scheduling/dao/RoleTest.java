@@ -157,7 +157,7 @@ class RoleTest {
         for (RoleDO roleDO : activeRoles) {
             Assertions.assertNotNull(roleDO.getRoleUuid(), "角色UUID不应为空");
             Assertions.assertNotNull(roleDO.getRoleName(), "角色名称不应为空");
-            Assertions.assertEquals(1, roleDO.getRoleStatus(), "角色状态应为有效(1)");
+            Assertions.assertEquals(true, roleDO.getRoleStatus(), "角色状态应为有效(1)");
         }
     }
 
