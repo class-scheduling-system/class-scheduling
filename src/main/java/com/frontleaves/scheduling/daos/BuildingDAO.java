@@ -16,13 +16,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.redisson.api.RBucket;
-import org.redisson.api.RKeys;
-import org.redisson.api.RMap;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -243,5 +241,40 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
         Optional.ofNullable(redisson.getKeys())
                 .ifPresent(keys -> keys.deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*"));
         this.save(buildingDO);
+    }
+
+
+    /**
+     * 根据关键字获取建筑列表
+     * 首先尝试从Redis缓存中获取数据，如果缓存不存在，则从数据库中查询，并将结果缓存到Redis中
+     *
+     * @param keyword 搜索关键字，用于模糊查询建筑名称
+     * @return 返回建筑列表，如果找不到则返回null
+     */
+    @Nullable
+    public List<BuildingDO> getBuildingListByKey(String keyword) {
+        // 从Redis中获取缓存的建筑列表
+        RList<BuildingDO> rList = redisson.getList(StringConstant.Redis.BUILDING_KEY_LIST + keyword);
+        // 如果缓存不存在，则从数据库中查询
+        if (!rList.isExists()) {
+            // 构建查询条件
+            LambdaQueryChainWrapper<BuildingDO> queryWrapper = this.lambdaQuery();
+            // 如果关键字不为空，则添加模糊查询条件
+            if (keyword != null && !keyword.isEmpty()) {
+                queryWrapper.like(BuildingDO::getBuildingName, keyword);
+            }
+            List<BuildingDO> buildingDOList = queryWrapper.list();
+            // 如果查询结果不为空，则转换为DTO列表，并缓存到Redis中
+            if (buildingDOList != null && !buildingDOList.isEmpty()) {
+                // 将查询结果转换为Map并缓存到Redis中，设置缓存时间为1小时
+                rList.addAll(buildingDOList);
+                rList.expire(Duration.ofSeconds(3600));
+                return buildingDOList;
+            }
+            return null;
+        } else {
+            // 将缓存的值转换为List<BuildingLiteDTO>
+            return rList.readAll();
+        }
     }
 }

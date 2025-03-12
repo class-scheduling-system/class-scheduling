@@ -30,10 +30,7 @@ package com.frontleaves.scheduling.configs.init;
 
 import cn.hutool.core.date.DateUtil;
 import com.frontleaves.scheduling.constants.SystemConstant;
-import com.frontleaves.scheduling.daos.RoleDAO;
-import com.frontleaves.scheduling.daos.SystemDAO;
-import com.frontleaves.scheduling.daos.TableDAO;
-import com.frontleaves.scheduling.daos.UserDAO;
+import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
@@ -65,19 +62,21 @@ public class Initialize {
     private final RoleDAO roleDAO;
     private final RedissonClient redissonClient;
     private final UserDAO userDAO;
+    private final TeacherTypeDAO teacherTypeDAO;
 
     private FunctionInit init;
 
     @PostConstruct
     public void init() {
         // 初始化准备算法
-        init = new FunctionInit(tableDAO, systemDAO, roleDAO, redissonClient);
+        init = new FunctionInit(tableDAO, systemDAO, roleDAO, redissonClient,teacherTypeDAO);
 
         // 初始化数据库完整性检查
         this.checkTable();
         this.initClearRedis();
         this.checkSystemTable();
         this.writeRoleInfo();
+        this.writeTeacherType();
         this.initTestUser();
     }
 
@@ -206,6 +205,23 @@ public class Initialize {
         SystemConstant.setRoleStudent(init.loadRoleContent("学生"));
         SystemConstant.setRoleLeader(init.loadRoleContent("管理"));
         SystemConstant.setRoleAcademic(init.loadRoleContent("教务"));
+    }
+
+    /**
+     * 获取教师类型信息
+     * <p>
+     * 该方法用于获取教师类型信息，将教师类型信息存入常量类中。
+     */
+    private void writeTeacherType(){
+        SystemConstant.setTeacherTypeAssistant(init.loadTeacherTypeContent("助教"));
+        SystemConstant.setTeacherTypeLecturer(init.loadTeacherTypeContent("讲师"));
+        SystemConstant.setTeacherTypePartTime(init.loadTeacherTypeContent("兼职教师"));
+        SystemConstant.setTeacherTypeIntern(init.loadTeacherTypeContent("实习教师"));
+        SystemConstant.setTeacherTypeAssociateProf(init.loadTeacherTypeContent("副教授"));
+        SystemConstant.setTeacherTypeOther(init.loadTeacherTypeContent("其他"));
+        SystemConstant.setTeacherTypeProfessor(init.loadTeacherTypeContent("教授"));
+        SystemConstant.setTeacherTypeFullTime(init.loadTeacherTypeContent("专职教师"));
+        SystemConstant.setTeacherTypeCounselor(init.loadTeacherTypeContent("辅导员"));
     }
 
     /**

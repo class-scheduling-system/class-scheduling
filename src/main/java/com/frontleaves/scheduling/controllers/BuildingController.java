@@ -28,10 +28,12 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.BuildingDTO;
+import com.frontleaves.scheduling.models.dto.BuildingLiteDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.vo.BuildingOperateVO;
 import com.frontleaves.scheduling.services.BuildingService;
@@ -45,6 +47,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -79,7 +82,7 @@ public class BuildingController {
      * @return 包含教学楼列表的分页数据和响应状态的 {@code ResponseEntity}
      */
     @RequestRole({"管理员"})
-    @GetMapping("/list")
+    @GetMapping("/page")
     public ResponseEntity<BaseResponse<PageDTO<BuildingDTO>>> getBuildingList(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "20") Integer size,
@@ -226,5 +229,25 @@ public class BuildingController {
         }
         buildingService.deleteBuilding(buildingUuid);
         return ResultUtil.success("删除教学楼成功");
+    }
+
+
+    /**
+     * 获取教学楼页面信息
+     * <p>
+     * 该方法通过GET请求处理获取教学楼列表的请求它接受一个keyword参数，
+     * 用于搜索或过滤教学楼信息返回的是一个包含BuildingLiteDTO对象列表的响应，
+     * 表示筛选后的教学楼信息列表
+     *
+     * @param keyword 搜索关键字，用于匹配教学楼信息
+     * @return 包含教学楼列表的响应实体，使用HTTP状态码和自定义的BaseResponse封装
+     */
+    @RequestLogin
+    @GetMapping("/list")
+    public ResponseEntity<BaseResponse<List<BuildingLiteDTO>>> getBuildingPage(
+            @RequestParam(required = false) String keyword
+    ) {
+        List<BuildingLiteDTO> buildingList = buildingService.getBuildingPage(keyword);
+        return ResultUtil.success("获取教学楼列表成功", buildingList);
     }
 }

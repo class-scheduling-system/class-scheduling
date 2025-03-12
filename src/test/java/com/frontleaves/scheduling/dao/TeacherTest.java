@@ -84,6 +84,7 @@ class TeacherTest {
                 .setEnglishName("ZhangSeng")
                 .setEthnic("汉族")
                 .setSex(true)
+                .setType(SystemConstant.getTeacherTypeLecturer())
                 .setPhone("14452873800")
                 .setEmail("qwerasdfzxcv@qwer.com")
                 .setJobTitle("教授")

@@ -175,15 +175,10 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
     public void deleteCampus(CampusDO campusDO) {
         RKeys keys = redisson.getKeys();
         keys.deleteByPattern(StringConstant.Redis.CLASSROOM_LIST + "*");
-        // 创建Redis事务，使用默认的事务选项
-        RTransaction rTransaction = redisson.createTransaction(TransactionOptions.defaults());
-        try {
-            this.removeById(campusDO.getCampusUuid());
-            this.deleteUserRedis(campusDO, rTransaction);
-        } catch (Exception e) {
-            rTransaction.rollback();
-            throw new BusinessException("删除校园信息失败", ErrorCode.OPERATION_ERROR);
-        }
+        keys.deleteByPattern(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode());
+        keys.deleteByPattern(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
+        keys.deleteByPattern(StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid());
+        this.removeById(campusDO.getCampusUuid());
     }
 
     /**

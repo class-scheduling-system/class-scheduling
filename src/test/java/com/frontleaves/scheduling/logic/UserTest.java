@@ -50,6 +50,10 @@ class UserTest {
     private StudentDAO studentDAO;
     @Resource
     private TeacherDAO teacherDAO;
+    @Resource
+    private AdministrativeClassDAO administrativeClassDAO;
+    @Resource
+    private GradeDAO gradeDAO;
     private UserDO setUpUser;
 
     /**
@@ -275,11 +279,11 @@ class UserTest {
                 .setId("1")
                 .setName("testDeleteUserWithStudent")
                 .setGender(true)
-                // TODO
-                .setGradeUuid("2022")
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
-                .setClazz("1班")
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false)
                 .setUserUuid(userDO.getUserUuid());
         if (studentDAO.lambdaQuery().eq(StudentDO::getName, setUpStudent.getName()).one() != null) {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, setUpStudent.getName()).remove();
@@ -312,7 +316,6 @@ class UserTest {
         Assertions.assertFalse(studentUuidMap.isExists());
         Assertions.assertFalse(studentIdBucket.isExists());
         Assertions.assertFalse(studentUserUuidBucket.isExists());
-
     }
 
     @Test
@@ -340,6 +343,7 @@ class UserTest {
                 .setEnglishName("testDeleteUserWithTeacher")
                 .setEthnic("汉族")
                 .setSex(true)
+                .setType(SystemConstant.getTeacherTypeLecturer())
                 .setPhone("14452873800")
                 .setEmail("qwerasdfzxcv@qwer.com")
                 .setJobTitle("教授")
@@ -526,11 +530,10 @@ class UserTest {
                 .setId("1")
                 .setName("testDeleteUserWithStudent")
                 .setGender(true)
-                // TODO
-                .setGradeUuid("2022")
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
-                .setClazz("1班")
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
                 .setUserUuid(setUpUser.getUserUuid());
         if (studentDAO.lambdaQuery().eq(StudentDO::getName, setUpStudent.getName()).one() != null) {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, setUpStudent.getName()).remove();
@@ -558,6 +561,7 @@ class UserTest {
                 .setEnglishName("testDeleteUserWithTeacher")
                 .setEthnic("汉族")
                 .setSex(true)
+                .setType(SystemConstant.getTeacherTypeLecturer())
                 .setPhone("14452873800")
                 .setEmail("qwerasdfzxcv@qwer.com")
                 .setJobTitle("教授")
@@ -794,14 +798,13 @@ class UserTest {
         userDAO.updateById(setUpUser);
         StudentDO setUpStudent = new StudentDO();
         setUpStudent.setStudentUuid(UuidUtil.generateUuidNoDash())
-                .setId("1")
+                .setId("123456")
                 .setName("testGetUserListWithStudent")
                 .setGender(true)
-                // TODO
-                .setGradeUuid("2022")
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
-                .setClazz("1班")
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
                 .setUserUuid(setUpUser.getUserUuid());
         if (studentDAO.lambdaQuery().eq(StudentDO::getName, setUpStudent.getName()).one() != null) {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, setUpStudent.getName()).remove();
@@ -832,6 +835,7 @@ class UserTest {
                 .setEnglishName("testGetUserListWithTeacher")
                 .setEthnic("汉族")
                 .setSex(true)
+                .setType(SystemConstant.getTeacherTypeLecturer())
                 .setPhone("14452873800")
                 .setEmail("testGetUserListWithTeacher@qwer.com")
                 .setJobTitle("教授")

@@ -29,10 +29,13 @@
 package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.BuildingDTO;
+import com.frontleaves.scheduling.models.dto.BuildingLiteDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.xlf.utility.exception.BusinessException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /**
  * 教学楼服务接口
@@ -134,4 +137,13 @@ public interface BuildingService {
      * @throws BusinessException 当教学楼不存在时抛出此异常
      */
     void deleteBuilding(String buildingUuid);
+
+    /**
+     * 获取教学楼列表
+     *
+     * @param keyword 关键字
+     * @return 教学楼列表
+     */
+    List<BuildingLiteDTO> getBuildingPage(
+            String keyword);
 }
