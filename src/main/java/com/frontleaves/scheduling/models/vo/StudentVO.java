@@ -1,7 +1,5 @@
 package com.frontleaves.scheduling.models.vo;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -25,10 +23,11 @@ public class StudentVO {
     @NotBlank(message = "姓名不能为空")
     private String name;
 
-    @NotNull
-    @Min(value = 0, message = "性别0:女")
-    @Max(value = 1, message = "性别1:男")
-    private Integer gender;
+    @NotNull(message = "性别不能为空")
+    private Boolean gender;
+
+    @NotBlank(message = "年级不能为空")
+    private String gradeUuid;
 
     @NotBlank(message = "学院不能为空")
     private String department;
@@ -36,10 +35,10 @@ public class StudentVO {
     @NotBlank(message = "专业不能为空")
     private String major;
 
-    @NotBlank(message = "班级不能为空")
     private String clazz;
 
-    @NotBlank(message = "年级不能为空")
-    private String grade;
+    private String userUuid;
 
+    @NotBlank(message = "毕业状态不能为空")
+    private String isGraduated;
 }
