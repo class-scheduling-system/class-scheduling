@@ -124,7 +124,7 @@ public class TeacherLogic implements TeacherService {
                 teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, 0, name);
             }
         }
-        
+
         // 如果查询结果为null，应该返回一个空的PageDTO对象
         if (teacherList == null || teacherList.isEmpty()) {
             return new PageDTO<TeacherDTO>()
@@ -137,7 +137,6 @@ public class TeacherLogic implements TeacherService {
             List<TeacherDTO> teacherDTOList = teacherList.stream()
                     .map(teacher -> BeanUtil
                             .toBean(teacher.getTeacher(), TeacherDTO.class)
-                            .setStatus(teacher.getUser() != null ? teacher.getUser().getStatus() : 2)
                     )
                     .toList();
             return new PageDTO<TeacherDTO>()
@@ -179,7 +178,7 @@ public class TeacherLogic implements TeacherService {
             throw new BusinessException(StringConstant.USER_NOT_EXIST, ErrorCode.NOT_EXIST);
         }
         // 更新用户状态为禁用或不禁用
-        newUserDO.setStatus((short) (Boolean.compare(disable, true) == 0 ? 0 : 1));
+        newUserDO.setStatus((byte) (Boolean.compare(disable, true) == 0 ? 0 : 1));
         // 更新数据库中的用户对象
         userDAO.updateUser(oldUserDO, newUserDO);
         // 创建并返回一个包含教师禁用信息的DTO对象

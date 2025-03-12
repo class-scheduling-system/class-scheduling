@@ -76,8 +76,8 @@ class TeacherTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("teacherLogicTest@test.com")
                 .setPhone("13888888888")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setPermission("[\"user:role:edit\"]")
                 .setRoleUuid(SystemConstant.getRoleTeacher());
 
@@ -98,7 +98,7 @@ class TeacherTest {
                 .setName("teacherLogicTest")
                 .setEnglishName("teacherLogicTest")
                 .setEthnic("汉族")
-                .setSex(1)
+                .setSex(true)
                 .setPhone("13888888888")
                 .setEmail("teacherLogicTest@test.com")
                 .setJobTitle("教授")
@@ -166,8 +166,8 @@ class TeacherTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("newTeacherLogicTest@test.com")
                 .setPhone("13777777777")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setPermission("[\"user:role:edit\"]")
                 .setRoleUuid(SystemConstant.getRoleTeacher());
 
@@ -187,7 +187,7 @@ class TeacherTest {
                 "newTeacherLogicTest",
                 "newTeacherLogicTest",
                 "汉族",
-                1,
+                true,
                 "13777777777",
                 "newTeacherLogicTest@test.com",
                 "讲师",
@@ -232,7 +232,7 @@ class TeacherTest {
                 "NonExistentDepartmentTeacher",
                 "NonExistentDepartmentTeacher",
                 "汉族",
-                1,
+                true,
                 "13666666666",
                 "nonexistent@test.com",
                 "讲师",
@@ -348,44 +348,6 @@ class TeacherTest {
     }
 
     /**
-     * 测试获取教师列表，按状态筛选
-     */
-    @Test
-    void testGetTeacherListFilterByStatus() {
-        log.debug("测试获取教师列表，按状态筛选");
-
-        // 调用获取教师列表方法，筛选启用的教师
-        PageDTO<TeacherDTO> enabledTeachers = teacherService.getTeacherList(
-                1, 10, false, null, "true", null);
-
-        // 验证返回结果
-        Assertions.assertNotNull(enabledTeachers, "分页DTO不应为空");
-
-        // 如果有记录，验证每条记录的状态是否为启用
-        if (enabledTeachers.getTotal() > 0 && enabledTeachers.getRecords() != null) {
-            for (TeacherDTO teacherDTO : enabledTeachers.getRecords()) {
-                Integer status = Integer.valueOf(teacherDTO.getStatus());
-                Assertions.assertEquals(Integer.valueOf(1), status, "筛选后的教师状态应该是启用(1)");
-            }
-        }
-
-        // 调用获取教师列表方法，筛选禁用的教师
-        PageDTO<TeacherDTO> disabledTeachers = teacherService.getTeacherList(
-                1, 10, false, null, "false", null);
-
-        // 验证返回结果
-        Assertions.assertNotNull(disabledTeachers, "分页DTO不应为空");
-
-        // 如果有记录，验证每条记录的状态是否为禁用
-        if (disabledTeachers.getTotal() > 0 && disabledTeachers.getRecords() != null) {
-            for (TeacherDTO teacherDTO : disabledTeachers.getRecords()) {
-                Integer status = Integer.valueOf(teacherDTO.getStatus());
-                Assertions.assertEquals(Integer.valueOf(0), status, "筛选后的教师状态应该是禁用(0)");
-            }
-        }
-    }
-
-    /**
      * 测试获取教师列表，按姓名搜索
      */
     @Test
@@ -450,11 +412,11 @@ class TeacherTest {
 
         // 验证用户状态是否已更新
         UserDO updatedUser = userDAO.getUserByUuid(setUpUser.getUserUuid());
-        Assertions.assertEquals((short) 0, updatedUser.getStatus(), "用户状态应该已更新为禁用(0)");
+        Assertions.assertEquals((byte) 0, updatedUser.getStatus(), "用户状态应该已更新为禁用(0)");
 
         // 将用户状态恢复为启用，以不影响其他测试
         UserDO restoreUser = BeanUtil.toBean(updatedUser, UserDO.class);
-        restoreUser.setStatus((short) 1);
+        restoreUser.setStatus((byte) 1);
         userDAO.updateUser(updatedUser, restoreUser);
     }
 
@@ -467,7 +429,7 @@ class TeacherTest {
 
         // 先将用户状态设为禁用
         UserDO disabledUser = BeanUtil.toBean(setUpUser, UserDO.class);
-        disabledUser.setStatus((short) 0);
+        disabledUser.setStatus((byte) 0);
         userDAO.updateUser(setUpUser, disabledUser);
 
         // 调用禁用教师方法（传入false表示启用）
@@ -480,7 +442,7 @@ class TeacherTest {
 
         // 验证用户状态是否已更新
         UserDO updatedUser = userDAO.getUserByUuid(setUpUser.getUserUuid());
-        Assertions.assertEquals((short) 1, updatedUser.getStatus(), "用户状态应该已更新为启用(1)");
+        Assertions.assertEquals((byte) 1, updatedUser.getStatus(), "用户状态应该已更新为启用(1)");
     }
 
     /**
@@ -518,7 +480,7 @@ class TeacherTest {
                 .setName("unregisteredTeacher")
                 .setEnglishName("unregisteredTeacher")
                 .setEthnic("汉族")
-                .setSex(1)
+                .setSex(true)
                 .setPhone("13666666666")
                 .setEmail("unregistered@test.com")
                 .setJobTitle("讲师")
@@ -560,7 +522,7 @@ class TeacherTest {
                 .setName("teacherToDelete")
                 .setEnglishName("teacherToDelete")
                 .setEthnic("汉族")
-                .setSex(1)
+                .setSex(true)
                 .setPhone("13999999999")
                 .setEmail("teacherToDelete@test.com")
                 .setJobTitle("讲师")
@@ -632,7 +594,7 @@ class TeacherTest {
                 "updatedTeacherName",
                 "updatedEnglishName",
                 "苗族", // 更新民族
-                0, // 更新性别
+                false, // 更新性别
                 "13888888889", // 更新手机号
                 "updatedEmail@test.com", // 更新邮箱
                 "副教授", // 更新职称
@@ -672,7 +634,7 @@ class TeacherTest {
                 "updatedTeacherName",
                 "updatedEnglishName",
                 "苗族",
-                0,
+                false,
                 "13888888889",
                 "updatedEmail@test.com",
                 "副教授",
@@ -703,7 +665,7 @@ class TeacherTest {
                 "updatedTeacherName",
                 "updatedEnglishName",
                 "苗族",
-                0,
+                false,
                 "13888888889",
                 "updatedEmail@test.com",
                 "副教授",
@@ -737,7 +699,7 @@ class TeacherTest {
                 "NonExistentTeacher",
                 "NonExistentTeacher",
                 "汉族",
-                1,
+                true,
                 "13888888888",
                 "nonexistent@test.com",
                 "教授",

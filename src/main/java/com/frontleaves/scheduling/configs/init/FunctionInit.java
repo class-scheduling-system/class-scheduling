@@ -32,9 +32,11 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.daos.TableDAO;
+import com.frontleaves.scheduling.daos.TeacherTypeDAO;
 import com.frontleaves.scheduling.models.entity.RoleDO;
 import com.frontleaves.scheduling.models.entity.SystemDO;
 import com.frontleaves.scheduling.models.entity.TableDO;
+import com.frontleaves.scheduling.models.entity.TeacherTypeDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RedissonClient;
@@ -56,6 +58,7 @@ class FunctionInit {
     private final SystemDAO systemDAO;
     private final RoleDAO roleDAO;
     private final RedissonClient redisson;
+    private final TeacherTypeDAO teacherTypeDAO;
 
     /**
      * 检查数据表是否完整
@@ -118,6 +121,15 @@ class FunctionInit {
         if (roleDO != null) {
             return roleDO.getRoleUuid();
         } else {
+            return null;
+        }
+    }
+
+    public String loadTeacherTypeContent(String name) {
+        TeacherTypeDO teacherTypeDO = teacherTypeDAO.lambdaQuery().eq(TeacherTypeDO::getTypeName, name).one();
+        if (teacherTypeDO != null) {
+            return teacherTypeDO.getTeacherTypeUuid();
+        }else {
             return null;
         }
     }

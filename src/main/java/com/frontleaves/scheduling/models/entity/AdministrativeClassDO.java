@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -29,68 +29,88 @@
 package com.frontleaves.scheduling.models.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
 
 /**
- * 学生信息实体类
+ * 行政班表实体类
  * <p>
- * 对应数据库表：`cs_student`
- * 本类用于描述学生的基本信息，包括学号、姓名、性别、年级、学院、专业、班级等，
- * 并关联了用户主键。主键(student_uuid)采用 UUID 自动生成。
+ * 对应数据库表：`cs_administrative_class`
+ * 主键为 administrative_class_uuid，类型为 UUID 自动生成。
  * </p>
  *
  * @author FLASHLACK
  * @version v1.0.0
  * @since v1.0.0
  */
+@TableName(value = "cs_administrative_class")
 @Data
-@TableName(value = "cs_student")
 @Accessors(chain = true)
-public class StudentDO {
+@NoArgsConstructor
+@AllArgsConstructor
+public class AdministrativeClassDO {
     /**
-     * 学生主键，采用 UUID 自动生成
+     * 行政班主键
      */
-    @TableId(value = "student_uuid", type = IdType.ASSIGN_UUID)
-    private String studentUuid;
+    @TableId(value = "administrative_class_uuid", type = IdType.ASSIGN_UUID)
+    private String administrativeClassUuid;
+
     /**
-     * 学号
+     * 所属部门/院系
      */
-    private String id;
+    private String departmentUuid;
+
     /**
-     * 姓名
+     * 所属专业
      */
-    private String name;
+    private String majorUuid;
+
     /**
-     * 性别 0:女 1:男
+     * 班级编号
      */
-    private Boolean gender;
+    private String classCode;
+
     /**
-     * 年级
+     * 班级名称
+     */
+    private String className;
+
+    /**
+     * 年级UUID
      */
     private String gradeUuid;
+
     /**
-     * 学院
+     * 学生人数
      */
-    private String department;
+    private Integer studentCount;
+
     /**
-     * 专业
+     * 辅导员UUID
      */
-    private String major;
+    private String counselorUuid;
+
     /**
-     * 班级
+     * 班长UUID
      */
-    @TableField(value = "class")
-    private String clazz;
+    private String monitorUuid;
+
     /**
-     * 对应用户主键
+     * 是否启用(0:禁用,1:启用)
      */
-    private String userUuid;
+    private Boolean isEnabled;
+
+    /**
+     * 班级描述
+     */
+    private String description;
+
     /**
      * 创建时间
      */
@@ -100,10 +120,4 @@ public class StudentDO {
      * 更新时间
      */
     private Timestamp updatedAt;
-
-    /**
-     * 是否毕业 0:未毕业 1:已毕业
-     */
-    @TableField(value = "is_graduated")
-    private Boolean graduated;
 }

@@ -35,6 +35,7 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.BuildingDAO;
 import com.frontleaves.scheduling.daos.CampusDAO;
 import com.frontleaves.scheduling.models.dto.BuildingDTO;
+import com.frontleaves.scheduling.models.dto.BuildingLiteDTO;
 import com.frontleaves.scheduling.models.dto.CampusDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.entity.BuildingDO;
@@ -267,5 +268,14 @@ public class BuildingLogic implements BuildingService {
         } else {
             throw new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST);
         }
+    }
+
+    @Override
+    public List<BuildingLiteDTO> getBuildingPage(String keyword) {
+    List<BuildingDO> buildingDOList = buildingDAO.getBuildingListByKey(keyword);
+    if (buildingDOList == null || buildingDOList.isEmpty()) {
+        return List.of();
+    }
+    return BeanUtil.copyToList(buildingDOList, BuildingLiteDTO.class);
     }
 }

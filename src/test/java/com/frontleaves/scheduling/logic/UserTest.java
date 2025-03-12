@@ -50,6 +50,10 @@ class UserTest {
     private StudentDAO studentDAO;
     @Resource
     private TeacherDAO teacherDAO;
+    @Resource
+    private AdministrativeClassDAO administrativeClassDAO;
+    @Resource
+    private GradeDAO gradeDAO;
     private UserDO setUpUser;
 
     /**
@@ -89,8 +93,8 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("logicUserTest@test.com")
                 .setPhone("13800000000")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
                 .setRoleUuid(SystemConstant.getRoleAdmin());
         if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
@@ -131,7 +135,7 @@ class UserTest {
                 "13800000001",
                 List.of("operate"),
                 "",
-                0
+                (byte) 0
         );
         if (userDAO.lambdaQuery().eq(UserDO::getName, addVO.getName()).one() != null) {
             userDAO.lambdaUpdate().eq(UserDO::getName, addVO.getName()).remove();
@@ -160,7 +164,7 @@ class UserTest {
                 "13800000001",
                 List.of("operate"),
                 "",
-                0
+                (byte) 0
         );
         Assertions.assertThrows(BusinessException.class, () ->
                 userService.checkAddUser(addVO));
@@ -177,7 +181,7 @@ class UserTest {
                 "13800000001",
                 List.of("operate"),
                 departmentDAO.lambdaQuery().list().get(0).getDepartmentUuid(),
-                0
+                (byte) 0
         );
         if (userDAO.lambdaQuery().eq(UserDO::getName, addVO.getName()).one() != null) {
             userDAO.lambdaUpdate().eq(UserDO::getName, addVO.getName()).remove();
@@ -212,7 +216,7 @@ class UserTest {
                 "13800000001",
                 List.of("operate"),
                 departmentDAO.lambdaQuery().list().get(0).getDepartmentUuid(),
-                0
+                (byte) 0
         );
         Assertions.assertThrows(BusinessException.class, () ->
                 userService.checkAddUser(addVO));
@@ -228,7 +232,7 @@ class UserTest {
                 "13800000001",
                 List.of("operate"),
                 departmentDAO.lambdaQuery().list().get(0).getDepartmentUuid(),
-                0
+                (byte) 0
         );
         Assertions.assertThrows(BusinessException.class, () ->
                 userService.checkAddUser(addVO));
@@ -262,8 +266,8 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("deleteUserWithStudent@test.com")
                 .setPhone("13800000111")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
                 .setRoleUuid(SystemConstant.getRoleStudent());
         if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
@@ -274,11 +278,12 @@ class UserTest {
         setUpStudent.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("1")
                 .setName("testDeleteUserWithStudent")
-                .setGender(1)
-                .setGrade("2022")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
-                .setClazz("1班")
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false)
                 .setUserUuid(userDO.getUserUuid());
         if (studentDAO.lambdaQuery().eq(StudentDO::getName, setUpStudent.getName()).one() != null) {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, setUpStudent.getName()).remove();
@@ -311,7 +316,6 @@ class UserTest {
         Assertions.assertFalse(studentUuidMap.isExists());
         Assertions.assertFalse(studentIdBucket.isExists());
         Assertions.assertFalse(studentUserUuidBucket.isExists());
-
     }
 
     @Test
@@ -322,8 +326,8 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("testDeleteUserWithTeacher@test.com")
                 .setPhone("13800000111")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
                 .setRoleUuid(SystemConstant.getRoleTeacher());
         if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
@@ -338,7 +342,8 @@ class UserTest {
                 .setName("testDeleteUserWithTeacher")
                 .setEnglishName("testDeleteUserWithTeacher")
                 .setEthnic("汉族")
-                .setSex(1)
+                .setSex(true)
+                .setType(SystemConstant.getTeacherTypeLecturer())
                 .setPhone("14452873800")
                 .setEmail("qwerasdfzxcv@qwer.com")
                 .setJobTitle("教授")
@@ -384,8 +389,8 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("testDeleteUserWithOtherRole@test.com")
                 .setPhone("13800000222")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setPermission("[\"user:unit:department:tag:category:delete\"]")
                 .setRoleUuid(SystemConstant.getRoleLeader());
         if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
@@ -413,7 +418,7 @@ class UserTest {
     void testUpdateUser() {
         log.debug("测试更新用户信息");
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
-                "13800000001", null, 1,
+                "13800000001", null, true,
                 SystemConstant.getRoleAdmin(),
                 List.of("operate"));
         UserInfoDTO userInfoDTO = userService.updateUser(
@@ -438,7 +443,7 @@ class UserTest {
     void testUpdateUserWithStudent() {
         log.debug("测试更新用户信息改变为学生角色");
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
-                "13800000001", (short) 0, 1,
+                "13800000001", (byte) 0, true,
                 SystemConstant.getRoleStudent(),
                 List.of("operate"));
         String userUuid = setUpUser.getUserUuid();
@@ -453,7 +458,7 @@ class UserTest {
     void testUpdateUserWithTeacher() {
         log.debug("测试更新用户信息改变为教师角色");
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
-                "13800000001", (short) 0, 1,
+                "13800000001", (byte) 0, true,
                 SystemConstant.getRoleTeacher(),
                 List.of("operate"));
         String userUuid = setUpUser.getUserUuid();
@@ -524,11 +529,11 @@ class UserTest {
         setUpStudent.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("1")
                 .setName("testDeleteUserWithStudent")
-                .setGender(1)
-                .setGrade("2022")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
-                .setClazz("1班")
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
                 .setUserUuid(setUpUser.getUserUuid());
         if (studentDAO.lambdaQuery().eq(StudentDO::getName, setUpStudent.getName()).one() != null) {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, setUpStudent.getName()).remove();
@@ -555,7 +560,8 @@ class UserTest {
                 .setName("testDeleteUserWithTeacher")
                 .setEnglishName("testDeleteUserWithTeacher")
                 .setEthnic("汉族")
-                .setSex(1)
+                .setSex(true)
+                .setType(SystemConstant.getTeacherTypeLecturer())
                 .setPhone("14452873800")
                 .setEmail("qwerasdfzxcv@qwer.com")
                 .setJobTitle("教授")
@@ -580,7 +586,7 @@ class UserTest {
                 "13800000001",
                 List.of("operate"),
                 departmentDAO.lambdaQuery().list().get(0).getDepartmentUuid(),
-                0
+                (byte) 0
         );
         Assertions.assertTrue(userService.checkAddUser(addVO));
     }
@@ -610,7 +616,7 @@ class UserTest {
                 "13800000001",
                 List.of("operate"),
                 null,
-                0
+                (byte) 0
         );
         Assertions.assertThrows(BusinessException.class, () ->
                 userService.checkAddUser(addVO));
@@ -627,7 +633,7 @@ class UserTest {
                 "13800000001",
                 List.of("operate"),
                 "",
-                0
+                (byte) 0
         );
         if (userDAO.lambdaQuery().eq(UserDO::getName, addVO.getName()).one() != null) {
             userDAO.lambdaUpdate().eq(UserDO::getName, addVO.getName()).remove();
@@ -659,7 +665,7 @@ class UserTest {
     void testCheckUpdateDate_UserNotExist() {
         UserEditVO editVO = new UserEditVO(
                 "testUpdateUser", "", "testUpdateUser@test.com",
-                "13800000001", null, 1,
+                "13800000001", null, true,
                 SystemConstant.getRoleAdmin(),
                 List.of("operate"));
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -678,8 +684,8 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("existUser@test.com")
                 .setPhone("13800000011")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setRoleUuid(SystemConstant.getRoleAdmin());
         UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, existUser.getName()).one();
         if (userDO != null) {
@@ -688,7 +694,7 @@ class UserTest {
         userDAO.save(existUser);
         UserEditVO editVO = new UserEditVO(
                 "existUser", "", "",
-                "", null, 1,
+                "", null, true,
                 SystemConstant.getRoleAdmin(),
                 List.of("operate"));
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -712,8 +718,8 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("existUser@test.com")
                 .setPhone("13800000011")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setRoleUuid(SystemConstant.getRoleAdmin());
         UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, existUser.getName()).one();
         if (userDO != null) {
@@ -722,7 +728,7 @@ class UserTest {
         userDAO.save(existUser);
         UserEditVO editVO = new UserEditVO(
                 "testUpdateUser", "", "existUser@test.com",
-                "13800000001", null, 1,
+                "13800000001", null, true,
                 SystemConstant.getRoleAdmin(),
                 List.of("operate"));
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -746,8 +752,8 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("existUser@test.com")
                 .setPhone("13800000011")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setRoleUuid(SystemConstant.getRoleAdmin());
         UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, existUser.getName()).one();
         if (userDO != null) {
@@ -756,7 +762,7 @@ class UserTest {
         userDAO.save(existUser);
         UserEditVO editVO = new UserEditVO(
                 "testUpdateUser", "", "testUpdateUser@test.com",
-                "13800000011", null, 1,
+                "13800000011", null, true,
                 SystemConstant.getRoleAdmin(),
                 List.of("operate"));
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -776,7 +782,7 @@ class UserTest {
     void testCheckUpdateDate_RoleNotExist() {
         UserEditVO editVO = new UserEditVO(
                 "testUpdateUser", "", "testUpdateUser@test.com",
-                "13800000001", null, 1,
+                "13800000001", null, true,
                 UuidUtil.generateUuidNoDash(),
                 List.of("operate"));
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -792,13 +798,13 @@ class UserTest {
         userDAO.updateById(setUpUser);
         StudentDO setUpStudent = new StudentDO();
         setUpStudent.setStudentUuid(UuidUtil.generateUuidNoDash())
-                .setId("1")
+                .setId("123456")
                 .setName("testGetUserListWithStudent")
-                .setGender(1)
-                .setGrade("2022")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
-                .setClazz("1班")
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
                 .setUserUuid(setUpUser.getUserUuid());
         if (studentDAO.lambdaQuery().eq(StudentDO::getName, setUpStudent.getName()).one() != null) {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, setUpStudent.getName()).remove();
@@ -828,7 +834,8 @@ class UserTest {
                 .setName("testGetUserListWithTeacher")
                 .setEnglishName("testGetUserListWithTeacher")
                 .setEthnic("汉族")
-                .setSex(1)
+                .setSex(true)
+                .setType(SystemConstant.getTeacherTypeLecturer())
                 .setPhone("14452873800")
                 .setEmail("testGetUserListWithTeacher@qwer.com")
                 .setJobTitle("教授")
@@ -867,7 +874,7 @@ class UserTest {
         setUpUser.setRoleUuid(SystemConstant.getRoleStudent());
         userDAO.updateById(setUpUser);
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
-                "13800000001", null, 1,
+                "13800000001", null, true,
                 SystemConstant.getRoleAdmin(),
                 List.of("operate"));
         String uuid = setUpUser.getUserUuid();
@@ -883,7 +890,7 @@ class UserTest {
         setUpUser.setRoleUuid(SystemConstant.getRoleTeacher());
         userDAO.updateById(setUpUser);
         UserEditVO editVO = new UserEditVO("testUpdateUser", "", "testUpdateUser@test.com",
-                "13800000001", null, 1,
+                "13800000001", null, true,
                 SystemConstant.getRoleAdmin(),
                 List.of("operate"));
         String uuid = setUpUser.getUserUuid();

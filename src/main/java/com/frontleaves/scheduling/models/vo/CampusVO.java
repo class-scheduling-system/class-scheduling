@@ -1,7 +1,5 @@
 package com.frontleaves.scheduling.models.vo;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -37,10 +35,8 @@ public class CampusVO {
     /**
      * 校区状态 0:禁用，1:启用，默认为1
      */
-    @Min(value = 0, message = "校区状态只能为 0（禁用）或 1（启用）")
-    @Max(value = 1, message = "校区状态只能为 0（禁用）或 1（启用）")
     @NotNull(message = "校区状态不能为空")
-    private Integer campusStatus;
+    private Boolean campusStatus;
     /**
      * 校区地址
      */

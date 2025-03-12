@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.entity.*;
@@ -16,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,8 +36,12 @@ class AuthTest {
     private RedissonClient redisson;
     @Resource
     private TeacherDAO teacherDAO;
-    @Autowired
+    @Resource
+    private GradeDAO gradeDAO;
+    @Resource
     private UserDAO userDAO;
+    @Resource
+    private AdministrativeClassDAO administrativeClassDAO;
 
 
     /**
@@ -94,11 +98,12 @@ class AuthTest {
         studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("22344")
                 .setName("testCheckLoginForNewUser")
-                .setGender(1)
-                .setGrade("2022")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
-                .setClazz("1班");
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false);
         if (studentDAO.lambdaQuery().eq(StudentDO::getName, studentDO.getName()).one() != null) {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, studentDO.getName()).remove();
         }
@@ -126,7 +131,8 @@ class AuthTest {
                 .setName("teacherDAOTest")
                 .setEnglishName("ZhangSeng")
                 .setEthnic("汉族")
-                .setSex(1)
+                .setSex(true)
+                .setType(SystemConstant.getTeacherTypeLecturer())
                 .setPhone("14452873800")
                 .setEmail("qwerasdfzxcv@qwer.com")
                 .setJobTitle("教授")
@@ -157,11 +163,12 @@ class AuthTest {
         studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("22344")
                 .setName("testCheckLoginForNewUser")
-                .setGender(1)
-                .setGrade("2022")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
-                .setClazz("1班");
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false);
         if (studentDAO.lambdaQuery().eq(StudentDO::getName, studentDO.getName()).one() != null) {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, studentDO.getName()).remove();
         }
@@ -190,6 +197,7 @@ class AuthTest {
             redisson.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone()).delete();
         }
     }
+
     @Test
     @Transactional
     void testUserRegisteredByTea() {
@@ -201,7 +209,8 @@ class AuthTest {
                 .setName("AuthTest")
                 .setEnglishName("ZhangSeng")
                 .setEthnic("汉族")
-                .setSex(1)
+                .setSex(true)
+                .setType(SystemConstant.getTeacherTypeLecturer())
                 .setPhone("14452873800")
                 .setEmail("AuthTest@text.com")
                 .setJobTitle("教授")
@@ -211,7 +220,7 @@ class AuthTest {
         }
         teacherDAO.save(teacherDO);
         UserInitializationVO userInitializationVO = new UserInitializationVO(false, "654321",
-                "AuthTest", "123456Aa","AuthTest@text.com","13888888888");
+                "AuthTest", "123456Aa", "AuthTest@text.com", "13888888888");
         authService.userRegistered(userInitializationVO, new MockHttpServletRequest());
         //检查数据库是否存在
         UserDO userDO = userDAO.lambdaQuery().eq(UserDO::getName, userInitializationVO.getName()).one();

@@ -40,15 +40,15 @@ class CampusTest {
         return Stream.of(
                 Arguments.of(
                         new CampusVO("", "1456789",
-                                "好学校", 1, "锡山区"), "校区名称不能为空"),
+                                "好学校", true, "锡山区"), "校区名称不能为空"),
                 Arguments.of(new CampusVO("无锡学院校区", "",
-                        "好学校", 1, "锡山区"), "校区编码不能为空"),
+                        "好学校", true, "锡山区"), "校区编码不能为空"),
                 Arguments.of(new CampusVO("无锡学院校区", "1456789",
-                        "", 1, "锡山区"), "校区描述不能为空"),
+                        "", true, "锡山区"), "校区描述不能为空"),
                 Arguments.of(new CampusVO("无锡学院校区", "1456789",
                         "好学校", null, "锡山区"), "校区状态不能为空"),
                 Arguments.of(new CampusVO("无锡学院校区", "1456789",
-                        "好学校", 1, ""), "校区地址不能为空")
+                        "好学校", true, ""), "校区地址不能为空")
         );
     }
 
@@ -76,7 +76,7 @@ class CampusTest {
     void testAddCampus() {
         CampusVO campusVO = new CampusVO(
                 "无锡学院校区", "1456789",
-                "好学校", 1, "锡山区");
+                "好学校", true, "锡山区");
         CampusDTO campusDTO = campusService.addCampus(campusVO);
         Assertions.assertNotNull(campusDTO);
         CampusDO campusDO = campusDAO.lambdaQuery()
@@ -90,7 +90,7 @@ class CampusTest {
         campusDO.setCampusUuid(UuidUtil.generateUuidNoDash())
                 .setCampusCode("1456789")
                 .setCampusName("无锡学院校区")
-                .setCampusStatus(1)
+                .setCampusStatus(true)
                 .setCampusDesc("好学校")
                 .setCampusAddress("锡山区");
         campusDAO.save(campusDO);
@@ -98,7 +98,7 @@ class CampusTest {
                 .eq(CampusDO::getCampusUuid, campusDO.getCampusUuid()).one();
         CampusVO campusVO = new CampusVO(
                 "东南大学校区", "123456",
-                "坏学校", 0, "惠山区");
+                "坏学校", false, "惠山区");
         CampusDTO campusDTO = campusService.updateCampus(campusVO, oldCampusDO);
         Assertions.assertNotNull(campusDTO);
         Assertions.assertEquals(campusVO.getCampusName(), campusDTO.getCampusName());
@@ -115,7 +115,7 @@ class CampusTest {
         campusDO.setCampusUuid(UuidUtil.generateUuidNoDash())
                 .setCampusCode("1456789")
                 .setCampusName("无锡学院校区")
-                .setCampusStatus(1)
+                .setCampusStatus(true)
                 .setCampusDesc("好学校")
                 .setCampusAddress("锡山区");
         campusDAO.save(campusDO);
@@ -123,14 +123,14 @@ class CampusTest {
         campusDO1.setCampusUuid(UuidUtil.generateUuidNoDash())
                 .setCampusCode("123456")
                 .setCampusName("东南大学校区")
-                .setCampusStatus(0)
+                .setCampusStatus(false)
                 .setCampusDesc("好学校")
                 .setCampusAddress("锡山区");
         campusDAO.save(campusDO1);
         log.debug("测试校区名称重复");
         CampusVO campusVO = new CampusVO(
                 "东南大学校区", "1456789",
-                "好学校", 0, "锡山区");
+                "好学校", false, "锡山区");
         String campusUuid = campusDO.getCampusUuid();
         Assertions.assertThrows(BusinessException.class, () ->
                 campusService.checkUpdateCampusVO(campusUuid, campusVO)
@@ -138,7 +138,7 @@ class CampusTest {
         log.debug("测试校区编码重复");
         CampusVO campusVO1 = new CampusVO(
                 "无锡学院校区", "123456",
-                "好学校", 0, "锡山区");
+                "好学校", false, "锡山区");
         Assertions.assertThrows(BusinessException.class, () ->
                 campusService.checkUpdateCampusVO(campusUuid, campusVO1)
         );

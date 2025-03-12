@@ -37,6 +37,9 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RBucket;
+import org.redisson.api.RList;
+import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -75,11 +78,11 @@ class CampusTest {
 
             // 断言带关键词和不带关键词的结果应不同
             Assertions.assertNotEquals(pageOfCampus.getRecords(), keywordCampus.getRecords(),
-                "使用关键词查询的结果应与不使用关键词的结果不同");
+                    "使用关键词查询的结果应与不使用关键词的结果不同");
         } else {
             // 当没有数据时，确认结果列表为空
             Assertions.assertTrue(pageOfCampus.getRecords().isEmpty(),
-                "没有符合条件的校区数据时，返回列表应为空");
+                    "没有符合条件的校区数据时，返回列表应为空");
         }
     }
 
@@ -108,5 +111,32 @@ class CampusTest {
         ListOfCampusDTO firstCampus = campusList.get(0);
         Assertions.assertNotNull(firstCampus.getCampusCode(), "校区ID不应为空");
         Assertions.assertNotNull(firstCampus.getCampusName(), "校区名称不应为空");
+    }
+
+    @Test
+    void testDeleteCampus() {
+        // 1. 从数据库中获取一个 CampusDO 对象
+        CampusDO campusDO = campusDAO.lambdaQuery().list().get(0);
+
+        // 2. 调用 deleteCampus 方法删除校园信息
+        campusDAO.deleteCampus(campusDO);
+
+        // 3. 验证数据库中是否已删除该校园信息
+        Assertions.assertNull(campusDAO.getById(campusDO.getCampusUuid()));
+
+        // 4. 检查 Redis 缓存中的相关数据是否被删除
+        RMap<String, String> rMap = redisson.getMap(
+                StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid());
+        RBucket<String> rBucket = redisson.getBucket(
+                StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode());
+        RBucket<String> rBucket1 = redisson.getBucket(
+                StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
+        RList<ListOfCampusDTO> rList = redisson.getList(StringConstant.Redis.CAMPUS_LIST + "*");
+
+        // 5. 断言 Redis 缓存中的数据不存在
+        Assertions.assertFalse(rList.isExists());
+        Assertions.assertFalse(rMap.isExists());
+        Assertions.assertFalse(rBucket.isExists());
+        Assertions.assertFalse(rBucket1.isExists());
     }
 }

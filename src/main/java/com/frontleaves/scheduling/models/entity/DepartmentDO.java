@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.models.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
@@ -76,11 +77,13 @@ public class DepartmentDO {
     /**
      * 成立日期，默认当前日期
      */
+    @TableField(value = "establishment_date")
     private Date establishmentDate;
 
     /**
      * 失效日期
      */
+    @TableField(value = "expiration_date")
     private Date expirationDate;
 
     /**
@@ -121,6 +124,7 @@ public class DepartmentDO {
     /**
      * 备注
      */
+    @TableField(value = "remark")
     private String remark;
 
     /**

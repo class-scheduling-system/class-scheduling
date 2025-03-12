@@ -42,8 +42,8 @@ class UserTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("12138@qq.com")
                 .setPhone("12345678901")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setRoleUuid(SystemConstant.getRoleAdmin())
                 .setPermission("[\"user:unit:department:delete\"]");
         // 清理数据库中可能已经存在的相同UUID的用户
@@ -151,8 +151,8 @@ class UserTest {
                 .setName("ZhangSan555")
                 .setEmail("22344234@qq.com")
                 .setPassword(PasswordUtil.encrypt("123456qwerQWER"))
-                .setStatus((short) 0)
-                .setBan(1)
+                .setStatus((byte) 0)
+                .setBan(true)
                 .setPermission("[\"user:unit\"]");
         userDAO.updateUser(oldUserDO, newUserDO);
         UserDO updateNewUserDO = userDAO.lambdaQuery().eq(UserDO::getUserUuid, oldUserDO.getUserUuid()).one();
