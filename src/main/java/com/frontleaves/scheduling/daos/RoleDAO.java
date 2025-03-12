@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -48,6 +48,8 @@ import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
@@ -166,12 +168,12 @@ public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> implements IService
     }
 
     /**
-     * 获取角色列表
+     * 获取角色分页列表
      * @param page 当前页数
      * @param size 每页显示数量
      * @param isDesc 是否降序
      * @param search 搜索关键字
-     * @return 角色列表
+     * @return 角色分页列表
      */
     public PageDTO<RoleDTO> getRoleDtoPageDTO(
             @NotNull Integer page, @NotNull Integer size, Boolean isDesc, String search) {
@@ -202,5 +204,29 @@ public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> implements IService
                 }).toList();
         return ProjectUtil.convertPageToPageDTO(roleDoPage, RoleDTO.class)
                 .setRecords(roleDTOList);
+    }
+
+    /**
+     * 获取所有有效角色
+     * 只返回 roleStatus 为 1 的角色
+     *
+     * @return 有效角色列表
+     */
+    @Nullable
+    public List<RoleDO> getActiveRoles() {
+        RList<RoleDO> getList = redisson.getList(StringConstant.Redis.ROLE_LIST);
+        if (!getList.isExists()) {
+            List<RoleDO> getRoleList = this.lambdaQuery()
+                    .eq(RoleDO::getRoleStatus, 1)
+                    .orderByAsc(RoleDO::getCreatedAt)
+                    .list();
+            if (!getRoleList.isEmpty()) {
+                getList.addAll(getRoleList);
+                return getRoleList;
+            }
+        } else {
+            return getList;
+        }
+        return null;
     }
 }

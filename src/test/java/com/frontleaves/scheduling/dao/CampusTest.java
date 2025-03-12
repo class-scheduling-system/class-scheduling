@@ -59,13 +59,27 @@ class CampusTest {
      */
     @Test
     void testPageOfCampus() {
+        // 清理测试相关的缓存数据
         redisson.getKeys().deleteByPattern(StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
-        Page<CampusDO> pageOfCampus = campusDAO.getPageOfCampus(1, 20, true, null);
+
+        // 测试不带关键词的分页查询
+        int pageNum = 1;
+        int pageSize = 20;
+        boolean isValid = true;
+        Page<CampusDO> pageOfCampus = campusDAO.getPageOfCampus(pageNum, pageSize, isValid, null);
+
         if (pageOfCampus.getTotal() > 0) {
-            Page<CampusDO> keywordCampus = campusDAO.getPageOfCampus(1, 20, true, "铁");
-            Assertions.assertNotEquals(pageOfCampus.getRecords(), keywordCampus.getRecords());
+            // 当有数据时，测试带关键词的查询结果应与不带关键词的结果不同
+            String keyword = "铁";
+            Page<CampusDO> keywordCampus = campusDAO.getPageOfCampus(pageNum, pageSize, isValid, keyword);
+
+            // 断言带关键词和不带关键词的结果应不同
+            Assertions.assertNotEquals(pageOfCampus.getRecords(), keywordCampus.getRecords(),
+                "使用关键词查询的结果应与不使用关键词的结果不同");
         } else {
-            Assertions.assertTrue(pageOfCampus.getRecords().isEmpty());
+            // 当没有数据时，确认结果列表为空
+            Assertions.assertTrue(pageOfCampus.getRecords().isEmpty(),
+                "没有符合条件的校区数据时，返回列表应为空");
         }
     }
 
@@ -83,8 +97,16 @@ class CampusTest {
      */
     @Test
     void testCampusList() {
+        // 获取校区列表数据
         List<ListOfCampusDTO> campusList = campusDAO.getCampusList();
-        Assertions.assertNotNull(campusList);
-        Assertions.assertFalse(campusList.isEmpty());
+
+        // 验证返回的列表不为空
+        Assertions.assertNotNull(campusList, "校区列表不应为null");
+        Assertions.assertFalse(campusList.isEmpty(), "校区列表不应为空");
+
+        // 验证返回的校区数据是否包含必要字段
+        ListOfCampusDTO firstCampus = campusList.get(0);
+        Assertions.assertNotNull(firstCampus.getCampusCode(), "校区ID不应为空");
+        Assertions.assertNotNull(firstCampus.getCampusName(), "校区名称不应为空");
     }
 }

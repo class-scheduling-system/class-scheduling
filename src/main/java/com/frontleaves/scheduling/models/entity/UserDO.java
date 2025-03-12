@@ -32,6 +32,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
@@ -49,6 +50,7 @@ import java.sql.Timestamp;
  */
 @Data
 @TableName(value = "cs_user")
+@NoArgsConstructor
 @Accessors(chain = true)
 public class UserDO {
 
@@ -81,7 +83,7 @@ public class UserDO {
     /**
      * 用户状态 0: 禁用 1: 启用
      */
-    private Integer status;
+    private Short status;
 
     /**
      * 用户是否被封禁 0: 未封禁 1: 已封禁

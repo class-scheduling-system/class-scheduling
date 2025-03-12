@@ -28,6 +28,9 @@
 
 package com.frontleaves.scheduling.models.dto;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -42,6 +45,7 @@ import java.util.Date;
  *
  * @author FLASHLACK
  */
+@TableName(value = "cs_department")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -50,6 +54,7 @@ public class DepartmentDTO {
     /**
      * 部门主键，采用 UUID 自动生成
      */
+    @TableId(value = "department_uuid", type = IdType.ASSIGN_UUID)
     private String departmentUuid;
 
     /**

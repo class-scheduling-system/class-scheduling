@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -26,24 +26,37 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.mappers;
+package com.frontleaves.scheduling.models.dto;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.TeacherDO;
-import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
-import org.apache.ibatis.annotations.Mapper;
-
-import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 /**
- * 教师映射器
+ * 角色精简数据传输对象
+ * <p>
+ * 用于返回角色的精简信息，只包含角色ID和角色名称。
+ * 主要用于下拉菜单或简单列表展示，不包含详细的角色信息。
+ * </p>
  *
- * @author FLASHLACK
+ * @version v1.0.0
+ * @since v1.0.0
+ * @author xiao_lfeng
  */
-@Mapper
-public interface TeacherMapper extends BaseMapper<TeacherDO> {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+public class RoleLiteDTO {
 
-    List<UserAndTeacherDO> getTeacherAndUserQueryDesc(String departmentUuid, Integer status, String name, Integer page, Integer size);
+    /**
+     * 角色主键，采用 UUID 自动生成
+     */
+    private String roleUuid;
 
-    List<UserAndTeacherDO> getTeacherAndUserQueryAsc(String departmentUuid, Integer status, String name, Integer page, Integer size);
+    /**
+     * 角色名
+     */
+    private String roleName;
 }

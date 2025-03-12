@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -35,6 +35,7 @@ import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherMapper;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
+import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
@@ -46,6 +47,7 @@ import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 教师数据访问对象
@@ -157,7 +159,7 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
                 transaction.commit();
             } else {
                 transaction.rollback();
-                throw new BusinessException("未找到对应的教师信息", ErrorCode.NOT_EXIST);
+                throw new BusinessException(StringConstant.TEACHER_NOT_EXIST, ErrorCode.NOT_EXIST);
             }
         } catch (Exception e) {
             log.error("更新教师信息失败", e);
@@ -229,5 +231,72 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
 
+    }
+
+    /**
+     * 获取教师列表
+     *
+     * @param page   页码
+     * @param size   每页数量
+     * @param isDesc 是否按创建时间降序排序
+     * @param status 教师状态
+     * @param name   教师姓名
+     * @return 返回包含教师列表的分页对象
+     */
+    @Nullable
+    public List<UserAndTeacherDO> getTeacherList(Integer page, Integer size, Boolean isDesc, String departmentUuid, @Nullable Integer status, String name) {
+        // 计算分页的起始位置
+        Integer startPage = (page - 1) * size;
+
+        List<UserAndTeacherDO> getTeacherDO;
+
+        // 根据是否降序选择不同的查询方法
+        if (Boolean.TRUE.equals(isDesc)) {
+            getTeacherDO = this.baseMapper.getTeacherAndUserQueryDesc(
+                    departmentUuid,
+                    status,
+                    name,
+                    startPage,
+                    size
+            );
+        } else {
+            getTeacherDO = this.baseMapper.getTeacherAndUserQueryAsc(
+                    departmentUuid,
+                    status,
+                    name,
+                    startPage,
+                    size
+            );
+        }
+
+        return getTeacherDO.isEmpty() ? null : getTeacherDO;
+    }
+
+    /**
+     * 更新教师信息
+     * 此方法通过更新数据库中的教师记录并同步更新Redis缓存来保证数据一致性
+     * 它首先在数据库中更新教师信息，然后删除Redis中与该教师相关的缓存数据，以确保缓存不会出现过期或不一致的情况
+     *
+     * @param teacherDO 包含要更新的教师信息的对象
+     * @throws ServerInternalErrorException 如果数据库操作失败，则抛出此异常
+     */
+    public void updateTeacher(TeacherDO teacherDO) {
+        // 创建Redis事务，以确保所有缓存更新操作要么全部执行成功，要么全部失败，从而保证数据一致性
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            // 更新数据库中的教师记录
+            this.updateById(teacherDO);
+
+            // 删除Redis中与该教师相关的缓存数据，包括教师ID、教师UUID和用户UUID对应的缓存
+            transaction.getBucket(StringConstant.Redis.TEACHER_ID + teacherDO.getId()).delete();
+            transaction.getMap(StringConstant.Redis.TEACHER_UUID + teacherDO.getTeacherUuid()).delete();
+            transaction.getBucket(StringConstant.Redis.TEACHER_USER_UUID + teacherDO.getUserUuid()).delete();
+
+            // 提交事务，执行所有缓存更新操作
+            transaction.commit();
+        } catch (Exception e) {
+            // 如果在操作过程中发生任何异常，抛出自定义异常表示数据库操作失败
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
     }
 }
