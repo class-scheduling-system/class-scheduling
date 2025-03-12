@@ -4,11 +4,13 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
+import com.frontleaves.scheduling.daos.TeacherTypeDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDTO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
+import com.frontleaves.scheduling.models.entity.TeacherTypeDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.services.TeacherService;
 import com.xlf.utility.util.PasswordUtil;
@@ -17,6 +19,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +45,8 @@ class TeacherListTest {
     private List<UserDO> testUsers;
     private DepartmentDO testDepartment;
     private String testTeacherName;
+    @Autowired
+    private TeacherTypeDAO teacherTypeDAO;
 
     /**
      * 测试前准备，创建测试用教师数据
@@ -81,6 +86,8 @@ class TeacherListTest {
             userDAO.save(user);
             testUsers.add(user);
 
+            TeacherTypeDO teacherTypeDO = teacherTypeDAO.lambdaQuery().eq(TeacherTypeDO::getTypeName, "辅导员").one();
+
             // 创建教师
             TeacherDO teacher = new TeacherDO();
             teacher.setTeacherUuid(UuidUtil.generateUuidNoDash())
@@ -91,6 +98,7 @@ class TeacherListTest {
                     .setEnglishName("TestTeacher" + i)
                     .setEthnic("汉族")
                     .setSex(i % 2 == 0)
+                    .setType(teacherTypeDO.getTeacherTypeUuid())
                     .setPhone("1380000000" + i)
                     .setEmail("testteacher" + i + "@test.com")
                     .setJobTitle("讲师")
@@ -124,6 +132,7 @@ class TeacherListTest {
                 redisson.getMap(StringConstant.Redis.TEACHER_UUID + teacher.getTeacherUuid()).delete();
                 redisson.getBucket(StringConstant.Redis.TEACHER_ID + teacher.getId()).delete();
                 redisson.getBucket(StringConstant.Redis.TEACHER_USER_UUID + teacher.getUserUuid()).delete();
+                redisson.getBucket(StringConstant.Redis.TEACHER_TYPE_UUID + teacher.getType()).delete();
             }
         }
 
