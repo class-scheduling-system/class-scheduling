@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -26,72 +26,26 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.daos;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
-import lombok.experimental.Accessors;
-
-import java.sql.Timestamp;
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.mappers.GradeMapper;
+import com.frontleaves.scheduling.models.entity.GradeDO;
+import org.springframework.stereotype.Repository;
 
 /**
- * 专业表实体类
+ * 年级数据访问对象
  * <p>
- * 对应数据库表：`cs_major`
- * 主键为 major_uuid，类型为 UUID 自动生成。
+ * 此类继承自ServiceImpl，实现IService接口，主要负责对年级（Grade）数据的操作，
+ * 包括但不限于增、删、改、查等数据库操作。通过与GradeMapper的交互，
+ * 提供了面向业务的数据库访问方法。
  * </p>
  *
  * @author FLASHLACK
  * @version v1.0.0
  * @since v1.0.0
  */
-@Data
-@TableName("cs_major")
-@Accessors(chain = true)
-public class MajorDO {
-    /**
-     * 专业主键，自增
-     */
-    @TableId(value = "major_uuid", type = IdType.ASSIGN_UUID)
-    private String majorUuid;
-    /**
-     * 专业名称
-     */
-    private String majorName;
-    /**
-     * 专业描述
-     */
-    private String majorDescription;
-    /**
-     * 专业代码
-     */
-    private String majorCode;
-    /**
-     * 专业状态，0：禁用，1：启用
-     */
-    private Boolean majorStatus;
-    /**
-     * 专业所属学院UUID
-     */
-    private String departmentUuid;
-    /**
-     * 学制（年）
-     */
-    private Short educationYears;
-    /**
-     * 培养层次
-     */
-    private String trainingLevel;
-    /**
-     * 创建时间
-     */
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    private Timestamp updatedAt;
-
+@Repository
+public class GradeDAO extends ServiceImpl<GradeMapper, GradeDO> implements IService<GradeDO> {
 }

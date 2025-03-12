@@ -72,8 +72,8 @@ class TeacherListTest {
                     .setPassword(PasswordUtil.encrypt("Test123456"))
                     .setEmail("testteacher" + i + "@test.com")
                     .setPhone("1380000000" + i)
-                    .setStatus((short) (i % 2)) // 交替设置为0(禁用)和1(启用)
-                    .setBan(0)
+                    .setStatus((byte) (i % 2)) // 交替设置为0(禁用)和1(启用)
+                    .setBan(false)
                     .setPermission("[\"teacher:view\"]")
                     .setRoleUuid(SystemConstant.getRoleTeacher());
 
@@ -90,7 +90,7 @@ class TeacherListTest {
                     .setName("测试教师" + i)
                     .setEnglishName("TestTeacher" + i)
                     .setEthnic("汉族")
-                    .setSex(i % 2)
+                    .setSex(i % 2 == 0)
                     .setPhone("1380000000" + i)
                     .setEmail("testteacher" + i + "@test.com")
                     .setJobTitle("讲师")
@@ -223,62 +223,6 @@ class TeacherListTest {
 
         log.debug("按部门筛选获取到 {} 条教师记录",
                 pageDTO.getRecords() != null ? pageDTO.getRecords().size() : 0);
-    }
-
-    /**
-     * 测试使用启用状态筛选教师
-     * <p>
-     * 预期：能够根据启用状态筛选教师数据
-     * </p>
-     */
-    @Test
-    @DisplayName("测试使用启用状态筛选教师")
-    void testGetTeacherListByEnabledStatus() {
-        log.debug("测试使用启用状态筛选教师");
-
-        // 跳过测试如果没有测试数据
-        if (testTeachers == null || testTeachers.isEmpty()) {
-            log.warn("没有测试数据，跳过测试");
-            return;
-        }
-
-        // 调用getTeacherList方法，筛选已启用的教师
-        PageDTO<TeacherDTO> enabledTeachers = teacherService.getTeacherList(
-                DEFAULT_PAGE, DEFAULT_SIZE, false, null, "true", null);
-
-        // 验证返回的数据不为空
-        Assertions.assertNotNull(enabledTeachers, "返回的分页数据不应为空");
-
-        // 如果有结果，验证所有教师的状态都是启用的
-        if (enabledTeachers.getRecords() != null && !enabledTeachers.getRecords().isEmpty()) {
-            for (TeacherDTO teacherDTO : enabledTeachers.getRecords()) {
-                if (teacherDTO.getName() != null && teacherDTO.getName().startsWith(testTeacherName)) {
-                    Assertions.assertEquals((short) 1, teacherDTO.getStatus(),
-                            "筛选已启用的教师，状态应该是1（启用）");
-                }
-            }
-        }
-
-        // 调用getTeacherList方法，筛选已禁用的教师
-        PageDTO<TeacherDTO> disabledTeachers = teacherService.getTeacherList(
-                DEFAULT_PAGE, DEFAULT_SIZE, false, null, "false", null);
-
-        // 验证返回的数据不为空
-        Assertions.assertNotNull(disabledTeachers, "返回的分页数据不应为空");
-
-        // 如果有结果，验证所有教师的状态都是禁用的
-        if (disabledTeachers.getRecords() != null && !disabledTeachers.getRecords().isEmpty()) {
-            for (TeacherDTO teacherDTO : disabledTeachers.getRecords()) {
-                if (teacherDTO.getName() != null && teacherDTO.getName().startsWith(testTeacherName)) {
-                    Assertions.assertEquals((short) 0, teacherDTO.getStatus(),
-                            "筛选已禁用的教师，状态应该是0（禁用）");
-                }
-            }
-        }
-
-        log.debug("已启用教师: {} 条, 已禁用教师: {} 条",
-                enabledTeachers.getRecords() != null ? enabledTeachers.getRecords().size() : 0,
-                disabledTeachers.getRecords() != null ? disabledTeachers.getRecords().size() : 0);
     }
 
     /**

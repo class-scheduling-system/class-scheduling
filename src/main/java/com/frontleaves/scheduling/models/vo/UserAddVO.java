@@ -55,6 +55,6 @@ public class UserAddVO {
      */
     @Max(value = 1,message = "权限类型不正确")
     @Min(value = 0,message = "权限类型不正确")
-    private Integer type;
+    private Byte type;
 
 }

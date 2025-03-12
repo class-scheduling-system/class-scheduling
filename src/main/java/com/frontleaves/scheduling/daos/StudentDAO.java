@@ -41,11 +41,13 @@ import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 学生数据访问对象类
@@ -225,6 +227,25 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
             log.error(LogConstant.DAO + "通过用户 UUID 获取学生信息失败", e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+    }
+
+    /**
+     * 根据专业唯一标识获取学生列表
+     *<p>
+     * 此方法通过专业唯一标识（majorUuid）查询数据库，获取所有该专业的学生列表
+     * 如果没有找到任何学生，即返回一个空列表，以避免返回null值导致的空指针异常
+     *</p>
+     *
+     * @param majorUuid 专业唯一标识，用于查询学生记录
+     * @return 包含StudentDO对象的列表，表示所有该专业的学生如果没有找到学生，则返回空列表
+     */
+    @NotNull
+    public List<StudentDO> getStudentByMajorUuid(String majorUuid) {
+        List<StudentDO> getList = this.lambdaQuery().eq(StudentDO::getMajor, majorUuid).list();
+        if (getList == null || getList.isEmpty()) {
+            return List.of();
+        }
+        return getList;
     }
 }
 

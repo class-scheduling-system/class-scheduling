@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -29,68 +29,64 @@
 package com.frontleaves.scheduling.models.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.sql.Date;
 import java.sql.Timestamp;
 
 /**
- * 学生信息实体类
+ * 年级表实体类
  * <p>
- * 对应数据库表：`cs_student`
- * 本类用于描述学生的基本信息，包括学号、姓名、性别、年级、学院、专业、班级等，
- * 并关联了用户主键。主键(student_uuid)采用 UUID 自动生成。
+ * 对应数据库表：`cs_grade`
+ * 主键为 grade_uuid，类型为 UUID 自动生成。
  * </p>
  *
  * @author FLASHLACK
  * @version v1.0.0
  * @since v1.0.0
  */
+@TableName(value = "cs_grade")
 @Data
-@TableName(value = "cs_student")
 @Accessors(chain = true)
-public class StudentDO {
+@NoArgsConstructor
+@AllArgsConstructor
+public class GradeDO {
     /**
-     * 学生主键，采用 UUID 自动生成
+     * 年级主键
      */
-    @TableId(value = "student_uuid", type = IdType.ASSIGN_UUID)
-    private String studentUuid;
+    @TableId(value = "grade_uuid", type = IdType.ASSIGN_UUID)
+    private String gradeUuid;
+
     /**
-     * 学号
-     */
-    private String id;
-    /**
-     * 姓名
+     * 年级名称（如：2020级、2021级）
      */
     private String name;
+
     /**
-     * 性别 0:女 1:男
+     * 入学年份
      */
-    private Boolean gender;
+    private Short year;
+
     /**
-     * 年级
+     * 年级开始日期
      */
-    private String gradeUuid;
+    private Date startDate;
+
     /**
-     * 学院
+     * 年级结束日期
      */
-    private String department;
+    private Date endDate;
+
     /**
-     * 专业
+     * 年级描述
      */
-    private String major;
-    /**
-     * 班级
-     */
-    @TableField(value = "class")
-    private String clazz;
-    /**
-     * 对应用户主键
-     */
-    private String userUuid;
+    private String description;
+
     /**
      * 创建时间
      */
@@ -100,10 +96,4 @@ public class StudentDO {
      * 更新时间
      */
     private Timestamp updatedAt;
-
-    /**
-     * 是否毕业 0:未毕业 1:已毕业
-     */
-    @TableField(value = "is_graduated")
-    private Boolean graduated;
 }

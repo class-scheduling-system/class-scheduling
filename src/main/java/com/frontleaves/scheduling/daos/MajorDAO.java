@@ -28,11 +28,26 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.text.CharSequenceUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.MajorMapper;
 import com.frontleaves.scheduling.models.entity.MajorDO;
+import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.util.ConvertUtil;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+
+import java.time.Duration;
+import java.util.List;
 
 /**
  * 专业数据访问对象
@@ -48,4 +63,112 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IService<MajorDO> {
+
+    private final RedissonClient redisson;
+    private final DepartmentDAO departmentDAO;
+    private final StudentDAO studentDAO;
+
+    @Autowired
+    public MajorDAO(RedissonClient redisson, DepartmentDAO departmentDAO, StudentDAO studentDAO) {
+        this.redisson = redisson;
+        this.departmentDAO = departmentDAO;
+        this.studentDAO = studentDAO;
+    }
+
+    /**
+     * 根据专业 UUID 获取专业信息
+     */
+    public MajorDO getMajorByUuid(String majorUuid) {
+        // 先从 Redis 查询
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.MAJOR_UUID + majorUuid);
+        if (!map.isExists()) {
+            // Redis无数据,查询数据库
+            MajorDO majorDO = this.getById(majorUuid);
+            if (majorDO != null) {
+                map.putAll(ConvertUtil.convertObjectToMapString(majorDO));
+                map.expire(Duration.ofSeconds(86400));
+                return majorDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, MajorDO.class);
+        }
+        return null;
+    }
+
+    /**
+     * 判断专业是否被系统中其他数据引用
+     *
+     * @param majorUuid 专业UUID
+     */
+    public void isReferenced(String majorUuid) {
+        // 1.检查该专业是否存在
+        MajorDO getMajor = this.getById(majorUuid);
+        if (getMajor == null) {
+            throw new BusinessException("该专业不存在", ErrorCode.BODY_ERROR);
+        }
+
+        // 2. 检查学生是否绑定了该专业
+        List<StudentDO> getStudentList = studentDAO.getStudentByMajorUuid(majorUuid);
+        if (!getStudentList.isEmpty()) {
+            throw new BusinessException("该专业已被学生绑定，无法删除", ErrorCode.BODY_ERROR);
+        }
+    }
+
+    /**
+     * 删除专业(仅在未被引用的情况下)
+     *
+     * @param majorUuid 专业 UUID
+     * @return 是否删除成功
+     */
+    public boolean deleteMajor(String majorUuid) {
+        // 检查该专业是否已被其他实体引用
+        this.isReferenced(majorUuid);
+
+        redisson.getKeys().delete(StringConstant.Redis.MAJOR_UUID + majorUuid);
+        int deletedRows = this.getBaseMapper().delete(
+                new LambdaQueryWrapper<MajorDO>().eq(MajorDO::getMajorUuid, majorUuid)
+        );
+        // 根据删除结果返回
+        if (deletedRows > 0) {
+            return true;
+        } else {
+            throw new BusinessException("专业删除失败", ErrorCode.BODY_ERROR);
+        }
+    }
+
+    /**
+     * 查询专业列表
+     *
+     * @param page     页码
+     * @param size     每页记录数
+     * @param isDesc   是否降序排列（null或true为降序，false为升序）
+     * @param department   学院名称，用于模糊查询
+     * @param name     专业名称，用于模糊查询
+     * @return 返回包含专业列表的Page对象
+     */
+    public Page<MajorDO> listMajors(int page, int size, Boolean isDesc, String department, String name) {
+        Page<MajorDO> pageParam = new Page<>(page, size);
+        LambdaQueryWrapper<MajorDO> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 查看学院名称是否为空
+        if (CharSequenceUtil.isNotBlank(department)) {
+            List<String> departmentUuids = departmentDAO.getDepartmentUuidByName(department);
+            if (departmentUuids.isEmpty()) {
+                throw new BusinessException("学院不存在", ErrorCode.BODY_ERROR);
+            } else {
+                queryWrapper.in(MajorDO::getDepartmentUuid, departmentUuids);
+            }
+        }
+
+        // 查看专业名称是否为空
+        if (CharSequenceUtil.isNotBlank(name)) {
+            queryWrapper.like(MajorDO::getMajorName, name);
+        }
+        // 根据isDesc参数决定排序方式
+        queryWrapper.orderBy(isDesc == null || isDesc, false, MajorDO::getCreatedAt);
+
+        return this.page(pageParam, queryWrapper);
+    }
+
 }
+
