@@ -2,10 +2,7 @@ package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
-import com.frontleaves.scheduling.daos.DepartmentDAO;
-import com.frontleaves.scheduling.daos.MajorDAO;
-import com.frontleaves.scheduling.daos.StudentDAO;
-import com.frontleaves.scheduling.daos.UserDAO;
+import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.MajorDO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
@@ -42,6 +39,10 @@ class StudentTest {
     private MajorDAO majorDAO;
     @Resource
     private RedissonClient redisson;
+    @Resource
+    private AdministrativeClassDAO administrativeClassDAO;
+    @Resource
+    private GradeDAO gradeDAO;
     private StudentDO setUpStudent;
     private UserDO setUpUser;
 
@@ -92,19 +93,21 @@ class StudentTest {
         }
         userDAO.save(setUpUser);
         setUpStudent = new StudentDO();
+        log.debug("初始化学生信息");
         setUpStudent.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("1")
                 .setName("ZhangSan1314")
                 .setGender(true)
-                // TODO
-                .setGradeUuid("2022")
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
-                .setClazz("1班")
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false)
                 .setUserUuid(setUpUser.getUserUuid());
         if (studentDAO.lambdaQuery().eq(StudentDO::getName, setUpStudent.getName()).one() != null) {
             studentDAO.lambdaUpdate().eq(StudentDO::getName, setUpStudent.getName()).remove();
         }
+        log.debug("保存数据");
         studentDAO.save(setUpStudent);
         //添加缓存
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_UUID + setUpStudent.getStudentUuid());
