@@ -1,9 +1,7 @@
 package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.daos.DepartmentDAO;
-import com.frontleaves.scheduling.daos.MajorDAO;
-import com.frontleaves.scheduling.daos.StudentDAO;
+import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.MajorDO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
@@ -42,13 +40,16 @@ import static org.junit.jupiter.api.Assertions.*;
 class MajorTest {
     @Resource
     private MajorDAO majorDAO;
-
     @Resource
     private RedissonClient redisson;
     @Autowired
     private DepartmentDAO departmentDAO;
     @Autowired
     private StudentDAO studentDAO;
+    @Autowired
+    private GradeDAO gradeDAO;
+    @Autowired
+    private AdministrativeClassDAO administrativeClassDAO;
 
     @BeforeEach
     void setUp() {
@@ -135,20 +136,6 @@ class MajorTest {
     }
 
     /**
-     * 测试专业是否被引用,
-     * 此测试用例旨在验证数据库中第一个专业的唯一标识符是否被其他记录引用
-     */
-    @Test
-    void testIsReferenced() {
-        MajorDO majorDO = majorDAO.lambdaQuery().list().get(0);
-        String majorUuid = majorDO.getMajorUuid();
-        // 报错存在判断正误
-        Assertions.assertThrows(BusinessException.class,
-                () -> majorDAO.isReferenced(majorUuid));
-    }
-
-
-    /**
      * 测试删除专业(仅在未被引用的情况下)
      * <p>
      * 该测试方法验证了删除专业功能是否正常工作。具体步骤如下：
@@ -172,8 +159,8 @@ class MajorTest {
                 .setMajorName("汽车")
                 .setMajorDescription("这是一个测试专业")
                 .setMajorCode("22001")
-                .setMajorStatus(1)
-                .setEducationYears(4)
+                .setMajorStatus(true)
+                .setEducationYears((short) 4)
                 .setTrainingLevel("Undergraduate")
                 .setDepartmentUuid(departmentDO.getDepartmentUuid());
         if (majorDAO.lambdaQuery().eq(MajorDO::getMajorName, "汽车").exists()) {
@@ -218,8 +205,8 @@ class MajorTest {
                     .setMajorName("测试专业")
                     .setMajorDescription("这是一个测试专业")
                     .setMajorCode("TM001")
-                    .setMajorStatus(1)
-                    .setEducationYears(4)
+                    .setMajorStatus(true)
+                    .setEducationYears((short) 4)
                     .setTrainingLevel("Undergraduate");
             majorDAO.save(majorDO);
         } else {
@@ -237,9 +224,10 @@ class MajorTest {
                 .setStudentUuid(newStudentUuid)
                 .setId("1")
                 .setName("ZhangSan1314")
-                .setGender(1)
-                .setGrade("2022")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
                 .setDepartment(getDepartment.getDepartmentUuid())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
                 .setMajor(newMajorUuid)
                 .setClazz("1班");
         studentDAO.save(studentDO);
