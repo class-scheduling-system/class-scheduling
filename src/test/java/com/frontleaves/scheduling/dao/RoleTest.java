@@ -171,14 +171,14 @@ class RoleTest {
 
         // 确保任何状态为0的角色都没有出现在结果中
         long inactiveRolesCount = allRoles.stream()
-                .filter(role -> role.getRoleStatus() == 0)
+                .filter(role -> Boolean.FALSE.equals(role.getRoleStatus()))
                 .count();
 
         // 如果存在未激活角色，验证它们是否被排除
         if (inactiveRolesCount > 0) {
             // 获取所有未激活角色的UUID
             List<String> inactiveRoleUuids = allRoles.stream()
-                    .filter(role -> role.getRoleStatus() == 0)
+                    .filter(role -> Boolean.FALSE.equals(role.getRoleStatus()))
                     .map(RoleDO::getRoleUuid)
                     .toList();
 

@@ -81,7 +81,7 @@ public class CampusDO {
      * 校区状态 0:禁用 1:启用
      */
     @TableField("campus_status")
-    private Integer campusStatus;
+    private Boolean campusStatus;
 
     /**
      * 校区地址
@@ -98,4 +98,14 @@ public class CampusDO {
      * 更新时间
      */
     private Timestamp updatedAt;
+
+    /**
+     * 纬度
+     */
+    private Double latitude;
+
+    /**
+     * 经度
+     */
+    private Double longitude;
 }

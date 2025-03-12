@@ -71,7 +71,7 @@ public class MajorDO {
     /**
      * 专业状态，0：禁用，1：启用
      */
-    private Integer majorStatus;
+    private Boolean majorStatus;
     /**
      * 专业所属学院UUID
      */
@@ -79,7 +79,7 @@ public class MajorDO {
     /**
      * 学制（年）
      */
-    private Integer educationYears;
+    private Short educationYears;
     /**
      * 培养层次
      */

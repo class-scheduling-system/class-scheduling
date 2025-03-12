@@ -94,8 +94,9 @@ class AuthTest {
         studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("22344")
                 .setName("testCheckLoginForNewUser")
-                .setGender(1)
-                .setGrade("2022")
+                .setGender(true)
+                // TODO
+                .setGradeUuid("2022")
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
                 .setClazz("1班");
@@ -126,7 +127,7 @@ class AuthTest {
                 .setName("teacherDAOTest")
                 .setEnglishName("ZhangSeng")
                 .setEthnic("汉族")
-                .setSex(1)
+                .setSex(true)
                 .setPhone("14452873800")
                 .setEmail("qwerasdfzxcv@qwer.com")
                 .setJobTitle("教授")
@@ -157,8 +158,9 @@ class AuthTest {
         studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("22344")
                 .setName("testCheckLoginForNewUser")
-                .setGender(1)
-                .setGrade("2022")
+                .setGender(true)
+                // TODO
+                .setGradeUuid("2022")
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
                 .setClazz("1班");
@@ -201,7 +203,7 @@ class AuthTest {
                 .setName("AuthTest")
                 .setEnglishName("ZhangSeng")
                 .setEthnic("汉族")
-                .setSex(1)
+                .setSex(true)
                 .setPhone("14452873800")
                 .setEmail("AuthTest@text.com")
                 .setJobTitle("教授")

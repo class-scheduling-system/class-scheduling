@@ -83,8 +83,8 @@ class StudentTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("studentDAOTest@qwer.com")
                 .setPhone("14452873800")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setRoleUuid(SystemConstant.getRoleStudent())
                 .setPermission("[\"user:role:edit\"]");
         if (userDAO.lambdaQuery().eq(UserDO::getName, setUpUser.getName()).one() != null) {
@@ -95,8 +95,9 @@ class StudentTest {
         setUpStudent.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("1")
                 .setName("ZhangSan1314")
-                .setGender(1)
-                .setGrade("2022")
+                .setGender(true)
+                // TODO
+                .setGradeUuid("2022")
                 .setDepartment(getDepartmentByName().getDepartmentUuid())
                 .setMajor(getMajorByName().getMajorUuid())
                 .setClazz("1班")
@@ -162,8 +163,8 @@ class StudentTest {
                 .setPassword(PasswordUtil.encrypt("123456Aa"))
                 .setEmail("studentDAONewTestUser@qwer.com")
                 .setPhone("15859273800")
-                .setStatus((short) 1)
-                .setBan(0)
+                .setStatus((byte) 1)
+                .setBan(false)
                 .setRoleUuid(SystemConstant.getRoleStudent())
                 .setPermission("[\"user:role:edit\"]");
         if (userDAO.lambdaQuery().eq(UserDO::getName, newTestUserDO.getName()).one() != null) {
