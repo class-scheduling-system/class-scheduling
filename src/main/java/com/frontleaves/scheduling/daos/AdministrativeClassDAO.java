@@ -28,11 +28,19 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.AdministrativeClassMapper;
 import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+import com.xlf.utility.util.ConvertUtil;
+import lombok.RequiredArgsConstructor;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
+
+import java.time.Duration;
 
 /**
  * 行政班数据访问对象
@@ -47,5 +55,41 @@ import org.springframework.stereotype.Repository;
  * @since v1.0.0
  */
 @Repository
-public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMapper, AdministrativeClassDO> implements IService<AdministrativeClassDO> {
+@RequiredArgsConstructor
+public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMapper, AdministrativeClassDO>
+        implements IService<AdministrativeClassDO> {
+
+    private final RedissonClient redisson;
+
+
+    /**
+     * 根据UUID获取行政班级信息
+     * 首先尝试从Redis中获取行政班级信息，如果不存在，则从数据库中获取，并将其存入Redis中以供下次快速访问
+     *
+     * @param uuid 行政班级的唯一标识符
+     * @return 返回行政班级对象，如果找不到则返回null
+     */
+    public AdministrativeClassDO getAdministrativeClassByUuid(String uuid) {
+        // 构造Redis中行政班级信息的键
+        RMap<String,String> rMap = redisson.getMap(StringConstant.Redis.ADMINISTRATIVE_CLASS_UUID + uuid);
+        // 检查Redis中是否存在该行政班级信息
+        if (!rMap.isExists()){
+            // 如果Redis中不存在，从数据库中获取行政班级信息
+            AdministrativeClassDO administrativeClassDO = this.getById(uuid);
+            // 如果从数据库中获取到行政班级信息
+            if (administrativeClassDO != null){
+                // 将行政班级信息转换为Map并存入Redis中
+                rMap.putAll(ConvertUtil.convertObjectToMapString(administrativeClassDO));
+                // 设置Redis中行政班级信息的过期时间为86400秒（1天）
+                rMap.expire(Duration.ofSeconds(86400));
+                // 返回从数据库中获取到的行政班级信息
+                return administrativeClassDO;
+            }
+        }else {
+            // 如果Redis中存在行政班级信息，将其转换为AdministrativeClassDO对象并返回
+            return BeanUtil.toBean(rMap,AdministrativeClassDO.class);
+        }
+        // 如果既没有从数据库中获取到信息，Redis中也没有信息，则返回null
+        return  null;
+    }
 }
