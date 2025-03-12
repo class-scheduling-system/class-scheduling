@@ -17,6 +17,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StudentVO {
+    @NotBlank(message = "学生UUID不能为空")
+    private String studentUuid;
+
     @NotBlank(message = "学号不能为空")
     private String id;
 
@@ -39,6 +42,6 @@ public class StudentVO {
 
     private String userUuid;
 
-    @NotBlank(message = "毕业状态不能为空")
-    private String isGraduated;
+    @NotNull(message = "毕业状态不能为空")
+    private Boolean isGraduated;
 }

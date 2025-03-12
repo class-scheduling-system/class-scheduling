@@ -64,6 +64,11 @@ public class StudentDTO {
     private String clazz;
 
     /**
+     * 是否毕业
+     */
+    private Boolean isGraduated;
+
+    /**
      * 对应用户主键
      */
     private String userUuid;

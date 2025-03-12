@@ -29,12 +29,16 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.text.CharSequenceUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.StudentMapper;
 import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
@@ -227,6 +231,75 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
             log.error(LogConstant.DAO + "通过用户 UUID 获取学生信息失败", e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+    }
+
+    public Page<StudentDO> listStudents(int page, int size, Boolean isDesc, @Nullable String clazz, @Nullable Boolean isGraduated,  @Nullable String name, @Nullable String id) {
+        // 选填字段均为空，返回空页
+        if (CharSequenceUtil.isBlank(clazz) && CharSequenceUtil.isBlank(name) && CharSequenceUtil.isBlank(id)) {
+            return new Page<>(page, size);
+        }
+
+        Page<StudentDO> pageParam = new Page<>(page, size);
+        LambdaQueryWrapper<StudentDO> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 查看班级是否为空
+        if (CharSequenceUtil.isNotBlank(clazz)) {
+            queryWrapper.like(StudentDO::getClazz, clazz);
+        }
+        // 查看学生状态
+        if (Boolean.FALSE.equals(isGraduated)) {
+            queryWrapper.like(StudentDO::getGradeUuid, isGraduated);
+        }
+        // 查看姓名是否为空
+        if(CharSequenceUtil.isNotBlank(name)) {
+            queryWrapper.like(StudentDO::getName, name);
+        }
+        // 查看学号是否为空
+        if(CharSequenceUtil.isNotBlank(id)) {
+            queryWrapper.like(StudentDO::getId, id);
+        }
+        // 根据 isDesc 进行排序
+        queryWrapper.orderBy(isDesc != null && isDesc, false, StudentDO::getCreatedAt);
+        return this.page(pageParam, queryWrapper);
+    }
+
+    public StudentDO editStudent(String studentUuid, StudentVO studentVO) {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            // 先查询学生，如果不存在则抛出异常
+            StudentDO studentDO = this.getStudentByUuid(studentUuid);
+            if (studentDO == null) {
+                throw new BusinessException("未找到该学生信息", ErrorCode.NOT_EXIST);
+            }
+            // 更新学生信息
+            BeanUtil.copyProperties(studentVO, studentDO);
+            // 更新数据库
+            boolean success = this.lambdaUpdate()
+                    .eq(StudentDO::getStudentUuid, studentUuid)
+                    .update(studentDO);
+            if (!success) {
+                transaction.rollback();
+                throw new ServerInternalErrorException("学生信息更新失败");
+            }
+            // 更新缓存
+            RMap<String, String> studentMap = transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentUuid);
+            studentMap.putAll(ConvertUtil.convertObjectToMapString(studentDO));
+            studentMap.expire(Duration.ofSeconds(86400));
+
+            transaction.commit();
+            return studentDO;
+        } catch (Exception e) {
+            transaction.rollback();
+            log.error(LogConstant.DAO + "编辑学生信息失败", e);
+            throw new ServerInternalErrorException("学生信息更新失败");
+        }
+    }
+
+    public boolean updateStudentStatus(String studentUuid, boolean disable) {
+        return this.lambdaUpdate()
+                .eq(StudentDO::getStudentUuid, studentUuid)
+                .set(StudentDO::getDisabled, disable)
+                .update();
     }
 
     /**
