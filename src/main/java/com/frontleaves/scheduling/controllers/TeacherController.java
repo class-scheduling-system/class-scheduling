@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
@@ -39,6 +40,7 @@ public class TeacherController {
      * @param teacherVO 教师添加请求对象，包含需要验证的教师信息
      * @return 返回包含成功消息的响应实体
      */
+    @RequestRole({"教务"})
     @PostMapping("")
     public ResponseEntity<BaseResponse<Void>>addTeacher(
             @RequestBody @Validated TeacherVO teacherVO
@@ -57,7 +59,7 @@ public class TeacherController {
      * 表示参数错误接着，调用教师服务的getTeacher方法获取教师信息最后，使用ResultUtil
      * 工具类生成包含“查询成功”消息和教师信息的响应实体返回
      */
-
+    @RequestRole({"教务"})
     @GetMapping("/{teacher_uuid}")
     public ResponseEntity<BaseResponse<TeacherDTO>> getTeacher(
             @PathVariable("teacher_uuid") String teacherUuid
@@ -81,6 +83,7 @@ public class TeacherController {
      * @param name        教师姓名，可选参数，如果提供，则按姓名筛选教师
      * @return            返回包含教师列表的PageDTO对象，封装在BaseResponse中
      */
+    @RequestRole({"教务", "管理员"})
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<PageDTO<TeacherDTO>>> getTeacherList(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
@@ -104,6 +107,7 @@ public class TeacherController {
      * @param disable     是否禁用教师，true表示禁用，false表示启用
      * @return           返回包含禁用操作结果的响应实体
      */
+    @RequestRole({"教务"})
     @PutMapping("/disable/{teacher_uuid}")
     public ResponseEntity<BaseResponse<TeacherDisableDTO>> disableTeacher(
             @PathVariable("teacher_uuid") String teacherUuid,
@@ -123,6 +127,7 @@ public class TeacherController {
      * @param teacherUuid 教师的唯一标识符（UUID）
      * @return           返回包含删除操作结果的响应实体
      */
+    @RequestRole({"教务"})
     @DeleteMapping("/{teacher_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteTeacher(
             @PathVariable("teacher_uuid") String teacherUuid
@@ -141,6 +146,7 @@ public class TeacherController {
      * @param teacherVO   教师更新请求对象，包含需要验证的教师信息
      * @return           返回包含更新操作结果的响应实体
      */
+    @RequestRole({"教务"})
     @PutMapping("/{teacher_uuid}")
     public ResponseEntity<BaseResponse<Void>> updateTeacher(
             @PathVariable("teacher_uuid") String teacherUuid,

@@ -1,7 +1,9 @@
 package com.frontleaves.scheduling.models.vo;
 
+import com.frontleaves.scheduling.constants.StringConstant;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,16 +16,19 @@ public class TeacherVO {
      * 单位主键
      */
     @NotBlank(message = "单位主键不能为空")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "单位主键格式不正确")
     private String unitUuid;
     /**
      * 用户主键
      */
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "用户主键格式不正确")
     @NotBlank(message = "用户主键不能为空")
     private String userUuid;
     /**
      * 教师工号
      */
     @NotBlank(message = "教师工号不能为空")
+    @Pattern(regexp = StringConstant.Regular.SERIAL_NUMBER_REGULAR_EXPRESSION, message = "教师工号格式不正确")
     private String id;
     /**
      * 教师姓名
@@ -49,14 +54,17 @@ public class TeacherVO {
      * 教师类型
      */
     @NotBlank(message = "教师类型不能为空")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "教师类型格式不正确")
     private String type;
     /**
      * 教师电话
      */
+    @Pattern(regexp = StringConstant.Regular.PHONE_REGULAR_EXPRESSION_ABLE_EMPTY, message = "电话格式不正确")
     private String phone;
     /**
      * 教师邮箱
      */
+    @Pattern(regexp = StringConstant.Regular.EMAIL_REGULAR_EXPRESSION_ABLE_EMPTY, message = "邮箱格式不正确")
     private String email;
     /**
      * 教师职称
