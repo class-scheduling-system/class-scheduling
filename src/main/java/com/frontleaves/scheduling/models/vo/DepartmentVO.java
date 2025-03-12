@@ -1,13 +1,11 @@
 package com.frontleaves.scheduling.models.vo;
 
-import com.baomidou.mybatisplus.annotation.TableName;
 import com.frontleaves.scheduling.constants.StringConstant;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -26,6 +24,7 @@ public class DepartmentVO {
      * 部门编码
      */
     @NotBlank(message = "部门编码不能为空")
+    @Pattern(regexp = StringConstant.Regular.SERIAL_NUMBER_REGULAR_EXPRESSION, message = "部门编码格式不正确")
     private String departmentCode;
 
     /**
@@ -124,6 +123,7 @@ public class DepartmentVO {
     /**
      * 固定电话
      */
+    @Pattern(regexp = StringConstant.Regular.FIXED_PHONE_REGULAR_EXPRESSION_ABLE_EMPTY, message = "固定电话格式不正确")
     private String fixedPhone;
 
     /**

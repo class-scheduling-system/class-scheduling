@@ -4,12 +4,14 @@ import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
+import com.frontleaves.scheduling.daos.TeacherTypeDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
+import com.frontleaves.scheduling.models.entity.TeacherTypeDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
@@ -31,6 +33,7 @@ public class TeacherLogic implements TeacherService {
     private final DepartmentDAO departmentDAO;
     private final UserDAO userDAO;
     private final TeacherDAO teacherDAO;
+    private final TeacherTypeDAO teacherTypeDAO;
 
     /**
      * 添加教师信息
@@ -56,6 +59,13 @@ public class TeacherLogic implements TeacherService {
         // 如果用户不存在，抛出业务异常
         if (userDO == null) {
             throw new BusinessException(StringConstant.USER_NOT_EXIST, ErrorCode.NOT_EXIST);
+        }
+
+        // 根据教师类型UUID获取教师类型信息
+        TeacherTypeDO teacherTypeDO = teacherTypeDAO.getTeacherTypeByUuid(teacherVO.getType());
+        // 如果教师类型不存在，抛出业务异常
+        if (teacherTypeDO == null) {
+            throw new BusinessException("教师类型不存在", ErrorCode.NOT_EXIST);
         }
 
         // 创建一个新的TeacherDO对象
@@ -240,6 +250,13 @@ public class TeacherLogic implements TeacherService {
                 UserDO getUser = userDAO.getUserByUuid(teacherVO.getUserUuid());
                 if (getUser == null) {
                     throw new BusinessException(StringConstant.USER_NOT_EXIST, ErrorCode.NOT_EXIST);
+                }
+            }
+            // 如果教师视图对象中包含教师类型UUID，则检查教师类型是否存在
+            if (teacherVO.getType() != null) {
+                TeacherTypeDO getType = teacherTypeDAO.getTeacherTypeByUuid(teacherVO.getType());
+                if (getType == null) {
+                    throw new BusinessException("教师类型不存在", ErrorCode.NOT_EXIST);
                 }
             }
             // 将视图对象中的属性复制到教师对象中，并更新数据库中的教师信息
