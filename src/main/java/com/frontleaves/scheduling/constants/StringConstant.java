@@ -89,6 +89,7 @@ public class StringConstant {
         public static final String CAMPUS_UUID = "campus:uuid:";
         public static final String CAMPUS_NAME = "campus:name:";
         public static final String CAMPUS_CODE = "campus:code:";
+        public static final String MAJOR_UUID = "major:uuid:";
         public static final String CAMPUS_LIST = "campus:list";
         public static final String CAMPUS_PAGE_OF_LIST = "campus:page:";
         public static final String DEPARTMENT_UUID = "department:uuid:";
@@ -159,6 +160,18 @@ public class StringConstant {
 
         private Regular() {
             log.error("Regular 不能被实例化");
+        }
+    }
+
+    /**
+     * 专业常量
+     */
+    public static class Major {
+        public static final String MAJOR_NOT_FOUND = "专业不存在";
+        public static final String MAJOR_UUID_FORMAT_ERROR = "majorUuid格式无效";
+
+        private Major() {
+            log.error("不能被实例化");
         }
     }
 }
