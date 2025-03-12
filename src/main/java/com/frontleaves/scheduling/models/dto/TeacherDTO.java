@@ -75,6 +75,11 @@ public class TeacherDTO {
     private String phone;
 
     /**
+     * 教师类型
+     */
+    private String type;
+
+    /**
      * 教师邮箱
      */
     private String email;

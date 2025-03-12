@@ -107,6 +107,7 @@ public class StringConstant {
         public static final String TABLES_CHAIRS_UUID = "tc:uuid:";
         public static final String ROLE_LIST = "role:list";
         public static final String BUILDING_KEY_LIST = "building:key:list";
+        public static final String TEACHER_TYPE_UUID = "teacher:type:UUID";
 
         private Redis() {
             log.error("Redis 不能被实例化");

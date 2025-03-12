@@ -28,11 +28,21 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherTypeMapper;
 import com.frontleaves.scheduling.models.entity.TeacherTypeDO;
+import com.xlf.utility.util.ConvertUtil;
+import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
+
+import java.time.Duration;
 
 /**
  * 教师类型数据访问对象
@@ -46,6 +56,26 @@ import org.springframework.stereotype.Repository;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 @Repository
+@RequiredArgsConstructor
 public class TeacherTypeDAO extends ServiceImpl<TeacherTypeMapper, TeacherTypeDO> implements IService<TeacherTypeDO> {
+
+    private final RedissonClient redisson;
+
+    public TeacherTypeDO getTeacherTypeByUuid(@NotNull String teacherTypeUuid) {
+        RMap<String,String> map =redisson.getMap(StringConstant.Redis.TEACHER_TYPE_UUID + teacherTypeUuid);
+        if (map.isEmpty()){
+            log.debug("{}", teacherTypeUuid);
+            TeacherTypeDO teacherType = this.getById(teacherTypeUuid);
+            if (teacherType != null) {
+                map.putAll(ConvertUtil.convertObjectToMapString(teacherType));
+                map.expire(Duration.ofSeconds(86400));
+                return teacherType;
+            }
+        } else {
+            return BeanUtil.toBean(map, TeacherTypeDO.class);
+        }
+        return null;
+    }
 }

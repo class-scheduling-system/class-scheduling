@@ -46,6 +46,11 @@ public class TeacherVO {
     @NotNull(message = "教师性别不能为空")
     private Boolean sex;
     /**
+     * 教师类型
+     */
+    @NotBlank(message = "教师类型不能为空")
+    private String type;
+    /**
      * 教师电话
      */
     private String phone;
