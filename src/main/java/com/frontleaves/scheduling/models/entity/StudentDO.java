@@ -107,5 +107,5 @@ public class StudentDO {
     @TableField(value = "is_graduated")
     private Boolean graduated;
 
-    private Boolean disabled;
+//    private Boolean disabled;
 }

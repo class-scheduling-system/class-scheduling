@@ -40,7 +40,7 @@ public interface StudentService {
     /**
      * 停用学生
      */
-    StudentDisableDTO disableStudent(String studentUuid, Boolean disable);
+//    StudentDisableDTO disableStudent(String studentUuid, Boolean disable);
 
     /**
      * 删除学生

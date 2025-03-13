@@ -303,4 +303,14 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService
         }
         return query.page(new Page<>(page, size));
     }
+
+    /**
+     * 检查用户是否存在
+     *
+     * @param userUuid 用户 UUID
+     * @return 如果用户存在则返回 true，否则返回 false
+     */
+    public boolean existsByUserUuid(String userUuid) {
+        return userUuid != null && this.getUserByUuid(userUuid) != null;
+    }
 }

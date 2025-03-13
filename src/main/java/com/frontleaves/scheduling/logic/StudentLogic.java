@@ -1,15 +1,12 @@
 package com.frontleaves.scheduling.logic;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.StudentDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.StudentDTO;
-import com.frontleaves.scheduling.models.dto.StudentDisableDTO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
-import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.services.StudentService;
 import com.xlf.utility.ErrorCode;
@@ -107,31 +104,44 @@ public class StudentLogic implements StudentService {
         return studentDO;
     }
 
+//    @Override
+//    public StudentDisableDTO disableStudent(String studentUuid, Boolean disable) {
+//        StudentDO studentDO = studentDAO.getStudentByUuid(studentUuid);
+//        if (studentDO == null) {
+//            throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
+//        }
+//
+//        // 检查学生是否已有账号
+//        boolean hasAccount = userDAO.exists(new LambdaQueryWrapper<UserDO>().eq(UserDO::getUserUuid, studentUuid));
+//        if (!hasAccount) {
+//            throw new BusinessException("该学生未创建系统账号", ErrorCode.NOT_EXIST);
+//        }
+//
+//        boolean updated = studentDAO.updateStudentStatus(studentUuid, disable);
+//        if (!updated) {
+//            throw new BusinessException("更新学生状态失败", ErrorCode.OPERATION_ERROR);
+//        }
+//
+//        return new StudentDisableDTO(studentUuid, disable, true);
+//    }
+
+
     @Override
-    public StudentDisableDTO disableStudent(String studentUuid, Boolean disable) {
+    public void deleteStudent(String studentUuid) {
+        // 检查学生是否存在
         StudentDO studentDO = studentDAO.getStudentByUuid(studentUuid);
         if (studentDO == null) {
             throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
         }
 
-        // 检查学生是否已有账号
-        boolean hasAccount = userDAO.exists(new LambdaQueryWrapper<UserDO>().eq(UserDO::getUserUuid, studentUuid));
-        if (!hasAccount) {
-            throw new BusinessException("该学生未创建系统账号", ErrorCode.NOT_EXIST);
+        // 检查学生是否已注册
+        boolean isRegistered = userDAO.existsByUserUuid(studentDO.getUserUuid());
+        if (isRegistered) {
+            throw new BusinessException("学生已注册，无法删除", ErrorCode.OPERATION_FAILED);
         }
 
-        boolean updated = studentDAO.updateStudentStatus(studentUuid, disable);
-        if (!updated) {
-            throw new BusinessException("更新学生状态失败", ErrorCode.OPERATION_ERROR);
-        }
-
-        return new StudentDisableDTO(studentUuid, disable, true);
-    }
-
-
-    @Override
-    public void deleteStudent(String studentUuid) {
-
+        // 删除学生
+        studentDAO.removeById(studentUuid);
     }
 
     /**
@@ -164,6 +174,16 @@ public class StudentLogic implements StudentService {
         return studentDTO;
     }
 
+    /**
+     * 将StudentDO对象转换为StudentDTO对象
+     * <p>
+     * 此方法用于将从数据库中获取的学生数据对象(StudentDO)转换为学生数据传输对象(StudentDTO)
+     * 以便在不同的层次或模块之间传递学生信息,封装了转换逻辑
+     * </p>
+     *
+     * @param studentDO 学生数据对象，包含从数据库中获取的学生信息
+     * @return 返回一个包含相同信息的学生数据传输对象
+     */
     private StudentDTO convertToStudentDTO(StudentDO studentDO) {
         return new StudentDTO()
                 .setStudentUuid(studentDO.getStudentUuid())

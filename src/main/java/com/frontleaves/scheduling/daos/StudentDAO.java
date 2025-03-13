@@ -263,6 +263,15 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
         return this.page(pageParam, queryWrapper);
     }
 
+    /**
+     * 编辑学生信息
+     *
+     * @param studentUuid 学生的唯一标识符
+     * @param studentVO 包含学生新信息的视图对象
+     * @return 更新后的学生数据对象
+     * @throws BusinessException 当学生信息不存在时抛出的业务异常
+     * @throws ServerInternalErrorException 当学生信息更新失败时抛出的服务器内部错误异常
+     */
     public StudentDO editStudent(String studentUuid, StudentVO studentVO) {
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
@@ -295,12 +304,12 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
         }
     }
 
-    public boolean updateStudentStatus(String studentUuid, boolean disable) {
-        return this.lambdaUpdate()
-                .eq(StudentDO::getStudentUuid, studentUuid)
-                .set(StudentDO::getDisabled, disable)
-                .update();
-    }
+//    public boolean updateStudentStatus(String studentUuid, boolean disable) {
+//        return this.lambdaUpdate()
+//                .eq(StudentDO::getStudentUuid, studentUuid)
+//                .set(StudentDO::getDisabled, disable)
+//                .update();
+//    }
 
     /**
      * 根据专业唯一标识获取学生列表

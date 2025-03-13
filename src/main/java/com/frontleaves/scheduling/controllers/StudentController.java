@@ -123,15 +123,15 @@ public class StudentController {
      * @param disable 表示是否禁用学生账户，true为禁用，false为启用
      * @return 返回一个包含禁用或启用结果的ResponseEntity对象
      */
-    @PutMapping("/disable/{student_uuid}")
-    public ResponseEntity<BaseResponse<StudentDisableDTO>> disableStudent(
-            @PathVariable("student_uuid") String studentUuid,
-            @RequestParam("disable") Boolean disable
-    ) {
-        StudentDisableDTO dto = studentService.disableStudent(studentUuid, disable);
-        return ResultUtil.success("停用学生成功", dto);
-
-    }
+//    @PutMapping("/disable/{student_uuid}")
+//    public ResponseEntity<BaseResponse<StudentDisableDTO>> disableStudent(
+//            @PathVariable("student_uuid") String studentUuid,
+//            @RequestParam("disable") Boolean disable
+//    ) {
+//        StudentDisableDTO dto = studentService.disableStudent(studentUuid, disable);
+//        return ResultUtil.success("停用学生成功", dto);
+//
+//    }
 
     /**
      * 删除学生
@@ -140,7 +140,8 @@ public class StudentController {
     public ResponseEntity<BaseResponse<Void>> deleteStudent(
             @PathVariable("student_uuid") String studentUuid
     ) {
-        return null;
+        studentService.deleteStudent(studentUuid);
+        return ResultUtil.success("删除学生成功");
     }
 
 
