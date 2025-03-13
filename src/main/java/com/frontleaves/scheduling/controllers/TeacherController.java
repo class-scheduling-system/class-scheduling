@@ -72,7 +72,7 @@ public class TeacherController {
         String getUuid = Optional.ofNullable(teacherUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException("教师UUID格式不正确", ErrorCode.PARAMETER_ERROR));
+                .orElseThrow(() -> new BusinessException(StringConstant.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         TeacherDTO teacherDTO = teacherService.getTeacher(getUuid);
         return ResultUtil.success("查询成功", teacherDTO);
     }
@@ -90,7 +90,7 @@ public class TeacherController {
      * @return 返回包含教师列表的PageDTO对象，封装在BaseResponse中
      */
     @RequestRole({"教务", "管理员"})
-    @GetMapping("/list")
+    @GetMapping("/page")
     public ResponseEntity<BaseResponse<PageDTO<TeacherDTO>>> getTeacherList(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "20") Integer size,
@@ -122,7 +122,7 @@ public class TeacherController {
         String getUuid = Optional.ofNullable(teacherUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException("教师UUID格式不正确", ErrorCode.PARAMETER_ERROR));
+                .orElseThrow(() -> new BusinessException(StringConstant.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         TeacherDisableDTO teacherDisableDTO = teacherService.disableTeacher(getUuid, disable);
         return ResultUtil.success("禁用教师成功", teacherDisableDTO);
     }
@@ -142,7 +142,7 @@ public class TeacherController {
         String getUuid = Optional.ofNullable(teacherUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException("教师UUID格式不正确", ErrorCode.PARAMETER_ERROR));
+                .orElseThrow(() -> new BusinessException(StringConstant.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         teacherService.deleteTeacher(getUuid);
         return ResultUtil.success("教师记录已删除");
     }
@@ -164,7 +164,7 @@ public class TeacherController {
         String getUuid = Optional.ofNullable(teacherUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException("教师UUID格式不正确", ErrorCode.PARAMETER_ERROR));
+                .orElseThrow(() -> new BusinessException(StringConstant.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         teacherService.updateTeacher(getUuid, teacherVO);
         return ResultUtil.success("教师信息已更新");
     }

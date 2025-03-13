@@ -58,6 +58,7 @@ public class StringConstant {
     public static final String DEPARTMENT_NOT_EXIST = "部门不存在";
     public static final String TEACHER_TYPE_UUID_NOT_EMPTY = "教师类型UUID不能为空";
     public static final String TEACHER_TYPE_UUID_FORMAT_ERROR = "教师类型UUID格式不正确";
+    public static final String TEACHER_UUID_FORMAT_ERROR = "教师UUID格式不正确";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");

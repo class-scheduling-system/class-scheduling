@@ -201,7 +201,7 @@ public class Initialize {
      */
     private void writeRoleInfo() {
         SystemConstant.setRoleAdmin(init.loadRoleContent("管理员"));
-        SystemConstant.setRoleTeacher(init.loadRoleContent("老师"));
+        SystemConstant.setRoleTeacher(init.loadRoleContent("教师"));
         SystemConstant.setRoleStudent(init.loadRoleContent("学生"));
         SystemConstant.setRoleLeader(init.loadRoleContent("管理"));
         SystemConstant.setRoleAcademic(init.loadRoleContent("教务"));
