@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.logic;
 
+import cn.hutool.poi.excel.ExcelReader;
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
 import com.frontleaves.scheduling.daos.*;
@@ -21,6 +22,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -83,7 +85,11 @@ public class StudentLogic implements StudentService {
     @Override
     public BackAddStudentDTO batchImport(
             BatchAddStudentVO batchAddStudentVO) {
+        if (batchAddStudentVO.getIgnoreError()){
 
+        }else {
+
+        }
         return null;
     }
 
@@ -246,5 +252,61 @@ public class StudentLogic implements StudentService {
                 .setDepartmentName(departmentDO.getDepartmentName());
         // 返回学术事务权限的唯一标识符
         return prepareStudentExampleDTO;
+    }
+
+    @Override
+    public void checkBatchAddStudentVO(BatchAddStudentVO batchAddStudentVO) {
+        // 1. 检查 VO 对象是否为空
+        if (batchAddStudentVO == null) {
+            throw new IllegalArgumentException("批量添加学生信息不能为空");
+        }
+        // 2. 检查 file 字段是否为空
+        String base64File = batchAddStudentVO.getFile();
+        if (base64File == null || base64File.trim().isEmpty()) {
+            throw new IllegalArgumentException("Excel文件不能为空");
+        }
+        // 3. 验证是否为有效的 Base64 字符串
+        if (!isValidBase64(base64File)) {
+            throw new IllegalArgumentException("无效的 Base64 编码");
+        }
+        // 4. 解码 Base64 字符串为字节数组
+        byte[] fileBytes;
+        try {
+            fileBytes = Base64.getDecoder().decode(base64File);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Base64 解码失败");
+        }
+        // 5. 检查文件大小（10MB = 10 * 1024 * 1024 字节）
+        long fileSizeInBytes = fileBytes.length;
+        // 10MB
+        long maxSizeInBytes = 10L * 1024 * 1024;
+        if (fileSizeInBytes > maxSizeInBytes) {
+            throw new IllegalArgumentException("文件大小超过10MB限制");
+        }
+        // 6. 验证是否为 Excel 文件
+        try (InputStream inputStream = new ByteArrayInputStream(fileBytes)) {
+            // 尝试读取为 Excel 工作簿，这会在非 Excel 文件时抛出异常
+            WorkbookFactory.create(inputStream);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("提供的文件不是有效的 Excel 文件");
+        }
+
+    }
+    // 辅助方法：检查字符串是否为有效的 Base64 编码
+    private boolean isValidBase64(String base64String) {
+        if (base64String == null || base64String.isEmpty()) {
+            return false;
+        }
+        // 去除可能的 Data URL 前缀（如果有）
+        String content = base64String;
+        if (base64String.contains(",")) {
+            content = base64String.split(",")[1];
+        }
+        try {
+            // 尝试使用正则表达式验证 Base64 字符
+            return content.matches("^[A-Za-z0-9+/]*={0,2}$");
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
