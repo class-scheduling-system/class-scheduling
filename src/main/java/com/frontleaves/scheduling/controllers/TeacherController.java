@@ -89,7 +89,7 @@ public class TeacherController {
      * @param name       教师姓名，可选参数，如果提供，则按姓名筛选教师
      * @return 返回包含教师列表的PageDTO对象，封装在BaseResponse中
      */
-    @RequestRole({"教务", "管理员"})
+    @RequestRole({"管理员", "教务"})
     @GetMapping("/page")
     public ResponseEntity<BaseResponse<PageDTO<TeacherDTO>>> getTeacherList(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
