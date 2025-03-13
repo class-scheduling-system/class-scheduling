@@ -46,6 +46,7 @@ import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -207,16 +208,19 @@ public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IServ
      * @param departmentUuid 部门UUID，用于标识部门
      * @return 专业列表，如果找不到则返回空列表
      */
+    @Transactional
     public List<MajorDO> getMajorListByDepartmentUuid(String departmentUuid) {
         // 尝试从Redis中获取缓存的专业列表
         RList<MajorDO> rList = redisson.getList(
                 StringConstant.Redis.MAJOR_LIST_BY_DEPARTMENT_UUID + departmentUuid);
-
         // 检查缓存是否存在
         if (!rList.isExists()) {
-            // 如果缓存不存在，从数据库中查询专业列表
-            List<MajorDO> majorDOList = this.lambdaQuery().eq(MajorDO::getDepartmentUuid, departmentUuid).list();
-
+            // 如果缓存不存在，从数据库中查询专业列表（添加悲观锁）
+            // 方式1：使用LambdaQueryWrapper添加FOR UPDATE子句
+            List<MajorDO> majorDOList = this.lambdaQuery()
+                    .eq(MajorDO::getDepartmentUuid, departmentUuid)
+                    .last("FOR UPDATE")
+                    .list();
             // 如果查询结果不为空，将其添加到Redis缓存中，并设置过期时间
             if (!majorDOList.isEmpty()) {
                 rList.addAll(majorDOList);
@@ -232,36 +236,5 @@ public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IServ
     }
 
 
-    /**
-     * 根据部门UUID和专业名称获取专业信息
-     * 首先尝试从Redis缓存中获取专业列表，如果缓存不存在，则从数据库中查询，并将结果缓存到Redis中
-     * 最后从专业列表中查找匹配的专业名称，返回对应的专业信息
-     *
-     * @param departmentUuid 部门UUID，用于标识部门
-     * @param majorName 专业名称，用于查找具体的专业
-     * @return 返回匹配的专业信息对象，如果没有找到，则返回null
-     */
-    public MajorDO getMajorByDepartmentUuidAndMajorName(
-            String departmentUuid,
-            String majorName
-    ) {
-        // 尝试从Redis中获取缓存的专业列表
-        RList<MajorDO> rList = redisson.getList(StringConstant.Redis.MAJOR_LIST_BY_DEPARTMENT_UUID + departmentUuid);
-        if (!rList.isExists()) {
-            // 如果缓存不存在，从数据库中查询专业列表
-            List<MajorDO> majorDOList = this.lambdaQuery().eq(MajorDO::getDepartmentUuid, departmentUuid).list();
-            // 如果查询结果不为空，将其添加到Redis缓存中，并设置过期时间
-            if (!majorDOList.isEmpty()) {
-                rList.addAll(majorDOList);
-                rList.expire(Duration.ofSeconds(86400));
-            }
-        }
-        // 从专业列表中查找匹配的专业名称，返回对应的专业信息
-        return rList.stream()
-                    .filter(majorDO -> majorDO.getMajorName().equals(majorName))
-                    .findFirst()
-                    .orElse(null);
-
-    }
 }
 

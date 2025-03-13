@@ -84,6 +84,11 @@ public class StudentController {
         } else {
             backAddStudentDTO = studentService.batchImportNoIgnoreError(file, departmentUuid);
         }
+
+        if (backAddStudentDTO.getFailedCount() > 0) {
+            // 如果有学生导入失败，返回带有错误信息的响应
+            return ResultUtil.success("存在添加失败的学生情况", backAddStudentDTO);
+        }
         // 返回批量添加学生成功的响应
         return ResultUtil.success("批量添加学生成功", backAddStudentDTO);
     }

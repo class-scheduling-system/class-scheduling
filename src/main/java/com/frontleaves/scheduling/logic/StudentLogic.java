@@ -5,7 +5,9 @@ import cn.hutool.poi.excel.ExcelWriter;
 import cn.hutool.poi.excel.sax.Excel07SaxReader;
 import cn.hutool.poi.excel.sax.handler.RowHandler;
 import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.exceptions.lib.*;
 import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
+import com.frontleaves.scheduling.models.dto.ImportBaseStudentDTO;
 import com.frontleaves.scheduling.models.dto.PrepareStudentExampleDTO;
 import com.frontleaves.scheduling.models.dto.StudentImportDTO;
 import com.frontleaves.scheduling.models.entity.*;
@@ -51,7 +53,7 @@ public class StudentLogic implements StudentService {
     private final UserService userService;
     private final StudentDAO studentDAO;
 
-    private static @NotNull StudentImportDTO getStudentImportDTO(List<Object> rowlist) {
+    private static @NotNull StudentImportDTO getStudentImportDTO(@NotNull List<Object> rowlist) {
         StudentImportDTO student = new StudentImportDTO();
         student.setDepartmentName(rowlist.get(0).toString().trim())
                 .setMajorName(rowlist.get(1).toString().trim())
@@ -115,6 +117,129 @@ public class StudentLogic implements StudentService {
         // 如果字节数组长度不足4，不可能是Excel 2007+ 文件
         return false;
     }
+    /**
+     * 解析Excel文件为学生导入DTO列表
+     *
+     * @param file Excel文件的字节数组
+     * @return 学生导入DTO列表
+     * @throws BusinessException 当解析失败或结果为空时
+     */
+    private List<StudentImportDTO> parseExcelStudentList(byte[] file) {
+        List<StudentImportDTO> studentList;
+        try {
+            studentList = this.parseExcelToStudents(file);
+        } catch (IOException e) {
+            throw new BusinessException("IO异常，Excel解析失败", ErrorCode.OPERATION_ERROR);
+        }
+
+        if (studentList.isEmpty()) {
+            throw new BusinessException("Excel文件中没有学生信息或数据格式错误请检查", ErrorCode.BODY_ERROR);
+        }
+
+        return studentList;
+    }
+    /**
+     * 获取导入所需的基础数据
+     */
+    private ImportBaseStudentDTO fetchImportBaseStudentDTO(String departmentUuid) {
+        DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(departmentUuid);
+        List<MajorDO> majorDOList = majorDAO.getMajorListByDepartmentUuid(departmentUuid);
+        List<GradeDO> gradeDOList = gradeDAO.getGradeList();
+        List<AdministrativeClassDO> administrativeClassDOList =
+                administrativeClassDAO.getAdministrativeClassListByDepartment(departmentUuid);
+
+        return new ImportBaseStudentDTO(departmentDO, majorDOList, gradeDOList, administrativeClassDOList);
+    }
+    /**
+     * 验证学院名称
+     *
+     * @param departmentDO 学院DO对象
+     * @param departmentName 要验证的学院名称
+     * @throws DepartmentNotFoundException 当学院名称不存在时抛出异常
+     */
+    private void validateDepartment(DepartmentDO departmentDO, String departmentName) throws DepartmentNotFoundException {
+        if (!departmentDO.getDepartmentName().equals(departmentName)) {
+            throw new DepartmentNotFoundException("学院名称不存在");
+        }
+    }
+
+    /**
+     * 根据专业名称查找专业对象
+     *
+     * @param majorList 专业列表
+     * @param majorName 专业名称
+     * @return 匹配的专业对象
+     * @throws MajorNotFoundException 当专业名称不存在时抛出异常
+     */
+    private MajorDO findMajorByName(List<MajorDO> majorList, String majorName) throws MajorNotFoundException {
+        MajorDO majorDO = majorList.stream()
+                .filter(major -> major.getMajorName().equals(majorName))
+                .findFirst()
+                .orElse(null);
+        if (majorDO == null) {
+            throw new MajorNotFoundException("专业名称不存在");
+        }
+        return majorDO;
+    }
+
+    /**
+     * 根据年级名称查找年级对象
+     *
+     * @param gradeList 年级列表
+     * @param gradeName 年级名称
+     * @return 匹配的年级对象
+     * @throws GradeNotFoundException 当年级名称不存在时抛出异常
+     */
+    private GradeDO findGradeByName(List<GradeDO> gradeList, String gradeName) throws GradeNotFoundException {
+        GradeDO gradeDO = gradeList.stream()
+                .filter(grade -> grade.getName().equals(gradeName))
+                .findFirst()
+                .orElse(null);
+        if (gradeDO == null) {
+            throw new GradeNotFoundException("年级名称不存在");
+        }
+
+        return gradeDO;
+    }
+
+    /**
+     * 根据班级名称查找班级对象
+     *
+     * @param classList 班级列表
+     * @param className 班级名称
+     * @return 匹配的班级对象
+     * @throws AdministrativeClassNotFoundException 当班级名称不存在时抛出异常
+     */
+    private AdministrativeClassDO findClassByName(List<AdministrativeClassDO> classList, String className)
+            throws AdministrativeClassNotFoundException {
+        AdministrativeClassDO administrativeClassDO = classList.stream()
+                .filter(administrativeClass -> administrativeClass.getClassName().equals(className))
+                .findFirst()
+                .orElse(null);
+
+        if (administrativeClassDO == null) {
+            throw new AdministrativeClassNotFoundException("班级名称不存在");
+        }
+
+        return administrativeClassDO;
+    }
+
+    /**
+     * 根据性别字符串设置学生性别
+     *
+     * @param studentDO 学生DO对象
+     * @param genderStr 性别字符串（"男"或"女"）
+     * @throws InvalidGenderException 当性别字符串不合法时抛出异常
+     */
+    private void setStudentGender(StudentDO studentDO, String genderStr) throws InvalidGenderException {
+        if ("男".equals(genderStr)) {
+            studentDO.setGender(true);
+        } else if ("女".equals(genderStr)) {
+            studentDO.setGender(false);
+        } else {
+            throw new InvalidGenderException("性别填写错误");
+        }
+    }
 
     /**
      * 将Excel字节流解析为学生信息列表
@@ -168,37 +293,40 @@ public class StudentLogic implements StudentService {
     public BackAddStudentDTO batchImportNoIgnoreError(
             byte[] file, String departmentUuid
     ) {
-        List<StudentImportDTO> studentList;
-        try {
-            studentList = this.parseExcelToStudents(file);
-        } catch (IOException e) {
-            throw new BusinessException("IO异常，Excel解析失败", ErrorCode.OPERATION_ERROR);
-        }
-        if (studentList.isEmpty()) {
-            throw new BusinessException("Excel文件中没有学生信息或数据格式错误请检查", ErrorCode.BODY_ERROR);
-        }
+        // 解析Excel文件
+        List<StudentImportDTO> studentList = parseExcelStudentList(file);
+
         log.debug("解析Excel文件成功，共解析出{}条学生信息", studentList.size());
         log.debug("第一行数据为:{}", studentList.get(0));
         BackAddStudentDTO backAddStudentDTO = new BackAddStudentDTO();
+        ImportBaseStudentDTO importBaseStudentDTO = fetchImportBaseStudentDTO(departmentUuid);
         // 不忽略警告提醒报错
         for (int i = 0; i < studentList.size(); i++) {
-            DepartmentDO departmentDO = departmentDAO.getDepartmentByDepartmentName(
-                    studentList.get(i).getDepartmentName());
-            if (departmentDO == null) {
+            int finalI = i;
+            if (!importBaseStudentDTO.getDepartment().getDepartmentName()
+                    .equals(studentList.get(i).getDepartmentName())) {
                 throw new BusinessException("第" + (i + 3) + "行学院名称不存在", ErrorCode.BODY_ERROR);
             }
-            MajorDO majorDO = majorDAO.getMajorByDepartmentUuidAndMajorName(
-                    departmentDO.getDepartmentUuid(), studentList.get(i).getMajorName());
+            MajorDO majorDO = importBaseStudentDTO.getMajors().stream()
+                    .filter(major -> major.getMajorName().equals(studentList.get(finalI).getMajorName()))
+                    .findFirst()
+                    .orElse(null);
             if (majorDO == null) {
                 throw new BusinessException("第" + (i + 3) + "行专业名称不存在", ErrorCode.BODY_ERROR);
             }
-            GradeDO gradeDO = gradeDAO.getGradeByName(studentList.get(i).getGradeName());
+            GradeDO gradeDO = importBaseStudentDTO.getGrades().stream()
+                    .filter(grade-> grade.getName().equals(studentList.get(finalI).getGradeName()))
+                    .findFirst()
+                    .orElse(null);
             if (gradeDO == null) {
                 throw new BusinessException("第" + (i + 3) + "行年级名称不存在", ErrorCode.BODY_ERROR);
             }
-            AdministrativeClassDO administrativeClassDO = administrativeClassDAO
-                    .getAdministrativeClassByDepartmentAndClassName(departmentDO.getDepartmentUuid(),
-                            studentList.get(i).getClassName());
+            AdministrativeClassDO administrativeClassDO = importBaseStudentDTO.getClazz()
+                    .stream()
+                    .filter(administrativeClass -> administrativeClass.getClassName()
+                            .equals(studentList.get(finalI).getClassName()))
+                    .findFirst()
+                    .orElse(null);
             if (administrativeClassDO == null) {
                 throw new BusinessException("第" + (i + 3) + "行班级名称不存在", ErrorCode.BODY_ERROR);
             }
@@ -215,7 +343,7 @@ public class StudentLogic implements StudentService {
             studentDO.setId(studentList.get(i).getId())
                     .setName(studentList.get(i).getName())
                     .setGradeUuid(gradeDO.getGradeUuid())
-                    .setDepartment(departmentDO.getDepartmentUuid())
+                    .setDepartment(importBaseStudentDTO.getDepartment().getDepartmentUuid())
                     .setMajor(majorDO.getMajorUuid())
                     .setClazz(administrativeClassDO.getAdministrativeClassUuid())
                     .setGraduated(false);
@@ -438,9 +566,60 @@ public class StudentLogic implements StudentService {
     @Override
     @Transactional(rollbackFor = BusinessException.class)
     public BackAddStudentDTO batchImportIgnoreError(byte[] file, String departmentUuid) {
-        return null;
+        // 解析Excel文件
+        List<StudentImportDTO> studentList = parseExcelStudentList(file);
+        BackAddStudentDTO backAddStudentDTO = new BackAddStudentDTO();
+        ImportBaseStudentDTO importBaseStudentDTO = fetchImportBaseStudentDTO(departmentUuid);
+        // 创建失败详情列表
+        List<BackAddStudentDTO.FailedDetail> failedDetails = new ArrayList<>();
+        int successCount = 0;
+        // 循环处理每条学生记录
+        for (int i = 0; i < studentList.size(); i++) {
+            try {
+                // 验证学院名称
+                validateDepartment(importBaseStudentDTO.getDepartment(), studentList.get(i).getDepartmentName());
+                // 验证并获取专业
+                MajorDO majorDO = findMajorByName(importBaseStudentDTO.getMajors(), studentList.get(i).getMajorName());
+                GradeDO gradeDO = findGradeByName(importBaseStudentDTO.getGrades(), studentList.get(i).getGradeName());
+                // 验证并获取班级
+                AdministrativeClassDO administrativeClassDO = findClassByName(
+                        importBaseStudentDTO.getClazz(),
+                        studentList.get(i).getClassName());
+                // 创建学生对象并设置性别
+                StudentDO studentDO = new StudentDO();
+                setStudentGender(studentDO, studentList.get(i).getGender());
+                studentDO.setId(studentList.get(i).getId())
+                        .setName(studentList.get(i).getName())
+                        .setGradeUuid(gradeDO.getGradeUuid())
+                        .setDepartment(importBaseStudentDTO.getDepartment().getDepartmentUuid())
+                        .setMajor(majorDO.getMajorUuid())
+                        .setClazz(administrativeClassDO.getAdministrativeClassUuid())
+                        .setGraduated(false);
+                // 尝试保存学生数据
+                List<BackAddStudentDTO.FailedDetail> saveFailedDetails =
+                        studentDAO.saveStudentIgnoreError(studentDO, i);
+                if (saveFailedDetails.isEmpty()) {
+                    // 保存成功
+                    successCount++;
+                } else {
+                    // 保存失败，将失败详情添加到总的失败详情列表
+                    failedDetails.addAll(saveFailedDetails);
+                }
+            } catch (Exception e) {
+                // 捕获验证时的异常
+                BackAddStudentDTO.FailedDetail failedDetail = new BackAddStudentDTO.FailedDetail();
+                failedDetail.setRow(i + 3);
+                failedDetail.setReason(e.getMessage());
+                failedDetails.add(failedDetail);
+            }
+        }
+        // 设置统计结果
+        backAddStudentDTO.setTotalCount(studentList.size())
+                .setSuccessCount(successCount)
+                .setFailedCount(failedDetails.size())
+                .setFailedDetails(failedDetails.isEmpty() ? null : failedDetails);
+        return backAddStudentDTO;
     }
-
     @Override
     public String getDepartmentUuid(HttpServletRequest request) {
         UserDO userDO = userService.getUserByRequest(request);
@@ -454,5 +633,4 @@ public class StudentLogic implements StudentService {
         }
         return academicAffairsPermissionDO.getDepartment();
     }
-
 }

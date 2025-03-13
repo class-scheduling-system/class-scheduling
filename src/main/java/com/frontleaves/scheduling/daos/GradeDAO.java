@@ -29,6 +29,7 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
@@ -36,11 +37,11 @@ import com.frontleaves.scheduling.mappers.GradeMapper;
 import com.frontleaves.scheduling.models.entity.GradeDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
-import org.redisson.api.RBucket;
 import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -95,30 +96,35 @@ public class GradeDAO extends ServiceImpl<GradeMapper, GradeDO> implements IServ
         // 如果既没有从Redis中获取到年级信息，也没有从数据库中获取到，返回null
         return null;
     }
+
     /**
      * 获取年级列表
-     *
+     * <p>
      * 本方法首先尝试从Redis中获取年级列表如果Redis中不存在该列表，
      * 则从数据库中查询，并将结果存入Redis中，以提高下次查询的效率
      *
      * @return 年级列表，如果列表为空，则返回空列表
      */
+    @Transactional
     public List<GradeDO> getGradeList() {
         // 从Redis中获取年级列表
         RList<GradeDO> rList = redisson.getList(StringConstant.Redis.GRADE_LIST);
         // 检查Redis列表是否存在
-        if (!rList.isExists()){
+        if (!rList.isExists()) {
             // 从数据库中查询年级列表
-            List<GradeDO> gradeDOList = this.list();
+            List<GradeDO> gradeDOList = this.list(
+                    new QueryWrapper<GradeDO>()
+                            .last("FOR UPDATE")
+            );
             // 检查查询结果是否为空
-            if (gradeDOList != null && !gradeDOList.isEmpty()){
+            if (gradeDOList != null && !gradeDOList.isEmpty()) {
                 // 将查询结果添加到Redis列表中，并设置过期时间
                 rList.addAll(gradeDOList);
                 rList.expire(Duration.ofSeconds(86400));
                 // 返回查询结果
                 return gradeDOList;
             }
-        }else {
+        } else {
             // 如果Redis列表存在，直接读取并返回
             return rList.readAll();
         }
@@ -126,35 +132,4 @@ public class GradeDAO extends ServiceImpl<GradeMapper, GradeDO> implements IServ
         return Collections.emptyList();
     }
 
-    /**
-     * 根据年级名称获取年级信息
-     * 首先尝试从Redis中获取年级UUID，如果不存在，则从数据库中查询并存入Redis
-     * 使用Redis缓存是为了减少数据库查询次数，提高系统性能
-     *
-     * @param gradeName 年级名称，用于查询年级信息
-     * @return 返回GradeDO对象，如果未找到对应的年级信息，则返回null
-     */
-    public GradeDO getGradeByName(String gradeName) {
-        // 构造Redis中年级信息的键
-        RBucket<String> rBucket = redisson.getBucket(StringConstant.Redis.GRADE_NAME + gradeName);
-
-        // 检查Redis中是否存在该年级信息
-        if (!rBucket.isExists()){
-            // 如果Redis中不存在，从数据库中查询年级信息
-            GradeDO gradeDO = this.lambdaQuery().eq(GradeDO::getName,gradeName).one();
-
-            // 如果查询到年级信息，将其UUID存入Redis，并设置过期时间
-            if (gradeDO != null){
-                rBucket.set(gradeDO.getGradeUuid());
-                rBucket.expire(Duration.ofSeconds(86400));
-                return gradeDO;
-            }
-        } else {
-            // 如果Redis中存在该年级信息，根据UUID获取并返回年级信息
-            return this.getGradeByUuid(rBucket.get());
-        }
-
-        // 如果未找到对应的年级信息，返回null
-        return null;
-    }
 }

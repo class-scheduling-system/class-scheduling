@@ -46,12 +46,17 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
      * @param departmentUuid 部门的唯一标识符
      * @return DepartmentDO类型的对象，表示部门信息，如果找不到则返回null
      */
+    @Transactional
     public DepartmentDO getDepartmentByUuid(String departmentUuid) {
         // 从Redis中获取部门信息
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.DEPARTMENT_UUID + departmentUuid);
         if (!map.isExists()) {
             // 如果Redis中不存在该部门信息，则从数据库中获取
-            DepartmentDO departmentDO = this.getById(departmentUuid);
+            DepartmentDO departmentDO = baseMapper.selectOne(
+                    new QueryWrapper<DepartmentDO>()
+                            .eq("department_uuid", departmentUuid)
+                            .last("FOR UPDATE")
+            );
             if (departmentDO != null) {
                 // 将获取到的部门信息存入Redis，并设置过期时间
                 map.putAll(ConvertUtil.convertObjectToMapString(departmentDO));
@@ -184,31 +189,4 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
         return Collections.emptyList();
     }
 
-    /**
-     * 根据部门名称获取部门对象
-     * 首先尝试从Redis中获取部门UUID，如果不存在，则从数据库中查询，并将结果存入Redis
-     * 使用Redis缓存来优化重复查询部门信息的性能
-     *
-     * @param departmentName 部门名称，用于查询部门信息
-     * @return DepartmentDO类型的对象，表示部门信息如果没有找到对应的部门，则返回null
-     */
-    public DepartmentDO getDepartmentByDepartmentName(String departmentName) {
-        // 尝试从Redis中获取部门UUID
-        RBucket<String> rBucket = redisson.getBucket(StringConstant.Redis.DEPARTMENT_NAME + departmentName);
-        if (!rBucket.isExists()){
-            // 如果Redis中不存在该部门名称对应的UUID，说明尚未缓存或缓存已过期
-            // 从数据库中查询部门信息
-            DepartmentDO departmentDO = this.lambdaQuery().eq(DepartmentDO::getDepartmentName,departmentName).one();
-            if (departmentDO != null){
-                // 查询到部门信息后，将其UUID存入Redis，并设置缓存过期时间
-                rBucket.set(departmentDO.getDepartmentUuid());
-                rBucket.expire(Duration.ofSeconds(86400));
-                return departmentDO;
-            }
-        }else {
-            // 如果Redis中已缓存该部门名称对应的UUID，直接转换为DepartmentDO对象返回
-            return this.getDepartmentByUuid(rBucket.get());
-        }
-        return null;
-    }
 }
