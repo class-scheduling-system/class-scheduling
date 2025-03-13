@@ -1,17 +1,16 @@
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
-import com.frontleaves.scheduling.models.dto.ImportBatchStudentCheckResultDTO;
+import com.frontleaves.scheduling.models.dto.PrepareStudentExampleDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.services.StudentService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,10 +36,14 @@ public class StudentController {
      *
      * @return 返回一个包含示例数据的响应实体
      */
+    @RequestRole("教务")
     @GetMapping("/get-example")
-    public ResponseEntity<byte[]> getExample() {
+    public ResponseEntity<byte[]> getExample(
+            HttpServletRequest request
+    ) {
+        PrepareStudentExampleDTO prepareStudentExampleDTO = studentService.prepareDepartmentData(request);
         // 从studentService获取示例数据，以字节数组形式返回
-        byte[] bytes = studentService.getExample();
+        byte[] bytes = studentService.getExample(prepareStudentExampleDTO);
         // 创建HTTP头，设置为文件下载
         HttpHeaders headers = new HttpHeaders();
         // 设置内容类型为二进制流
@@ -68,14 +71,13 @@ public class StudentController {
     public ResponseEntity<BaseResponse<BackAddStudentDTO>> batchImport(
             @RequestBody @Validated BatchAddStudentVO batchAddStudentVO
     ) {
-        // 检查导入的学生信息，确保数据的有效性和完整性
-        ImportBatchStudentCheckResultDTO importBatchStudentCheckResultDTO =
-                studentService.checkImport(batchAddStudentVO);
+
         // 执行批量导入学生的操作
         BackAddStudentDTO backAddStudentDTO = studentService
-                .batchImport(importBatchStudentCheckResultDTO, batchAddStudentVO);
+                .batchImport(batchAddStudentVO);
         // 返回批量添加学生成功的响应
         return ResultUtil.success("批量添加学生成功", backAddStudentDTO);
     }
+
 
 }
