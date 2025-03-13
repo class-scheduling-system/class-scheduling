@@ -50,6 +50,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 教学楼逻辑处理类
@@ -122,27 +123,22 @@ public class BuildingLogic implements BuildingService {
     @Override
     @Nullable
     public BuildingDTO getBuildingByUuidOrName(@NotNull String building) {
-        BuildingDO buildingDO;
-        if (building.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            buildingDO = buildingDAO.getBuildingByUuid(building);
-        } else {
-            buildingDO = buildingDAO.getBuildingByName(building);
-        }
-        if (buildingDO != null) {
-            BuildingDTO buildingDTO = BeanUtil.toBean(buildingDO, BuildingDTO.class);
-
-            // 添加CampusDTO
-            if (buildingDO.getCampusUuid() != null) {
-                CampusDO campusDO = campusDAO.getCampusByUuid(buildingDO.getCampusUuid());
-                if (campusDO != null) {
-                    buildingDTO.setCampus(BeanUtil.toBean(campusDO, CampusDTO.class));
-                }
-            }
-
-            return buildingDTO;
-        } else {
-            return null;
-        }
+        BuildingDO buildingDO = Optional.of(building)
+                .filter(data -> data.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
+                .map(buildingDAO::getBuildingByUuid)
+                .orElseGet(() -> buildingDAO.getBuildingByName(building));
+        return Optional.ofNullable(buildingDO)
+                .map(data -> {
+                    BuildingDTO buildingDTO = BeanUtil.toBean(data, BuildingDTO.class);
+                    // 设置CampusDTO
+                    if (data.getCampusUuid() != null) {
+                        CampusDO campusDO = campusDAO.getCampusByUuid(data.getCampusUuid());
+                        if (campusDO != null) {
+                            buildingDTO.setCampus(BeanUtil.toBean(campusDO, CampusDTO.class));
+                        }
+                    }
+                    return buildingDTO;
+                }).orElse(null);
     }
 
     /**
