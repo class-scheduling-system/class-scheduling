@@ -109,6 +109,9 @@ public class StringConstant {
         public static final String BUILDING_KEY_LIST = "building:key:list";
         public static final String ADMINISTRATIVE_CLASS_UUID = "administrative:class:uuid:";
         public static final String GRADE_UUID = "grade:uuid:";
+        public static final String MAJOR_LIST = "major:list";
+        public static final String GRADE_LIST = "grade:list";
+        public static final String ADMINISTRATIVE_CLASS_LIST = "administrative:class:list";
 
         private Redis() {
             log.error("Redis 不能被实例化");

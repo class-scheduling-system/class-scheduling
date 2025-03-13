@@ -36,8 +36,11 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.List;
 
 @SpringBootTest
 @Slf4j
@@ -96,5 +99,30 @@ class GradeDAOTest {
         
         // 应该返回null
         Assertions.assertNull(gradeData);
+    }
+    @Test
+    void testGetGradeList() {
+        // 先清除Redis中的年级列表缓存
+        redisson.getKeys().delete(StringConstant.Redis.GRADE_LIST);
+
+        // 第一次调用getGradeList方法，应该从数据库获取数据并缓存到Redis
+        List<GradeDO> gradeList1 = gradeDAO.getGradeList();
+
+        // 断言从数据库获取的年级列表不为空
+        Assertions.assertNotNull(gradeList1);
+        Assertions.assertFalse(gradeList1.isEmpty());
+
+        // 验证Redis中是否已缓存年级列表
+        RList<GradeDO> redisCache = redisson.getList(StringConstant.Redis.GRADE_LIST);
+        Assertions.assertTrue(redisCache.isExists());
+
+        // 记录第一次查询结果的大小
+        int firstResultSize = gradeList1.size();
+
+        // 第二次调用getGradeList方法，应该从Redis缓存中获取数据
+        List<GradeDO> gradeList2 = gradeDAO.getGradeList();
+
+        // 断言第二次获取的结果与第一次结果大小相同
+        Assertions.assertEquals(firstResultSize, gradeList2.size());
     }
 }

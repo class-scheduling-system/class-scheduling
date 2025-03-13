@@ -20,12 +20,14 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Date;
+import java.util.List;
 
 @SpringBootTest
 @Slf4j
@@ -344,6 +346,26 @@ class DepartmentTest {
         Assertions.assertNotNull(result, "返回的PageDTO对象不应为空");
 
         log.debug("页码为负数的情况测试完成");
+    }
+    @Test
+    void testGetDepartmentList() {
+        log.debug("测试获取部门列表");
+        // 先删除Redis中的部门列表缓存
+        redisson.getKeys().delete(StringConstant.Redis.DEPARTMENT_LIST);
+        // 第一次调用getDepartmentList方法，应该从数据库获取数据并缓存到Redis
+        List<DepartmentDO> departmentList1 = departmentDAO.getDepartmentList();
+        // 断言从数据库获取的部门列表不为空
+        Assertions.assertNotNull(departmentList1);
+        Assertions.assertFalse(departmentList1.isEmpty());
+        // 验证Redis中是否已缓存部门列表
+        RList<String> redisCache = redisson.getList(StringConstant.Redis.DEPARTMENT_LIST);
+        Assertions.assertTrue(redisCache.isExists());
+        // 记录第一次查询结果的大小
+        int firstResultSize = departmentList1.size();
+        // 第二次调用getDepartmentList方法，应该从Redis缓存中获取数据
+        List<DepartmentDO> departmentList2 = departmentDAO.getDepartmentList();
+        // 断言第二次获取的结果与第一次结果大小相同
+        Assertions.assertEquals(firstResultSize, departmentList2.size());
     }
 
 }

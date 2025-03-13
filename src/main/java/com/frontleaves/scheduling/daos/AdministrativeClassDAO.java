@@ -36,11 +36,14 @@ import com.frontleaves.scheduling.mappers.AdministrativeClassMapper;
 import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 行政班数据访问对象
@@ -91,5 +94,38 @@ public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMappe
         }
         // 如果既没有从数据库中获取到信息，Redis中也没有信息，则返回null
         return  null;
+    }
+
+    /**
+     * 获取管理班级列表
+     *
+     * 该方法首先尝试从Redis中获取管理班级列表如果列表在Redis中不存在，
+     * 则从数据库中获取列表，并将其存入Redis中，以提高下次访问的速度
+     *
+     * @return 返回管理班级列表如果列表为空，则返回空列表
+     */
+    public List<AdministrativeClassDO> getAdministrativeClassList() {
+        // 从Redis中获取管理班级列表
+        RList<AdministrativeClassDO> rList = redisson.getList(StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST);
+
+        // 检查Redis列表是否存在
+        if (!rList.isExists()){
+            // 从数据库中获取管理班级列表
+            List<AdministrativeClassDO> administrativeClassDOList = this.list();
+
+            // 检查获取的列表是否非空
+            if (administrativeClassDOList != null){
+                // 将列表添加到Redis中，并设置过期时间
+                rList.addAll(administrativeClassDOList);
+                rList.expire(Duration.ofSeconds(86400));
+                // 返回从数据库中获取的列表
+                return administrativeClassDOList;
+            }
+        } else {
+            // 如果Redis列表存在，则直接读取并返回
+            return rList.readAll();
+        }
+        // 如果列表为空，则返回空列表
+        return Collections.emptyList();
     }
 }

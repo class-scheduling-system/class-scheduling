@@ -21,8 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * 学生逻辑
@@ -74,26 +74,48 @@ public class StudentLogic implements StudentService {
 
     @Override
     public byte[] getExample() {
-        List<List<String>> rows = new ArrayList<>();
-        // 表头
-        List<String> header = new ArrayList<>();
-        header.add("学院");
-        header.add("专业");
-        header.add("年级");
-        header.add("班级");
-        header.add("学号");
-        header.add("姓名");
-        header.add("性别");
-        rows.add(header);
-        // 示例数据
         ExcelWriter writer = ExcelUtil.getWriter(true);
-        writer.write(rows, true);
-        // 4. 将 Excel 内容写入 ByteArrayOutputStream
+
+
+        // 写入表头（第0行）
+        writer.writeCellValue(0, 0, "学院");
+        writer.writeCellValue(1, 0, "专业");
+        writer.writeCellValue(2, 0, "年级");
+        writer.writeCellValue(3, 0, "班级");
+        writer.writeCellValue(4, 0, "学号");
+        writer.writeCellValue(5, 0, "姓名");
+        writer.writeCellValue(6, 0, "性别");
+        writer.writeCellValue(8, 0, "学院示例名称");
+        writer.writeCellValue(9, 0, "专业示例名称");
+        writer.writeCellValue(10, 0, "年级示例名称");
+        writer.writeCellValue(11, 0, "班级示例名称");
+
+        List<DepartmentDO> departmentNameList = departmentDAO.getDepartmentList();
+        if (!departmentNameList.isEmpty()) {
+            IntStream.range(0, departmentNameList.size())
+                    .forEach(i -> writer.writeCellValue(8, i + 1, departmentNameList.get(i).getDepartmentName()));
+        }
+        List<MajorDO> majorNameList = majorDAO.getMajorList();
+        if (!majorNameList.isEmpty()) {
+            IntStream.range(0, majorNameList.size())
+                    .forEach(i -> writer.writeCellValue(9, i + 1, majorNameList.get(i).getMajorName()));
+        }
+        List<GradeDO> gradeNameList = gradeDAO.getGradeList();
+        if (!gradeNameList.isEmpty()) {
+            IntStream.range(0, gradeNameList.size())
+                    .forEach(i -> writer.writeCellValue(10, i + 1, gradeNameList.get(i).getName()));
+        }
+        List<AdministrativeClassDO> administrativeClassNameList = administrativeClassDAO.getAdministrativeClassList();
+        if (!administrativeClassNameList.isEmpty()) {
+            IntStream.range(0, administrativeClassNameList.size())
+                    .forEach(i -> writer.writeCellValue(11, i + 1, administrativeClassNameList.get(i).getClassName()));
+        }
+        // 输出到字节流
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         writer.flush(outputStream, true);
-        // 5. 关闭 writer，释放资源
+        // 关闭writer，释放资源
         writer.close();
-        // 6. 返回字节数组
+        // 返回字节数组
         return outputStream.toByteArray();
     }
 }

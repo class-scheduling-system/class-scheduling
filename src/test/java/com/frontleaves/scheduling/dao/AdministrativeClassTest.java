@@ -8,8 +8,11 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.List;
 
 @SpringBootTest
 @Slf4j
@@ -59,5 +62,30 @@ class AdministrativeClassTest {
         AdministrativeClassDO classData = administrativeClassDAO.getAdministrativeClassByUuid(nonExistingUuid);
         // 应该返回null
         Assertions.assertNull(classData);
+    }
+    @Test
+    void testGetAdministrativeClassList() {
+        // 先清除Redis中的管理班级列表缓存
+        redisson.getKeys().delete(StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST);
+
+        // 第一次调用getAdministrativeClassList方法，应该从数据库获取数据并缓存到Redis
+        List<AdministrativeClassDO> classList1 = administrativeClassDAO.getAdministrativeClassList();
+
+        // 断言从数据库获取的管理班级列表不为空
+        Assertions.assertNotNull(classList1);
+        Assertions.assertFalse(classList1.isEmpty());
+
+        // 验证Redis中是否已缓存管理班级列表
+        RList<AdministrativeClassDO> redisCache = redisson.getList(StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST);
+        Assertions.assertTrue(redisCache.isExists());
+
+        // 记录第一次查询结果的大小
+        int firstResultSize = classList1.size();
+
+        // 第二次调用getAdministrativeClassList方法，应该从Redis缓存中获取数据
+        List<AdministrativeClassDO> classList2 = administrativeClassDAO.getAdministrativeClassList();
+
+        // 断言第二次获取的结果与第一次结果大小相同
+        Assertions.assertEquals(firstResultSize, classList2.size());
     }
 }

@@ -16,15 +16,13 @@ import com.xlf.utility.util.ConvertUtil;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RMap;
-import org.redisson.api.RTransaction;
-import org.redisson.api.RedissonClient;
-import org.redisson.api.TransactionOptions;
+import org.redisson.api.*;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -124,10 +122,10 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
     /**
      * 根据分页参数和查询条件获取部门列表
      *
-     * @param page 分页页码
-     * @param size 每页大小
+     * @param page   分页页码
+     * @param size   每页大小
      * @param isDesc 是否按降序排序
-     * @param name 部门名称查询条件
+     * @param name   部门名称查询条件
      * @return 分页后的部门列表
      */
     public Page<DepartmentDO> getDepartmentList(@NotNull Integer page, @NotNull Integer size, Boolean isDesc, String name) {
@@ -149,10 +147,40 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
      * @param departmentName 部门名称，用于模糊查询
      * @return 包含匹配部门名称的所有部门UUID的列表
      */
-    public List<String> getDepartmentUuidByName(String departmentName) {
+    public List<String> getDepartmentUuidListByName(String departmentName) {
         QueryWrapper<DepartmentDO> queryWrapper = new QueryWrapper<>();
         queryWrapper.select("department_uuid").
                 like("department_name", departmentName);
         return this.listObjs(queryWrapper, Object::toString);
+    }
+
+    /**
+     * 获取部门列表
+     * <p>
+     * 本方法首先尝试从Redis中获取部门列表如果Redis中不存在该列表，
+     * 则从数据库中查询，并将结果序列化后存入Redis，以提高下次访问速度
+     *
+     * @return 部门列表，如果列表为空，则返回空列表
+     */
+    public List<DepartmentDO> getDepartmentList() {
+        // 从Redis中获取部门列表
+        RList<DepartmentDO> redissonList = redisson.getList(StringConstant.Redis.DEPARTMENT_LIST);
+        // 检查Redis列表是否存在
+        if (!redissonList.isExists()) {
+            // 从数据库中获取部门列表
+            List<DepartmentDO> departmentDOList = this.list();
+            // 检查部门列表是否非空
+            if (departmentDOList != null && !departmentDOList.isEmpty()) {
+                redissonList.addAll(departmentDOList);
+                redissonList.expire(Duration.ofSeconds(86400));
+                // 返回部门对象列表
+                return departmentDOList;
+            }
+        } else {
+            // 如果Redis列表存在，则直接读取并转换为DepartmentDO对象列表
+            return redissonList.readAll();
+        }
+        // 如果部门列表为空，返回空列表
+        return Collections.emptyList();
     }
 }
