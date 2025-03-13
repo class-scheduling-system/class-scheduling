@@ -230,8 +230,7 @@ class MajorTest {
                 .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
                 .setDepartment(getDepartment.getDepartmentUuid())
                 .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
-                .setMajor(newMajorUuid)
-                .setClazz("1班");
+                .setMajor(newMajorUuid);
         studentDAO.save(studentDO);
 
         // 模拟 isReferenced 返回 true

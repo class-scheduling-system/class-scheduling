@@ -148,7 +148,7 @@ public class BuildingController {
             @RequestParam(value = "size", defaultValue = "20") Integer size,
             @RequestParam(value = "is_desc", defaultValue = "true") Boolean isDesc
     ) {
-        if (campusUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+        if (!campusUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException("校区主键不合法", ErrorCode.PARAMETER_INVALID);
         }
         PageDTO<BuildingDTO> buildingList = buildingService.getBuildingByCampus(campusUuid, page, size, isDesc);

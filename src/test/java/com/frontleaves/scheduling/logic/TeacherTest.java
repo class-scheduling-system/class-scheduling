@@ -5,12 +5,14 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
+import com.frontleaves.scheduling.daos.TeacherTypeDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
+import com.frontleaves.scheduling.models.entity.TeacherTypeDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
 import com.frontleaves.scheduling.services.TeacherService;
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +52,8 @@ class TeacherTest {
     private TeacherDO setUpTeacher;
     private UserDO setUpUser;
     private DepartmentDO setUpDepartment;
+    @Autowired
+    private TeacherTypeDAO teacherTypeDAO;
 
     /**
      * 获取项目中的一个可用部门
@@ -89,6 +94,7 @@ class TeacherTest {
         // 保存用户
         userDAO.save(setUpUser);
 
+        TeacherTypeDO teacherTypeDO = teacherTypeDAO.lambdaQuery().eq(TeacherTypeDO::getTypeName, "辅导员").one();
         // 创建测试教师
         setUpTeacher = new TeacherDO();
         setUpTeacher.setTeacherUuid(UuidUtil.generateUuidNoDash())
@@ -99,6 +105,7 @@ class TeacherTest {
                 .setEnglishName("teacherLogicTest")
                 .setEthnic("汉族")
                 .setSex(true)
+                .setType(teacherTypeDO.getTeacherTypeUuid())
                 .setPhone("13888888888")
                 .setEmail("teacherLogicTest@test.com")
                 .setJobTitle("教授")
@@ -179,6 +186,7 @@ class TeacherTest {
         // 保存用户
         userDAO.save(newUser);
 
+        TeacherTypeDO teacherTypeDO = teacherTypeDAO.lambdaQuery().eq(TeacherTypeDO::getTypeName, "辅导员").one();
         // 创建教师视图对象
         TeacherVO teacherVO = new TeacherVO(
                 setUpDepartment.getDepartmentUuid(),
@@ -188,6 +196,7 @@ class TeacherTest {
                 "newTeacherLogicTest",
                 "汉族",
                 true,
+                teacherTypeDO.getTeacherTypeUuid(),
                 "13777777777",
                 "newTeacherLogicTest@test.com",
                 "讲师",
@@ -233,6 +242,7 @@ class TeacherTest {
                 "NonExistentDepartmentTeacher",
                 "汉族",
                 true,
+                "辅导员",
                 "13666666666",
                 "nonexistent@test.com",
                 "讲师",
@@ -471,6 +481,7 @@ class TeacherTest {
     void testDisableUnregisteredTeacher() {
         log.debug("测试禁用未注册的教师");
 
+        TeacherTypeDO teacherTypeDO = teacherTypeDAO.lambdaQuery().eq(TeacherTypeDO::getTypeName, "辅导员").one();
         // 创建一个未关联用户的教师
         TeacherDO unregisteredTeacher = new TeacherDO();
         unregisteredTeacher.setTeacherUuid(UuidUtil.generateUuidNoDash())
@@ -481,6 +492,7 @@ class TeacherTest {
                 .setEnglishName("unregisteredTeacher")
                 .setEthnic("汉族")
                 .setSex(true)
+                .setType(teacherTypeDO.getTeacherTypeUuid())
                 .setPhone("13666666666")
                 .setEmail("unregistered@test.com")
                 .setJobTitle("讲师")
@@ -513,6 +525,7 @@ class TeacherTest {
     void testDeleteTeacher() {
         log.debug("测试删除教师");
 
+        TeacherTypeDO teacherTypeDO = teacherTypeDAO.lambdaQuery().eq(TeacherTypeDO::getTypeName, "辅导员").one();
         // 创建一个未关联用户的教师用于删除测试
         TeacherDO teacherToDelete = new TeacherDO();
         teacherToDelete.setTeacherUuid(UuidUtil.generateUuidNoDash())
@@ -523,6 +536,7 @@ class TeacherTest {
                 .setEnglishName("teacherToDelete")
                 .setEthnic("汉族")
                 .setSex(true)
+                .setType(teacherTypeDO.getTeacherTypeUuid())
                 .setPhone("13999999999")
                 .setEmail("teacherToDelete@test.com")
                 .setJobTitle("讲师")
@@ -586,6 +600,7 @@ class TeacherTest {
     void testUpdateTeacher() {
         log.debug("测试更新教师信息");
 
+        TeacherTypeDO teacherTypeDO = teacherTypeDAO.lambdaQuery().eq(TeacherTypeDO::getTypeName, "辅导员").one();
         // 创建更新后的教师视图对象
         TeacherVO updateTeacherVO = new TeacherVO(
                 setUpDepartment.getDepartmentUuid(),
@@ -595,6 +610,7 @@ class TeacherTest {
                 "updatedEnglishName",
                 "苗族", // 更新民族
                 false, // 更新性别
+                teacherTypeDO.getTeacherTypeUuid(), // 更新职称
                 "13888888889", // 更新手机号
                 "updatedEmail@test.com", // 更新邮箱
                 "副教授", // 更新职称
@@ -635,6 +651,7 @@ class TeacherTest {
                 "updatedEnglishName",
                 "苗族",
                 false,
+                "辅导员",
                 "13888888889",
                 "updatedEmail@test.com",
                 "副教授",
@@ -666,6 +683,7 @@ class TeacherTest {
                 "updatedEnglishName",
                 "苗族",
                 false,
+                "辅导员",
                 "13888888889",
                 "updatedEmail@test.com",
                 "副教授",
@@ -700,6 +718,7 @@ class TeacherTest {
                 "NonExistentTeacher",
                 "汉族",
                 true,
+                "辅导员",
                 "13888888888",
                 "nonexistent@test.com",
                 "教授",
