@@ -3,25 +3,25 @@
  * Copyright (c) 2022-NOW(至今) 锋楪技术团队
  * Author: 锋楪技术团队 (https://www.frontleaves.com)
  *
- * 本文件包含锋楪技术团队项目的源代码，项目的所有源代码均遵循 MIT 开源许可证协议。
+ * 本文件包含锋楪技术团队项目的源代码,项目的所有源代码均遵循 MIT 开源许可证协议。
  * --------------------------------------------------------------------------------
  * 许可证声明：
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
- * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
+ * 本软件是“按原样”提供的,没有任何形式的明示或暗示的保证,包括但不限于
+ * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下,
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
  *
  * 使用本软件即表示您了解此声明并同意其条款。
  *
- * 有关 MIT 许可证的更多信息，请查看项目根目录下的 LICENSE 文件或访问：
+ * 有关 MIT 许可证的更多信息,请查看项目根目录下的 LICENSE 文件或访问：
  * https://opensource.org/licenses/MIT
  * --------------------------------------------------------------------------------
  * 免责声明：
  *
- * 使用本软件的风险由用户自担。作者或版权持有人在法律允许的最大范围内，
+ * 使用本软件的风险由用户自担。作者或版权持有人在法律允许的最大范围内,
  * 对因使用本软件内容而导致的任何直接或间接的损失不承担任何责任。
  * --------------------------------------------------------------------------------
  */
@@ -233,8 +233,23 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
         }
     }
 
-    public Page<StudentDO> listStudents(int page, int size, Boolean isDesc, @Nullable String clazz, @Nullable Boolean isGraduated,  @Nullable String name, @Nullable String id) {
-        // 选填字段均为空，返回空页
+    /**
+     * 列出学生列表
+     *
+     * @param page 当前页码
+     * @param size 每页大小
+     * @param isDesc 是否降序排序
+     * @param clazz 班级名称，可为空
+     * @param isGraduated 是否毕业，可为空
+     * @param name 学生姓名，可为空
+     * @param id 学生学号，可为空
+     * @return 返回包含学生信息的页面对象
+     */
+    public Page<StudentDO> listStudents(int page, int size, Boolean isDesc,
+                                        @Nullable String clazz, @Nullable Boolean isGraduated,
+                                        @Nullable String name, @Nullable String id
+    ) {
+        // 选填字段均为空,返回空页
         if (CharSequenceUtil.isBlank(clazz) && CharSequenceUtil.isBlank(name) && CharSequenceUtil.isBlank(id)) {
             return new Page<>(page, size);
         }
@@ -246,9 +261,10 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
         if (CharSequenceUtil.isNotBlank(clazz)) {
             queryWrapper.like(StudentDO::getClazz, clazz);
         }
-        // 查看学生状态
-        if (Boolean.FALSE.equals(isGraduated)) {
-            queryWrapper.like(StudentDO::getGradeUuid, isGraduated);
+        // 查看学生是否毕业
+        if (isGraduated != null) {
+            queryWrapper.eq(StudentDO::getGraduated, isGraduated)
+                    .or().isNull(StudentDO::getGraduated);
         }
         // 查看姓名是否为空
         if(CharSequenceUtil.isNotBlank(name)) {
@@ -275,7 +291,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
     public StudentDO editStudent(String studentUuid, StudentVO studentVO) {
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
-            // 先查询学生，如果不存在则抛出异常
+            // 先查询学生,如果不存在则抛出异常
             StudentDO studentDO = this.getStudentByUuid(studentUuid);
             if (studentDO == null) {
                 throw new BusinessException("未找到该学生信息", ErrorCode.NOT_EXIST);
@@ -304,22 +320,15 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
         }
     }
 
-//    public boolean updateStudentStatus(String studentUuid, boolean disable) {
-//        return this.lambdaUpdate()
-//                .eq(StudentDO::getStudentUuid, studentUuid)
-//                .set(StudentDO::getDisabled, disable)
-//                .update();
-//    }
-
     /**
      * 根据专业唯一标识获取学生列表
      *<p>
-     * 此方法通过专业唯一标识（majorUuid）查询数据库，获取所有该专业的学生列表
-     * 如果没有找到任何学生，即返回一个空列表，以避免返回null值导致的空指针异常
+     * 此方法通过专业唯一标识（majorUuid）查询数据库,获取所有该专业的学生列表
+     * 如果没有找到任何学生,即返回一个空列表,以避免返回null值导致的空指针异常
      *</p>
      *
-     * @param majorUuid 专业唯一标识，用于查询学生记录
-     * @return 包含StudentDO对象的列表，表示所有该专业的学生如果没有找到学生，则返回空列表
+     * @param majorUuid 专业唯一标识,用于查询学生记录
+     * @return 包含StudentDO对象的列表, 表示所有该专业的学生如果没有找到学生, 则返回空列表
      */
     @NotNull
     public List<StudentDO> getStudentByMajorUuid(String majorUuid) {

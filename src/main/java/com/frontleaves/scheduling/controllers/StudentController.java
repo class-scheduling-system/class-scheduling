@@ -10,6 +10,7 @@ import com.frontleaves.scheduling.services.StudentService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -55,16 +56,15 @@ public class StudentController {
         return ResultUtil.success("获取学生信息成功", studentDTO);
     }
 
-
     /**
      * 查看学生列表
      * <p>
-     * 该接口用于分页查询学生信息，可以根据班级、姓名、学号等条件进行筛选
+     * 该接口用于分页查询学生信息,可以根据班级、姓名、学号等条件进行筛选
      * </p>
      *
-     * @param page        页码，从1开始
+     * @param page        页码,从1开始
      * @param size        每页大小
-     * @param isDesc      是否降序排列，默认为true
+     * @param isDesc      是否降序排列,默认为true
      * @param clazz       班级名称
      * @param isGraduated 是否毕业
      * @param name        学生姓名
@@ -92,8 +92,8 @@ public class StudentController {
      * 保存成功后,将领域对象转换为DTO并返回,以告知前端操作成功
      * </p>
      *
-     * @param studentVO 学生视图对象，包含从前端传入的学生信息
-     * @return 返回包含学生信息的响应实体，包括操作结果和学生DTO
+     * @param studentVO 学生视图对象,包含从前端传入的学生信息
+     * @return 返回包含学生信息的响应实体,包括操作结果和学生DTO
      */
     @PostMapping("")
     public @NotNull ResponseEntity<BaseResponse<StudentDTO>> addStudent(
@@ -113,6 +113,9 @@ public class StudentController {
         StudentDTO studentDTO = new StudentDTO();
         BeanUtils.copyProperties(createdStudent, studentDTO);
 
+        // 设置学生状态,若 user_uuid 为空,则视为未注册（false）,否则为启用（true）
+        studentDTO.setStatus(studentDTO.getUserUuid() != null && !studentDTO.getUserUuid().isBlank());
+
         return ResultUtil.success("添加学生成功", studentDTO);
     }
 
@@ -120,21 +123,31 @@ public class StudentController {
      * 停用学生
      *
      * @param studentUuid 学生的唯一标识符
-     * @param disable 表示是否禁用学生账户，true为禁用，false为启用
+     * @param disable 表示是否禁用学生账户,true为禁用,false为启用
      * @return 返回一个包含禁用或启用结果的ResponseEntity对象
      */
-//    @PutMapping("/disable/{student_uuid}")
-//    public ResponseEntity<BaseResponse<StudentDisableDTO>> disableStudent(
-//            @PathVariable("student_uuid") String studentUuid,
-//            @RequestParam("disable") Boolean disable
-//    ) {
-//        StudentDisableDTO dto = studentService.disableStudent(studentUuid, disable);
-//        return ResultUtil.success("停用学生成功", dto);
-//
-//    }
+    @PutMapping("/disable/{student_uuid}")
+    public ResponseEntity<BaseResponse<StudentDisableDTO>> disableStudent(
+            @PathVariable("student_uuid") String studentUuid,
+            @RequestParam(defaultValue = "true") Boolean disable
+    ) {
+        // 校检UUID是否为空
+        if (studentUuid == null || studentUuid.isBlank()) {
+            throw new BusinessException("学生UUID不能为空", ErrorCode.PARAMETER_ERROR);
+        }
+        StudentDisableDTO studentDisableDTO = studentService.disableStudent(studentUuid, disable);
+
+        // 根据disable值动态返回不同的信息
+        String message = disable ? "停用学生成功" : "启用学生成功";
+        return ResultUtil.success(message, studentDisableDTO);
+    }
 
     /**
      * 删除学生
+     * 该接口接收一个学生UUID作为路径变量,通过DELETE请求调用,用于删除系统中的学生信息
+     *
+     * @param studentUuid 学生的唯一标识符（UUID）,通过URL路径传递
+     * @return 返回一个包含成功消息的响应实体,表示学生删除成功
      */
     @DeleteMapping("/{student_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteStudent(
@@ -144,16 +157,15 @@ public class StudentController {
         return ResultUtil.success("删除学生成功");
     }
 
-
     /**
      * 编辑学生
      * <p>
-     * 该方法通过PUT请求接收一个学生UUID和新的学生信息，然后更新对应学生的信息
-     * 如果学生不存在，返回错误信息；否则，返回更新后的学生信息
+     * 该方法通过PUT请求接收一个学生UUID和新的学生信息,然后更新对应学生的信息
+     * 如果学生不存在,返回错误信息；否则,返回更新后的学生信息
      * </p>
      *
-     * @param studentUuid 学生的唯一标识符UUID，用于定位需要编辑的学生
-     * @param studentVO 包含新的学生信息的实体对象，用于更新学生数据
+     * @param studentUuid 学生的唯一标识符UUID,用于定位需要编辑的学生
+     * @param studentVO 包含新的学生信息的实体对象,用于更新学生数据
      * @return 返回一个包含执行结果和学生数据的响应实体
      */
     @PutMapping("/{student_uuid}")
@@ -163,7 +175,7 @@ public class StudentController {
     ) {
         StudentDTO studentDTO = studentService.editStudent(studentUuid, studentVO);
 
-        // 检查编辑结果，如果返回null，则表示学生不存在
+        // 检查编辑结果,如果返回null,则表示学生不存在
         if (studentDTO == null) {
             return ResultUtil.error(ErrorCode.NOT_EXIST, "学生不存在", null);
         }

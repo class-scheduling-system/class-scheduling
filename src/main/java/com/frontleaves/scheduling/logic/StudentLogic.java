@@ -1,12 +1,15 @@
 package com.frontleaves.scheduling.logic;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.StudentDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.StudentDTO;
+import com.frontleaves.scheduling.models.dto.StudentDisableDTO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.services.StudentService;
 import com.xlf.utility.ErrorCode;
@@ -48,17 +51,20 @@ public class StudentLogic implements StudentService {
     /**
      * 获取学生列表信息
      *
-     * @param page        页码，从1开始
+     * @param page        页码,从1开始
      * @param size        每页记录数
      * @param isDesc      是否降序排列
-     * @param clazz       可选参数，班级名称
-     * @param isGraduated 可选参数，是否毕业
-     * @param name        可选参数，学生姓名
-     * @param id          可选参数，学生ID
+     * @param clazz       可选参数,班级名称
+     * @param isGraduated 可选参数,是否毕业
+     * @param name        可选参数,学生姓名
+     * @param id          可选参数,学生ID
      * @return 返回一个包含学生信息的PageDTO对象
      */
     @Override
-    public PageDTO<StudentDTO> getStudentList(int page, int size, Boolean isDesc, @Nullable String clazz, @Nullable Boolean isGraduated, @Nullable String name, @Nullable String id) {
+    public PageDTO<StudentDTO> getStudentList(int page, int size, Boolean isDesc,
+                                              @Nullable String clazz, @Nullable Boolean isGraduated,
+                                              @Nullable String name, @Nullable String id
+    ) {
         // 调用DAO层方法获取分页学生数据
         Page<StudentDO> resultPage = studentDAO.listStudents(page, size, isDesc, clazz, isGraduated, name, id);
 
@@ -74,7 +80,16 @@ public class StudentLogic implements StudentService {
         return new PageDTO<>(dtoList, resultPage.getTotal(), resultPage.getSize(), resultPage.getCurrent());
     }
 
-
+    /**
+     * 添加学生信息
+     * <p>
+     * 此方法负责接收一个学生对象,验证其信息的完整性,格式的正确性,
+     * 然后将学生信息保存到数据库中,并转换为学生DTO对象
+     * </p>
+     *
+     * @param studentVO 学生对象,包含学生的基本信息
+     * @return 保存后的学生对象
+     */
     @Override
     public StudentDO addStudent(StudentDO studentVO) {
         // 校检数据完整性
@@ -104,28 +119,56 @@ public class StudentLogic implements StudentService {
         return studentDO;
     }
 
-//    @Override
-//    public StudentDisableDTO disableStudent(String studentUuid, Boolean disable) {
-//        StudentDO studentDO = studentDAO.getStudentByUuid(studentUuid);
-//        if (studentDO == null) {
-//            throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
-//        }
-//
-//        // 检查学生是否已有账号
-//        boolean hasAccount = userDAO.exists(new LambdaQueryWrapper<UserDO>().eq(UserDO::getUserUuid, studentUuid));
-//        if (!hasAccount) {
-//            throw new BusinessException("该学生未创建系统账号", ErrorCode.NOT_EXIST);
-//        }
-//
-//        boolean updated = studentDAO.updateStudentStatus(studentUuid, disable);
-//        if (!updated) {
-//            throw new BusinessException("更新学生状态失败", ErrorCode.OPERATION_ERROR);
-//        }
-//
-//        return new StudentDisableDTO(studentUuid, disable, true);
-//    }
+    /**
+     * 根据学生UUID禁用或启用学生账户
+     * <p>
+     * 此方法首先根据学生UUID获取学生详细信息,然后检查该学生是否已创建系统账号
+     * 如果学生存在且已创建系统账号,则根据传入的禁用标志更新用户状态
+     * </p>
+     *
+     * @param studentUuid 学生的唯一UUID
+     * @param disable 是否禁用学生账户的标志,true表示禁用,false表示启用
+     * @return 返回一个包含学生UUID和禁用状态的DTO对象
+     */
+    @Override
+    public StudentDisableDTO disableStudent(String studentUuid, Boolean disable) {
+        StudentDO studentDO = studentDAO.getStudentByUuid(studentUuid);
+        if (studentDO == null) {
+            throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
+        }
+
+        // 检查学生是否已有账号(是否注册)
+        if (studentDO.getUserUuid() == null || studentDO.getUserUuid().isBlank()) {
+            throw new BusinessException("该学生未创建系统账号", ErrorCode.NOT_EXIST);
+        }
+
+        // 获取用户对象
+        UserDO oldUserDO = userDAO.getUserByUuid(studentDO.getUserUuid());
+        if (oldUserDO == null) {
+            throw new BusinessException(StringConstant.USER_NOT_EXIST, ErrorCode.NOT_EXIST);
+        }
+        UserDO newUserDO = BeanUtil.toBean(oldUserDO, UserDO.class);
+
+        // 更新用户状态
+        newUserDO.setStatus((byte) (disable ? 0 : 1));
+        userDAO.updateUser(oldUserDO, newUserDO);
+
+        return new StudentDisableDTO()
+                .setStudentUuid(studentDO.getStudentUuid())
+                .setStatus(disable);
+    }
 
 
+    /**
+     * 删除学生
+     * <p>
+     * 此方法首先通过学生UUID检查学生是否存在如果学生存在,进一步检查学生是否已注册
+     * 如果学生未注册,则执行删除操作；如果已注册或不存在,则抛出相应的异常
+     * </p>
+     *
+     * @param studentUuid 学生的唯一标识符
+     * @throws BusinessException 当学生不存在或学生已注册时抛出
+     */
     @Override
     public void deleteStudent(String studentUuid) {
         // 检查学生是否存在
@@ -137,7 +180,7 @@ public class StudentLogic implements StudentService {
         // 检查学生是否已注册
         boolean isRegistered = userDAO.existsByUserUuid(studentDO.getUserUuid());
         if (isRegistered) {
-            throw new BusinessException("学生已注册，无法删除", ErrorCode.OPERATION_FAILED);
+            throw new BusinessException("学生已注册,无法删除", ErrorCode.OPERATION_FAILED);
         }
 
         // 删除学生
@@ -156,15 +199,15 @@ public class StudentLogic implements StudentService {
     public StudentDTO editStudent(String studentUuid, StudentVO studentVO) {
         // 根据学生UUID从数据库中获取学生实体
         StudentDO studentDO = studentDAO.getStudentByUuid(studentUuid);
-        // 检查学生是否存在，如果不存在则抛出异常
+        // 检查学生是否存在,如果不存在则抛出异常
         if (studentDO == null) {
             throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
         }
 
-        // 将视图对象中的属性复制到实体对象中，以准备更新数据库
+        // 将视图对象中的属性复制到实体对象中,以准备更新数据库
         BeanUtils.copyProperties(studentVO, studentDO);
         boolean updated = studentDAO.updateById(studentDO);
-        // 如果更新失败，则抛出异常
+        // 如果更新失败,则抛出异常
         if (!updated) {
             throw new BusinessException("学生信息更新失败", ErrorCode.OPERATION_FAILED);
         }
@@ -181,7 +224,7 @@ public class StudentLogic implements StudentService {
      * 以便在不同的层次或模块之间传递学生信息,封装了转换逻辑
      * </p>
      *
-     * @param studentDO 学生数据对象，包含从数据库中获取的学生信息
+     * @param studentDO 学生数据对象,包含从数据库中获取的学生信息
      * @return 返回一个包含相同信息的学生数据传输对象
      */
     private StudentDTO convertToStudentDTO(StudentDO studentDO) {

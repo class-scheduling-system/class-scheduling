@@ -82,4 +82,9 @@ public class StudentDTO {
      * 更新时间（单位：毫秒时间戳）
      */
     private Long updatedAt;
+
+    /**
+     * 学生状态
+     */
+    public Boolean status;
 }

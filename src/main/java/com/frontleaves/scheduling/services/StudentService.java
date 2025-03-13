@@ -30,7 +30,6 @@ public interface StudentService {
                                        @Nullable String clazz,@Nullable Boolean isGraduated,
                                        @Nullable String name, @Nullable String id);
 
-
     /**
      * 添加学生
      *
@@ -40,7 +39,7 @@ public interface StudentService {
     /**
      * 停用学生
      */
-//    StudentDisableDTO disableStudent(String studentUuid, Boolean disable);
+    StudentDisableDTO disableStudent(String studentUuid, Boolean disable);
 
     /**
      * 删除学生

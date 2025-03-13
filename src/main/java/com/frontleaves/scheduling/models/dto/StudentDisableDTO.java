@@ -1,19 +1,18 @@
 package com.frontleaves.scheduling.models.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.Accessors;
 
 /**
  * @author fanfan187
  * @version v1.0.0
  * @since v1.0.0
  */
-@Getter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Accessors(chain = true)
 public class StudentDisableDTO {
     private String studentUuid;
     private Boolean status;
-    private Boolean disabled;
 }
