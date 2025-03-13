@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.dao;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
@@ -7,6 +8,7 @@ import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.MajorDO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
@@ -14,10 +16,7 @@ import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -211,4 +210,101 @@ class StudentTest {
         StudentDO studentByUserUuid1 = studentDAO.getStudentByUserUuid(setUpStudent.getUserUuid());
         Assertions.assertNotNull(studentByUserUuid1);
     }
+
+    /**
+     * 测试获取学生列表
+     */
+    @Test
+    void testListStudents() {
+        log.debug("测试获取学生列表");
+        // 传入条件
+        Page<StudentDO> pageResult = studentDAO.listStudents(
+                1, 10, true,
+                setUpStudent.getClazz(), Boolean.valueOf(setUpStudent.getDepartment()),
+                setUpStudent.getMajor(), setUpStudent.getGradeUuid());
+        Assertions.assertNotNull(pageResult, "listStudents返回值不应为null");
+        Assertions.assertFalse(pageResult.getRecords().isEmpty(), "列表查询应至少返回一条记录");
+
+        // 当所有选填字段为空时, 直接返回空页
+        Page<StudentDO> emptyPage = studentDAO.listStudents(
+                1, 10, null,
+                null, null, null, null
+        );
+        Assertions.assertNotNull(emptyPage, "listStudents返回值不应为null");
+        Assertions.assertTrue(emptyPage.getRecords().isEmpty(), "选填字段为空时列表查询应返回空页");
+    }
+
+    /**
+     * 测试编辑学生
+     */
+    @Test
+    void testEditStudent() {
+        String studentUuid = UuidUtil.generateUuidNoDash();
+        String studentId = "A951753";
+
+        // 如果存在相同学号的学生记录，先删除
+        if (studentDAO.lambdaQuery().eq(StudentDO::getId, studentId).exists()) {
+            studentDAO.lambdaUpdate().eq(StudentDO::getId, studentId).remove();
+        }
+
+        // 构造初始学生数据并保存
+        StudentDO initialStudent = new StudentDO();
+        initialStudent.setStudentUuid(studentUuid)
+                .setId(studentId)
+                .setName("OriginalName")
+                .setGender(false)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(1).getGradeUuid())
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(1).getAdministrativeClassUuid())
+                .setGraduated(false)
+                .setUserUuid(setUpUser.getUserUuid());
+        studentDAO.save(initialStudent);
+
+        // 2. 构造更新用的 VO 对象（更新姓名、毕业状态等）
+        StudentVO studentTestVO = new StudentVO();
+        studentTestVO.setStudentUuid(studentUuid)
+                .setId(studentId)
+                .setName("LiSi456")
+                .setGender(false)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(1).getGradeUuid())
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(1).getAdministrativeClassUuid())
+                .setGraduated(true)
+                .setUserUuid(setUpUser.getUserUuid());
+
+        // 3. 执行更新操作
+        StudentDO editStudent = null;
+        try {
+            editStudent = studentDAO.editStudent(studentUuid, studentTestVO);
+        } catch (BusinessException e) {
+            Assertions.fail("editStudent 异常：" + e.getMessage());
+        }
+
+        // 4. 校验更新结果
+        Assertions.assertNotNull(editStudent, "更新后的学生不应为null");
+        Assertions.assertEquals("A951753", editStudent.getId(), "学号应该被更新");
+        Assertions.assertEquals("LiSi456", editStudent.getName(), "姓名应该被更新");
+        Assertions.assertTrue(editStudent.getGraduated(), "毕业状态应更新为 true");
+
+        // 5. 验证缓存是否更新
+        RMap<String, String> studentCache = redisson.getMap(StringConstant.Redis.STUDENT_UUID + studentUuid);
+        Assertions.assertTrue(studentCache.isExists(), "学生缓存应存在");
+        String cachedName = studentCache.get("name");
+        Assertions.assertEquals(editStudent.getName(), cachedName, "缓存中的姓名应该被更新");
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

@@ -2,9 +2,8 @@ package com.frontleaves.scheduling.models.vo;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.Accessors;
 
 /**
  * 学生视图对象
@@ -13,9 +12,10 @@ import lombok.NoArgsConstructor;
  * @version v1.0.0
  * @since v1.0.0
  */
-@Getter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Accessors(chain = true)
 public class StudentVO {
     @NotBlank(message = "学生UUID不能为空")
     private String studentUuid;
@@ -43,5 +43,5 @@ public class StudentVO {
     private String userUuid;
 
     @NotNull(message = "毕业状态不能为空")
-    private Boolean isGraduated;
+    private Boolean graduated;
 }

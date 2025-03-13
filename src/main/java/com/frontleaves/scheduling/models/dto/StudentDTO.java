@@ -66,7 +66,7 @@ public class StudentDTO {
     /**
      * 是否毕业
      */
-    private Boolean isGraduated;
+    private Boolean graduated;
 
     /**
      * 对应用户主键
