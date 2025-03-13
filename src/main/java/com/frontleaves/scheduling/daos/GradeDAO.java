@@ -36,6 +36,7 @@ import com.frontleaves.scheduling.mappers.GradeMapper;
 import com.frontleaves.scheduling.models.entity.GradeDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RBucket;
 import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -94,7 +95,6 @@ public class GradeDAO extends ServiceImpl<GradeMapper, GradeDO> implements IServ
         // 如果既没有从Redis中获取到年级信息，也没有从数据库中获取到，返回null
         return null;
     }
-
     /**
      * 获取年级列表
      *
@@ -124,5 +124,37 @@ public class GradeDAO extends ServiceImpl<GradeMapper, GradeDO> implements IServ
         }
         // 如果查询结果为空，返回空列表
         return Collections.emptyList();
+    }
+
+    /**
+     * 根据年级名称获取年级信息
+     * 首先尝试从Redis中获取年级UUID，如果不存在，则从数据库中查询并存入Redis
+     * 使用Redis缓存是为了减少数据库查询次数，提高系统性能
+     *
+     * @param gradeName 年级名称，用于查询年级信息
+     * @return 返回GradeDO对象，如果未找到对应的年级信息，则返回null
+     */
+    public GradeDO getGradeByName(String gradeName) {
+        // 构造Redis中年级信息的键
+        RBucket<String> rBucket = redisson.getBucket(StringConstant.Redis.GRADE_NAME + gradeName);
+
+        // 检查Redis中是否存在该年级信息
+        if (!rBucket.isExists()){
+            // 如果Redis中不存在，从数据库中查询年级信息
+            GradeDO gradeDO = this.lambdaQuery().eq(GradeDO::getName,gradeName).one();
+
+            // 如果查询到年级信息，将其UUID存入Redis，并设置过期时间
+            if (gradeDO != null){
+                rBucket.set(gradeDO.getGradeUuid());
+                rBucket.expire(Duration.ofSeconds(86400));
+                return gradeDO;
+            }
+        } else {
+            // 如果Redis中存在该年级信息，根据UUID获取并返回年级信息
+            return this.getGradeByUuid(rBucket.get());
+        }
+
+        // 如果未找到对应的年级信息，返回null
+        return null;
     }
 }

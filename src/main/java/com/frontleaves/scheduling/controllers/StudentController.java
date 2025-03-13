@@ -10,7 +10,10 @@ import com.xlf.utility.ResultUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -69,12 +72,18 @@ public class StudentController {
      */
     @PostMapping("/batch-import")
     public ResponseEntity<BaseResponse<BackAddStudentDTO>> batchImport(
-            @RequestBody @Validated BatchAddStudentVO batchAddStudentVO
+            @RequestBody @Validated BatchAddStudentVO batchAddStudentVO,
+            HttpServletRequest request
     ) {
-        studentService.checkBatchAddStudentVO(batchAddStudentVO);
+        byte[] file = studentService.checkBatchAddStudentVO(batchAddStudentVO);
+        String departmentUuid = studentService.getDepartmentUuid(request);
         // 执行批量导入学生的操作
-        BackAddStudentDTO backAddStudentDTO = studentService
-                .batchImport(batchAddStudentVO);
+        BackAddStudentDTO backAddStudentDTO;
+        if (Boolean.TRUE.equals(batchAddStudentVO.getIgnoreError())) {
+            backAddStudentDTO = studentService.batchImportIgnoreError(file, departmentUuid);
+        } else {
+            backAddStudentDTO = studentService.batchImportNoIgnoreError(file, departmentUuid);
+        }
         // 返回批量添加学生成功的响应
         return ResultUtil.success("批量添加学生成功", backAddStudentDTO);
     }

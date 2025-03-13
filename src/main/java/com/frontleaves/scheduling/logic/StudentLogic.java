@@ -1,11 +1,13 @@
 package com.frontleaves.scheduling.logic;
 
-import cn.hutool.poi.excel.ExcelReader;
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
+import cn.hutool.poi.excel.sax.Excel07SaxReader;
+import cn.hutool.poi.excel.sax.handler.RowHandler;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
 import com.frontleaves.scheduling.models.dto.PrepareStudentExampleDTO;
+import com.frontleaves.scheduling.models.dto.StudentImportDTO;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.services.StudentService;
@@ -21,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -46,7 +49,19 @@ public class StudentLogic implements StudentService {
     private final GradeDAO gradeDAO;
     private final AcademicAffairsPermissionDAO academicAffairsPermissionDAO;
     private final UserService userService;
+    private final StudentDAO studentDAO;
 
+    private static @NotNull StudentImportDTO getStudentImportDTO(List<Object> rowlist) {
+        StudentImportDTO student = new StudentImportDTO();
+        student.setDepartmentName(rowlist.get(0).toString().trim())
+                .setMajorName(rowlist.get(1).toString().trim())
+                .setGradeName(rowlist.get(2).toString().trim())
+                .setClassName(rowlist.get(3).toString().trim())
+                .setId(rowlist.get(4).toString().trim())
+                .setName(rowlist.get(5).toString().trim())
+                .setGender(rowlist.get(6).toString().trim());
+        return student;
+    }
 
     /**
      * 读取学生通知文本文件
@@ -68,10 +83,10 @@ public class StudentLogic implements StudentService {
             } else {
                 // 资源不存在，返回默认文本
                 return """
-                    注意事项：
-                    1. 请严格按照模板填写信息
-                    2. 所有信息必须准确无误
-                    3. 请勿修改模板结构""";
+                        注意事项：
+                        1. 请严格按照模板填写信息
+                        2. 所有信息必须准确无误
+                        3. 请勿修改模板结构""";
             }
         } catch (IOException e) {
             // 如果读取失败，返回默认文本
@@ -82,19 +97,142 @@ public class StudentLogic implements StudentService {
                     3. 请勿修改模板结构""";
         }
     }
-    @Override
-    public BackAddStudentDTO batchImport(
-            BatchAddStudentVO batchAddStudentVO) {
-        if (batchAddStudentVO.getIgnoreError()){
 
-        }else {
-
+    /**
+     * 判断给定字节数组是否代表一个Excel 2007或更高版本的文件
+     * 该方法通过检查字节数组的 前几个字节来确定文件类型
+     * Excel 2007+ 文件的 前8个字节是固定的PK头部
+     *
+     * @param bytes 字节数组，代表要检查的文件内容
+     * @return 如果字节数组代表一个Excel 2007或更高版本的文件，则返回true；否则返回false
+     */
+    private boolean isExcel2007(byte[] bytes) {
+        // Excel 2007+ 文件的前8个字节是固定的PK头部
+        if (bytes.length >= 4) {
+            // 检查前4个字节是否与Excel 2007+ 文件的PK头部匹配
+            return bytes[0] == 'P' && bytes[1] == 'K' && bytes[2] == 0x03 && bytes[3] == 0x04;
         }
-        return null;
+        // 如果字节数组长度不足4，不可能是Excel 2007+ 文件
+        return false;
+    }
+
+    /**
+     * 将Excel字节流解析为学生信息列表
+     *
+     * @param excelBytes Excel文件的字节流
+     * @return 解析后的学生信息列表
+     * @throws IOException 如果文件读取过程中发生错误
+     */
+    public List<StudentImportDTO> parseExcelToStudents(byte[] excelBytes) throws IOException {
+        // 创建结果容器
+        List<StudentImportDTO> resultList = new ArrayList<>();
+        try {
+            // 创建处理每行数据的handler
+            RowHandler rowHandler = (sheetIndex, rowIndex, rowlist) -> {
+                // 跳过第一行（通常是说明行）
+                if (rowIndex == 0) {
+                    return;
+                }
+                // 第二行是标题行，跳过
+                if (rowIndex == 1) {
+                    return;
+                }
+                if (!rowlist.isEmpty() && rowlist.get(0) != null
+                        && !rowlist.get(0).toString().trim().isEmpty()) {
+                    StudentImportDTO student = getStudentImportDTO(rowlist);
+                    resultList.add(student);
+                }
+            };
+            // 使用ByteArrayInputStream读取文件内容
+            try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(excelBytes)) {
+                // 判断Excel版本并选择合适的解析方式
+                if (isExcel2007(excelBytes)) {
+                    // 使用Excel07SaxReader处理xlsx格式
+                    Excel07SaxReader reader = new Excel07SaxReader(rowHandler);
+                    // 只读取第一个sheet
+                    reader.read(byteArrayInputStream, 0);
+                } else {
+                    // 使用ExcelUtil.readBySax处理Excel文件（自动判断格式）
+                    ExcelUtil.readBySax(byteArrayInputStream, 0, rowHandler);
+                }
+                return resultList;
+            }
+        } catch (Exception e) {
+            // 捕获并处理解析过程中可能发生的异常
+            throw new IllegalArgumentException("Excel解析失败：" + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = BusinessException.class)
+    public BackAddStudentDTO batchImportNoIgnoreError(
+            byte[] file, String departmentUuid
+    ) {
+        List<StudentImportDTO> studentList;
+        try {
+            studentList = this.parseExcelToStudents(file);
+        } catch (IOException e) {
+            throw new BusinessException("IO异常，Excel解析失败", ErrorCode.OPERATION_ERROR);
+        }
+        if (studentList.isEmpty()) {
+            throw new BusinessException("Excel文件中没有学生信息或数据格式错误请检查", ErrorCode.BODY_ERROR);
+        }
+        log.debug("解析Excel文件成功，共解析出{}条学生信息", studentList.size());
+        log.debug("第一行数据为:{}", studentList.get(0));
+        BackAddStudentDTO backAddStudentDTO = new BackAddStudentDTO();
+        // 不忽略警告提醒报错
+        for (int i = 0; i < studentList.size(); i++) {
+            DepartmentDO departmentDO = departmentDAO.getDepartmentByDepartmentName(
+                    studentList.get(i).getDepartmentName());
+            if (departmentDO == null) {
+                throw new BusinessException("第" + (i + 3) + "行学院名称不存在", ErrorCode.BODY_ERROR);
+            }
+            MajorDO majorDO = majorDAO.getMajorByDepartmentUuidAndMajorName(
+                    departmentDO.getDepartmentUuid(), studentList.get(i).getMajorName());
+            if (majorDO == null) {
+                throw new BusinessException("第" + (i + 3) + "行专业名称不存在", ErrorCode.BODY_ERROR);
+            }
+            GradeDO gradeDO = gradeDAO.getGradeByName(studentList.get(i).getGradeName());
+            if (gradeDO == null) {
+                throw new BusinessException("第" + (i + 3) + "行年级名称不存在", ErrorCode.BODY_ERROR);
+            }
+            AdministrativeClassDO administrativeClassDO = administrativeClassDAO
+                    .getAdministrativeClassByDepartmentAndClassName(departmentDO.getDepartmentUuid(),
+                            studentList.get(i).getClassName());
+            if (administrativeClassDO == null) {
+                throw new BusinessException("第" + (i + 3) + "行班级名称不存在", ErrorCode.BODY_ERROR);
+            }
+            // 创建并设置学生DO对象
+            StudentDO studentDO = new StudentDO();
+            // 设置性别
+            if ("男".equals(studentList.get(i).getGender())) {
+                studentDO.setGender(true);
+            } else if ("女".equals(studentList.get(i).getGender())) {
+                studentDO.setGender(false);
+            } else {
+                throw new BusinessException("第" + (i + 3) + "行性别填写错误", ErrorCode.BODY_ERROR);
+            }
+            studentDO.setId(studentList.get(i).getId())
+                    .setName(studentList.get(i).getName())
+                    .setGradeUuid(gradeDO.getGradeUuid())
+                    .setDepartment(departmentDO.getDepartmentUuid())
+                    .setMajor(majorDO.getMajorUuid())
+                    .setClazz(administrativeClassDO.getAdministrativeClassUuid())
+                    .setGraduated(false);
+            //继续数据存储
+            studentDAO.saveStudentBackError(studentDO, i);
+        }
+        //成功
+        backAddStudentDTO.setTotalCount(studentList.size())
+                .setFailedCount(0)
+                .setSuccessCount(studentList.size())
+                .setFailedDetails(null);
+        return backAddStudentDTO;
     }
 
     /**
      * 获取学生导入信息模板
+     *
      * @param prepareStudentExampleDTO 学生导入信息模板
      * @return 学生导入信息模板
      */
@@ -255,26 +393,30 @@ public class StudentLogic implements StudentService {
     }
 
     @Override
-    public void checkBatchAddStudentVO(BatchAddStudentVO batchAddStudentVO) {
+    public byte[] checkBatchAddStudentVO(BatchAddStudentVO batchAddStudentVO) {
         // 1. 检查 VO 对象是否为空
         if (batchAddStudentVO == null) {
             throw new IllegalArgumentException("批量添加学生信息不能为空");
         }
+
         // 2. 检查 file 字段是否为空
         String base64File = batchAddStudentVO.getFile();
         if (base64File == null || base64File.trim().isEmpty()) {
             throw new IllegalArgumentException("Excel文件不能为空");
         }
-        // 3. 验证是否为有效的 Base64 字符串
-        if (!isValidBase64(base64File)) {
-            throw new IllegalArgumentException("无效的 Base64 编码");
+        // 3. 处理Base64字符串，去除可能的前缀和干扰字符
+        // 如果有前缀，移除前缀
+        if (base64File.contains(",")) {
+            base64File = base64File.split(",")[1];
         }
+        // 移除可能的空格、换行符等
+        base64File = base64File.replaceAll("\\s", "");
         // 4. 解码 Base64 字符串为字节数组
         byte[] fileBytes;
         try {
             fileBytes = Base64.getDecoder().decode(base64File);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Base64 解码失败");
+            throw new IllegalArgumentException("Base64 解码失败: " + e.getMessage());
         }
         // 5. 检查文件大小（10MB = 10 * 1024 * 1024 字节）
         long fileSizeInBytes = fileBytes.length;
@@ -288,25 +430,29 @@ public class StudentLogic implements StudentService {
             // 尝试读取为 Excel 工作簿，这会在非 Excel 文件时抛出异常
             WorkbookFactory.create(inputStream);
         } catch (Exception e) {
-            throw new IllegalArgumentException("提供的文件不是有效的 Excel 文件");
+            throw new IllegalArgumentException("提供的文件不是有效的 Excel 文件: " + e.getMessage());
         }
+        return fileBytes;
+    }
 
+    @Override
+    @Transactional(rollbackFor = BusinessException.class)
+    public BackAddStudentDTO batchImportIgnoreError(byte[] file, String departmentUuid) {
+        return null;
     }
-    // 辅助方法：检查字符串是否为有效的 Base64 编码
-    private boolean isValidBase64(String base64String) {
-        if (base64String == null || base64String.isEmpty()) {
-            return false;
+
+    @Override
+    public String getDepartmentUuid(HttpServletRequest request) {
+        UserDO userDO = userService.getUserByRequest(request);
+        if (userDO == null) {
+            throw new BusinessException("用户不存在，意料之外的错误", ErrorCode.OPERATION_ERROR);
         }
-        // 去除可能的 Data URL 前缀（如果有）
-        String content = base64String;
-        if (base64String.contains(",")) {
-            content = base64String.split(",")[1];
+        AcademicAffairsPermissionDO academicAffairsPermissionDO =
+                academicAffairsPermissionDAO.getAcademicAffairsPermissionByUserUuid(userDO.getUserUuid());
+        if (academicAffairsPermissionDO == null) {
+            throw new BusinessException("教务权限不存在，意料之外的错误", ErrorCode.OPERATION_ERROR);
         }
-        try {
-            // 尝试使用正则表达式验证 Base64 字符
-            return content.matches("^[A-Za-z0-9+/]*={0,2}$");
-        } catch (Exception e) {
-            return false;
-        }
+        return academicAffairsPermissionDO.getDepartment();
     }
+
 }

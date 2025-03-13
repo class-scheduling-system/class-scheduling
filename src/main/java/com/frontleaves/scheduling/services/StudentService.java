@@ -8,21 +8,26 @@ import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 学生服务接口
+ *
  * @author FLASHLACK
  */
 public interface StudentService {
 
 
-    BackAddStudentDTO batchImport(
-            BatchAddStudentVO batchAddStudentVO);
+    BackAddStudentDTO batchImportNoIgnoreError(
+            byte[] file,
+            String departmentUuid
+    );
 
     /**
      * 获取学生导入信息模板
+     *
      * @return 学生导入信息模板
      */
     byte[] getExample(
             PrepareStudentExampleDTO prepareStudentExampleDTO
     );
+
     /**
      * 根据请求获取用户详细信息
      * 此方法主要用于从请求中提取用户信息，并进一步检查该用户是否具有学术事务权限
@@ -35,6 +40,20 @@ public interface StudentService {
     PrepareStudentExampleDTO prepareDepartmentData(
             HttpServletRequest request);
 
-    void checkBatchAddStudentVO(
+    byte[] checkBatchAddStudentVO(
             BatchAddStudentVO batchAddStudentVO);
+
+    BackAddStudentDTO batchImportIgnoreError(
+            byte[] file,
+            String departmentUuid
+    );
+
+    /**
+     * 获取部门UUID
+     *
+     * @param request 请求对象
+     * @return 部门UUID
+     */
+    String getDepartmentUuid(
+            HttpServletRequest request);
 }

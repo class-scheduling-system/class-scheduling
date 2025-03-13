@@ -117,6 +117,8 @@ public class StringConstant {
         public static final String ACADEMIC_AFFAIRS_PERMISSION_UUID = "academic:affairs:permission:uuid:";
         public static final String MAJOR_LIST_BY_DEPARTMENT_UUID = "major:list:department:uuid:";
         public static final String ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT = "administrative:class:list:department:";
+        public static final String DEPARTMENT_NAME = "department:name:";
+        public static final String GRADE_NAME = "grade:name:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

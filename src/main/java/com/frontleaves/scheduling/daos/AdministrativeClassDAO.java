@@ -159,4 +159,40 @@ public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMappe
         // 如果没有找到任何行政班级，则返回空列表
         return Collections.emptyList();
     }
+
+
+    /**
+     * 根据部门和班级名称获取行政班级信息
+     * 该方法首先尝试从Redis缓存中获取指定部门的行政班级列表，如果缓存不存在，
+     * 则从数据库中查询，并将结果缓存到Redis中，最后从列表中找到匹配指定班级名称的行政班级信息并返回
+     *
+     * @param department 部门名称，用于识别特定的部门
+     * @param className 班级名称，用于在部门下查找特定的班级
+     * @return 返回匹配的行政班级信息对象，如果没有找到则返回null
+     */
+    public AdministrativeClassDO getAdministrativeClassByDepartmentAndClassName(
+            String department,
+            String className) {
+        // 尝试从Redis中获取指定部门的行政班级列表
+        RList<AdministrativeClassDO> rList = redisson.getList(
+                StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT + department);
+        // 如果Redis中不存在该列表，说明尚未缓存或缓存已过期
+        if (!rList.isExists()){
+            // 从数据库中查询指定部门的所有行政班级信息
+            List<AdministrativeClassDO> administrativeClassDOList =
+                    this.lambdaQuery().eq(AdministrativeClassDO::getDepartmentUuid,department).list();
+            // 如果查询到班级信息，将其添加到Redis缓存中，并设置过期时间
+            if (!administrativeClassDOList.isEmpty()){
+                rList.addAll(administrativeClassDOList);
+                rList.expire(Duration.ofSeconds(86400));
+            }
+        }
+        // 从缓存列表中筛选出匹配指定班级名称的行政班级信息并返回，如果没有匹配项则返回null
+        return rList.stream()
+                    .filter(
+                            administrativeClassDO -> administrativeClassDO.getClassName()
+                                    .equals(className)
+                    ).findFirst().orElse(null);
+
+    }
 }
