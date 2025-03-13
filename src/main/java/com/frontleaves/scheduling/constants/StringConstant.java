@@ -56,6 +56,8 @@ public class StringConstant {
     public static final String TEACHER_NOT_EXIST = "教师不存在";
     public static final String USER_NOT_EXIST = "用户不存在";
     public static final String DEPARTMENT_NOT_EXIST = "部门不存在";
+    public static final String TEACHER_TYPE_UUID_NOT_EMPTY = "教师类型UUID不能为空";
+    public static final String TEACHER_TYPE_UUID_FORMAT_ERROR = "教师类型UUID格式不正确";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -107,7 +109,9 @@ public class StringConstant {
         public static final String TABLES_CHAIRS_UUID = "tc:uuid:";
         public static final String ROLE_LIST = "role:list";
         public static final String BUILDING_KEY_LIST = "building:key:list";
-        public static final String TEACHER_TYPE_UUID = "teacher:type:UUID";
+        public static final String TEACHER_TYPE_UUID = "teacher:type:uuid:";
+        public static final String TEACHER_TYPE_LIST = "teacher:type:list";
+        public static final String TEACHER_TYPE_PAGE = "teacher:type:page:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
