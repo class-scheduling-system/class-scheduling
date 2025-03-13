@@ -34,4 +34,7 @@ public interface StudentService {
      */
     PrepareStudentExampleDTO prepareDepartmentData(
             HttpServletRequest request);
+
+    void checkBatchAddStudentVO(
+            BatchAddStudentVO batchAddStudentVO);
 }

@@ -71,7 +71,7 @@ public class StudentController {
     public ResponseEntity<BaseResponse<BackAddStudentDTO>> batchImport(
             @RequestBody @Validated BatchAddStudentVO batchAddStudentVO
     ) {
-
+        studentService.checkBatchAddStudentVO(batchAddStudentVO);
         // 执行批量导入学生的操作
         BackAddStudentDTO backAddStudentDTO = studentService
                 .batchImport(batchAddStudentVO);
