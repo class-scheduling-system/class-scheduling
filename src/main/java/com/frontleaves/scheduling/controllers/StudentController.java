@@ -45,11 +45,9 @@ public class StudentController {
         HttpHeaders headers = new HttpHeaders();
         // 设置内容类型为二进制流
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-
         // 使用UTF-8编码文件名，解决中文文件名问题
         String fileName = URLEncoder.encode("学生导入模板.xlsx", StandardCharsets.UTF_8)
                 .replace("\\+", "%20");
-
         // 使用RFC 5987编码格式设置文件名
         headers.add(HttpHeaders.CONTENT_DISPOSITION,
                 "attachment; filename=\"" + fileName + "\"; filename*=UTF-8''" + fileName);
