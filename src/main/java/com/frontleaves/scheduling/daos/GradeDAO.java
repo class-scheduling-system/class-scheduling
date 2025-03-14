@@ -106,7 +106,7 @@ public class GradeDAO extends ServiceImpl<GradeMapper, GradeDO> implements IServ
      * @return 年级列表，如果列表为空，则返回空列表
      */
     @Transactional
-    public List<GradeDO> getGradeList() {
+    public List<GradeDO> getGradeListForUpdate() {
         // 从Redis中获取年级列表
         RList<GradeDO> rList = redisson.getList(StringConstant.Redis.GRADE_LIST);
         // 检查Redis列表是否存在

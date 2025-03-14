@@ -209,7 +209,7 @@ public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IServ
      * @return 专业列表，如果找不到则返回空列表
      */
     @Transactional
-    public List<MajorDO> getMajorListByDepartmentUuid(String departmentUuid) {
+    public List<MajorDO> getMajorListByDepartmentUuidForUpdate(String departmentUuid) {
         // 尝试从Redis中获取缓存的专业列表
         RList<MajorDO> rList = redisson.getList(
                 StringConstant.Redis.MAJOR_LIST_BY_DEPARTMENT_UUID + departmentUuid);

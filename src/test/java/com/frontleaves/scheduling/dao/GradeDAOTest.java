@@ -101,12 +101,12 @@ class GradeDAOTest {
         Assertions.assertNull(gradeData);
     }
     @Test
-    void testGetGradeList() {
+    void testGetGradeListForUpdate() {
         // 先清除Redis中的年级列表缓存
         redisson.getKeys().delete(StringConstant.Redis.GRADE_LIST);
 
         // 第一次调用getGradeList方法，应该从数据库获取数据并缓存到Redis
-        List<GradeDO> gradeList1 = gradeDAO.getGradeList();
+        List<GradeDO> gradeList1 = gradeDAO.getGradeListForUpdate();
 
         // 断言从数据库获取的年级列表不为空
         Assertions.assertNotNull(gradeList1);
@@ -120,7 +120,7 @@ class GradeDAOTest {
         int firstResultSize = gradeList1.size();
 
         // 第二次调用getGradeList方法，应该从Redis缓存中获取数据
-        List<GradeDO> gradeList2 = gradeDAO.getGradeList();
+        List<GradeDO> gradeList2 = gradeDAO.getGradeListForUpdate();
 
         // 断言第二次获取的结果与第一次结果大小相同
         Assertions.assertEquals(firstResultSize, gradeList2.size());

@@ -143,10 +143,10 @@ public class StudentLogic implements StudentService {
      */
     private ImportBaseStudentDTO fetchImportBaseStudentDTO(String departmentUuid) {
         DepartmentDO departmentDO = departmentDAO.getDepartmentByUuidLastUpdate(departmentUuid);
-        List<MajorDO> majorDOList = majorDAO.getMajorListByDepartmentUuid(departmentUuid);
-        List<GradeDO> gradeDOList = gradeDAO.getGradeList();
+        List<MajorDO> majorDOList = majorDAO.getMajorListByDepartmentUuidForUpdate(departmentUuid);
+        List<GradeDO> gradeDOList = gradeDAO.getGradeListForUpdate();
         List<AdministrativeClassDO> administrativeClassDOList =
-                administrativeClassDAO.getAdministrativeClassListByDepartment(departmentUuid);
+                administrativeClassDAO.getAdministrativeClassListByDepartmentForUpdate(departmentUuid);
 
         return new ImportBaseStudentDTO(departmentDO, majorDOList, gradeDOList, administrativeClassDOList);
     }
@@ -471,14 +471,14 @@ public class StudentLogic implements StudentService {
         // 断言部门信息不为空
         assert departmentDO != null;
         //查询出来专业组
-        List<MajorDO> majorDOList = majorDAO.getMajorListByDepartmentUuid(
+        List<MajorDO> majorDOList = majorDAO.getMajorListByDepartmentUuidForUpdate(
                 academicAffairsPermissionDO.getDepartment());
         //查询出来班级组
         List<AdministrativeClassDO> administrativeClassDOList =
                 administrativeClassDAO
-                        .getAdministrativeClassListByDepartment(academicAffairsPermissionDO.getDepartment());
+                        .getAdministrativeClassListByDepartmentForUpdate(academicAffairsPermissionDO.getDepartment());
         //查询出来年级组
-        List<GradeDO> gradeDOList = gradeDAO.getGradeList();
+        List<GradeDO> gradeDOList = gradeDAO.getGradeListForUpdate();
         // 将专业列表转换为 Map，key 为 majorUuid，value 为班级列表
         Map<String, List<String>> majorClassMap = administrativeClassDOList.stream()
                 .collect(Collectors.groupingBy(
