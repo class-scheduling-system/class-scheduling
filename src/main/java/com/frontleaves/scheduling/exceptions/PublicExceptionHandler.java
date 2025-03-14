@@ -32,14 +32,15 @@ import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.PublicExceptionHandlerAbstract;
-import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.UnexpectedTypeException;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -82,5 +83,20 @@ public class PublicExceptionHandler extends PublicExceptionHandlerAbstract {
     @ExceptionHandler(UnexpectedTypeException.class)
     public ResponseEntity<BaseResponse<Map<String, String>>> handleUnexpectedTypeException(@NotNull UnexpectedTypeException e) {
         return ResultUtil.error(ErrorCode.OPERATION_INVALID, "参数类型错误", Map.of("message", e.getMessage()));
+    }
+
+    /**
+     * 处理 IOException 异常
+     * <p>
+     * 该方法用于处理文件读写或网络传输等IO操作中抛出的 {@code IOException} 异常。
+     * 当文件无法读取、写入或网络连接中断时，此异常会被触发。该方法返回一个包含错误信息的响应实体。
+     *
+     * @param e 发生的 {@code IOException} 异常实例
+     * @return 包含错误码和错误消息的响应实体
+     */
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<BaseResponse<Map<String, String>>> handleIOException(@NotNull IOException e) {
+        log.error("IO异常: {}", e.getMessage(), e);
+        return ResultUtil.error(ErrorCode.OPERATION_ERROR, "IO操作异常", Map.of("message", e.getMessage()));
     }
 }

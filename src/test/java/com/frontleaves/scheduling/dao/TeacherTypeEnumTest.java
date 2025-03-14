@@ -24,7 +24,7 @@ import java.util.List;
  */
 @SpringBootTest
 @Slf4j
-class TeacherTypeTest {
+class TeacherTypeEnumTest {
     @Resource
     private TeacherTypeDAO teacherTypeDAO;
     @Resource
@@ -34,7 +34,7 @@ class TeacherTypeTest {
     @BeforeEach
     void setUp() {
         log.debug("TeacherTypeDAO单元测试初始化");
-        
+
         // 创建测试教师类型
         setUpTeacherType = new TeacherTypeDO();
         setUpTeacherType.setTeacherTypeUuid(UuidUtil.generateUuidNoDash())
@@ -158,7 +158,7 @@ class TeacherTypeTest {
         // 验证返回结果
         Assertions.assertNotNull(teacherTypes, "教师类型列表不应为空");
         Assertions.assertFalse(teacherTypes.isEmpty(), "教师类型列表不应为空");
-        
+
         // 验证列表中包含测试教师类型
         boolean contains = teacherTypes.stream()
                 .anyMatch(type -> type.getTeacherTypeUuid().equals(setUpTeacherType.getTeacherTypeUuid()));
@@ -174,7 +174,7 @@ class TeacherTypeTest {
 
         // 先获取一次，建立缓存
         teacherTypeDAO.getAllTeacherTypes();
-        
+
         // 添加新的教师类型，但不清除缓存
         TeacherTypeDO newType = new TeacherTypeDO();
         newType.setTeacherTypeUuid(UuidUtil.generateUuidNoDash())
@@ -185,15 +185,15 @@ class TeacherTypeTest {
 
         // 再次获取，应该返回缓存数据
         List<TeacherTypeDO> cachedTypes = teacherTypeDAO.getAllTeacherTypes();
-        
+
         // 查看是否不包含新添加的类型
         boolean containsNew = cachedTypes.stream()
                 .anyMatch(type -> type.getTeacherTypeUuid().equals(newType.getTeacherTypeUuid()));
-                
+
         // 注意：这个测试可能会因缓存实现的差异而失败
         // 如果实现总是从数据库获取最新数据，那么期望值应改为true
         Assertions.assertFalse(containsNew, "缓存的教师类型列表不应包含新添加的类型");
-        
+
         // 清理测试数据
         teacherTypeDAO.removeById(newType.getTeacherTypeUuid());
     }
@@ -212,7 +212,7 @@ class TeacherTypeTest {
         Assertions.assertNotNull(page, "分页对象不应为空");
         Assertions.assertNotNull(page.getRecords(), "分页记录不应为空");
         Assertions.assertFalse(page.getRecords().isEmpty(), "分页记录不应为空");
-        
+
         // 验证分页参数
         Assertions.assertEquals(1, page.getCurrent(), "当前页应该是1");
         Assertions.assertEquals(10, page.getSize(), "每页大小应该是10");
@@ -232,7 +232,7 @@ class TeacherTypeTest {
         // 验证返回结果
         Assertions.assertNotNull(types, "教师类型列表不应为空");
         Assertions.assertFalse(types.isEmpty(), "教师类型列表不应为空");
-        
+
         // 验证列表中包含测试教师类型
         boolean contains = types.stream()
                 .anyMatch(type -> type.getTeacherTypeUuid().equals(setUpTeacherType.getTeacherTypeUuid()));
@@ -255,7 +255,7 @@ class TeacherTypeTest {
 
         // 先获取一次列表，建立缓存
         teacherTypeDAO.getAllTeacherTypes();
-        
+
         // 添加教师类型
         TeacherTypeDO addedType = teacherTypeDAO.addTeacherType(newType);
 
@@ -263,15 +263,15 @@ class TeacherTypeTest {
         Assertions.assertNotNull(addedType, "添加的教师类型不应为空");
         Assertions.assertEquals(newType.getTeacherTypeUuid(), addedType.getTeacherTypeUuid(), "教师类型UUID应该匹配");
         Assertions.assertEquals(newType.getTypeName(), addedType.getTypeName(), "教师类型名称应该匹配");
-        
+
         // 验证缓存是否被清除
-        Assertions.assertFalse(redisson.getList(StringConstant.Redis.TEACHER_TYPE_LIST).isExists(), 
+        Assertions.assertFalse(redisson.getList(StringConstant.Redis.TEACHER_TYPE_LIST).isExists(),
                 "教师类型列表缓存应该被清除");
-        
+
         // 从数据库查询验证
         TeacherTypeDO dbType = teacherTypeDAO.getById(newType.getTeacherTypeUuid());
         Assertions.assertNotNull(dbType, "数据库中应存在新添加的教师类型");
-        
+
         // 清理测试数据
         teacherTypeDAO.removeById(newType.getTeacherTypeUuid());
     }
@@ -293,19 +293,19 @@ class TeacherTypeTest {
         // 先获取一次，建立缓存
         teacherTypeDAO.getTeacherTypeByUuid(setUpTeacherType.getTeacherTypeUuid());
         teacherTypeDAO.getAllTeacherTypes();
-        
+
         // 更新教师类型
         boolean updated = teacherTypeDAO.updateTeacherType(updateType);
 
         // 验证更新结果
         Assertions.assertTrue(updated, "更新应该成功");
-        
+
         // 验证缓存是否被清除
-        Assertions.assertFalse(redisson.getMap(StringConstant.Redis.TEACHER_TYPE_UUID + 
+        Assertions.assertFalse(redisson.getMap(StringConstant.Redis.TEACHER_TYPE_UUID +
                 setUpTeacherType.getTeacherTypeUuid()).isExists(), "教师类型缓存应该被清除");
-        Assertions.assertFalse(redisson.getList(StringConstant.Redis.TEACHER_TYPE_LIST).isExists(), 
+        Assertions.assertFalse(redisson.getList(StringConstant.Redis.TEACHER_TYPE_LIST).isExists(),
                 "教师类型列表缓存应该被清除");
-        
+
         // 从数据库查询验证
         TeacherTypeDO dbType = teacherTypeDAO.getById(setUpTeacherType.getTeacherTypeUuid());
         Assertions.assertNotNull(dbType, "数据库中应存在更新后的教师类型");
@@ -332,19 +332,19 @@ class TeacherTypeTest {
         // 先获取一次，建立缓存
         teacherTypeDAO.getTeacherTypeByUuid(typeToDelete.getTeacherTypeUuid());
         teacherTypeDAO.getAllTeacherTypes();
-        
+
         // 删除教师类型
         boolean deleted = teacherTypeDAO.deleteTeacherType(typeToDelete.getTeacherTypeUuid());
 
         // 验证删除结果
         Assertions.assertTrue(deleted, "删除应该成功");
-        
+
         // 验证缓存是否被清除
-        Assertions.assertFalse(redisson.getMap(StringConstant.Redis.TEACHER_TYPE_UUID + 
+        Assertions.assertFalse(redisson.getMap(StringConstant.Redis.TEACHER_TYPE_UUID +
                 typeToDelete.getTeacherTypeUuid()).isExists(), "教师类型缓存应该被清除");
-        Assertions.assertFalse(redisson.getList(StringConstant.Redis.TEACHER_TYPE_LIST).isExists(), 
+        Assertions.assertFalse(redisson.getList(StringConstant.Redis.TEACHER_TYPE_LIST).isExists(),
                 "教师类型列表缓存应该被清除");
-        
+
         // 从数据库查询验证
         TeacherTypeDO dbType = teacherTypeDAO.getById(typeToDelete.getTeacherTypeUuid());
         Assertions.assertNull(dbType, "数据库中不应存在已删除的教师类型");

@@ -14,12 +14,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 import static org.junit.jupiter.api.Assertions.*;
@@ -269,5 +271,32 @@ class MajorTest {
     void testListMajors_WhenDepartmentDoesNotExist_ShouldThrowBusinessException() {
         Assertions.assertThrows(BusinessException.class,
                 () -> majorDAO.listMajors(1, 10, null, "NonExistentDepartment", "Computer Science"), "Expected BusinessException to be thrown");
+    }
+
+
+    @Test
+    void testGetMajorList() {
+        // 先清除Redis中的专业列表缓存
+        redisson.getKeys().delete(StringConstant.Redis.MAJOR_LIST);
+
+        // 第一次调用getMajorList方法，应该从数据库获取数据并缓存到Redis
+        List<MajorDO> majorList1 = majorDAO.getMajorList();
+
+        // 断言从数据库获取的专业列表不为空
+        Assertions.assertNotNull(majorList1);
+        Assertions.assertFalse(majorList1.isEmpty());
+
+        // 验证Redis中是否已缓存专业列表
+        RList<MajorDO> redisCache = redisson.getList(StringConstant.Redis.MAJOR_LIST);
+        Assertions.assertTrue(redisCache.isExists());
+
+        // 记录第一次查询结果的大小
+        int firstResultSize = majorList1.size();
+
+        // 第二次调用getMajorList方法，应该从Redis缓存中获取数据
+        List<MajorDO> majorList2 = majorDAO.getMajorList();
+
+        // 断言第二次获取的结果与第一次结果大小相同
+        Assertions.assertEquals(firstResultSize, majorList2.size());
     }
 }

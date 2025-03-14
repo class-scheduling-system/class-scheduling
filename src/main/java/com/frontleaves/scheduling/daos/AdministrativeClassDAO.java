@@ -28,11 +28,23 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.AdministrativeClassMapper;
 import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+import com.xlf.utility.util.ConvertUtil;
+import lombok.RequiredArgsConstructor;
+import org.redisson.api.RList;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 行政班数据访问对象
@@ -47,5 +59,111 @@ import org.springframework.stereotype.Repository;
  * @since v1.0.0
  */
 @Repository
-public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMapper, AdministrativeClassDO> implements IService<AdministrativeClassDO> {
+@RequiredArgsConstructor
+public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMapper, AdministrativeClassDO>
+        implements IService<AdministrativeClassDO> {
+
+    private final RedissonClient redisson;
+
+
+    /**
+     * 根据UUID获取行政班级信息
+     * 首先尝试从Redis中获取行政班级信息，如果不存在，则从数据库中获取，并将其存入Redis中以供下次快速访问
+     *
+     * @param uuid 行政班级的唯一标识符
+     * @return 返回行政班级对象，如果找不到则返回null
+     */
+    public AdministrativeClassDO getAdministrativeClassByUuid(String uuid) {
+        // 构造Redis中行政班级信息的键
+        RMap<String,String> rMap = redisson.getMap(StringConstant.Redis.ADMINISTRATIVE_CLASS_UUID + uuid);
+        // 检查Redis中是否存在该行政班级信息
+        if (!rMap.isExists()){
+            // 如果Redis中不存在，从数据库中获取行政班级信息
+            AdministrativeClassDO administrativeClassDO = this.getById(uuid);
+            // 如果从数据库中获取到行政班级信息
+            if (administrativeClassDO != null){
+                // 将行政班级信息转换为Map并存入Redis中
+                rMap.putAll(ConvertUtil.convertObjectToMapString(administrativeClassDO));
+                // 设置Redis中行政班级信息的过期时间为86400秒（1天）
+                rMap.expire(Duration.ofSeconds(86400));
+                // 返回从数据库中获取到的行政班级信息
+                return administrativeClassDO;
+            }
+        }else {
+            // 如果Redis中存在行政班级信息，将其转换为AdministrativeClassDO对象并返回
+            return BeanUtil.toBean(rMap,AdministrativeClassDO.class);
+        }
+        // 如果既没有从数据库中获取到信息，Redis中也没有信息，则返回null
+        return  null;
+    }
+    /**
+     * 获取管理班级列表
+     * 该方法首先尝试从Redis中获取管理班级列表如果列表在Redis中不存在，
+     * 则从数据库中获取列表，并将其存入Redis中，以提高下次访问的速度
+     *
+     * @return 返回管理班级列表如果列表为空，则返回空列表
+     */
+    public List<AdministrativeClassDO> getAdministrativeClassList() {
+        // 从Redis中获取管理班级列表
+        RList<AdministrativeClassDO> rList = redisson.getList(StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST);
+
+        // 检查Redis列表是否存在
+        if (!rList.isExists()){
+            // 从数据库中获取管理班级列表
+            List<AdministrativeClassDO> administrativeClassDOList = this.list();
+
+            // 检查获取的列表是否非空
+            if (administrativeClassDOList != null){
+                // 将列表添加到Redis中，并设置过期时间
+                rList.addAll(administrativeClassDOList);
+                rList.expire(Duration.ofSeconds(86400));
+                // 返回从数据库中获取的列表
+                return administrativeClassDOList;
+            }
+        } else {
+            // 如果Redis列表存在，则直接读取并返回
+            return rList.readAll();
+        }
+        // 如果列表为空，则返回空列表
+        return Collections.emptyList();
+    }
+
+
+    /**
+     * 根据部门UUID获取行政班级列表
+     * 该方法首先尝试从Redis中获取班级列表，如果不存在，则从数据库中查询，并将结果缓存到Redis中
+     * 使用缓存旨在提高相同查询的响应速度，减少数据库的访问压力
+     *
+     * @param departmentUuid 部门的唯一标识符
+     * @return 行政班级列表，如果找不到则返回空列表
+     */
+    @Transactional
+    public List<AdministrativeClassDO> getAdministrativeClassListByDepartmentForUpdate(String departmentUuid) {
+        // 尝试从Redis中获取缓存的行政班级列表
+        RList<AdministrativeClassDO> rList = redisson.getList(
+                StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT + departmentUuid);
+        // 检查缓存是否存在
+        if (!rList.isExists()){
+            // 从数据库中查询行政班级列表（添加悲观锁）
+            List<AdministrativeClassDO> administrativeClassDOList =
+                    this.lambdaQuery()
+                            .eq(AdministrativeClassDO::getDepartmentUuid, departmentUuid)
+                            .last("FOR UPDATE")
+                            .list();
+            // 如果查询结果不为空，则将其添加到Redis缓存中，并设置过期时间
+            if (!administrativeClassDOList.isEmpty()){
+                rList.addAll(administrativeClassDOList);
+                rList.expire(Duration.ofSeconds(86400));
+                return administrativeClassDOList;
+            }
+        }else {
+            // 如果缓存存在，则直接读取并返回缓存中的列表
+            return rList.readAll();
+        }
+        // 如果没有找到任何行政班级，则返回空列表
+        return Collections.emptyList();
+    }
+
+
+
 }
