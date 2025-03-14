@@ -30,7 +30,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/departments")
+@RequestMapping("/api/v1/department")
 public class DepartmentController {
     private final DepartmentService departmentService;
 
@@ -138,7 +138,7 @@ public class DepartmentController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "20") int size,
             @RequestParam(value = "is_desc", defaultValue = "true") Boolean isDesc,
-            @RequestParam(value = "name", required = false) String name
+            @RequestParam(value = "keyword", required = false) String name
     ) {
         PageDTO<DepartmentDTO> departmentList = departmentService.getDepartmentPage(page, size, isDesc, name);
         return ResultUtil.success("部门列表获取成功", departmentList);
