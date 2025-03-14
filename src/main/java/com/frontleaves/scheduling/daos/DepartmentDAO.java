@@ -13,6 +13,7 @@ import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Collections;
 import java.util.List;
 
@@ -127,13 +129,13 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
     /**
      * 根据分页参数和查询条件获取部门列表
      *
-     * @param page   分页页码
-     * @param size   每页大小
+     * @param page 分页页码
+     * @param size 每页大小
      * @param isDesc 是否按降序排序
-     * @param name   部门名称查询条件
+     * @param name 部门名称查询条件
      * @return 分页后的部门列表
      */
-    public Page<DepartmentDO> getDepartmentList(@NotNull Integer page, @NotNull Integer size, Boolean isDesc, String name) {
+    public Page<DepartmentDO> getDepartmentPage(@NotNull Integer page, @NotNull Integer size, Boolean isDesc, String name) {
         LambdaQueryChainWrapper<DepartmentDO> query = this.lambdaQuery();
         if (name != null && !name.isEmpty()) {
             query.like(DepartmentDO::getDepartmentName, name);

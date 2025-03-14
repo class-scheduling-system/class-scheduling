@@ -49,7 +49,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 教学楼控制器
@@ -117,16 +116,13 @@ public class BuildingController {
     public ResponseEntity<BaseResponse<BuildingDTO>> getBuilding(
             @RequestParam String building
     ) {
-        if (building == null || building.isBlank()) {
-            throw new BusinessException("教学楼UUID/名称不能为空", ErrorCode.PARAMETER_INVALID);
-        }
-        AtomicReference<BuildingDTO> buildingDTO = new AtomicReference<>();
-        Optional.ofNullable(buildingService.getBuildingByUuidOrName(building))
-                .ifPresentOrElse(buildingDTO::set,
-                        () -> {
-                            throw new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST);
-                        });
-        return ResultUtil.success("获取教学楼成功", buildingDTO.get());
+        Optional.ofNullable(building)
+                .filter(buildingName -> !buildingName.isBlank())
+                .filter(buildingUuid -> buildingUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
+                .orElseThrow(() -> new BusinessException("教学楼主键格式有误", ErrorCode.PARAMETER_INVALID));
+        BuildingDTO buildingDTO = Optional.ofNullable(buildingService.getBuildingByUuidOrName(building))
+                .orElseThrow(() -> new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST));
+        return ResultUtil.success("获取教学楼成功", buildingDTO);
     }
 
     /**
@@ -196,6 +192,7 @@ public class BuildingController {
             @PathVariable("building_uuid") String buildingUuid,
             @RequestBody @Validated BuildingOperateVO buildingVO
     ) {
+        log.debug(LogConstant.CONTROLLER + "更新教学楼信息，buildingUuid: {}", buildingUuid);
         if (!buildingUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException("教学楼主键不合法", ErrorCode.PARAMETER_INVALID);
         }

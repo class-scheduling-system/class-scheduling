@@ -16,9 +16,9 @@ import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
 import com.frontleaves.scheduling.services.TeacherService;
+import com.frontleaves.scheduling.utils.ProjectOption;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
-import com.xlf.utility.util.UuidUtil;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -55,10 +55,11 @@ public class TeacherLogic implements TeacherService {
         }
 
         // 根据用户UUID获取用户信息
-        UserDO userDO = userDAO.getUserByUuid(teacherVO.getUserUuid());
-        // 如果用户不存在，抛出业务异常
-        if (userDO == null) {
-            throw new BusinessException(StringConstant.USER_NOT_EXIST, ErrorCode.NOT_EXIST);
+        if (teacherVO.getUserUuid() != null && !teacherVO.getUserUuid().isBlank()) {
+            UserDO userDO = userDAO.getUserByUuid(teacherVO.getUserUuid());
+            if (userDO == null) {
+                throw new BusinessException(StringConstant.USER_NOT_EXIST, ErrorCode.NOT_EXIST);
+            }
         }
 
         // 根据教师类型UUID获取教师类型信息
@@ -71,9 +72,7 @@ public class TeacherLogic implements TeacherService {
         // 创建一个新的TeacherDO对象
         TeacherDO teacherDO = new TeacherDO();
         // 将TeacherVO对象的属性复制到TeacherDO对象中
-        BeanUtils.copyProperties(teacherVO, teacherDO);
-        // 生成一个新的UUID作为教师UUID，并设置到TeacherDO对象中
-        teacherDO.setTeacherUuid(UuidUtil.generateUuidNoDash());
+        BeanUtil.copyProperties(teacherVO, teacherDO, ProjectOption.stringBlankToNull());
 
         // 保存TeacherDO对象到数据库中
         teacherDAO.save(teacherDO);
@@ -147,6 +146,7 @@ public class TeacherLogic implements TeacherService {
             List<TeacherDTO> teacherDTOList = teacherList.stream()
                     .map(teacher -> BeanUtil
                             .toBean(teacher.getTeacher(), TeacherDTO.class)
+                            .setStatus(teacher.getUser() == null ? 2 : teacher.getUser().getStatus())
                     )
                     .toList();
             return new PageDTO<TeacherDTO>()

@@ -8,6 +8,18 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * 教师数据传输对象
+ * <p>
+ * 用于在不同层之间传输教师基本信息。
+ * 该 DTO 包含单位主键、用户主键、教师工号、教师姓名、教师英文名、教师民族、教师性别、
+ * 教师类型、教师电话、教师邮箱、教师职称、教师描述等字段。
+ * </p>
+ *
+ * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
+ */
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,8 +33,7 @@ public class TeacherVO {
     /**
      * 用户主键
      */
-    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "用户主键格式不正确")
-    @NotBlank(message = "用户主键不能为空")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "用户主键格式不正确")
     private String userUuid;
     /**
      * 教师工号

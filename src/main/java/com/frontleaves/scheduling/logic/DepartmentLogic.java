@@ -36,6 +36,7 @@ import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.UnitCategoryDAO;
 import com.frontleaves.scheduling.daos.UnitTypeDAO;
 import com.frontleaves.scheduling.models.dto.DepartmentDTO;
+import com.frontleaves.scheduling.models.dto.DepartmentLiteDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.entity.BuildingDO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
@@ -47,11 +48,14 @@ import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;
-import jakarta.validation.constraints.NotNull;
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * 部门逻辑处理类，实现了 {@link DepartmentService} 接口，提供了部门管理的具体实现。
@@ -59,7 +63,7 @@ import org.springframework.stereotype.Service;
  * 该类负责处理与部门相关的业务逻辑，包括查询、添加、删除和更新部门信息等。通过依赖注入的方式获取所需的其他服务或组件。
  * </p>
  *
- * @author xiao_lfeng
+ * @author xiao_lfeng | qiyu
  * @version v1.0.0
  * @since v1.0.0
  */
@@ -113,12 +117,12 @@ public class DepartmentLogic implements DepartmentService {
         if (departmentVO.getParentDepartment() != null && !departmentVO.getParentDepartment().isEmpty()) {
             // 检查上级部门是否存在
 
-        DepartmentDO getParentDepartment = departmentDAO.getDepartmentByUuid(departmentVO.getParentDepartment());
-        if (getParentDepartment == null) {
-            // 抛出异常
-            throw new BusinessException("上级部门不存在", ErrorCode.NOT_EXIST);
+            DepartmentDO getParentDepartment = departmentDAO.getDepartmentByUuid(departmentVO.getParentDepartment());
+            if (getParentDepartment == null) {
+                // 抛出异常
+                throw new BusinessException("上级部门不存在", ErrorCode.NOT_EXIST);
+            }
         }
-}
         // 数据拷贝
         DepartmentDO departmentDO = new DepartmentDO();
         // 数据拷贝
@@ -142,25 +146,25 @@ public class DepartmentLogic implements DepartmentService {
      */
     @Override
     public DepartmentDTO getDepartment(@NotNull String departmentUuid) {
-       DepartmentDO departmentDTO = null;
+        DepartmentDO departmentDTO = null;
 
-       // 验证部门UUID格式是否正确，确保UUID没有破折号
-       if (departmentUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-           // 如果UUID格式正确，则调用DAO方法获取部门信息
-           departmentDTO = departmentDAO.getDepartmentByUuid(departmentUuid);
-       }
+        // 验证部门UUID格式是否正确，确保UUID没有破折号
+        if (departmentUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+            // 如果UUID格式正确，则调用DAO方法获取部门信息
+            departmentDTO = departmentDAO.getDepartmentByUuid(departmentUuid);
+        }
 
-       // 如果departmentDTO为空，说明没有找到对应的部门信息
-       if (departmentDTO == null) {
-           // 抛出业务异常，提示部门不存在，并使用预定义的错误码
-           throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
-       }
+        // 如果departmentDTO为空，说明没有找到对应的部门信息
+        if (departmentDTO == null) {
+            // 抛出业务异常，提示部门不存在，并使用预定义的错误码
+            throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
+        }
 
-       // 将获取到的部门信息转换为DTO对象并返回
-       return BeanUtil.toBean(departmentDTO, DepartmentDTO.class);
+        // 将获取到的部门信息转换为DTO对象并返回
+        return BeanUtil.toBean(departmentDTO, DepartmentDTO.class);
     }
 
-        /**
+    /**
      * 删除指定的部门
      *
      * @param departmentUuid 部门的唯一标识符
@@ -208,7 +212,7 @@ public class DepartmentLogic implements DepartmentService {
      * 更新数据库中的部门信息，并返回更新后的部门数据传输对象
      *
      * @param departmentUuid 部门唯一标识符
-     * @param departmentVO 包含更新信息的部门视图对象
+     * @param departmentVO   包含更新信息的部门视图对象
      * @return 更新后的部门数据传输对象，如果部门不存在则返回null
      */
     @Override
@@ -217,37 +221,19 @@ public class DepartmentLogic implements DepartmentService {
         DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(departmentUuid);
         if (departmentDO != null) {
             // 验证单位类别是否存在
-            if (departmentVO.getUnitCategory() != null) {
-                UnitCategoryDO getUnitCategory = unitCategoryDAO.getUnitCategoryByUuid(departmentVO.getUnitCategory());
-                if (getUnitCategory == null) {
-                    // 抛出异常
-                    throw new BusinessException("单位类别不存在", ErrorCode.NOT_EXIST);
-                }
-            }
-            // 验证单位办别是否存在
-            if (departmentVO.getUnitType() != null) {
-                UnitTypeDO getUnitType = unitTypeDAO.getUnitTypeByUuid(departmentVO.getUnitType());
-                if (getUnitType == null) {
-                    // 抛出异常
-                    throw new BusinessException("单位办别不存在", ErrorCode.NOT_EXIST);
-                }
-            }
-            // 验证教学楼是否存在
-            if (departmentVO.getAssignedTeachingBuilding() != null) {
-                BuildingDO getBuilding = buildingDAO.getBuildingByUuid(departmentVO.getAssignedTeachingBuilding());
-                if (getBuilding == null) {
-                    // 抛出异常
-                    throw new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST);
-                }
-            }
-            // 验证上级部门是否存在
-            if (departmentVO.getParentDepartment() != null) {
-                DepartmentDO getParentDepartment = departmentDAO.getDepartmentByUuid(departmentVO.getParentDepartment());
-                if (getParentDepartment == null) {
-                    // 抛出异常
-                    throw new BusinessException("上级部门不存在", ErrorCode.NOT_EXIST);
-                }
-            }
+            Optional.ofNullable(departmentVO.getUnitCategory())
+                    .map(unitCategoryDAO::getUnitCategoryByUuid)
+                    .orElseThrow(() -> new BusinessException("单位类别不存在", ErrorCode.NOT_EXIST));
+            Optional.ofNullable(departmentVO.getUnitType())
+                    .map(unitTypeDAO::getUnitTypeByUuid)
+                    .orElseThrow(() -> new BusinessException("单位办别不存在", ErrorCode.NOT_EXIST));
+            Optional.ofNullable(departmentVO.getAssignedTeachingBuilding())
+                    .map(buildingDAO::getBuildingByUuid)
+                    .orElseThrow(() -> new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST));
+            Optional.ofNullable(departmentVO.getParentDepartment())
+                    .map(departmentDAO::getDepartmentByUuid)
+                    .orElseThrow(() -> new BusinessException("上级部门不存在", ErrorCode.NOT_EXIST));
+
             // 将视图对象属性复制到数据对象并更新数据库
             BeanUtil.copyProperties(departmentVO, departmentDO);
             departmentDAO.updateDepartment(departmentDO);
@@ -261,28 +247,43 @@ public class DepartmentLogic implements DepartmentService {
     /**
      * 获取部门列表
      *
-     * @param page     页码，表示请求的数据页数
-     * @param size     每页数量，表示每页包含的部门数量
-     * @param isDesc   是否降序，用于指定排序方式
-     * @param name     部门名称，用于模糊搜索
-     * @return         返回一个包含部门信息的PageDTO对象
-     *
+     * @param page   页码，表示请求的数据页数
+     * @param size   每页数量，表示每页包含的部门数量
+     * @param isDesc 是否降序，用于指定排序方式
+     * @param name   部门名称，用于模糊搜索
+     * @return 返回一个包含部门信息的PageDTO对象
+     * <p>
      * 此方法调用departmentDAO来获取部门列表，并根据查询参数进行分页和排序
      * 如果查询结果为空，则返回一个空的PageDTO对象；否则，将查询结果转换为DTO形式并返回
      */
     @Override
-    public PageDTO<DepartmentDTO> getDepartmentList(int page, int size, boolean isDesc, String name) {
+    public PageDTO<DepartmentDTO> getDepartmentPage(int page, int size, boolean isDesc, String name) {
         // 调用DAO层方法获取部门列表
-        Page<DepartmentDO> departmentList = departmentDAO.getDepartmentList(page,size,isDesc,name);
+        Page<DepartmentDO> departmentList = departmentDAO.getDepartmentPage(page, size, isDesc, name);
 
         // 检查查询结果是否为空
         if (departmentList.getTotal() == 0) {
             // 如果为空，返回一个新的空PageDTO对象
             return new PageDTO<>();
-        }else {
+        } else {
             // 如果不为空，将查询结果转换为DTO形式并返回
             return ProjectUtil.convertPageToPageDTO(departmentList, DepartmentDTO.class);
         }
+    }
+
+    /**
+     * 获取部门列表
+     * <p>
+     * 该方法用于获取所有部门的列表信息，返回部门的简要信息列表。
+     * </p>
+     *
+     * @return 返回部门的简要信息列表
+     */
+    @Override
+    public List<DepartmentLiteDTO> getDepartmentList() {
+        return Optional.ofNullable(departmentDAO.getDepartmentList())
+                .map(data -> BeanUtil.copyToList(data, DepartmentLiteDTO.class))
+                .orElse(List.of());
     }
 
     /**
