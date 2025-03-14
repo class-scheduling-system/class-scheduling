@@ -40,7 +40,7 @@ public interface StudentService {
     PrepareStudentExampleDTO prepareDepartmentData(
             HttpServletRequest request);
 
-    byte[] checkBatchAddStudentVO(
+    byte[] verifyStudentBatchAndBackFile(
             BatchAddStudentVO batchAddStudentVO);
 
     BackAddStudentDTO batchImportIgnoreError(

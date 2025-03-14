@@ -6,10 +6,13 @@ import com.frontleaves.scheduling.models.dto.PrepareStudentExampleDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.services.StudentService;
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 /**
  * 学生控制器
@@ -42,24 +46,23 @@ public class StudentController {
     @RequestRole("教务")
     @GetMapping("/get-example")
     public ResponseEntity<byte[]> getExample(
-            HttpServletRequest request
+            @NotNull HttpServletRequest request
     ) {
         PrepareStudentExampleDTO prepareStudentExampleDTO = studentService.prepareDepartmentData(request);
-        // 从studentService获取示例数据，以字节数组形式返回
         byte[] bytes = studentService.getExample(prepareStudentExampleDTO);
-        // 创建HTTP头，设置为文件下载
-        HttpHeaders headers = new HttpHeaders();
-        // 设置内容类型为二进制流
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        // 使用UTF-8编码文件名，解决中文文件名问题
-        String fileName = URLEncoder.encode("学生导入模板.xlsx", StandardCharsets.UTF_8)
-                .replace("\\+", "%20");
-        // 使用RFC 5987编码格式设置文件名
-        headers.add(HttpHeaders.CONTENT_DISPOSITION,
-                "attachment; filename=\"" + fileName + "\"; filename*=UTF-8''" + fileName);
-        // 设置内容长度
-        headers.setContentLength(bytes.length);
-        // 返回带有文件内容的ResponseEntity
+
+        HttpHeaders headers = Optional.of(new HttpHeaders())
+                .map(header -> {
+                    header.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                    header.setContentLength(bytes.length);
+                    String fileName = URLEncoder.encode("学生导入模板.xlsx", StandardCharsets.UTF_8)
+                            .replace("+", "%20");
+                    header.add(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + fileName + "\"; filename*=UTF-8''" + fileName);
+                    return header;
+                })
+                .orElseThrow(() -> new BusinessException("获取响应头失败", ErrorCode.SERVER_INTERNAL_ERROR));
+
         return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
     }
 
@@ -73,17 +76,15 @@ public class StudentController {
     @PostMapping("/batch-import")
     public ResponseEntity<BaseResponse<BackAddStudentDTO>> batchImport(
             @RequestBody @Validated BatchAddStudentVO batchAddStudentVO,
-            HttpServletRequest request
+            @NotNull HttpServletRequest request
     ) {
-        byte[] file = studentService.checkBatchAddStudentVO(batchAddStudentVO);
+        byte[] file = studentService.verifyStudentBatchAndBackFile(batchAddStudentVO);
         String departmentUuid = studentService.getDepartmentUuid(request);
         // 执行批量导入学生的操作
-        BackAddStudentDTO backAddStudentDTO;
-        if (Boolean.TRUE.equals(batchAddStudentVO.getIgnoreError())) {
-            backAddStudentDTO = studentService.batchImportIgnoreError(file, departmentUuid);
-        } else {
-            backAddStudentDTO = studentService.batchImportNoIgnoreError(file, departmentUuid);
-        }
+        BackAddStudentDTO backAddStudentDTO = Optional.ofNullable(batchAddStudentVO.getIgnoreError())
+                .filter(Boolean.TRUE::equals)
+                .map(ignoreError -> studentService.batchImportIgnoreError(file, departmentUuid))
+                .orElseGet(() -> studentService.batchImportNoIgnoreError(file, departmentUuid));
 
         if (backAddStudentDTO.getFailedCount() > 0) {
             // 如果有学生导入失败，返回带有错误信息的响应

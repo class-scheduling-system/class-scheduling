@@ -5,7 +5,8 @@ import cn.hutool.poi.excel.ExcelWriter;
 import cn.hutool.poi.excel.sax.Excel07SaxReader;
 import cn.hutool.poi.excel.sax.handler.RowHandler;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.exceptions.lib.*;
+import com.frontleaves.scheduling.exceptions.lib.DataInvalidException;
+import com.frontleaves.scheduling.exceptions.lib.DataNotFoundException;
 import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
@@ -24,7 +25,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.naming.InvalidNameException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -168,11 +168,11 @@ public class StudentLogic implements StudentService {
      *
      * @param departmentDO   学院DO对象
      * @param departmentName 要验证的学院名称
-     * @throws DepartmentNotFoundException 当学院名称不存在时抛出异常
+     * @throws DataNotFoundException 当学院名称不存在时抛出异常
      */
-    private void validateDepartment(DepartmentDO departmentDO, String departmentName) throws DepartmentNotFoundException {
+    private void validateDepartment(DepartmentDO departmentDO, String departmentName) throws DataNotFoundException {
         if (!departmentDO.getDepartmentName().equals(departmentName)) {
-            throw new DepartmentNotFoundException("学院名称不存在");
+            throw new DataNotFoundException(DataNotFoundException.TypeEnum.DEPARTMENT_NAME_NOT_FOUND);
         }
     }
 
@@ -182,15 +182,15 @@ public class StudentLogic implements StudentService {
      * @param majorList 专业列表
      * @param majorName 专业名称
      * @return 匹配的专业对象
-     * @throws MajorNotFoundException 当专业名称不存在时抛出异常
+     * @throws DataNotFoundException 当专业名称不存在时抛出异常
      */
-    private MajorDO findMajorByName(List<MajorDO> majorList, String majorName) throws MajorNotFoundException {
+    private MajorDO findMajorByName(List<MajorDO> majorList, String majorName) throws DataNotFoundException {
         MajorDO majorDO = majorList.stream()
                 .filter(major -> major.getMajorName().equals(majorName))
                 .findFirst()
                 .orElse(null);
         if (majorDO == null) {
-            throw new MajorNotFoundException("专业名称不存在");
+            throw new DataNotFoundException(DataNotFoundException.TypeEnum.MAJOR_NAME_NOT_FOUND);
         }
         return majorDO;
     }
@@ -201,15 +201,15 @@ public class StudentLogic implements StudentService {
      * @param gradeList 年级列表
      * @param gradeName 年级名称
      * @return 匹配的年级对象
-     * @throws GradeNotFoundException 当年级名称不存在时抛出异常
+     * @throws DataNotFoundException 当年级名称不存在时抛出异常
      */
-    private GradeDO findGradeByName(List<GradeDO> gradeList, String gradeName) throws GradeNotFoundException {
+    private GradeDO findGradeByName(List<GradeDO> gradeList, String gradeName) throws DataNotFoundException {
         GradeDO gradeDO = gradeList.stream()
                 .filter(grade -> grade.getName().equals(gradeName))
                 .findFirst()
                 .orElse(null);
         if (gradeDO == null) {
-            throw new GradeNotFoundException("年级名称不存在");
+            throw new DataNotFoundException(DataNotFoundException.TypeEnum.GRADE_NAME_NOT_FOUND);
         }
 
         return gradeDO;
@@ -221,17 +221,17 @@ public class StudentLogic implements StudentService {
      * @param classList 班级列表
      * @param className 班级名称
      * @return 匹配的班级对象
-     * @throws AdministrativeClassNotFoundException 当班级名称不存在时抛出异常
+     * @throws DataNotFoundException 当班级名称不存在时抛出异常
      */
     private AdministrativeClassDO findClassByName(List<AdministrativeClassDO> classList, String className)
-            throws AdministrativeClassNotFoundException {
+            throws DataNotFoundException {
         AdministrativeClassDO administrativeClassDO = classList.stream()
                 .filter(administrativeClass -> administrativeClass.getClassName().equals(className))
                 .findFirst()
                 .orElse(null);
 
         if (administrativeClassDO == null) {
-            throw new AdministrativeClassNotFoundException("班级名称不存在");
+            throw new DataNotFoundException(DataNotFoundException.TypeEnum.CLASS_NAME_NOT_FOUND);
         }
 
         return administrativeClassDO;
@@ -242,15 +242,15 @@ public class StudentLogic implements StudentService {
      *
      * @param studentDO 学生DO对象
      * @param genderStr 性别字符串（"男"或"女"）
-     * @throws InvalidGenderException 当性别字符串不合法时抛出异常
+     * @throws DataInvalidException 当性别字符串不合法时抛出异常
      */
-    private void setStudentGender(StudentDO studentDO, String genderStr) throws InvalidGenderException {
+    private void setStudentGender(StudentDO studentDO, String genderStr) throws DataInvalidException {
         if ("男".equals(genderStr)) {
             studentDO.setGender(true);
         } else if ("女".equals(genderStr)) {
             studentDO.setGender(false);
         } else {
-            throw new InvalidGenderException("性别填写错误");
+            throw new DataInvalidException(DataInvalidException.TypeEnum.GENDER_ERROR);
         }
     }
 
@@ -258,11 +258,11 @@ public class StudentLogic implements StudentService {
      * 检查学生姓名是否合法
      *
      * @param name 学生姓名
-     * @throws InvalidNameException 当姓名为空或为空字符串时抛出异常
+     * @throws DataInvalidException 当姓名为空或为空字符串时抛出异常
      */
-    private void validateStudentName(String name) throws InvalidNameException {
+    private void validateStudentName(String name) throws DataInvalidException {
         if (name == null || name.isEmpty()) {
-            throw new InvalidNameException("姓名不能为空");
+            throw new DataInvalidException(DataInvalidException.TypeEnum.NAME_EMPTY_ERROR);
         }
     }
 
@@ -270,11 +270,11 @@ public class StudentLogic implements StudentService {
      * 检查学生学号是否合法
      *
      * @param id 学生学号
-     * @throws InvalidIdException 当学号为空或为空字符串时抛出异常
+     * @throws DataInvalidException 当学号为空或为空字符串时抛出异常
      */
-    private void validateStudentId(String id) throws InvalidIdException {
+    private void validateStudentId(String id) throws DataInvalidException {
         if (id == null || id.isEmpty()) {
-            throw new InvalidIdException("学号不能为空");
+            throw new DataInvalidException(DataInvalidException.TypeEnum.STUDENT_ID_EMPTY_ERROR);
         }
     }
 
@@ -287,9 +287,10 @@ public class StudentLogic implements StudentService {
      * @return 返回验证学生信息的结果，包括专业、年级和班级对象
      * @throws BusinessException 当学生信息中的学院、专业、年级或班级名称不存在，或姓名、学号为空时抛出
      */
-    private ValidateStudentReturnDTO validateStudent(@NotNull List<StudentImportDTO> studentList,
-                                                     @NotNull ImportBaseStudentDTO importBaseStudentDTO, int i)
-            throws BusinessException {
+    private ValidateStudentReturnDTO validateStudent(
+            @NotNull List<StudentImportDTO> studentList,
+            @NotNull ImportBaseStudentDTO importBaseStudentDTO, int i
+    ) throws BusinessException {
         StudentImportDTO student = studentList.get(i);
         // 行号（假设从第3行开始）
         int rowNumber = i + 3;
@@ -384,7 +385,6 @@ public class StudentLogic implements StudentService {
     ) {
         // 解析Excel文件
         List<StudentImportDTO> studentList = parseExcelStudentList(file);
-        BackAddStudentDTO backAddStudentDTO = new BackAddStudentDTO();
         ImportBaseStudentDTO importBaseStudentDTO = fetchImportBaseStudentDTO(departmentUuid);
         // 不忽略警告提醒报错
         for (int i = 0; i < studentList.size(); i++) {
@@ -412,11 +412,11 @@ public class StudentLogic implements StudentService {
             studentDAO.saveStudentBackError(studentDO, i);
         }
         //成功
-        backAddStudentDTO.setTotalCount(studentList.size())
+        return new BackAddStudentDTO()
+                .setTotalCount(studentList.size())
                 .setFailedCount(0)
                 .setSuccessCount(studentList.size())
                 .setFailedDetails(null);
-        return backAddStudentDTO;
     }
 
     /**
@@ -601,7 +601,7 @@ public class StudentLogic implements StudentService {
      * @throws IllegalArgumentException 如果文件数据无效，抛出此异常
      */
     @Override
-    public byte[] checkBatchAddStudentVO(BatchAddStudentVO batchAddStudentVO) {
+    public byte[] verifyStudentBatchAndBackFile(BatchAddStudentVO batchAddStudentVO) {
         // 1. 检查 VO 对象是否为空
         if (batchAddStudentVO == null) {
             throw new IllegalArgumentException("批量添加学生信息不能为空");
@@ -693,8 +693,7 @@ public class StudentLogic implements StudentService {
                         .setClazz(administrativeClassDO.getAdministrativeClassUuid())
                         .setGraduated(false);
                 // 尝试保存学生数据
-                List<BackAddStudentDTO.FailedDetail> saveFailedDetails =
-                        studentDAO.saveStudentIgnoreError(studentDO, i);
+                List<BackAddStudentDTO.FailedDetail> saveFailedDetails = studentDAO.saveStudentIgnoreError(studentDO, i);
                 if (saveFailedDetails.isEmpty()) {
                     // 保存成功
                     successCount++;
@@ -702,11 +701,17 @@ public class StudentLogic implements StudentService {
                     // 保存失败，将失败详情添加到总的失败详情列表
                     failedDetails.addAll(saveFailedDetails);
                 }
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 // 捕获验证时的异常
                 BackAddStudentDTO.FailedDetail failedDetail = new BackAddStudentDTO.FailedDetail();
                 failedDetail.setRow(i + 3);
-                failedDetail.setReason(e.getMessage());
+                if (e instanceof DataNotFoundException error) {
+                    failedDetail.setReason("数据不存在：" + error.getReason());
+                } else if (e instanceof DataInvalidException error) {
+                    failedDetail.setReason("数据无效：" + error.getReason());
+                } else {
+                    failedDetail.setReason("未知错误：" + e.getMessage());
+                }
                 failedDetails.add(failedDetail);
             }
         }

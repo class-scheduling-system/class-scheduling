@@ -264,6 +264,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
             this.save(studentDO);
         } catch (DuplicateKeyException e) {
             // 学号重复异常
+            log.error("学生学号重复", e);
             throw new BusinessException("第" + (i + 3) + "行学生学号重复，请检查", ErrorCode.BODY_ERROR);
         } catch (DataIntegrityViolationException e) {
             // 分析数据完整性异常的具体原因

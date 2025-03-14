@@ -115,11 +115,11 @@ public class StringConstant {
         public static final String GRADE_UUID = "grade:uuid:";
         public static final String MAJOR_LIST = "major:list";
         public static final String GRADE_LIST = "grade:list";
-        public static final String ADMINISTRATIVE_CLASS_LIST = "administrative:class:list";
-        public static final String ACADEMIC_AFFAIRS_PERMISSION_USER_UUID = "academic:affairs:permission:user:uuid:";
-        public static final String ACADEMIC_AFFAIRS_PERMISSION_UUID = "academic:affairs:permission:uuid:";
+        public static final String ADMINISTRATIVE_CLASS_LIST = "ait:class:list";
+        public static final String ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT = "ait:class:list:department:";
+        public static final String ACADEMIC_AFFAIRS_PERMISSION_USER_UUID = "aca:affairs:per:user:uuid:";
+        public static final String ACADEMIC_AFFAIRS_PERMISSION_UUID = "aca:affairs:per:uuid:";
         public static final String MAJOR_LIST_BY_DEPARTMENT_UUID = "major:list:department:uuid:";
-        public static final String ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT = "administrative:class:list:department:";
         public static final String DEPARTMENT_NAME = "department:name:";
         public static final String GRADE_NAME = "grade:name:";
         public static final String TEACHER_TYPE_UUID = "teacher:type:uuid:";
