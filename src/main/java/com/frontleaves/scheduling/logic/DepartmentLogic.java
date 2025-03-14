@@ -227,12 +227,16 @@ public class DepartmentLogic implements DepartmentService {
             Optional.ofNullable(departmentVO.getUnitType())
                     .map(unitTypeDAO::getUnitTypeByUuid)
                     .orElseThrow(() -> new BusinessException("单位办别不存在", ErrorCode.NOT_EXIST));
-            Optional.ofNullable(departmentVO.getAssignedTeachingBuilding())
-                    .map(buildingDAO::getBuildingByUuid)
-                    .orElseThrow(() -> new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST));
-            Optional.ofNullable(departmentVO.getParentDepartment())
-                    .map(departmentDAO::getDepartmentByUuid)
-                    .orElseThrow(() -> new BusinessException("上级部门不存在", ErrorCode.NOT_EXIST));
+            if (departmentVO.getAssignedTeachingBuilding() != null && !departmentVO.getAssignedTeachingBuilding().isEmpty()) {
+                Optional.of(departmentVO.getAssignedTeachingBuilding())
+                        .map(buildingDAO::getBuildingByUuid)
+                        .orElseThrow(() -> new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST));
+            }
+            if (departmentVO.getParentDepartment() != null && !departmentVO.getParentDepartment().isEmpty()) {
+                Optional.of(departmentVO.getParentDepartment())
+                        .map(departmentDAO::getDepartmentByUuid)
+                        .orElseThrow(() -> new BusinessException("上级部门不存在", ErrorCode.NOT_EXIST));
+            }
 
             // 将视图对象属性复制到数据对象并更新数据库
             BeanUtil.copyProperties(departmentVO, departmentDO);
