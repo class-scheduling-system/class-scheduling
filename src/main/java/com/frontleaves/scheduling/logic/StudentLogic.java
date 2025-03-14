@@ -142,7 +142,7 @@ public class StudentLogic implements StudentService {
      * 获取导入所需的基础数据
      */
     private ImportBaseStudentDTO fetchImportBaseStudentDTO(String departmentUuid) {
-        DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(departmentUuid);
+        DepartmentDO departmentDO = departmentDAO.getDepartmentByUuidLastUpdate(departmentUuid);
         List<MajorDO> majorDOList = majorDAO.getMajorListByDepartmentUuid(departmentUuid);
         List<GradeDO> gradeDOList = gradeDAO.getGradeList();
         List<AdministrativeClassDO> administrativeClassDOList =
@@ -467,7 +467,7 @@ public class StudentLogic implements StudentService {
             throw new BusinessException("系统错误，意料之外的错误", ErrorCode.OPERATION_ERROR);
         }
         // 根据部门UUID获取部门信息
-        DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(academicAffairsPermissionDO.getDepartment());
+        DepartmentDO departmentDO = departmentDAO.getDepartmentByUuidLastUpdate(academicAffairsPermissionDO.getDepartment());
         // 断言部门信息不为空
         assert departmentDO != null;
         //查询出来专业组

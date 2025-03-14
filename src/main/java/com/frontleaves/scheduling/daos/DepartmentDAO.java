@@ -13,7 +13,6 @@ import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
-import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +22,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Collections;
 import java.util.List;
 
@@ -48,17 +46,42 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
      * @param departmentUuid 部门的唯一标识符
      * @return DepartmentDO类型的对象，表示部门信息，如果找不到则返回null
      */
-    @Transactional
     public DepartmentDO getDepartmentByUuid(String departmentUuid) {
         // 从Redis中获取部门信息
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.DEPARTMENT_UUID + departmentUuid);
         if (!map.isExists()) {
             // 如果Redis中不存在该部门信息，则从数据库中获取
-            DepartmentDO departmentDO = baseMapper.selectOne(
-                    new QueryWrapper<DepartmentDO>()
-                            .eq("department_uuid", departmentUuid)
-                            .last("FOR UPDATE")
-            );
+            DepartmentDO departmentDO = this.getById(departmentUuid);
+            if (departmentDO != null) {
+                // 将获取到的部门信息存入Redis，并设置过期时间
+                map.putAll(ConvertUtil.convertObjectToMapString(departmentDO));
+                map.expire(Duration.ofSeconds(86400));
+                return departmentDO;
+            }
+        } else {
+            // 如果Redis中存在该部门信息，则直接转换并返回部门对象
+            return BeanUtil.toBean(map, DepartmentDO.class);
+        }
+        return null;
+    }
+
+    /**
+     * 根据部门UUID获取部门对象，优先从Redis中获取，若不存在则从数据库中获取并加锁
+     * 此方法使用了事务注解，确保在获取部门信息时保持数据一致性
+     *
+     * @param departmentUuid 部门的唯一标识符
+     * @return 返回DepartmentDO对象，如果找不到则返回null
+     */
+    @Transactional
+    public DepartmentDO getDepartmentByUuidLastUpdate(String departmentUuid) {
+        // 从Redis中获取部门信息
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.DEPARTMENT_UUID + departmentUuid);
+        if (!map.isExists()) {
+            // 如果Redis中不存在该部门信息，则从数据库中获取
+            DepartmentDO departmentDO = this.lambdaQuery()
+                    .eq(DepartmentDO::getDepartmentUuid, departmentUuid)
+                    .last("FOR UPDATE")
+                    .one();
             if (departmentDO != null) {
                 // 将获取到的部门信息存入Redis，并设置过期时间
                 map.putAll(ConvertUtil.convertObjectToMapString(departmentDO));
@@ -129,10 +152,10 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
     /**
      * 根据分页参数和查询条件获取部门列表
      *
-     * @param page 分页页码
-     * @param size 每页大小
+     * @param page   分页页码
+     * @param size   每页大小
      * @param isDesc 是否按降序排序
-     * @param name 部门名称查询条件
+     * @param name   部门名称查询条件
      * @return 分页后的部门列表
      */
     public Page<DepartmentDO> getDepartmentPage(@NotNull Integer page, @NotNull Integer size, Boolean isDesc, String name) {
