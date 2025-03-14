@@ -6,10 +6,7 @@ import cn.hutool.poi.excel.sax.Excel07SaxReader;
 import cn.hutool.poi.excel.sax.handler.RowHandler;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.exceptions.lib.*;
-import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
-import com.frontleaves.scheduling.models.dto.ImportBaseStudentDTO;
-import com.frontleaves.scheduling.models.dto.PrepareStudentExampleDTO;
-import com.frontleaves.scheduling.models.dto.StudentImportDTO;
+import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.services.StudentService;
@@ -53,8 +50,18 @@ public class StudentLogic implements StudentService {
     private final UserService userService;
     private final StudentDAO studentDAO;
 
+    /**
+     * 从给定的列表中提取学生信息并创建一个StudentImportDTO对象
+     * 此方法确保从列表中的每个元素正确地提取学生信息，并将其设置到DTO对象中
+     *
+     * @param rowlist 包含学生信息的列表，包括部门、专业、年级、班级、ID、姓名和性别
+     * @return 返回一个填充了学生信息的StudentImportDTO对象
+     */
     private static @NotNull StudentImportDTO getStudentImportDTO(@NotNull List<Object> rowlist) {
+        // 创建一个新的StudentImportDTO对象
         StudentImportDTO student = new StudentImportDTO();
+
+        // 从列表中提取学生信息并设置到DTO对象中
         student.setDepartmentName(rowlist.get(0).toString().trim())
                 .setMajorName(rowlist.get(1).toString().trim())
                 .setGradeName(rowlist.get(2).toString().trim())
@@ -62,6 +69,8 @@ public class StudentLogic implements StudentService {
                 .setId(rowlist.get(4).toString().trim())
                 .setName(rowlist.get(5).toString().trim())
                 .setGender(rowlist.get(6).toString().trim());
+
+        // 返回填充了学生信息的DTO对象
         return student;
     }
 
@@ -117,6 +126,7 @@ public class StudentLogic implements StudentService {
         // 如果字节数组长度不足4，不可能是Excel 2007+ 文件
         return false;
     }
+
     /**
      * 解析Excel文件为学生导入DTO列表
      *
@@ -138,6 +148,7 @@ public class StudentLogic implements StudentService {
 
         return studentList;
     }
+
     /**
      * 获取导入所需的基础数据
      */
@@ -150,10 +161,11 @@ public class StudentLogic implements StudentService {
 
         return new ImportBaseStudentDTO(departmentDO, majorDOList, gradeDOList, administrativeClassDOList);
     }
+
     /**
      * 验证学院名称
      *
-     * @param departmentDO 学院DO对象
+     * @param departmentDO   学院DO对象
      * @param departmentName 要验证的学院名称
      * @throws DepartmentNotFoundException 当学院名称不存在时抛出异常
      */
@@ -242,6 +254,58 @@ public class StudentLogic implements StudentService {
     }
 
     /**
+     * 验证学生信息的合法性
+     *
+     * @param studentList          学生导入列表，包含待验证的学生信息
+     * @param importBaseStudentDTO 导入基础学生信息，包含学院、专业、年级和班级信息
+     * @param i                    当前验证的学生在列表中的索引
+     * @return 返回验证学生信息的结果，包括专业、年级和班级对象
+     * @throws BusinessException 当学生信息中的学院、专业、年级或班级名称不存在，或姓名、学号为空时抛出
+     */
+    private ValidateStudentReturnDTO validateStudent(List<StudentImportDTO> studentList,
+                                                     ImportBaseStudentDTO importBaseStudentDTO, int i)
+            throws BusinessException {
+        StudentImportDTO student = studentList.get(i);
+        // 行号（假设从第3行开始）
+        int rowNumber = i + 3;
+        // 验证学院名称是否存在
+        if (!importBaseStudentDTO.getDepartment().getDepartmentName().equals(student.getDepartmentName())) {
+            throw new BusinessException("第" + rowNumber + "行学院名称不存在", ErrorCode.BODY_ERROR);
+        }
+        // 通过专业名称查找对应的专业对象
+        MajorDO majorDO = importBaseStudentDTO.getMajors().stream()
+                .filter(major -> major.getMajorName().equals(student.getMajorName()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("第" + rowNumber + "行专业名称不存在", ErrorCode.BODY_ERROR));
+        // 通过年级名称查找对应的年级对象
+        GradeDO gradeDO = importBaseStudentDTO.getGrades().stream()
+                .filter(grade -> grade.getName().equals(student.getGradeName()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("第" + rowNumber + "行年级名称不存在", ErrorCode.BODY_ERROR));
+        // 通过班级名称查找对应的班级对象
+        AdministrativeClassDO administrativeClassDO = importBaseStudentDTO.getClazz().stream()
+                .filter(administrativeClass -> administrativeClass.getClassName().equals(student.getClassName()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("第" + rowNumber + "行班级名称不存在", ErrorCode.BODY_ERROR));
+        // 验证姓名是否为空
+        if (student.getName() == null || student.getName().isEmpty()) {
+            throw new BusinessException("第" + rowNumber + "行姓名不能为空", ErrorCode.BODY_ERROR);
+        }
+        // 验证学号是否为空
+        if (student.getId() == null || student.getId().isEmpty()) {
+            throw new BusinessException("第" + rowNumber + "行学号不能为空", ErrorCode.BODY_ERROR);
+        }
+        if (student.getGender() == null || student.getGender().isEmpty()) {
+            throw new BusinessException("第" + rowNumber + "行性别不能为空", ErrorCode.BODY_ERROR);
+        }
+        // 创建验证学生信息返回对象，并设置专业、年级和班级对象
+        return new ValidateStudentReturnDTO()
+                .setMajorDO(majorDO)
+                .setGradeDO(gradeDO)
+                .setAdministrativeClassDO(administrativeClassDO);
+    }
+
+    /**
      * 将Excel字节流解析为学生信息列表
      *
      * @param excelBytes Excel文件的字节流
@@ -289,49 +353,20 @@ public class StudentLogic implements StudentService {
     }
 
     @Override
-    @Transactional(rollbackFor = BusinessException.class)
+    @Transactional
     public BackAddStudentDTO batchImportNoIgnoreError(
             byte[] file, String departmentUuid
     ) {
         // 解析Excel文件
         List<StudentImportDTO> studentList = parseExcelStudentList(file);
-
-        log.debug("解析Excel文件成功，共解析出{}条学生信息", studentList.size());
-        log.debug("第一行数据为:{}", studentList.get(0));
         BackAddStudentDTO backAddStudentDTO = new BackAddStudentDTO();
         ImportBaseStudentDTO importBaseStudentDTO = fetchImportBaseStudentDTO(departmentUuid);
         // 不忽略警告提醒报错
         for (int i = 0; i < studentList.size(); i++) {
-            int finalI = i;
-            if (!importBaseStudentDTO.getDepartment().getDepartmentName()
-                    .equals(studentList.get(i).getDepartmentName())) {
-                throw new BusinessException("第" + (i + 3) + "行学院名称不存在", ErrorCode.BODY_ERROR);
-            }
-            MajorDO majorDO = importBaseStudentDTO.getMajors().stream()
-                    .filter(major -> major.getMajorName().equals(studentList.get(finalI).getMajorName()))
-                    .findFirst()
-                    .orElse(null);
-            if (majorDO == null) {
-                throw new BusinessException("第" + (i + 3) + "行专业名称不存在", ErrorCode.BODY_ERROR);
-            }
-            GradeDO gradeDO = importBaseStudentDTO.getGrades().stream()
-                    .filter(grade-> grade.getName().equals(studentList.get(finalI).getGradeName()))
-                    .findFirst()
-                    .orElse(null);
-            if (gradeDO == null) {
-                throw new BusinessException("第" + (i + 3) + "行年级名称不存在", ErrorCode.BODY_ERROR);
-            }
-            AdministrativeClassDO administrativeClassDO = importBaseStudentDTO.getClazz()
-                    .stream()
-                    .filter(administrativeClass -> administrativeClass.getClassName()
-                            .equals(studentList.get(finalI).getClassName()))
-                    .findFirst()
-                    .orElse(null);
-            if (administrativeClassDO == null) {
-                throw new BusinessException("第" + (i + 3) + "行班级名称不存在", ErrorCode.BODY_ERROR);
-            }
             // 创建并设置学生DO对象
             StudentDO studentDO = new StudentDO();
+            ValidateStudentReturnDTO validateStudentReturnDTO = this.validateStudent(
+                    studentList, importBaseStudentDTO, i);
             // 设置性别
             if ("男".equals(studentList.get(i).getGender())) {
                 studentDO.setGender(true);
@@ -342,10 +377,11 @@ public class StudentLogic implements StudentService {
             }
             studentDO.setId(studentList.get(i).getId())
                     .setName(studentList.get(i).getName())
-                    .setGradeUuid(gradeDO.getGradeUuid())
+                    .setGradeUuid(validateStudentReturnDTO.getGradeDO().getGradeUuid())
                     .setDepartment(importBaseStudentDTO.getDepartment().getDepartmentUuid())
-                    .setMajor(majorDO.getMajorUuid())
-                    .setClazz(administrativeClassDO.getAdministrativeClassUuid())
+                    .setMajor(validateStudentReturnDTO.getMajorDO().getMajorUuid())
+                    .setClazz(validateStudentReturnDTO.getAdministrativeClassDO()
+                            .getAdministrativeClassUuid())
                     .setGraduated(false);
             //继续数据存储
             studentDAO.saveStudentBackError(studentDO, i);
@@ -417,6 +453,9 @@ public class StudentLogic implements StudentService {
         noticeCell.setCellValue(noticeText);
         noticeCell.setCellStyle(redWrapStyle);
         //存入数据库数据
+        writer.writeCellValue(10, 3, "专业模板");
+        writer.writeCellValue(11, 3, "班级模板");
+        writer.writeCellValue(12, 3, "年级模板");
         // 存入学院名称
         writer.writeCellValue(0, 2, prepareStudentExampleDTO.getDepartmentName());
         // 存入专业信息
@@ -453,6 +492,13 @@ public class StudentLogic implements StudentService {
     }
 
 
+    /**
+     * 准备部门数据
+     * 根据当前用户权限，准备学生示例所需的部门相关数据
+     *
+     * @param request HTTP请求对象，用于获取当前用户信息
+     * @return PrepareStudentExampleDTO 包含部门数据的DTO对象
+     */
     @Override
     public PrepareStudentExampleDTO prepareDepartmentData(HttpServletRequest request) {
         // 根据请求获取用户信息
@@ -520,6 +566,15 @@ public class StudentLogic implements StudentService {
         return prepareStudentExampleDTO;
     }
 
+    /**
+     * 验证批量添加学生请求的数据有效性
+     * 此方法主要负责检查批量添加学生时提交的Excel文件是否符合规范，
+     * 包括文件是否存在、是否为有效的Excel格式、大小是否超过限制等
+     *
+     * @param batchAddStudentVO 批量添加学生的请求对象，包含文件的Base64编码等信息
+     * @return 解码后的Excel文件字节数组，用于后续处理
+     * @throws IllegalArgumentException 如果文件数据无效，抛出此异常
+     */
     @Override
     public byte[] checkBatchAddStudentVO(BatchAddStudentVO batchAddStudentVO) {
         // 1. 检查 VO 对象是否为空
@@ -532,6 +587,7 @@ public class StudentLogic implements StudentService {
         if (base64File == null || base64File.trim().isEmpty()) {
             throw new IllegalArgumentException("Excel文件不能为空");
         }
+
         // 3. 处理Base64字符串，去除可能的前缀和干扰字符
         // 如果有前缀，移除前缀
         if (base64File.contains(",")) {
@@ -539,6 +595,7 @@ public class StudentLogic implements StudentService {
         }
         // 移除可能的空格、换行符等
         base64File = base64File.replaceAll("\\s", "");
+
         // 4. 解码 Base64 字符串为字节数组
         byte[] fileBytes;
         try {
@@ -546,6 +603,7 @@ public class StudentLogic implements StudentService {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Base64 解码失败: " + e.getMessage());
         }
+
         // 5. 检查文件大小（10MB = 10 * 1024 * 1024 字节）
         long fileSizeInBytes = fileBytes.length;
         // 10MB
@@ -553,6 +611,7 @@ public class StudentLogic implements StudentService {
         if (fileSizeInBytes > maxSizeInBytes) {
             throw new IllegalArgumentException("文件大小超过10MB限制");
         }
+
         // 6. 验证是否为 Excel 文件
         try (InputStream inputStream = new ByteArrayInputStream(fileBytes)) {
             // 尝试读取为 Excel 工作簿，这会在非 Excel 文件时抛出异常
@@ -560,9 +619,19 @@ public class StudentLogic implements StudentService {
         } catch (Exception e) {
             throw new IllegalArgumentException("提供的文件不是有效的 Excel 文件: " + e.getMessage());
         }
+
+        // 返回解码后的文件字节数组，用于后续处理
         return fileBytes;
     }
 
+    /**
+     * 批量导入学生信息，忽略错误继续执行
+     * 该方法使用了事务注解，遇到BusinessException时回滚事务
+     *
+     * @param file Excel文件字节数组，包含学生信息
+     * @param departmentUuid 部门UUID，用于关联学生记录到正确的部门
+     * @return 返回包含导入结果的BackAddStudentDTO对象，包括成功和失败的统计信息
+     */
     @Override
     @Transactional(rollbackFor = BusinessException.class)
     public BackAddStudentDTO batchImportIgnoreError(byte[] file, String departmentUuid) {
@@ -620,17 +689,32 @@ public class StudentLogic implements StudentService {
                 .setFailedDetails(failedDetails.isEmpty() ? null : failedDetails);
         return backAddStudentDTO;
     }
+
+    /**
+     * 从请求中获取用户的部门UUID
+     * 此方法首先根据请求获取用户信息，然后根据用户UUID获取教务权限信息，
+     * 最终返回用户所属的部门UUID如果用户或教务权限信息不存在，则抛出业务异常
+     *
+     * @param request HTTP请求，包含用户信息
+     * @return 用户所属的部门UUID
+     * @throws BusinessException 如果用户或教务权限信息不存在，则抛出此异常
+     */
     @Override
     public String getDepartmentUuid(HttpServletRequest request) {
+        // 根据请求获取用户信息
         UserDO userDO = userService.getUserByRequest(request);
+        // 检查用户是否存在
         if (userDO == null) {
             throw new BusinessException("用户不存在，意料之外的错误", ErrorCode.OPERATION_ERROR);
         }
+        // 根据用户UUID获取教务权限信息
         AcademicAffairsPermissionDO academicAffairsPermissionDO =
                 academicAffairsPermissionDAO.getAcademicAffairsPermissionByUserUuid(userDO.getUserUuid());
+        // 检查教务权限是否存在
         if (academicAffairsPermissionDO == null) {
             throw new BusinessException("教务权限不存在，意料之外的错误", ErrorCode.OPERATION_ERROR);
         }
+        // 返回部门UUID
         return academicAffairsPermissionDO.getDepartment();
     }
 }
