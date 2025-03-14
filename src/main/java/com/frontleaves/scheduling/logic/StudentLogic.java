@@ -24,6 +24,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.naming.InvalidNameException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -254,6 +255,30 @@ public class StudentLogic implements StudentService {
     }
 
     /**
+     * 检查学生姓名是否合法
+     *
+     * @param name 学生姓名
+     * @throws InvalidNameException 当姓名为空或为空字符串时抛出异常
+     */
+    private void validateStudentName(String name) throws InvalidNameException {
+        if (name == null || name.isEmpty()) {
+            throw new InvalidNameException("姓名不能为空");
+        }
+    }
+
+    /**
+     * 检查学生学号是否合法
+     *
+     * @param id 学生学号
+     * @throws InvalidIdException 当学号为空或为空字符串时抛出异常
+     */
+    private void validateStudentId(String id) throws InvalidIdException {
+        if (id == null || id.isEmpty()) {
+            throw new InvalidIdException("学号不能为空");
+        }
+    }
+
+    /**
      * 验证学生信息的合法性
      *
      * @param studentList          学生导入列表，包含待验证的学生信息
@@ -262,8 +287,8 @@ public class StudentLogic implements StudentService {
      * @return 返回验证学生信息的结果，包括专业、年级和班级对象
      * @throws BusinessException 当学生信息中的学院、专业、年级或班级名称不存在，或姓名、学号为空时抛出
      */
-    private ValidateStudentReturnDTO validateStudent(List<StudentImportDTO> studentList,
-                                                     ImportBaseStudentDTO importBaseStudentDTO, int i)
+    private ValidateStudentReturnDTO validateStudent(@NotNull List<StudentImportDTO> studentList,
+                                                     @NotNull ImportBaseStudentDTO importBaseStudentDTO, int i)
             throws BusinessException {
         StudentImportDTO student = studentList.get(i);
         // 行号（假设从第3行开始）
@@ -628,7 +653,7 @@ public class StudentLogic implements StudentService {
      * 批量导入学生信息，忽略错误继续执行
      * 该方法使用了事务注解，遇到BusinessException时回滚事务
      *
-     * @param file Excel文件字节数组，包含学生信息
+     * @param file           Excel文件字节数组，包含学生信息
      * @param departmentUuid 部门UUID，用于关联学生记录到正确的部门
      * @return 返回包含导入结果的BackAddStudentDTO对象，包括成功和失败的统计信息
      */
@@ -645,6 +670,9 @@ public class StudentLogic implements StudentService {
         // 循环处理每条学生记录
         for (int i = 0; i < studentList.size(); i++) {
             try {
+                //检查数据完整性
+                this.validateStudentName(studentList.get(i).getName());
+                this.validateStudentId(studentList.get(i).getId());
                 // 验证学院名称
                 validateDepartment(importBaseStudentDTO.getDepartment(), studentList.get(i).getDepartmentName());
                 // 验证并获取专业
@@ -689,6 +717,7 @@ public class StudentLogic implements StudentService {
                 .setFailedDetails(failedDetails.isEmpty() ? null : failedDetails);
         return backAddStudentDTO;
     }
+
 
     /**
      * 从请求中获取用户的部门UUID
