@@ -28,6 +28,7 @@
             <result property="englishName" column="english_name"/>
             <result property="ethnic" column="ethnic"/>
             <result property="sex" column="sex"/>
+            <result property="type" column="type"/>
             <result property="phone" column="teacher_phone"/>
             <result property="email" column="teacher_email"/>
             <result property="jobTitle" column="job_title"/>
