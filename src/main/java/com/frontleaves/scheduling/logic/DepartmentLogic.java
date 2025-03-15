@@ -45,6 +45,7 @@ import com.frontleaves.scheduling.models.entity.UnitCategoryDO;
 import com.frontleaves.scheduling.models.entity.UnitTypeDO;
 import com.frontleaves.scheduling.models.vo.DepartmentVO;
 import com.frontleaves.scheduling.services.DepartmentService;
+import com.frontleaves.scheduling.utils.ProjectOption;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.annotation.Nullable;
@@ -146,17 +147,18 @@ public class DepartmentLogic implements DepartmentService {
      */
     @Override
     public DepartmentDTO getDepartment(@NotNull String departmentUuid) {
-        DepartmentDO departmentDTO = departmentDAO.getDepartmentByUuid(departmentUuid);
-        if (departmentDTO == null) {
+        DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(departmentUuid);
+        if (departmentDO == null) {
             throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
         }
         DepartmentDTO getDepartmentDTO = new DepartmentDTO();
-        BeanUtil.copyProperties(departmentDTO, getDepartmentDTO, StringConstant.Ignore.ASSIGNED_TEACHING_BUILDING);
-        JSONArray jsonArray = JSONUtil.parseArray(departmentDTO.getAssignedTeachingBuilding());
-        getDepartmentDTO.setAssignedTeachingBuilding(
-                Optional.ofNullable(jsonArray.toList(String.class))
-                        .orElse(List.of())
-        );
+        BeanUtil.copyProperties(departmentDO, getDepartmentDTO, StringConstant.Ignore.ASSIGNED_TEACHING_BUILDING);
+        Optional.ofNullable(departmentDO.getAssignedTeachingBuilding())
+                .filter(data -> !data.isBlank())
+                .ifPresentOrElse(data -> getDepartmentDTO.setAssignedTeachingBuilding(
+                                Optional.ofNullable(JSONUtil.toList(data, String.class))
+                                        .orElse(List.of())),
+                        () -> getDepartmentDTO.setAssignedTeachingBuilding(List.of()));
         return getDepartmentDTO;
     }
 
@@ -236,10 +238,21 @@ public class DepartmentLogic implements DepartmentService {
             }
 
             // 将视图对象属性复制到数据对象并更新数据库
-            BeanUtil.copyProperties(departmentVO, departmentDO);
+            BeanUtil.copyProperties(departmentVO, departmentDO, ProjectOption.stringBlankToNull());
+            if (departmentVO.getAssignedTeachingBuilding() != null && !departmentVO.getAssignedTeachingBuilding().isEmpty()) {
+                departmentDO.setAssignedTeachingBuilding(JSONUtil.toJsonStr(departmentVO.getAssignedTeachingBuilding()));
+            }
             departmentDAO.updateDepartment(departmentDO);
             // 返回更新后的部门数据传输对象
-            return BeanUtil.toBean(departmentDO, DepartmentDTO.class);
+            DepartmentDTO departmentDTO = new DepartmentDTO();
+            BeanUtil.copyProperties(departmentDO, departmentDTO,  StringConstant.Ignore.ASSIGNED_TEACHING_BUILDING);
+            departmentDTO.setAssignedTeachingBuilding(
+                    Optional.ofNullable(departmentDO.getAssignedTeachingBuilding())
+                            .filter(data -> !data.isBlank())
+                            .map(data -> JSONUtil.toList(data, String.class))
+                            .orElse(List.of())
+            );
+            return departmentDTO;
         }
         // 如果部门不存在，返回null
         return null;
@@ -264,7 +277,7 @@ public class DepartmentLogic implements DepartmentService {
         if (departmentList.getTotal() == 0) {
             return new PageDTO<>();
         } else {
-            PageDTO<DepartmentDTO> pageDTO = new PageDTO<>(departmentList.getPages(), departmentList.getTotal());
+            PageDTO<DepartmentDTO> pageDTO = new PageDTO<>(departmentList.getTotal(), departmentList.getSize());
             pageDTO.setCurrent(departmentList.getCurrent());
             pageDTO.setRecords(
                     departmentList.getRecords().stream()

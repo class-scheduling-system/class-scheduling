@@ -73,7 +73,7 @@ class CampusTest {
 
         if (pageOfCampus.getTotal() > 0) {
             // 当有数据时，测试带关键词的查询结果应与不带关键词的结果不同
-            String keyword = "铁";
+            String keyword = "铁库";
             Page<CampusDO> keywordCampus = campusDAO.getPageOfCampus(pageNum, pageSize, isValid, keyword);
 
             // 断言带关键词和不带关键词的结果应不同

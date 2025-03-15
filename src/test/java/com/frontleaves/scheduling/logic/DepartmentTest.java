@@ -14,6 +14,7 @@ import com.frontleaves.scheduling.models.vo.DepartmentVO;
 import com.frontleaves.scheduling.services.DepartmentService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -28,6 +29,7 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @SpringBootTest
@@ -307,7 +309,7 @@ class DepartmentTest {
         log.debug("测试使用null作为UUID");
 
         // 断言调用getDepartment时会抛出NullPointerException异常
-        Assertions.assertThrows(NullPointerException.class, () ->
+        Assertions.assertThrows(BusinessException.class, () ->
                 departmentService.getDepartment(null));
     }
 
@@ -506,7 +508,7 @@ class DepartmentTest {
                 testDepartment.getUnitCategory(),           // 单位类别
                 testDepartment.getUnitType(),               // 单位办别
                 testDepartment.getParentDepartment(),       // 上级部门
-                testDepartment.getAssignedTeachingBuilding(),// 分配教学楼
+                testDepartment.getAssignedTeachingBuilding() != null ? List.of(testDepartment.getAssignedTeachingBuilding()) : null,// 分配教学楼
                 true,                                       // 是否为开课院系
                 true,                                       // 是否为上课院系
                 "010-87654321",                             // 固定电话
@@ -585,7 +587,7 @@ class DepartmentTest {
                 nonExistentUuid,           // 单位类别
                 testDepartment.getUnitType(),               // 单位办别
                 testDepartment.getParentDepartment(),       // 上级部门
-                testDepartment.getAssignedTeachingBuilding(),// 分配教学楼
+                testDepartment.getAssignedTeachingBuilding() != null ? List.of(testDepartment.getAssignedTeachingBuilding()) : null,// 分配教学楼
                 true,                                       // 是否为开课院系
                 true,                                       // 是否为上课院系
                 "010-87654311",                             // 固定电话
@@ -628,7 +630,7 @@ class DepartmentTest {
                 testDepartment.getUnitCategory(),           // 单位类别
                 nonExistentUuid,               // 单位办别
                 testDepartment.getParentDepartment(),       // 上级部门
-                testDepartment.getAssignedTeachingBuilding(),// 分配教学楼
+                testDepartment.getAssignedTeachingBuilding() != null ? List.of(testDepartment.getAssignedTeachingBuilding()) : null,// 分配教学楼
                 true,                                       // 是否为开课院系
                 true,                                       // 是否为上课院系
                 "010-87654311",                             // 固定电话
@@ -672,7 +674,7 @@ class DepartmentTest {
                 testDepartment.getUnitCategory(),           // 单位类别
                 testDepartment.getUnitType(),               // 单位办别
                 testDepartment.getParentDepartment(),       // 上级部门
-                nonExistentUuid,// 分配教学楼
+                List.of(UuidUtil.generateUuidNoDash()),     // 分配教学楼
                 true,                                       // 是否为开课院系
                 true,                                       // 是否为上课院系
                 "010-87654311",                             // 固定电话
@@ -715,7 +717,7 @@ class DepartmentTest {
                 testDepartment.getUnitCategory(),           // 单位类别
                 testDepartment.getUnitType(),               // 单位办别
                 nonExistentUuid,       // 上级部门
-                testDepartment.getAssignedTeachingBuilding(),// 分配教学楼
+                testDepartment.getAssignedTeachingBuilding() != null ? List.of(testDepartment.getAssignedTeachingBuilding()) : null,// 分配教学楼
                 true,                                       // 是否为开课院系
                 true,                                       // 是否为上课院系
                 "010-87654311",                             // 固定电话
