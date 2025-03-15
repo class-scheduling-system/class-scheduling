@@ -86,5 +86,5 @@ public class StudentDTO {
     /**
      * 学生状态
      */
-    public Boolean status;
+    private Boolean status;
 }

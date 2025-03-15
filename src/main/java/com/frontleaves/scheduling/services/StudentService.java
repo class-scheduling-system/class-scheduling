@@ -3,7 +3,6 @@ package com.frontleaves.scheduling.services;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.StudentDTO;
 import com.frontleaves.scheduling.models.dto.StudentDisableDTO;
-import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import jakarta.annotation.Nullable;
 
@@ -34,7 +33,7 @@ public interface StudentService {
      * 添加学生
      *
      */
-    StudentDO addStudent(StudentDO studentVO);
+    StudentDTO addStudent(StudentDTO studentDTO);
 
     /**
      * 停用学生

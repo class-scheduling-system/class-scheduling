@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.StudentDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
+import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.StudentDTO;
 import com.frontleaves.scheduling.models.dto.StudentDisableDTO;
@@ -12,15 +13,17 @@ import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.services.StudentService;
+import com.frontleaves.scheduling.utils.MappingUtil;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.util.UuidUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -35,6 +38,7 @@ public class StudentLogic implements StudentService {
 
     private final StudentDAO studentDAO;
     private final UserDAO userDAO;
+    private final MappingUtil mappingUtil;
 
     /**
      * 根据 studentUuid 获取学生信息
@@ -45,7 +49,7 @@ public class StudentLogic implements StudentService {
         if (studentDO == null) {
             throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
         }
-        return convertToStudentDTO(studentDO);
+        return BeanUtil.toBean(studentDO, StudentDTO.class);
     }
 
     /**
@@ -68,16 +72,8 @@ public class StudentLogic implements StudentService {
         // 调用DAO层方法获取分页学生数据
         Page<StudentDO> resultPage = studentDAO.listStudents(page, size, isDesc, clazz, isGraduated, name, id);
 
-        // 将查询结果转换为StudentDTO列表
-        List<StudentDTO> dtoList = resultPage.getRecords().stream().map(studentDO -> {
-            StudentDTO studentDTO = new StudentDTO();
-            // 使用Spring框架的BeanUtils工具类进行属性复制
-            BeanUtils.copyProperties(studentDO, studentDTO);
-            return studentDTO;
-        }).toList();
-
-        // 构造并返回PageDTO对象
-        return new PageDTO<>(dtoList, resultPage.getTotal(), resultPage.getSize(), resultPage.getCurrent());
+        // 使用ProjectUtil 中的 convertPageToPageDTO 方法进行抓换
+        return ProjectUtil.convertPageToPageDTO(resultPage, StudentDTO.class);
     }
 
     /**
@@ -87,36 +83,51 @@ public class StudentLogic implements StudentService {
      * 然后将学生信息保存到数据库中,并转换为学生DTO对象
      * </p>
      *
-     * @param studentVO 学生对象,包含学生的基本信息
+     * @param studentDTO 学生对象,包含学生的基本信息
      * @return 保存后的学生对象
      */
     @Override
-    public StudentDO addStudent(StudentDO studentVO) {
-        // 校检数据完整性
-        if (studentVO == null || studentVO.getId() == null || studentVO.getName() == null || studentVO.getGender() == null || studentVO.getGradeUuid() == null || studentVO.getClazz() == null) {
-            throw new IllegalArgumentException("学生信息不完整");
-        }
-        if (!Pattern.matches(StringConstant.Regular.STUDENT_ID_REGULAR_EXPRESSION, studentVO.getStudentUuid())) {
-            throw new BusinessException("学生UUID格式错误", ErrorCode.PARAMETER_INVALID);
-        }
-        if (!Pattern.matches(StringConstant.Regular.STUDENT_NAME_REGULAR_EXPRESSION, studentVO.getName())) {
+    public StudentDTO addStudent(StudentDTO studentDTO) {
+        // 生成 UUID,避免由前端传递
+        String studentUuid = UuidUtil.generateUuidNoDash();
+
+        // 校验学生姓名
+        if (!Pattern.matches(StringConstant.Regular.STUDENT_NAME_REGULAR_EXPRESSION, studentDTO.getName())) {
             throw new BusinessException("学生姓名格式错误", ErrorCode.PARAMETER_INVALID);
         }
+        // 检查班级是否为空(进行外键映射)
+        if (studentDTO.getClazz() == null || studentDTO.getClazz().isBlank()) {
+            throw new BusinessException("班级不能为空", ErrorCode.PARAMETER_INVALID);
+        }
 
-        StudentDO studentDO = new StudentDO();
-        studentDO.setStudentUuid(studentVO.getStudentUuid())
-                .setId(studentVO.getId())
-                .setName(studentVO.getName())
-                .setGender(studentVO.getGender())
-                .setGradeUuid(studentVO.getGradeUuid())
-                .setClazz(studentVO.getClazz())
-                .setDepartment(studentVO.getDepartment())
-                .setMajor(studentVO.getMajor());
+        // 根据班级信息自动定位年级、学院和专业
+        ClassMappingDTO classMapping = mappingUtil.getClassMappingByClazz(studentDTO.getClazz());
+        // 将映射出来的信息设置到DTO中
+        studentDTO.setGradeUuid(classMapping.getGradeUuid());
+        studentDTO.setDepartment(classMapping.getDepartmentUuid());
+        studentDTO.setMajor(classMapping.getMajorUuid());
+
+        // DTO -> DO
+        StudentDO studentDO = BeanUtil.toBean(studentDTO, StudentDO.class);
+        studentDO.setStudentUuid(studentUuid);
 
         // 存入数据库
-        studentDAO.save(studentDO);
-        convertToStudentDTO(studentDO);
-        return studentDO;
+        try {
+            studentDAO.save(studentDO);
+        } catch (Exception e) {
+            log.error("学生信息保存失败", e);
+            throw new BusinessException("学生信息保存失败", ErrorCode.OPERATION_FAILED);
+        }
+        // 从数据库重新查询完整记录,确保自动填充的数据能获取到
+        StudentDO saveStudentDO = studentDAO.getStudentByUuid(studentUuid);
+        if (saveStudentDO == null) {
+            throw new BusinessException("学生信息保存失败", ErrorCode.OPERATION_FAILED);
+        }
+
+        // DO -> DTO
+        StudentDTO resultDTO = BeanUtil.toBean(studentDO, StudentDTO.class);
+        resultDTO.setStatus(resultDTO.getUserUuid() != null && !resultDTO.getUserUuid().isBlank());
+        return resultDTO;
     }
 
     /**
@@ -197,45 +208,9 @@ public class StudentLogic implements StudentService {
      */
     @Override
     public StudentDTO editStudent(String studentUuid, StudentVO studentVO) {
-        // 根据学生UUID从数据库中获取学生实体
-        StudentDO studentDO = studentDAO.getStudentByUuid(studentUuid);
-        // 检查学生是否存在,如果不存在则抛出异常
-        if (studentDO == null) {
-            throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
-        }
-
-        // 将视图对象中的属性复制到实体对象中,以准备更新数据库
-        BeanUtils.copyProperties(studentVO, studentDO);
-        boolean updated = studentDAO.updateById(studentDO);
-        // 如果更新失败,则抛出异常
-        if (!updated) {
-            throw new BusinessException("学生信息更新失败", ErrorCode.OPERATION_FAILED);
-        }
-
+        StudentDO studentDO = studentDAO.editStudent(studentUuid, studentVO);
         StudentDTO studentDTO = new StudentDTO();
         BeanUtils.copyProperties(studentDO, studentDTO);
         return studentDTO;
     }
-
-    /**
-     * 将StudentDO对象转换为StudentDTO对象
-     * <p>
-     * 此方法用于将从数据库中获取的学生数据对象(StudentDO)转换为学生数据传输对象(StudentDTO)
-     * 以便在不同的层次或模块之间传递学生信息,封装了转换逻辑
-     * </p>
-     *
-     * @param studentDO 学生数据对象,包含从数据库中获取的学生信息
-     * @return 返回一个包含相同信息的学生数据传输对象
-     */
-    private StudentDTO convertToStudentDTO(StudentDO studentDO) {
-        return new StudentDTO()
-                .setStudentUuid(studentDO.getStudentUuid())
-                .setId(studentDO.getId())
-                .setName(studentDO.getName())
-                .setGender(studentDO.getGender())
-                .setGradeUuid(studentDO.getGradeUuid())
-                .setClazz(studentDO.getClazz());
-    }
 }
-
-

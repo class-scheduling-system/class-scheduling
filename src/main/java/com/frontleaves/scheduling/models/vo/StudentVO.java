@@ -7,6 +7,11 @@ import lombok.experimental.Accessors;
 
 /**
  * 学生视图对象
+ * <p>
+ * 用户仅需提提供学号、姓名、性别、班级和毕业状态
+ * 用户通过班级信息即可定位到对应的年级、学院和专业
+ * userUUid 由系统在登录或后续操作时自动生成,不由前端传递
+ * </p>
  *
  * @author fanfan187
  * @version v1.0.0
@@ -17,9 +22,6 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Accessors(chain = true)
 public class StudentVO {
-    @NotBlank(message = "学生UUID不能为空")
-    private String studentUuid;
-
     @NotBlank(message = "学号不能为空")
     private String id;
 
@@ -29,18 +31,8 @@ public class StudentVO {
     @NotNull(message = "性别不能为空")
     private Boolean gender;
 
-    @NotBlank(message = "年级不能为空")
-    private String gradeUuid;
-
-    @NotBlank(message = "学院不能为空")
-    private String department;
-
-    @NotBlank(message = "专业不能为空")
-    private String major;
-
+    @NotBlank(message = "班级不能为空")
     private String clazz;
-
-    private String userUuid;
 
     @NotNull(message = "毕业状态不能为空")
     private Boolean graduated;

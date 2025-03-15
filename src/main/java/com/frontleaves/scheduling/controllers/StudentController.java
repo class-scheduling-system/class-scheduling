@@ -1,20 +1,20 @@
 package com.frontleaves.scheduling.controllers;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.StudentDTO;
 import com.frontleaves.scheduling.models.dto.StudentDisableDTO;
-import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.services.StudentService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.BeanUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -97,26 +97,15 @@ public class StudentController {
      */
     @PostMapping("")
     public @NotNull ResponseEntity<BaseResponse<StudentDTO>> addStudent(
-            @RequestBody StudentVO studentVO
+            @Valid @RequestBody StudentVO studentVO
     ) {
-        if (studentVO == null) {
-            return ResultUtil.error(ErrorCode.PARAMETER_INVALID, "请求体不能为空", null);
-        }
+        // VO -> DTO
+        StudentDTO studentDTO = BeanUtil.toBean(studentVO, StudentDTO.class);
 
-        // VO -> DO
-        StudentDO studentDO = new StudentDO();
-        BeanUtils.copyProperties(studentVO, studentDO);
-        // 调用 Service 层方法添加学生
-        StudentDO createdStudent = studentService.addStudent(studentDO);
+        // 调用 Service 层处理
+        StudentDTO createdStudent = studentService.addStudent(studentDTO);
 
-        // DO -> DTO
-        StudentDTO studentDTO = new StudentDTO();
-        BeanUtils.copyProperties(createdStudent, studentDTO);
-
-        // 设置学生状态,若 user_uuid 为空,则视为未注册（false）,否则为启用（true）
-        studentDTO.setStatus(studentDTO.getUserUuid() != null && !studentDTO.getUserUuid().isBlank());
-
-        return ResultUtil.success("添加学生成功", studentDTO);
+        return ResultUtil.success("添加学生成功", createdStudent);
     }
 
     /**
@@ -129,7 +118,7 @@ public class StudentController {
     @PutMapping("/disable/{student_uuid}")
     public ResponseEntity<BaseResponse<StudentDisableDTO>> disableStudent(
             @PathVariable("student_uuid") String studentUuid,
-            @RequestParam(defaultValue = "true") Boolean disable
+            @Valid @RequestParam(defaultValue = "true") Boolean disable
     ) {
         // 校检UUID是否为空
         if (studentUuid == null || studentUuid.isBlank()) {
@@ -171,7 +160,7 @@ public class StudentController {
     @PutMapping("/{student_uuid}")
     public @NotNull ResponseEntity<BaseResponse<StudentDTO>> editStudent(
             @PathVariable("student_uuid") String studentUuid,
-            @RequestBody StudentVO studentVO
+            @Valid @RequestBody StudentVO studentVO
     ) {
         StudentDTO studentDTO = studentService.editStudent(studentUuid, studentVO);
 
