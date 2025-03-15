@@ -13,13 +13,11 @@ import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RMap;
-import org.redisson.api.RTransaction;
-import org.redisson.api.RedissonClient;
-import org.redisson.api.TransactionOptions;
+import org.redisson.api.*;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -130,7 +128,7 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
      * @param name 部门名称查询条件
      * @return 分页后的部门列表
      */
-    public Page<DepartmentDO> getDepartmentList(@NotNull Integer page, @NotNull Integer size, Boolean isDesc, String name) {
+    public Page<DepartmentDO> getDepartmentPage(@NotNull Integer page, @NotNull Integer size, Boolean isDesc, String name) {
         LambdaQueryChainWrapper<DepartmentDO> query = this.lambdaQuery();
         if (name != null && !name.isEmpty()) {
             query.like(DepartmentDO::getDepartmentName, name);
@@ -154,5 +152,30 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
         queryWrapper.select("department_uuid").
                 like("department_name", departmentName);
         return this.listObjs(queryWrapper, Object::toString);
+    }
+
+
+    /**
+     * 获取部门列表
+     * <p>
+     * 该方法首先尝试从Redis中获取部门列表如果列表在Redis中不存在，则从数据库中获取列表，
+     * 并将其存入Redis中，以提高下次访问的效率如果列表在Redis中已存在，则直接读取并返回
+     *
+     * @return 可能为空的部门列表如果Redis中不存在该列表且数据库中也无数据，则返回null
+     */
+    @Nullable
+    public List<DepartmentDO> getDepartmentList() {
+        RList<DepartmentDO> list = redisson.getList(StringConstant.Redis.DEPARTMENT_LIST);
+        if (!list.isExists()) {
+            List<DepartmentDO> departmentList = this.list();
+            if (!departmentList.isEmpty()) {
+                list.addAll(departmentList);
+                list.expire(Duration.ofHours(1));
+                return departmentList;
+            }
+        } else {
+            return list.readAll();
+        }
+        return null;
     }
 }

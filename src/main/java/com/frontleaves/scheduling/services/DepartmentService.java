@@ -29,13 +29,14 @@
 package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.DepartmentDTO;
-import jakarta.annotation.Nullable;
-
+import com.frontleaves.scheduling.models.dto.DepartmentLiteDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.vo.DepartmentVO;
+import jakarta.annotation.Nullable;
 import org.springframework.stereotype.Service;
 
-@Service
+import java.util.List;
+
 /**
  * 部门服务接口，定义了部门相关的操作。
  * <p>
@@ -45,6 +46,7 @@ import org.springframework.stereotype.Service;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Service
 public interface DepartmentService {
 
     /**
@@ -59,7 +61,7 @@ public interface DepartmentService {
     @Nullable
     DepartmentDTO getDepartmentByUuid(String departmentUuid);
 
-    DepartmentDTO addDepartment(DepartmentVO departmentVOO);
+    DepartmentDTO addDepartment(DepartmentVO departmentVO);
 
     DepartmentDTO getDepartment(String departmentUuid);
 
@@ -67,5 +69,15 @@ public interface DepartmentService {
 
     DepartmentDTO updateDepartment(String departmentUuid, DepartmentVO departmentVO);
 
-    PageDTO<DepartmentDTO> getDepartmentList(int page, int size, boolean isDesc, String name);
+    PageDTO<DepartmentDTO> getDepartmentPage(int page, int size, boolean isDesc, String name);
+
+    /**
+     * 获取部门列表
+     * <p>
+     * 该方法用于获取所有部门的列表信息，返回部门的简要信息列表。
+     * </p>
+     *
+     * @return 返回部门的简要信息列表
+     */
+    List<DepartmentLiteDTO> getDepartmentList();
 }
