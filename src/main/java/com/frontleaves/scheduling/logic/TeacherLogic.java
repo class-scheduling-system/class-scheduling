@@ -28,6 +28,16 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 教师逻辑
+ * <p>
+ * 该类用于实现教师相关的业务逻辑，包括添加、删除、更新和查询教师信息等功能。
+ * 该类实现了教师服务接口，用于处理教师相关的业务逻辑。
+ *
+ * @author qiyu | xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -54,14 +64,6 @@ public class TeacherLogic implements TeacherService {
         // 如果部门不存在，抛出业务异常
         if (departmentDO == null) {
             throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
-        }
-
-        // 根据用户UUID获取用户信息
-        if (teacherVO.getUserUuid() != null && !teacherVO.getUserUuid().isBlank()) {
-            UserDO userDO = userDAO.getUserByUuid(teacherVO.getUserUuid());
-            if (userDO == null) {
-                throw new BusinessException(StringConstant.USER_NOT_EXIST, ErrorCode.NOT_EXIST);
-            }
         }
 
         // 根据教师类型UUID获取教师类型信息
@@ -234,7 +236,7 @@ public class TeacherLogic implements TeacherService {
      * 最后，将视图对象中的属性复制到教师对象中，并更新数据库中的教师信息
      *
      * @param teacherUuid 教师的唯一标识符
-     * @param teacherVO 包含教师更新信息的视图对象
+     * @param teacherVO   包含教师更新信息的视图对象
      */
     @Override
     public void updateTeacher(String teacherUuid, TeacherVO teacherVO) {
@@ -246,13 +248,6 @@ public class TeacherLogic implements TeacherService {
                 DepartmentDO getDepartment = departmentDAO.getDepartmentByUuid(teacherVO.getUnitUuid());
                 if (getDepartment == null) {
                     throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
-                }
-            }
-            // 如果教师视图对象中包含用户UUID，则检查用户是否存在
-            if (teacherVO.getUserUuid() != null) {
-                UserDO getUser = userDAO.getUserByUuid(teacherVO.getUserUuid());
-                if (getUser == null) {
-                    throw new BusinessException(StringConstant.USER_NOT_EXIST, ErrorCode.NOT_EXIST);
                 }
             }
             // 如果教师视图对象中包含教师类型UUID，则检查教师类型是否存在

@@ -144,6 +144,7 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
             transaction.commit();
         } catch (Exception e) {
             transaction.rollback();
+            log.error(StringConstant.DATABASE_OPERATION_FAILED, e);
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }

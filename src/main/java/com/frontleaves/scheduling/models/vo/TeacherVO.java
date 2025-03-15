@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
  * 教师类型、教师电话、教师邮箱、教师职称、教师描述等字段。
  * </p>
  *
- * @author xiao_lfeng
+ * @author qiyu
  * @version v1.0.0
  * @since v1.0.0
  */
@@ -30,11 +30,6 @@ public class TeacherVO {
     @NotBlank(message = "单位主键不能为空")
     @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "单位主键格式不正确")
     private String unitUuid;
-    /**
-     * 用户主键
-     */
-    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "用户主键格式不正确")
-    private String userUuid;
     /**
      * 教师工号
      */

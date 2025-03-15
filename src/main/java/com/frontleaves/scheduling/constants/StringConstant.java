@@ -183,6 +183,17 @@ public class StringConstant {
     }
 
     /**
+     * 忽略常量类
+     */
+    public static class Ignore {
+        public static final String ASSIGNED_TEACHING_BUILDING = "assignedTeachingBuilding";
+
+        private Ignore() {
+            log.error("Ignore 不能被实例化");
+        }
+    }
+
+    /**
      * 专业常量
      */
     public static class Major {

@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.models.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 部门信息传输对象
@@ -42,16 +44,19 @@ public class DepartmentDTO {
     /**
      * 部门英文名称
      */
+    @Nullable
     private String departmentEnglishName;
 
     /**
      * 部门简称
      */
+    @Nullable
     private String departmentShortName;
 
     /**
      * 部门地址
      */
+    @Nullable
     private String departmentAddress;
 
     /**
@@ -62,11 +67,13 @@ public class DepartmentDTO {
     /**
      * 行政负责人
      */
+    @Nullable
     private String administrativeHead;
 
     /**
      * 党委负责人
      */
+    @Nullable
     private String partyCommitteeHead;
 
     /**
@@ -77,6 +84,7 @@ public class DepartmentDTO {
     /**
      * 失效日期
      */
+    @Nullable
     private LocalDate expirationDate;
 
     /**
@@ -92,12 +100,13 @@ public class DepartmentDTO {
     /**
      * 上级部门
      */
+    @Nullable
     private String parentDepartment;
 
     /**
      * 分配教学楼
      */
-    private String assignedTeachingBuilding;
+    private List<String> assignedTeachingBuilding;
 
     /**
      * 是否为开课院系
@@ -112,11 +121,13 @@ public class DepartmentDTO {
     /**
      * 固定电话
      */
+    @Nullable
     private String fixedPhone;
 
     /**
      * 备注
      */
+    @Nullable
     private String remark;
 
     /**
