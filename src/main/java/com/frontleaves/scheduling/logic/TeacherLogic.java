@@ -21,12 +21,14 @@ import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TeacherLogic implements TeacherService {
@@ -127,10 +129,11 @@ public class TeacherLogic implements TeacherService {
         if (status == null || status.isBlank()) {
             teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, null, name);
         } else {
-            if (Boolean.parseBoolean(status)) {
-                teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, 1, name);
-            } else {
-                teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, 0, name);
+            switch (status) {
+                case "1" -> teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, 1, name);
+                case "0" -> teacherList = teacherDAO.getTeacherList(page, size, isDesc, department, 0, name);
+                case "2" -> teacherList = teacherDAO.getTeacherNoRegisterUserList(page, size, isDesc, department, name);
+                default -> throw new BusinessException("状态参数错误", ErrorCode.PARAMETER_ERROR);
             }
         }
 
