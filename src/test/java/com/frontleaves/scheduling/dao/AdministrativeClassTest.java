@@ -1,0 +1,91 @@
+package com.frontleaves.scheduling.dao;
+
+import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.daos.AdministrativeClassDAO;
+import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+import com.xlf.utility.util.UuidUtil;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.redisson.api.RList;
+import org.redisson.api.RedissonClient;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.List;
+
+@SpringBootTest
+@Slf4j
+class AdministrativeClassTest {
+
+    @Resource
+    private AdministrativeClassDAO administrativeClassDAO;
+
+    @Resource
+    private RedissonClient redisson;
+
+    /**
+     * 测试根据UUID获取行政班级
+     * <p>
+     * 本测试需要数据库中已存在行政班级数据
+     * </p>
+     */
+    @Test
+    void testGetAdministrativeClassByUuid() {
+        // 假设数据库中已有一条行政班级数据，这里需要替换为实际存在的UUID
+        AdministrativeClassDO administrativeClassDO = administrativeClassDAO.lambdaQuery().list().get(0);
+        String existingUuid = administrativeClassDO.getAdministrativeClassUuid();
+        log.debug("测试获取行政班级信息(UUID)");
+        AdministrativeClassDO classData = administrativeClassDAO.getAdministrativeClassByUuid(existingUuid);
+        // 如果行政班级在数据库中存在，应该不为null
+        Assertions.assertNotNull(classData);
+        log.debug("删除缓存并再次获取");
+        // 删除Redis缓存
+        redisson.getMap(StringConstant.Redis.ADMINISTRATIVE_CLASS_UUID + existingUuid).delete();
+        // 再次获取，这次应该从数据库获取并重新缓存
+        AdministrativeClassDO classData2 = administrativeClassDAO.getAdministrativeClassByUuid(existingUuid);
+        // 验证仍然能获到数据
+        Assertions.assertNotNull(classData2);
+        // 清理测试后的缓存
+        redisson.getMap(StringConstant.Redis.ADMINISTRATIVE_CLASS_UUID + existingUuid).delete();
+    }
+
+    /**
+     * 测试获取不存在的行政班级
+     */
+    @Test
+    void testGetNonExistingAdministrativeClass() {
+        log.debug("测试获取不存在的行政班级");
+        // 使用一个肯定不存在的UUID
+        String nonExistingUuid = UuidUtil.generateUuidNoDash();
+        // 尝试获取不存在的行政班级
+        AdministrativeClassDO classData = administrativeClassDAO.getAdministrativeClassByUuid(nonExistingUuid);
+        // 应该返回null
+        Assertions.assertNull(classData);
+    }
+    @Test
+    void testGetAdministrativeClassList() {
+        // 先清除Redis中的管理班级列表缓存
+        redisson.getKeys().delete(StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST);
+
+        // 第一次调用getAdministrativeClassList方法，应该从数据库获取数据并缓存到Redis
+        List<AdministrativeClassDO> classList1 = administrativeClassDAO.getAdministrativeClassList();
+
+        // 断言从数据库获取的管理班级列表不为空
+        Assertions.assertNotNull(classList1);
+        Assertions.assertFalse(classList1.isEmpty());
+
+        // 验证Redis中是否已缓存管理班级列表
+        RList<AdministrativeClassDO> redisCache = redisson.getList(StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST);
+        Assertions.assertTrue(redisCache.isExists());
+
+        // 记录第一次查询结果的大小
+        int firstResultSize = classList1.size();
+
+        // 第二次调用getAdministrativeClassList方法，应该从Redis缓存中获取数据
+        List<AdministrativeClassDO> classList2 = administrativeClassDAO.getAdministrativeClassList();
+
+        // 断言第二次获取的结果与第一次结果大小相同
+        Assertions.assertEquals(firstResultSize, classList2.size());
+    }
+}

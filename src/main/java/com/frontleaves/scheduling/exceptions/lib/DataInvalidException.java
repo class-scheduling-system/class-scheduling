@@ -26,57 +26,60 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto;
+package com.frontleaves.scheduling.exceptions.lib;
 
-import cn.hutool.json.JSONUtil;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.experimental.Accessors;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * 分页数据传输对象
+ * 数据无效异常
  * <p>
- * 用于返回分页数据相关信息，包含记录列表、总记录数、每页大小、当前页码和总页数。
- * 该类提供了将 JSON 格式的记录字符串转换为实际记录列表的方法，以及直接设置记录列表的方法。
+ * 该异常用于在数据无效时抛出，主要用于区分于 BusinessException，用于表格输出避免被 Transactional 捕获。
  * </p>
  *
- * @param <T> 记录的类型
  * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
-@Data
-@Accessors(chain = true)
-@AllArgsConstructor
-public class PageDTO<T> {
-    private List<T> records;
-    private Long total;
-    private Long size;
-    private Long current;
+public class DataInvalidException extends RuntimeException {
+    private final TypeEnum typeEnum;
 
-    public PageDTO() {
-        this.total = 0L;
-        this.size = 0L;
-        this.current = 0L;
-        this.records = new ArrayList<>();
+    public DataInvalidException(@NotNull TypeEnum typeEnum) {
+        super(typeEnum.reason);
+        this.typeEnum = typeEnum;
     }
 
-    public PageDTO(long total, long size) {
-        this.total = total;
-        this.size = size;
-        this.records = new ArrayList<>();
+    /**
+     * 获取异常原因
+     *
+     * @return 异常原因
+     */
+    public String getReason() {
+        return typeEnum.reason;
     }
 
-    public PageDTO<T> setRecords(String jsonRecords, Class<T> t) {
-        this.records = JSONUtil.toList(jsonRecords, t);
-        return this;
+    /**
+     * 获取异常类型
+     *
+     * @return 异常类型
+     */
+    public String getType() {
+        return typeEnum.type;
     }
 
-    public PageDTO<T> setRecords(List<T> records) {
-        this.records = records;
-        return this;
+    /**
+     * 异常类型枚举
+     */
+    public enum TypeEnum {
+        GENDER_ERROR("Gender", "性别填写错误"),
+        NAME_EMPTY_ERROR("Name", "姓名不能为空"),
+        STUDENT_ID_EMPTY_ERROR("Student", "学号不能为空");
+
+        private final String type;
+        private final String reason;
+
+        TypeEnum(String type, String reason) {
+            this.type = type;
+            this.reason = reason;
+        }
     }
 }

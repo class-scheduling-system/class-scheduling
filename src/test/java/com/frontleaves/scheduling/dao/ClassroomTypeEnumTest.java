@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @Slf4j
 @SpringBootTest
-class ClassroomTypeTest {
+class ClassroomTypeEnumTest {
 
     @Resource
     private ClassroomTypeDAO classroomTypeDAO;

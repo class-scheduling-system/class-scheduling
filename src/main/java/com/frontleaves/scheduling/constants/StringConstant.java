@@ -111,6 +111,17 @@ public class StringConstant {
         public static final String TABLES_CHAIRS_UUID = "tc:uuid:";
         public static final String ROLE_LIST = "role:list";
         public static final String BUILDING_KEY_LIST = "building:key:list";
+        public static final String ADMINISTRATIVE_CLASS_UUID = "administrative:class:uuid:";
+        public static final String GRADE_UUID = "grade:uuid:";
+        public static final String MAJOR_LIST = "major:list";
+        public static final String GRADE_LIST = "grade:list";
+        public static final String ADMINISTRATIVE_CLASS_LIST = "ait:class:list";
+        public static final String ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT = "ait:class:list:department:";
+        public static final String ACADEMIC_AFFAIRS_PERMISSION_USER_UUID = "aca:affairs:per:user:uuid:";
+        public static final String ACADEMIC_AFFAIRS_PERMISSION_UUID = "aca:affairs:per:uuid:";
+        public static final String MAJOR_LIST_BY_DEPARTMENT_UUID = "major:list:department:uuid:";
+        public static final String DEPARTMENT_NAME = "department:name:";
+        public static final String GRADE_NAME = "grade:name:";
         public static final String TEACHER_TYPE_UUID = "teacher:type:uuid:";
         public static final String TEACHER_TYPE_LIST = "teacher:type:list";
         public static final String TEACHER_TYPE_PAGE = "teacher:type:page:";
@@ -170,6 +181,17 @@ public class StringConstant {
         public static final String FIXED_PHONE_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^\\d{3}-\\d{8}|\\d{4}-\\d{7}$)";
         private Regular() {
             log.error("Regular 不能被实例化");
+        }
+    }
+
+    /**
+     * 忽略常量类
+     */
+    public static class Ignore {
+        public static final String ASSIGNED_TEACHING_BUILDING = "assignedTeachingBuilding";
+
+        private Ignore() {
+            log.error("Ignore 不能被实例化");
         }
     }
 

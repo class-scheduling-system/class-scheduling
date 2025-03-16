@@ -140,6 +140,7 @@ class StudentTest {
         redisson.getBucket(StringConstant.Redis.STUDENT_USER_UUID + setUpStudent.getUserUuid()).delete();
     }
 
+
     @Test
     void testGetStudentById() {
         log.debug("测试通过学生 ID 获取学生信息");

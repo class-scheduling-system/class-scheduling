@@ -41,12 +41,15 @@ import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
+import lombok.RequiredArgsConstructor;
+import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -57,23 +60,18 @@ import java.util.List;
  * 提供了面向业务的数据库访问方法。
  * </p>
  *
- * @since v1.0.0
- * @version v1.0.0
  * @author FLASHLACK
+ * @version v1.0.0
+ * @since v1.0.0
  */
 @Repository
+@RequiredArgsConstructor
 public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IService<MajorDO> {
 
     private final RedissonClient redisson;
     private final DepartmentDAO departmentDAO;
     private final StudentDAO studentDAO;
 
-    @Autowired
-    public MajorDAO(RedissonClient redisson, DepartmentDAO departmentDAO, StudentDAO studentDAO) {
-        this.redisson = redisson;
-        this.departmentDAO = departmentDAO;
-        this.studentDAO = studentDAO;
-    }
 
     /**
      * 根据专业 UUID 获取专业信息
@@ -125,6 +123,8 @@ public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IServ
         this.isReferenced(majorUuid);
 
         redisson.getKeys().delete(StringConstant.Redis.MAJOR_UUID + majorUuid);
+        redisson.getKeys().delete(StringConstant.Redis.MAJOR_LIST);
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.MAJOR_LIST_BY_DEPARTMENT_UUID);
         int deletedRows = this.getBaseMapper().delete(
                 new LambdaQueryWrapper<MajorDO>().eq(MajorDO::getMajorUuid, majorUuid)
         );
@@ -139,11 +139,11 @@ public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IServ
     /**
      * 查询专业列表
      *
-     * @param page     页码
-     * @param size     每页记录数
-     * @param isDesc   是否降序排列（null或true为降序，false为升序）
-     * @param department   学院名称，用于模糊查询
-     * @param name     专业名称，用于模糊查询
+     * @param page       页码
+     * @param size       每页记录数
+     * @param isDesc     是否降序排列（null或true为降序，false为升序）
+     * @param department 学院名称，用于模糊查询
+     * @param name       专业名称，用于模糊查询
      * @return 返回包含专业列表的Page对象
      */
     public Page<MajorDO> listMajors(int page, int size, Boolean isDesc, String department, String name) {
@@ -152,7 +152,7 @@ public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IServ
 
         // 查看学院名称是否为空
         if (CharSequenceUtil.isNotBlank(department)) {
-            List<String> departmentUuids = departmentDAO.getDepartmentUuidByName(department);
+            List<String> departmentUuids = departmentDAO.getDepartmentUuidListByName(department);
             if (departmentUuids.isEmpty()) {
                 throw new BusinessException("学院不存在", ErrorCode.BODY_ERROR);
             } else {
@@ -169,6 +169,72 @@ public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IServ
 
         return this.page(pageParam, queryWrapper);
     }
+
+    /**
+     * 获取专业列表
+     * <p>
+     * 本方法首先尝试从Redis中获取专业列表，如果Redis中不存在该列表，
+     * 则从数据库中查询，并将结果存入Redis以备下次快速访问
+     * 这种做法减少了数据库的访问次数，提高了数据获取效率
+     *
+     * @return 专业列表，如果列表为空则返回空列表
+     */
+    public List<MajorDO> getMajorList() {
+        // 尝试从Redis中获取专业列表
+        RList<MajorDO> redissonList = redisson.getList(StringConstant.Redis.MAJOR_LIST);
+        // 检查Redis中是否存在该列表
+        if (!redissonList.isExists()) {
+            // 从数据库中查询专业列表
+            List<MajorDO> majorList = this.list();
+            // 如果查询结果不为空，则将其添加到Redis中，并设置过期时间
+            if (!majorList.isEmpty()) {
+                redissonList.addAll(majorList);
+                redissonList.expire(Duration.ofSeconds(86400));
+                return majorList;
+            }
+        } else {
+            // 如果Redis中存在该列表，则直接读取并返回
+            return redissonList.readAll();
+        }
+        // 如果数据库中也没有专业列表，则返回空列表
+        return Collections.emptyList();
+    }
+
+    /**
+     * 根据部门UUID获取专业列表
+     * 该方法首先尝试从Redis中获取专业列表，如果不存在，则从数据库中查询，并将结果缓存到Redis中
+     * 使用缓存旨在提高查询效率，减少数据库访问次数
+     *
+     * @param departmentUuid 部门UUID，用于标识部门
+     * @return 专业列表，如果找不到则返回空列表
+     */
+    @Transactional
+    public List<MajorDO> getMajorListByDepartmentUuidForUpdate(String departmentUuid) {
+        // 尝试从Redis中获取缓存的专业列表
+        RList<MajorDO> rList = redisson.getList(
+                StringConstant.Redis.MAJOR_LIST_BY_DEPARTMENT_UUID + departmentUuid);
+        // 检查缓存是否存在
+        if (!rList.isExists()) {
+            // 如果缓存不存在，从数据库中查询专业列表（添加悲观锁）
+            // 方式1：使用LambdaQueryWrapper添加FOR UPDATE子句
+            List<MajorDO> majorDOList = this.lambdaQuery()
+                    .eq(MajorDO::getDepartmentUuid, departmentUuid)
+                    .last("FOR UPDATE")
+                    .list();
+            // 如果查询结果不为空，将其添加到Redis缓存中，并设置过期时间
+            if (!majorDOList.isEmpty()) {
+                rList.addAll(majorDOList);
+                rList.expire(Duration.ofSeconds(86400));
+                return majorDOList;
+            }
+        } else {
+            // 如果缓存存在，直接读取并返回缓存中的专业列表
+            return rList.readAll();
+        }
+        // 如果没有查询到任何数据，返回空列表
+        return Collections.emptyList();
+    }
+
 
 }
 

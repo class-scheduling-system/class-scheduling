@@ -28,7 +28,7 @@ import java.util.List;
  */
 @SpringBootTest
 @Slf4j
-class TeacherTypeTest {
+class TeacherTypeEnumTest {
     @Resource
     private TeacherTypeService teacherTypeService;
     @Resource
