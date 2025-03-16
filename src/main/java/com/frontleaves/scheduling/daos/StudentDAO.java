@@ -3,25 +3,25 @@
  * Copyright (c) 2022-NOW(至今) 锋楪技术团队
  * Author: 锋楪技术团队 (https://www.frontleaves.com)
  *
- * 本文件包含锋楪技术团队项目的源代码,项目的所有源代码均遵循 MIT 开源许可证协议。
+ * 本文件包含锋楪技术团队项目的源代码，项目的所有源代码均遵循 MIT 开源许可证协议。
  * --------------------------------------------------------------------------------
  * 许可证声明：
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的,没有任何形式的明示或暗示的保证,包括但不限于
- * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下,
+ * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
  *
  * 使用本软件即表示您了解此声明并同意其条款。
  *
- * 有关 MIT 许可证的更多信息,请查看项目根目录下的 LICENSE 文件或访问：
+ * 有关 MIT 许可证的更多信息，请查看项目根目录下的 LICENSE 文件或访问：
  * https://opensource.org/licenses/MIT
  * --------------------------------------------------------------------------------
  * 免责声明：
  *
- * 使用本软件的风险由用户自担。作者或版权持有人在法律允许的最大范围内,
+ * 使用本软件的风险由用户自担。作者或版权持有人在法律允许的最大范围内，
  * 对因使用本软件内容而导致的任何直接或间接的损失不承担任何责任。
  * --------------------------------------------------------------------------------
  */
@@ -39,6 +39,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.StudentMapper;
+import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
 import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
@@ -52,10 +53,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.redisson.api.*;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -384,5 +389,134 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
             return List.of();
         }
         return getList;
+    }
+
+    /**
+     * 保存学生信息
+     *
+     * @param studentDO 学生实体
+     * @param i 行号索引
+     */
+    public void saveStudentBackError(StudentDO studentDO, int i) {
+        try {
+            this.save(studentDO);
+        } catch (DuplicateKeyException e) {
+            // 学号重复异常
+            log.error("学生学号重复", e);
+            throw new BusinessException("第" + (i + 3) + "行学生学号重复，请检查", ErrorCode.BODY_ERROR);
+        } catch (DataIntegrityViolationException e) {
+            // 分析数据完整性异常的具体原因
+            String errorMessage = e.getMessage();
+            String detailedReason = analyzeDataIntegrityBuError(errorMessage);
+            throw new BusinessException("第" + (i + 3) + "行" + detailedReason, ErrorCode.BODY_ERROR);
+        } catch (Exception e) {
+            // 其他未预期的异常
+            throw new BusinessException("第" + (i + 3) + "行保存失败：" + e.getMessage(), ErrorCode.BODY_ERROR);
+        }
+    }
+    /**
+     * 分析数据完整性错误的详细原因
+     *
+     * @param errorMessage 错误信息
+     * @return 具体的错误原因
+     */
+    private String analyzeDataIntegrityBuError(String errorMessage) {
+        // 外键错误映射
+        Map<String, String> foreignKeyErrors = Map.of(
+                "fk_cs_student_cs_grade", "年级信息错误",
+                "fk_cs_student_cs_department", "学院信息错误",
+                "fk_cs_student_cs_major", "专业信息错误",
+                "fk_cs_administrative_class_cs_student", "班级信息错误"
+        );
+        // 检查外键错误
+        for (Map.Entry<String, String> entry : foreignKeyErrors.entrySet()) {
+            if (errorMessage.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        // 长度错误检查
+        if (errorMessage.contains("Data too long")) {
+            if (errorMessage.contains("id")) {
+                return "学号长度超出限制，最大32个字符";
+            }
+            if (errorMessage.contains("name")) {
+                return "姓名长度超出限制，最大32个字符";
+            }
+            return "数据长度超出限制";
+        }
+        // 默认错误信息
+        return "数据错误：可能包含错误的值（意料之外的报错）";
+    }
+
+    /**
+     * 保存学生信息，忽略错误并返回失败详情
+     *
+     * @param studentDO 学生实体
+     * @param i         当前处理的行索引
+     * @return 失败详情列表，如果成功则返回空列表
+     */
+    public List<BackAddStudentDTO.FailedDetail> saveStudentIgnoreError(StudentDO studentDO, int i) {
+        try {
+            this.save(studentDO);
+            // 成功时返回空列表
+            return Collections.emptyList();
+        } catch (Exception e) {
+            return Collections.singletonList(createFailedDetail(e, i));
+        }
+    }
+
+    /**
+     * 根据异常创建失败详情
+     */
+    private BackAddStudentDTO.FailedDetail createFailedDetail(Exception e, int i) {
+        BackAddStudentDTO.FailedDetail failedDetail = new BackAddStudentDTO.FailedDetail();
+        failedDetail.setRow(i + 3);
+
+        if (e instanceof DuplicateKeyException) {
+            failedDetail.setReason("学号重复");
+        } else if (e instanceof DataIntegrityViolationException) {
+            String errorMessage = e.getMessage();
+            failedDetail.setReason(analyzeDataIntegrityError(errorMessage));
+        } else {
+            failedDetail.setReason("保存失败：" + e.getMessage());
+        }
+
+        return failedDetail;
+    }
+
+    /**
+     * 分析数据完整性错误
+     */
+    private String analyzeDataIntegrityError(String errorMessage) {
+        // 外键错误映射
+        Map<String, String> foreignKeyErrors = Map.of(
+                "fk_cs_student_cs_grade", "年级信息错误",
+                "fk_cs_student_cs_department", "学院信息错误",
+                "fk_cs_student_cs_major", "专业信息错误",
+                "fk_cs_administrative_class_cs_student", "班级信息错误"
+        );
+        // 检查外键错误
+        String foreignKeyMatch = foreignKeyErrors.entrySet().stream()
+                .filter(entry -> errorMessage.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
+        if (foreignKeyMatch != null) {
+            return foreignKeyMatch;
+        }
+        // 长度错误检查
+        if (errorMessage.contains("Data too long")) {
+            Map<String, String> lengthErrors = Map.of(
+                    "id", "学号长度超出限制，最大32个字符",
+                    "name", "姓名长度超出限制，最大32个字符"
+            );
+            return lengthErrors.entrySet().stream()
+                    .filter(entry -> errorMessage.contains(entry.getKey()))
+                    .map(Map.Entry::getValue)
+                    .findFirst()
+                    .orElse("数据长度超出限制");
+        }
+        // 默认错误信息
+        return "数据错误：可能包含空值、超出长度限制或不符合外键约束";
     }
 }
