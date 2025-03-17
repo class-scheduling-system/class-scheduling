@@ -300,21 +300,43 @@ public class CampusLogic implements CampusService {
 
 
 
+    /**
+     * 准备校园数据
+     *
+     * 该方法用于准备校园的相关数据，将数据封装到PrepareBuildingDTO对象中
+     * 主要功能包括从数据库中获取所有校园信息，并将每条信息转换为CampusDTO对象，
+     * 最后将这些对象集合到PrepareBuildingDTO对象中返回
+     *
+     * @param request HTTP请求对象，用于获取请求相关的信息
+     * @return PrepareBuildingDTO对象，包含所有校园的数据
+     */
     @Override
     public PrepareBuildingDTO prepareCampusData(@NotNull HttpServletRequest request) {
 
+        // 从数据库中获取所有校园信息，并将每条信息转换为CampusDTO对象
         List<CampusDTO> campusList = campusDAO.getAllCampus().stream()
                 .map(campusDO -> {
+                    // 创建一个新的CampusDTO对象，并设置其属性
                     CampusDTO campusDTO = new CampusDTO();
                     campusDTO.setCampusUuid(campusDO.getCampusUuid())
                              .setCampusName(campusDO.getCampusName());
                     return campusDTO;
                 })
                 .toList();
+        // 创建一个新的PrepareBuildingDTO对象，并将校园列表设置到其中
         return new PrepareBuildingDTO().setCampus(campusList);
     }
 
-    private  @NotNull String readCampusNoticeFile() {
+    /**
+     * 读取校园通知文件的内容
+     *
+     * 此方法尝试从资源文件夹中读取一个名为"building-import-notice.txt"的文件
+     * 如果文件存在，则读取其内容并以字符串形式返回
+     * 如果文件不存在，或在读取过程中发生IO异常，则返回一个预定义的默认通知文本
+     *
+     * @return 文件内容或默认通知文本
+     */
+    private @NotNull String readCampusNoticeFile() {
         try {
             // 从资源文件夹读取 notice.txt
             Resource resource = new ClassPathResource("notes/building-import-notice.txt");
@@ -342,16 +364,26 @@ public class CampusLogic implements CampusService {
         }
     }
 
+    /**
+     * 根据准备建设的教学楼信息，生成校园示例Excel文件
+     * 该方法主要用于导出一个填充了示例数据和格式的Excel文件，用于指导用户如何正确填写教学楼信息
+     *
+     * @param prepareBuildingDTO 包含准备建设的教学楼相关信息的DTO对象
+     * @return 生成的Excel文件的字节流
+     */
     @Override
     public byte[] getCampusExample(PrepareBuildingDTO prepareBuildingDTO) {
+        // 创建ExcelWriter对象，用于写入Excel文件
         ExcelWriter writer = ExcelUtil.getWriter(true);
         // 创建居中样式
         CellStyle centreStyle = writer.getWorkbook().createCellStyle();
         centreStyle.setAlignment(HorizontalAlignment.CENTER);
         centreStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        // 创建自动换行样式
         CellStyle wrapStyle = writer.getWorkbook().createCellStyle();
         wrapStyle.setWrapText(true);
 
+        // 调整工作表的列宽，以适应内容
         for (int i = 0; i <= 14; i++) {
             Sheet sheet = writer.getSheet();
             int currentWidth = sheet.getColumnWidth(i);
@@ -360,43 +392,52 @@ public class CampusLogic implements CampusService {
             }
             sheet.setColumnWidth(i, currentWidth * 2);
         }
+        // 合并单元格，用于标题
         writer.getSheet().addMergedRegion(new CellRangeAddress(0, 0, 0, 2));
         Cell titleCell = writer.getSheet().getRow(0).createCell(0);
         titleCell.setCellValue("导入教学楼模板");
         titleCell.setCellStyle(centreStyle);
+        // 写入表头
         writer.writeCellValue(0, 1, "所属校区");
         writer.writeCellValue(1, 1, "教学楼名称");
         writer.writeCellValue(2, 1, "教学楼状态");
 
+        // 创建红色加粗字体样式
         Font redFont = writer.getWorkbook().createFont();
         redFont.setColor(IndexedColors.RED.getIndex());
         redFont.setBold(true);
 
+        // 创建红色加粗且自动换行的样式
         CellStyle redWrapStyle = writer.getWorkbook().createCellStyle();
         redWrapStyle.cloneStyleFrom(wrapStyle);
         redWrapStyle.setFont(redFont);
 
+        // 读取校园通知文件内容
         String noticeText = this.readCampusNoticeFile();
+        // 合并单元格，用于通知文本
         writer.getSheet().addMergedRegion(new CellRangeAddress(1, 20, 3, 5));
         Cell noticeCell = writer.getSheet().getRow(1).createCell(3);
         noticeCell.setCellValue(noticeText);
         noticeCell.setCellStyle(redWrapStyle);
 
+        // 写入校区名称的标题
         writer.writeCellValue(6, 2, "校区名称");
 
+        // 如果DTO中包含校区信息，则写入每个校区的名称
         if (prepareBuildingDTO.getCampus() != null) {
             for (int i = 0; i < prepareBuildingDTO.getCampus().size(); i++) {
                 writer.writeCellValue(6, i + 2, prepareBuildingDTO.getCampus().get(i).getCampusName());
             }
         }
 
+        // 创建字节数组输出流，用于存储Excel文件的字节数据
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        // 将Excel文件内容写入字节数组输出流
         writer.flush(outputStream, true);
         // 关闭writer，释放资源
         writer.close();
         // 返回字节数组
         return outputStream.toByteArray();
     }
-
 
 }
