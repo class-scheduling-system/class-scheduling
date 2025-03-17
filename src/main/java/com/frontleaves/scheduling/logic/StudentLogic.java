@@ -2,8 +2,6 @@ package com.frontleaves.scheduling.logic;
 
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
-import cn.hutool.poi.excel.sax.Excel07SaxReader;
-import cn.hutool.poi.excel.sax.handler.RowHandler;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.exceptions.lib.DataInvalidException;
 import com.frontleaves.scheduling.exceptions.lib.DataNotFoundException;
@@ -12,6 +10,7 @@ import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.services.StudentService;
 import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -76,6 +75,37 @@ public class StudentLogic implements StudentService {
     }
 
     /**
+     * 将Excel数据转换为学生DTO列表
+     * 使用Stream流处理Excel行数据，并将其转换为StudentImportDTO对象列表
+     *
+     * @param excelBytes Excel文件字节数组
+     * @param startRow   开始读取的行号（从0开始计数）
+     * @return 返回StudentImportDTO对象列表
+     */
+    public static List<StudentImportDTO> parseExcelToStudentList(byte[] excelBytes, int startRow,int columnsToCheck) {
+        // 首先解析Excel文件获取行数据列表
+        List<List<Object>> rowList = ProjectUtil.parseExcelToRowList(excelBytes, startRow,columnsToCheck);
+        log.debug("原生列表{}",rowList);
+        // 创建结果列表
+        List<StudentImportDTO> studentList = new ArrayList<>();
+        // 处理每一行数据，即使数据不完整也创建对象
+        for (List<Object> row : rowList) {
+            try {
+                // 确保行数据至少有一个元素，避免处理完全空的行
+                if (!row.isEmpty()) {
+                    // 转换为StudentImportDTO对象并添加到结果列表
+                    StudentImportDTO student = getStudentImportDTO(row);
+                    studentList.add(student);
+                }
+            } catch (Exception e) {
+                // 记录异常并继续处理下一行
+                log.error("解析学生数据时出错: {}", e.getMessage());
+            }
+        }
+        return studentList;
+    }
+
+    /**
      * 读取学生通知文本文件
      * 该方法尝试从类路径下的"notes/student-import-notice.txt"文件中读取通知内容
      * 如果文件存在，则读取并返回文件内容；如果文件不存在或读取过程中发生异常，则返回默认的注意事项文本
@@ -108,46 +138,6 @@ public class StudentLogic implements StudentService {
                     2. 所有信息必须准确无误
                     3. 请勿修改模板结构""";
         }
-    }
-
-    /**
-     * 判断给定字节数组是否代表一个Excel 2007或更高版本的文件
-     * 该方法通过检查字节数组的 前几个字节来确定文件类型
-     * Excel 2007+ 文件的 前8个字节是固定的PK头部
-     *
-     * @param bytes 字节数组，代表要检查的文件内容
-     * @return 如果字节数组代表一个Excel 2007或更高版本的文件，则返回true；否则返回false
-     */
-    private boolean isExcel2007(byte[] bytes) {
-        // Excel 2007+ 文件的前8个字节是固定的PK头部
-        if (bytes.length >= 4) {
-            // 检查前4个字节是否与Excel 2007+ 文件的PK头部匹配
-            return bytes[0] == 'P' && bytes[1] == 'K' && bytes[2] == 0x03 && bytes[3] == 0x04;
-        }
-        // 如果字节数组长度不足4，不可能是Excel 2007+ 文件
-        return false;
-    }
-
-    /**
-     * 解析Excel文件为学生导入DTO列表
-     *
-     * @param file Excel文件的字节数组
-     * @return 学生导入DTO列表
-     * @throws BusinessException 当解析失败或结果为空时
-     */
-    private List<StudentImportDTO> parseExcelStudentList(byte[] file) {
-        List<StudentImportDTO> studentList;
-        try {
-            studentList = this.parseExcelToStudents(file);
-        } catch (IOException e) {
-            throw new BusinessException("IO异常，Excel解析失败", ErrorCode.OPERATION_ERROR);
-        }
-
-        if (studentList.isEmpty()) {
-            throw new BusinessException("Excel文件中没有学生信息或数据格式错误请检查", ErrorCode.BODY_ERROR);
-        }
-
-        return studentList;
     }
 
     /**
@@ -331,60 +321,14 @@ public class StudentLogic implements StudentService {
                 .setAdministrativeClassDO(administrativeClassDO);
     }
 
-    /**
-     * 将Excel字节流解析为学生信息列表
-     *
-     * @param excelBytes Excel文件的字节流
-     * @return 解析后的学生信息列表
-     * @throws IOException 如果文件读取过程中发生错误
-     */
-    public List<StudentImportDTO> parseExcelToStudents(byte[] excelBytes) throws IOException {
-        // 创建结果容器
-        List<StudentImportDTO> resultList = new ArrayList<>();
-        try {
-            // 创建处理每行数据的handler
-            RowHandler rowHandler = (sheetIndex, rowIndex, rowlist) -> {
-                // 跳过第一行（通常是说明行）
-                if (rowIndex == 0) {
-                    return;
-                }
-                // 第二行是标题行，跳过
-                if (rowIndex == 1) {
-                    return;
-                }
-                if (!rowlist.isEmpty() && rowlist.get(0) != null
-                        && !rowlist.get(0).toString().trim().isEmpty()) {
-                    StudentImportDTO student = getStudentImportDTO(rowlist);
-                    resultList.add(student);
-                }
-            };
-            // 使用ByteArrayInputStream读取文件内容
-            try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(excelBytes)) {
-                // 判断Excel版本并选择合适的解析方式
-                if (isExcel2007(excelBytes)) {
-                    // 使用Excel07SaxReader处理xlsx格式
-                    Excel07SaxReader reader = new Excel07SaxReader(rowHandler);
-                    // 只读取第一个sheet
-                    reader.read(byteArrayInputStream, 0);
-                } else {
-                    // 使用ExcelUtil.readBySax处理Excel文件（自动判断格式）
-                    ExcelUtil.readBySax(byteArrayInputStream, 0, rowHandler);
-                }
-                return resultList;
-            }
-        } catch (Exception e) {
-            // 捕获并处理解析过程中可能发生的异常
-            throw new IllegalArgumentException("Excel解析失败：" + e.getMessage(), e);
-        }
-    }
-
     @Override
     @Transactional
     public BackAddStudentDTO batchImportNoIgnoreError(
             byte[] file, String departmentUuid
     ) {
         // 解析Excel文件
-        List<StudentImportDTO> studentList = parseExcelStudentList(file);
+        List<StudentImportDTO> studentList = parseExcelToStudentList(file, 2,7);
+        log.debug("第一个学生信息{}", studentList.get(0));
         ImportBaseStudentDTO importBaseStudentDTO = fetchImportBaseStudentDTO(departmentUuid);
         // 不忽略警告提醒报错
         for (int i = 0; i < studentList.size(); i++) {
@@ -661,7 +605,7 @@ public class StudentLogic implements StudentService {
     @Transactional(rollbackFor = BusinessException.class)
     public BackAddStudentDTO batchImportIgnoreError(byte[] file, String departmentUuid) {
         // 解析Excel文件
-        List<StudentImportDTO> studentList = parseExcelStudentList(file);
+        List<StudentImportDTO> studentList = parseExcelToStudentList(file, 2,7);
         BackAddStudentDTO backAddStudentDTO = new BackAddStudentDTO();
         ImportBaseStudentDTO importBaseStudentDTO = fetchImportBaseStudentDTO(departmentUuid);
         // 创建失败详情列表
@@ -703,15 +647,7 @@ public class StudentLogic implements StudentService {
                 }
             } catch (RuntimeException e) {
                 // 捕获验证时的异常
-                BackAddStudentDTO.FailedDetail failedDetail = new BackAddStudentDTO.FailedDetail();
-                failedDetail.setRow(i + 3);
-                if (e instanceof DataNotFoundException error) {
-                    failedDetail.setReason("数据不存在：" + error.getReason());
-                } else if (e instanceof DataInvalidException error) {
-                    failedDetail.setReason("数据无效：" + error.getReason());
-                } else {
-                    failedDetail.setReason("未知错误：" + e.getMessage());
-                }
+                BackAddStudentDTO.FailedDetail failedDetail = getFailedDetail(e, i);
                 failedDetails.add(failedDetail);
             }
         }
@@ -721,6 +657,34 @@ public class StudentLogic implements StudentService {
                 .setFailedCount(failedDetails.size())
                 .setFailedDetails(failedDetails.isEmpty() ? null : failedDetails);
         return backAddStudentDTO;
+    }
+
+    /**
+     * 获取失败的详细信息
+     * 该方法用于处理在添加学生过程中遇到的异常情况，根据不同的异常类型和行号，生成失败的详细信息
+     *
+     * @param e 异常对象，用于判断异常类型和获取异常信息
+     * @param i 当前行号，用于定位错误发生的位置
+     * @return BackAddStudentDTO.FailedDetail 返回包含失败信息的对象，包括行号和错误原因
+     */
+    private static BackAddStudentDTO.@NotNull FailedDetail getFailedDetail(RuntimeException e, int i) {
+        // 创建一个FailedDetail对象来存储失败的详细信息
+        BackAddStudentDTO.FailedDetail failedDetail = new BackAddStudentDTO.FailedDetail();
+        // 设置失败的行号，+3是因为数据开始于第4行
+        failedDetail.setRow(i + 3);
+        // 根据异常类型设置失败的原因
+        if (e instanceof DataNotFoundException error) {
+            // 如果是数据不存在异常，设置具体原因
+            failedDetail.setReason("数据不存在：" + error.getReason());
+        } else if (e instanceof DataInvalidException error) {
+            // 如果是数据无效异常，设置具体原因
+            failedDetail.setReason("数据无效：" + error.getReason());
+        } else {
+            // 如果是其他未知异常，设置通用错误信息
+            failedDetail.setReason("未知错误：" + e.getMessage());
+        }
+        // 返回包含失败信息的对象
+        return failedDetail;
     }
 
 

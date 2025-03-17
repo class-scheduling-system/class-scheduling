@@ -30,6 +30,9 @@ package com.frontleaves.scheduling.utils;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
+import cn.hutool.poi.excel.ExcelUtil;
+import cn.hutool.poi.excel.sax.Excel07SaxReader;
+import cn.hutool.poi.excel.sax.handler.RowHandler;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.models.dto.PageDTO;
@@ -39,7 +42,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.redisson.api.RMap;
 
+import java.io.ByteArrayInputStream;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -167,4 +172,95 @@ public class ProjectUtil {
         return null;
     }
 
+    /**
+     * 解析Excel文件，返回行数据列表
+     *
+     * @param excelBytes     Excel文件字节数组
+     * @param startRow       开始读取的行号（从0开始计数）
+     * @param columnsToCheck 需要检查的列数（检查前N列是否有值）
+     * @return 行数据列表，每行为一个List<Object>
+     */
+    public static List<List<Object>> parseExcelToRowList(byte[] excelBytes, int startRow, int columnsToCheck) {
+        try {
+            // 存储解析结果
+            List<List<Object>> resultList = new ArrayList<>();
+
+            // 创建行处理器
+            RowHandler rowHandler = createRowHandler(startRow, columnsToCheck, resultList);
+
+            // 使用ByteArrayInputStream读取文件内容
+            try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(excelBytes)) {
+                // 判断Excel版本并选择合适的解析方式
+                if (isExcel2007(excelBytes)) {
+                    // 使用Excel07SaxReader处理xlsx格式
+                    Excel07SaxReader reader = new Excel07SaxReader(rowHandler);
+                    // 只读取第一个sheet
+                    reader.read(byteArrayInputStream, 0);
+                } else {
+                    // 使用ExcelUtil.readBySax处理Excel文件（自动判断格式）
+                    ExcelUtil.readBySax(byteArrayInputStream, 0, rowHandler);
+                }
+                return resultList;
+            }
+        } catch (Exception e) {
+            // 捕获并处理解析过程中可能发生的异常
+            throw new IllegalArgumentException("Excel解析失败：" + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 创建Excel行处理器
+     *
+     * @param startRow       开始读取的行号
+     * @param columnsToCheck 需要检查的列数
+     * @param resultList     结果列表
+     * @return 行处理器
+     */
+    private static RowHandler createRowHandler(int startRow, int columnsToCheck, List<List<Object>> resultList) {
+        return (sheetIndex, rowIndex, rowlist) -> {
+            // 从指定行开始读取
+            if (rowIndex >= startRow && rowlist != null && !rowlist.isEmpty()
+                    && hasValidData(rowlist, columnsToCheck)) {
+                    resultList.add(new ArrayList<>(rowlist));
+                }
+
+        };
+    }
+
+    /**
+     * 检查行中是否有有效数据
+     *
+     * @param rowlist        行数据
+     * @param columnsToCheck 需要检查的列数
+     * @return 是否有有效数据
+     */
+    private static boolean hasValidData(List<Object> rowlist, int columnsToCheck) {
+        int actualColumnsToCheck = Math.min(columnsToCheck, rowlist.size());
+
+        for (int i = 0; i < actualColumnsToCheck; i++) {
+            Object cellValue = rowlist.get(i);
+            if (cellValue != null && !cellValue.toString().trim().isEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 检查给定的字节数组是否代表一个Excel 2007或更高版本的文件
+     * Excel 2007+ 文件的前8个字节是固定的PK头部，用于识别文件格式
+     *
+     * @param bytes 文件的字节数组表示
+     * @return 如果字节数组以Excel 2007+ 文件的PK头部开始，则返回true；否则返回false
+     */
+    private static boolean isExcel2007(byte[] bytes) {
+        // Excel 2007+ 文件的前8个字节是固定的PK头部
+        if (bytes.length >= 4) {
+            // 检查前4个字节是否与Excel 2007+ 文件的PK头部匹配
+            return bytes[0] == 'P' && bytes[1] == 'K' && bytes[2] == 0x03 && bytes[3] == 0x04;
+        }
+        // 如果字节数组长度不足4，不可能是Excel 2007+ 文件
+        return false;
+    }
 }

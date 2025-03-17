@@ -88,4 +88,16 @@ class AdministrativeClassTest {
         // 断言第二次获取的结果与第一次结果大小相同
         Assertions.assertEquals(firstResultSize, classList2.size());
     }
+    @Test
+    void testGetAdministrativeClassListByDepartmentForUpdate (){
+        String departmentUuid = administrativeClassDAO.lambdaQuery().list().get(0).getDepartmentUuid();
+        redisson.getList(
+                StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT + departmentUuid).delete();
+        List<AdministrativeClassDO> administrativeClassDOList =
+                administrativeClassDAO.getAdministrativeClassListByDepartmentForUpdate(departmentUuid);
+        Assertions.assertFalse(administrativeClassDOList.isEmpty());
+        RList<AdministrativeClassDO> redisCache = redisson.getList(
+                StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT + departmentUuid);
+        Assertions.assertTrue(redisCache.isExists());
+    }
 }
