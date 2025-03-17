@@ -31,9 +31,12 @@ package com.frontleaves.scheduling.services;
 import com.frontleaves.scheduling.models.dto.CampusDTO;
 import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.PrepareBuildingDTO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import jakarta.annotation.Nullable;
+import jakarta.servlet.http.HttpServletRequest;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -146,4 +149,8 @@ public interface CampusService {
      * @return 返回一个包含所有校区简要信息的 {@code List<ListOfCampusDTO>} 列表
      */
     List<ListOfCampusDTO> getCampusList();
+
+    PrepareBuildingDTO prepareCampusData(@NotNull HttpServletRequest request);
+
+    byte[] getCampusExample(PrepareBuildingDTO prepareBuildingDTO);
 }

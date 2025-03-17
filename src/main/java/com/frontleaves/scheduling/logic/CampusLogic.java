@@ -29,11 +29,14 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.poi.excel.ExcelUtil;
+import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.daos.CampusDAO;
 import com.frontleaves.scheduling.models.dto.CampusDTO;
 import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.PrepareBuildingDTO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import com.frontleaves.scheduling.services.CampusService;
@@ -41,12 +44,21 @@ import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -285,5 +297,106 @@ public class CampusLogic implements CampusService {
     public List<ListOfCampusDTO> getCampusList() {
         return campusDAO.getCampusList();
     }
+
+
+
+    @Override
+    public PrepareBuildingDTO prepareCampusData(@NotNull HttpServletRequest request) {
+
+        List<CampusDTO> campusList = campusDAO.getAllCampus().stream()
+                .map(campusDO -> {
+                    CampusDTO campusDTO = new CampusDTO();
+                    campusDTO.setCampusUuid(campusDO.getCampusUuid())
+                             .setCampusName(campusDO.getCampusName());
+                    return campusDTO;
+                })
+                .toList();
+        return new PrepareBuildingDTO().setCampus(campusList);
+    }
+
+    private  @NotNull String readCampusNoticeFile() {
+        try {
+            // 从资源文件夹读取 notice.txt
+            Resource resource = new ClassPathResource("notes/building-import-notice.txt");
+            // 尝试读取资源
+            if (resource.exists()) {
+                try (InputStream inputStream = resource.getInputStream()) {
+                    // 读取并返回文件内容
+                    return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            } else {
+                // 资源不存在，返回默认文本
+                return """
+                        注意事项：
+                        1. 请严格按照模板填写信息
+                        2. 所有信息必须准确无误
+                        3. 请勿修改模板结构""";
+            }
+        } catch (IOException e) {
+            // 如果读取失败，返回默认文本
+            return """
+                    注意事项：
+                    1. 请严格按照模板填写信息
+                    2. 所有信息必须准确无误
+                    3. 请勿修改模板结构""";
+        }
+    }
+
+    @Override
+    public byte[] getCampusExample(PrepareBuildingDTO prepareBuildingDTO) {
+        ExcelWriter writer = ExcelUtil.getWriter(true);
+        // 创建居中样式
+        CellStyle centreStyle = writer.getWorkbook().createCellStyle();
+        centreStyle.setAlignment(HorizontalAlignment.CENTER);
+        centreStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        CellStyle wrapStyle = writer.getWorkbook().createCellStyle();
+        wrapStyle.setWrapText(true);
+
+        for (int i = 0; i <= 14; i++) {
+            Sheet sheet = writer.getSheet();
+            int currentWidth = sheet.getColumnWidth(i);
+            if (currentWidth == sheet.getDefaultColumnWidth() * 256) {
+                currentWidth = 2048;
+            }
+            sheet.setColumnWidth(i, currentWidth * 2);
+        }
+        writer.getSheet().addMergedRegion(new CellRangeAddress(0, 0, 0, 2));
+        Cell titleCell = writer.getSheet().getRow(0).createCell(0);
+        titleCell.setCellValue("导入教学楼模板");
+        titleCell.setCellStyle(centreStyle);
+        writer.writeCellValue(0, 1, "所属校区");
+        writer.writeCellValue(1, 1, "教学楼名称");
+        writer.writeCellValue(2, 1, "教学楼状态");
+
+        Font redFont = writer.getWorkbook().createFont();
+        redFont.setColor(IndexedColors.RED.getIndex());
+        redFont.setBold(true);
+
+        CellStyle redWrapStyle = writer.getWorkbook().createCellStyle();
+        redWrapStyle.cloneStyleFrom(wrapStyle);
+        redWrapStyle.setFont(redFont);
+
+        String noticeText = this.readCampusNoticeFile();
+        writer.getSheet().addMergedRegion(new CellRangeAddress(1, 20, 3, 5));
+        Cell noticeCell = writer.getSheet().getRow(1).createCell(3);
+        noticeCell.setCellValue(noticeText);
+        noticeCell.setCellStyle(redWrapStyle);
+
+        writer.writeCellValue(6, 2, "校区名称");
+
+        if (prepareBuildingDTO.getCampus() != null) {
+            for (int i = 0; i < prepareBuildingDTO.getCampus().size(); i++) {
+                writer.writeCellValue(6, i + 2, prepareBuildingDTO.getCampus().get(i).getCampusName());
+            }
+        }
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        writer.flush(outputStream, true);
+        // 关闭writer，释放资源
+        writer.close();
+        // 返回字节数组
+        return outputStream.toByteArray();
+    }
+
 
 }

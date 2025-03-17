@@ -234,4 +234,8 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> implements IS
         }
         return campusList.readAll();
     }
+
+    public List<CampusDO> getAllCampus() {
+        return null;
+    }
 }
