@@ -86,8 +86,8 @@ public class BuildingLogic implements BuildingService {
      */
     @Override
     @NotNull
-    public PageDTO<BuildingDTO> getBuildingList(int page, int size, boolean isDesc, String keyword) {
-        Page<BuildingDO> buildingList = buildingDAO.getBuildingList(page, size, isDesc, keyword);
+    public PageDTO<BuildingDTO> getBuildingPage(int page, int size, boolean isDesc, String keyword) {
+        Page<BuildingDO> buildingList = buildingDAO.getBuildingPage(page, size, isDesc, keyword);
 
         // 直接获取BuildingDO列表并进行手动转换
         List<BuildingDTO> buildingDTOList = new ArrayList<>();
@@ -267,11 +267,11 @@ public class BuildingLogic implements BuildingService {
     }
 
     @Override
-    public List<BuildingLiteDTO> getBuildingPage(String keyword) {
-    List<BuildingDO> buildingDOList = buildingDAO.getBuildingListByKey(keyword);
-    if (buildingDOList == null || buildingDOList.isEmpty()) {
+    public List<BuildingLiteDTO> getBuildingList(String keyword) {
+    List<BuildingDO> buildingList = buildingDAO.getBuildingListByKey(keyword);
+    if (buildingList == null || buildingList.isEmpty()) {
         return List.of();
     }
-    return BeanUtil.copyToList(buildingDOList, BuildingLiteDTO.class);
+    return BeanUtil.copyToList(buildingList, BuildingLiteDTO.class);
     }
 }

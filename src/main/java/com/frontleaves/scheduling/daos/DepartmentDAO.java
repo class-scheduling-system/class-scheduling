@@ -137,14 +137,13 @@ public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> i
     @Transactional
     public void updateDepartment(DepartmentDO departmentDO) {
         redisson.getKeys().deleteByPattern(StringConstant.Redis.DEPARTMENT_LIST + "*");
-        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
-            transaction.getMap(StringConstant.Redis.DEPARTMENT_UUID + departmentDO.getDepartmentUuid()).delete();
+            redisson.getMap(StringConstant.Redis.DEPARTMENT_UUID + departmentDO.getDepartmentUuid()).delete();
             this.updateById(departmentDO);
-            transaction.commit();
         } catch (Exception e) {
-            transaction.rollback();
-            log.error(StringConstant.DATABASE_OPERATION_FAILED, e);
+            if (e instanceof DataIntegrityViolationException dataError) {
+                log.error(StringConstant.DATABASE_OPERATION_FAILED, dataError.getMessage());
+            }
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
