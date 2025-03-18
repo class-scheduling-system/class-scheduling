@@ -37,6 +37,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.UserDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.redisson.api.RMap;
@@ -192,7 +194,7 @@ public class ProjectUtil {
             }
         } catch (Exception e) {
             // 捕获并处理解析过程中可能发生的异常
-            throw new IllegalArgumentException("Excel解析失败：" + e.getMessage(), e);
+            throw new BusinessException("Excel解析失败：" + e.getMessage(), ErrorCode.BODY_ERROR);
         }
     }
 
