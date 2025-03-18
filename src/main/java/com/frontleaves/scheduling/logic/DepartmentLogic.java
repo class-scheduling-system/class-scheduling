@@ -29,6 +29,8 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.BuildingDAO;
@@ -38,16 +40,14 @@ import com.frontleaves.scheduling.daos.UnitTypeDAO;
 import com.frontleaves.scheduling.models.dto.DepartmentDTO;
 import com.frontleaves.scheduling.models.dto.DepartmentLiteDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.entity.BuildingDO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.UnitCategoryDO;
 import com.frontleaves.scheduling.models.entity.UnitTypeDO;
 import com.frontleaves.scheduling.models.vo.DepartmentVO;
 import com.frontleaves.scheduling.services.DepartmentService;
-import com.frontleaves.scheduling.utils.ProjectUtil;
+import com.frontleaves.scheduling.utils.ProjectOption;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
-import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -105,14 +105,15 @@ public class DepartmentLogic implements DepartmentService {
         }
 
         //检查教学楼
-        if (departmentVO.getAssignedTeachingBuilding() != null && !departmentVO.getAssignedTeachingBuilding().isEmpty()) {
+        Optional.ofNullable(departmentVO.getAssignedTeachingBuilding())
+                .filter(data -> !data.isEmpty())
+                .ifPresent(departmentList ->
+                        departmentList.forEach(department ->
+                                Optional.ofNullable(buildingDAO.getBuildingByUuid(department))
+                                        .orElseThrow(() -> new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST))
+                        )
+                );
 
-            BuildingDO getBuilding = buildingDAO.getBuildingByUuid(departmentVO.getAssignedTeachingBuilding());
-            if (getBuilding == null) {
-                // 抛出异常
-                throw new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST);
-            }
-        }
         //检查上级部门
         if (departmentVO.getParentDepartment() != null && !departmentVO.getParentDepartment().isEmpty()) {
             // 检查上级部门是否存在
@@ -126,8 +127,8 @@ public class DepartmentLogic implements DepartmentService {
         // 数据拷贝
         DepartmentDO departmentDO = new DepartmentDO();
         // 数据拷贝
-        BeanUtil.copyProperties(departmentVO, departmentDO);
-        departmentDO.setDepartmentUuid(UuidUtil.generateUuidNoDash());
+        BeanUtil.copyProperties(departmentVO, departmentDO, StringConstant.Ignore.ASSIGNED_TEACHING_BUILDING);
+        departmentDO.setAssignedTeachingBuilding(JSONUtil.toJsonStr(departmentVO.getAssignedTeachingBuilding()));
 
         // 保存数据
         departmentDAO.save(departmentDO);
@@ -146,22 +147,19 @@ public class DepartmentLogic implements DepartmentService {
      */
     @Override
     public DepartmentDTO getDepartment(@NotNull String departmentUuid) {
-        DepartmentDO departmentDTO = null;
-
-        // 验证部门UUID格式是否正确，确保UUID没有破折号
-        if (departmentUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            // 如果UUID格式正确，则调用DAO方法获取部门信息
-            departmentDTO = departmentDAO.getDepartmentByUuid(departmentUuid);
-        }
-
-        // 如果departmentDTO为空，说明没有找到对应的部门信息
-        if (departmentDTO == null) {
-            // 抛出业务异常，提示部门不存在，并使用预定义的错误码
+        DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(departmentUuid);
+        if (departmentDO == null) {
             throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
         }
-
-        // 将获取到的部门信息转换为DTO对象并返回
-        return BeanUtil.toBean(departmentDTO, DepartmentDTO.class);
+        DepartmentDTO getDepartmentDTO = new DepartmentDTO();
+        BeanUtil.copyProperties(departmentDO, getDepartmentDTO, StringConstant.Ignore.ASSIGNED_TEACHING_BUILDING);
+        Optional.ofNullable(departmentDO.getAssignedTeachingBuilding())
+                .filter(data -> !data.isBlank())
+                .ifPresentOrElse(data -> getDepartmentDTO.setAssignedTeachingBuilding(
+                                Optional.ofNullable(JSONUtil.toList(data, String.class))
+                                        .orElse(List.of())),
+                        () -> getDepartmentDTO.setAssignedTeachingBuilding(List.of()));
+        return getDepartmentDTO;
     }
 
     /**
@@ -176,31 +174,28 @@ public class DepartmentLogic implements DepartmentService {
         DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(departmentUuid);
 
         // 判断部门是否存在
-        if (departmentDO != null) {
-            // 检查是否有子部门依赖于此部门
-            Long childCount = departmentDAO.lambdaQuery()
-                    .eq(DepartmentDO::getParentDepartment, departmentUuid)
-                    .count();
-
-            if (childCount > 0) {
-                // 如果有子部门依赖，抛出业务异常
-                throw new BusinessException("删除部门失败，该部门存在子部门", ErrorCode.EXISTED);
-            }
-
-            // 如果部门存在且没有子部门依赖，则调用DAO层删除部门
-            try {
-                departmentDAO.deleteDepartment(departmentDO);
-            } catch (BusinessException e) {
-                // 传递DAO层抛出的业务异常（如部门下存在课程、专业、教师等情况）
-                throw e;
-            } catch (Exception e) {
-                // 处理其他可能的异常
-                log.error("删除部门时发生异常", e);
-                throw new BusinessException("删除部门失败", ErrorCode.OPERATION_FAILED);
-            }
-        } else {
+        if (departmentDO == null) {
             // 如果部门不存在，则抛出业务异常，提示用户错误信息
             throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
+        }
+
+        // 检查是否有子部门依赖于此部门
+        boolean childCount = departmentDAO.lambdaQuery()
+                .eq(DepartmentDO::getParentDepartment, departmentUuid)
+                .exists();
+        if (childCount) {
+            // 如果有子部门依赖，抛出业务异常
+            throw new BusinessException("删除部门失败，该部门存在子部门", ErrorCode.EXISTED);
+        }
+
+        try {
+            departmentDAO.deleteDepartment(departmentDO);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            // 处理其他可能的异常
+            log.error("删除部门时发生异常", e);
+            throw new BusinessException("删除部门失败", ErrorCode.OPERATION_FAILED);
         }
     }
 
@@ -229,8 +224,12 @@ public class DepartmentLogic implements DepartmentService {
                     .orElseThrow(() -> new BusinessException("单位办别不存在", ErrorCode.NOT_EXIST));
             if (departmentVO.getAssignedTeachingBuilding() != null && !departmentVO.getAssignedTeachingBuilding().isEmpty()) {
                 Optional.of(departmentVO.getAssignedTeachingBuilding())
-                        .map(buildingDAO::getBuildingByUuid)
-                        .orElseThrow(() -> new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST));
+                        .ifPresent(departmentList ->
+                                departmentList.forEach(department ->
+                                        Optional.ofNullable(buildingDAO.getBuildingByUuid(department))
+                                                .orElseThrow(() -> new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST))
+                                )
+                        );
             }
             if (departmentVO.getParentDepartment() != null && !departmentVO.getParentDepartment().isEmpty()) {
                 Optional.of(departmentVO.getParentDepartment())
@@ -239,10 +238,21 @@ public class DepartmentLogic implements DepartmentService {
             }
 
             // 将视图对象属性复制到数据对象并更新数据库
-            BeanUtil.copyProperties(departmentVO, departmentDO);
+            BeanUtil.copyProperties(departmentVO, departmentDO, ProjectOption.stringBlankToNull());
+            if (departmentVO.getAssignedTeachingBuilding() != null && !departmentVO.getAssignedTeachingBuilding().isEmpty()) {
+                departmentDO.setAssignedTeachingBuilding(JSONUtil.toJsonStr(departmentVO.getAssignedTeachingBuilding()));
+            }
             departmentDAO.updateDepartment(departmentDO);
             // 返回更新后的部门数据传输对象
-            return BeanUtil.toBean(departmentDO, DepartmentDTO.class);
+            DepartmentDTO departmentDTO = new DepartmentDTO();
+            BeanUtil.copyProperties(departmentDO, departmentDTO,  StringConstant.Ignore.ASSIGNED_TEACHING_BUILDING);
+            departmentDTO.setAssignedTeachingBuilding(
+                    Optional.ofNullable(departmentDO.getAssignedTeachingBuilding())
+                            .filter(data -> !data.isBlank())
+                            .map(data -> JSONUtil.toList(data, String.class))
+                            .orElse(List.of())
+            );
+            return departmentDTO;
         }
         // 如果部门不存在，返回null
         return null;
@@ -262,16 +272,27 @@ public class DepartmentLogic implements DepartmentService {
      */
     @Override
     public PageDTO<DepartmentDTO> getDepartmentPage(int page, int size, boolean isDesc, String name) {
-        // 调用DAO层方法获取部门列表
         Page<DepartmentDO> departmentList = departmentDAO.getDepartmentPage(page, size, isDesc, name);
 
-        // 检查查询结果是否为空
         if (departmentList.getTotal() == 0) {
-            // 如果为空，返回一个新的空PageDTO对象
             return new PageDTO<>();
         } else {
-            // 如果不为空，将查询结果转换为DTO形式并返回
-            return ProjectUtil.convertPageToPageDTO(departmentList, DepartmentDTO.class);
+            PageDTO<DepartmentDTO> pageDTO = new PageDTO<>(departmentList.getTotal(), departmentList.getSize());
+            pageDTO.setCurrent(departmentList.getCurrent());
+            pageDTO.setRecords(
+                    departmentList.getRecords().stream()
+                            .map(departmentDO -> {
+                                DepartmentDTO departmentDTO = new DepartmentDTO();
+                                BeanUtil.copyProperties(departmentDO, departmentDTO, StringConstant.Ignore.ASSIGNED_TEACHING_BUILDING);
+                                JSONArray jsonArray = JSONUtil.parseArray(departmentDO.getAssignedTeachingBuilding());
+                                departmentDTO.setAssignedTeachingBuilding(
+                                        Optional.ofNullable(jsonArray.toList(String.class))
+                                                .orElse(List.of())
+                                );
+                                return departmentDTO;
+                            }).toList()
+            );
+            return pageDTO;
         }
     }
 

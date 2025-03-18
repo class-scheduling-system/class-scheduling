@@ -67,6 +67,7 @@ public class PageDTO<T> {
     public PageDTO(long total, long size) {
         this.total = total;
         this.size = size;
+        this.records = new ArrayList<>();
     }
 
     public PageDTO<T> setRecords(String jsonRecords, Class<T> t) {

@@ -166,31 +166,10 @@ class TeacherTest {
     void testAddTeacher() {
         log.debug("测试添加教师");
 
-        // 创建新用户
-        UserDO newUser = new UserDO();
-        newUser.setUserUuid(UuidUtil.generateUuidNoDash())
-                .setName("newTeacherLogicTest")
-                .setPassword(PasswordUtil.encrypt("123456Aa"))
-                .setEmail("newTeacherLogicTest@test.com")
-                .setPhone("13777777777")
-                .setStatus((byte) 1)
-                .setBan(false)
-                .setPermission("[\"user:role:edit\"]")
-                .setRoleUuid(SystemConstant.getRoleTeacher());
-
-        // 清除可能存在的重复用户
-        if (userDAO.lambdaQuery().eq(UserDO::getName, newUser.getName()).one() != null) {
-            userDAO.lambdaUpdate().eq(UserDO::getName, newUser.getName()).remove();
-        }
-
-        // 保存用户
-        userDAO.save(newUser);
-
         TeacherTypeDO teacherTypeDO = teacherTypeDAO.lambdaQuery().eq(TeacherTypeDO::getTypeName, "辅导员").one();
         // 创建教师视图对象
         TeacherVO teacherVO = new TeacherVO(
                 setUpDepartment.getDepartmentUuid(),
-                newUser.getUserUuid(),
                 "T54321",
                 "newTeacherLogicTest",
                 "newTeacherLogicTest",
@@ -213,7 +192,6 @@ class TeacherTest {
         Assertions.assertNotNull(savedTeacher, "新添加的教师应该存在");
         Assertions.assertEquals(teacherVO.getId(), savedTeacher.getId(), "教师ID应该匹配");
         Assertions.assertEquals(teacherVO.getName(), savedTeacher.getName(), "教师名称应该匹配");
-        Assertions.assertEquals(teacherVO.getUserUuid(), savedTeacher.getUserUuid(), "教师关联的用户UUID应该匹配");
         Assertions.assertEquals(teacherVO.getUnitUuid(), savedTeacher.getUnitUuid(), "教师所属部门UUID应该匹配");
 
         // 验证UUID是否被正确生成
@@ -223,7 +201,6 @@ class TeacherTest {
 
         // 清理测试数据
         teacherDAO.lambdaUpdate().eq(TeacherDO::getId, teacherVO.getId()).remove();
-        userDAO.lambdaUpdate().eq(UserDO::getUserUuid, newUser.getUserUuid()).remove();
     }
 
     /**
@@ -236,7 +213,6 @@ class TeacherTest {
         // 创建教师视图对象，使用不存在的部门UUID
         TeacherVO teacherVO = new TeacherVO(
                 UuidUtil.generateUuidNoDash(), // 使用一个不存在的部门UUID
-                setUpUser.getUserUuid(),
                 "T99999",
                 "NonExistentDepartmentTeacher",
                 "NonExistentDepartmentTeacher",
@@ -604,7 +580,6 @@ class TeacherTest {
         // 创建更新后的教师视图对象
         TeacherVO updateTeacherVO = new TeacherVO(
                 setUpDepartment.getDepartmentUuid(),
-                setUpUser.getUserUuid(),
                 setUpTeacher.getId(),
                 "updatedTeacherName",
                 "updatedEnglishName",
@@ -645,7 +620,6 @@ class TeacherTest {
         // 创建更新后的教师视图对象，使用不存在的部门UUID
         TeacherVO updateTeacherVO = new TeacherVO(
                 UuidUtil.generateUuidNoDash(), // 使用一个不存在的部门UUID
-                setUpUser.getUserUuid(),
                 setUpTeacher.getId(),
                 "updatedTeacherName",
                 "updatedEnglishName",
@@ -668,38 +642,6 @@ class TeacherTest {
     }
 
     /**
-     * 测试更新教师信息时用户不存在
-     */
-    @Test
-    void testUpdateTeacherWithNonExistentUser() {
-        log.debug("测试更新教师信息时用户不存在");
-
-        // 创建更新后的教师视图对象，使用不存在的用户UUID
-        TeacherVO updateTeacherVO = new TeacherVO(
-                setUpDepartment.getDepartmentUuid(),
-                UuidUtil.generateUuidNoDash(), // 使用一个不存在的用户UUID
-                setUpTeacher.getId(),
-                "updatedTeacherName",
-                "updatedEnglishName",
-                "苗族",
-                false,
-                "辅导员",
-                "13888888889",
-                "updatedEmail@test.com",
-                "副教授",
-                "这是更新后的教师描述"
-        );
-
-        // 验证调用更新教师方法时会抛出业务异常
-        BusinessException exception = Assertions.assertThrows(BusinessException.class, () ->
-                teacherService.updateTeacher(setUpTeacher.getTeacherUuid(), updateTeacherVO));
-
-        // 验证异常信息和错误码
-        Assertions.assertEquals(StringConstant.USER_NOT_EXIST, exception.getMessage());
-        Assertions.assertEquals(ErrorCode.NOT_EXIST, exception.getErrorCode());
-    }
-
-    /**
      * 测试更新不存在的教师
      */
     @Test
@@ -712,7 +654,6 @@ class TeacherTest {
         // 创建教师视图对象
         TeacherVO updateTeacherVO = new TeacherVO(
                 setUpDepartment.getDepartmentUuid(),
-                setUpUser.getUserUuid(),
                 "T11111",
                 "NonExistentTeacher",
                 "NonExistentTeacher",

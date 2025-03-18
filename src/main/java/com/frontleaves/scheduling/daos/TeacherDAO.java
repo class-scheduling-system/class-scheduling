@@ -29,6 +29,7 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
@@ -298,5 +299,28 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> implements
             // 如果在操作过程中发生任何异常，抛出自定义异常表示数据库操作失败
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+    }
+
+    public List<UserAndTeacherDO> getTeacherNoRegisterUserList(Integer page, Integer size, Boolean isDesc, String department, String name) {
+        LambdaQueryChainWrapper<TeacherDO> queryWrapper = this.lambdaQuery()
+                .isNull(TeacherDO::getUserUuid);
+        if (department != null && !department.isBlank()) {
+            queryWrapper.eq(TeacherDO::getTeacherUuid, department);
+        }
+        if (name != null && !name.isBlank()) {
+            queryWrapper.like(TeacherDO::getName, name);
+        }
+        if (Boolean.TRUE.equals(isDesc)) {
+            queryWrapper.orderByDesc(TeacherDO::getCreatedAt);
+        } else {
+            queryWrapper.orderByAsc(TeacherDO::getCreatedAt);
+        }
+        queryWrapper.last("LIMIT " + (page - 1) * size + "," + size);
+
+        return queryWrapper.list().stream()
+                .map(data -> new UserAndTeacherDO()
+                        .setTeacher(data)
+                        .setUser(null)
+                ).toList();
     }
 }

@@ -13,7 +13,12 @@ import jakarta.servlet.http.HttpServletRequest;
  */
 public interface StudentService {
 
-
+    /**
+     * 批量导入学生信息 忽略警告
+     * @param file 文件
+     * @param departmentUuid    部门uuid
+     * @return 返回导入结果
+     */
     BackAddStudentDTO batchImportNoIgnoreError(
             byte[] file,
             String departmentUuid
@@ -40,9 +45,20 @@ public interface StudentService {
     PrepareStudentExampleDTO prepareDepartmentData(
             HttpServletRequest request);
 
+    /**
+     * 验证学生导入模板
+     * @param batchAddStudentVO 批量添加学生信息
+     * @return 返回学生导入模板
+     */
     byte[] verifyStudentBatchAndBackFile(
             BatchAddStudentVO batchAddStudentVO);
 
+    /**
+     * 批量导入学生信息 忽略警告
+     * @param file 文件
+     * @param departmentUuid   部门uuid
+     * @return 返回导入结果
+     */
     BackAddStudentDTO batchImportIgnoreError(
             byte[] file,
             String departmentUuid
