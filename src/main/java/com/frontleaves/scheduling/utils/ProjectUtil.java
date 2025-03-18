@@ -31,7 +31,6 @@ package com.frontleaves.scheduling.utils;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
 import cn.hutool.poi.excel.ExcelUtil;
-import cn.hutool.poi.excel.sax.Excel07SaxReader;
 import cn.hutool.poi.excel.sax.handler.RowHandler;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -184,22 +183,11 @@ public class ProjectUtil {
         try {
             // 存储解析结果
             List<List<Object>> resultList = new ArrayList<>();
-
             // 创建行处理器
             RowHandler rowHandler = createRowHandler(startRow, columnsToCheck, resultList);
-
             // 使用ByteArrayInputStream读取文件内容
             try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(excelBytes)) {
-                // 判断Excel版本并选择合适的解析方式
-                if (isExcel2007(excelBytes)) {
-                    // 使用Excel07SaxReader处理xlsx格式
-                    Excel07SaxReader reader = new Excel07SaxReader(rowHandler);
-                    // 只读取第一个sheet
-                    reader.read(byteArrayInputStream, 0);
-                } else {
-                    // 使用ExcelUtil.readBySax处理Excel文件（自动判断格式）
-                    ExcelUtil.readBySax(byteArrayInputStream, 0, rowHandler);
-                }
+                ExcelUtil.readBySax(byteArrayInputStream, 0, rowHandler);
                 return resultList;
             }
         } catch (Exception e) {
@@ -221,9 +209,8 @@ public class ProjectUtil {
             // 从指定行开始读取
             if (rowIndex >= startRow && rowlist != null && !rowlist.isEmpty()
                     && hasValidData(rowlist, columnsToCheck)) {
-                    resultList.add(new ArrayList<>(rowlist));
-                }
-
+                resultList.add(new ArrayList<>(rowlist));
+            }
         };
     }
 
@@ -243,24 +230,7 @@ public class ProjectUtil {
                 return true;
             }
         }
-
         return false;
     }
 
-    /**
-     * 检查给定的字节数组是否代表一个Excel 2007或更高版本的文件
-     * Excel 2007+ 文件的前8个字节是固定的PK头部，用于识别文件格式
-     *
-     * @param bytes 文件的字节数组表示
-     * @return 如果字节数组以Excel 2007+ 文件的PK头部开始，则返回true；否则返回false
-     */
-    private static boolean isExcel2007(byte[] bytes) {
-        // Excel 2007+ 文件的前8个字节是固定的PK头部
-        if (bytes.length >= 4) {
-            // 检查前4个字节是否与Excel 2007+ 文件的PK头部匹配
-            return bytes[0] == 'P' && bytes[1] == 'K' && bytes[2] == 0x03 && bytes[3] == 0x04;
-        }
-        // 如果字节数组长度不足4，不可能是Excel 2007+ 文件
-        return false;
-    }
 }
