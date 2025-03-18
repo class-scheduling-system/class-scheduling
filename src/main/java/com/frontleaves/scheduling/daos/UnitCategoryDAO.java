@@ -1,7 +1,6 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UnitCategoryMapper;
@@ -16,7 +15,7 @@ import java.time.Duration;
 
 @Repository
 @RequiredArgsConstructor
-public class UnitCategoryDAO extends ServiceImpl<UnitCategoryMapper, UnitCategoryDO> implements IService<UnitCategoryDO> {
+public class UnitCategoryDAO extends ServiceImpl<UnitCategoryMapper, UnitCategoryDO> {
 
     // Redis 缓存客户端
     private final RedissonClient redisson;

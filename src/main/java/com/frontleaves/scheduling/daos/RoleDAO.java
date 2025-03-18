@@ -32,7 +32,6 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
@@ -69,7 +68,7 @@ import java.util.Map;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> implements IService<RoleDO> {
+public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> {
 
     private final RedissonClient redisson;
 

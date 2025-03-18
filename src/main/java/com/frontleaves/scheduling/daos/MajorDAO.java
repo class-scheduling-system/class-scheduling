@@ -32,7 +32,6 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.MajorMapper;
@@ -66,7 +65,7 @@ import java.util.List;
  */
 @Repository
 @RequiredArgsConstructor
-public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> implements IService<MajorDO> {
+public class MajorDAO extends ServiceImpl<MajorMapper, MajorDO> {
 
     private final RedissonClient redisson;
     private final DepartmentDAO departmentDAO;

@@ -1,7 +1,6 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UnitTypeMapper;
@@ -14,7 +13,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class UnitTypeDAO extends ServiceImpl<UnitTypeMapper, UnitTypeDO> implements IService<UnitTypeDO> {
+public class UnitTypeDAO extends ServiceImpl<UnitTypeMapper, UnitTypeDO> {
 
     private final RedissonClient redisson;
 

@@ -31,7 +31,6 @@ package com.frontleaves.scheduling.daos;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassroomMapper;
@@ -65,7 +64,7 @@ import java.util.Optional;
  */
 @Repository
 @RequiredArgsConstructor
-public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> implements IService<ClassroomDO> {
+public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> {
     private final RedissonClient redisson;
 
     /**

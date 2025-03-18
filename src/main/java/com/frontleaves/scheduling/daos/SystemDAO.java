@@ -28,7 +28,6 @@
 
 package com.frontleaves.scheduling.daos;
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.annotations.IgnoreLog;
 import com.frontleaves.scheduling.constants.StringConstant;
@@ -56,7 +55,7 @@ import java.util.Map;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> implements IService<SystemDO> {
+public class SystemDAO extends ServiceImpl<SystemMapper, SystemDO> {
     /**
      * Redis 缓存
      */

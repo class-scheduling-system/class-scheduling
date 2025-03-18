@@ -1,7 +1,6 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.AcademicAffairsPermissionMapper;
@@ -22,8 +21,7 @@ import java.time.Duration;
  */
 @Repository
 @RequiredArgsConstructor
-public class AcademicAffairsPermissionDAO extends ServiceImpl<AcademicAffairsPermissionMapper, AcademicAffairsPermissionDO>
-        implements IService<AcademicAffairsPermissionDO> {
+public class AcademicAffairsPermissionDAO extends ServiceImpl<AcademicAffairsPermissionMapper, AcademicAffairsPermissionDO> {
     private final RedissonClient redisson;
 
 
@@ -89,5 +87,9 @@ public class AcademicAffairsPermissionDAO extends ServiceImpl<AcademicAffairsPer
         }
         // 如果未找到权限信息，则返回null
         return null;
+    }
+
+    public RedissonClient getRedisson() {
+        return redisson;
     }
 }
