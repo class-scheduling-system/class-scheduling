@@ -138,7 +138,7 @@ public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMappe
      * @return 行政班级列表，如果找不到则返回空列表
      */
     @Transactional
-    public List<AdministrativeClassDO> getAdministrativeClassListByDepartmentForUpdate(String departmentUuid) {
+    public List<AdministrativeClassDO>  getAdministrativeClassListByDepartmentForUpdate(String departmentUuid) {
         // 尝试从Redis中获取缓存的行政班级列表
         RList<AdministrativeClassDO> rList = redisson.getList(
                 StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT + departmentUuid);

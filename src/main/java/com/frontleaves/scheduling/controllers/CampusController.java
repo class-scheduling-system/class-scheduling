@@ -4,7 +4,6 @@ import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.CampusDTO;
 import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.PrepareBuildingDTO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import com.frontleaves.scheduling.services.CampusService;
@@ -12,18 +11,12 @@ import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -154,26 +147,4 @@ public class CampusController {
     }
 
 
-    @RequestRole({"管理员"})
-    @GetMapping("/getCampusExample")
-    public ResponseEntity<byte[]> getCampusExample(
-            @NotNull HttpServletRequest request
-    ) {
-        PrepareBuildingDTO prepareBuildingDTO = campusService.prepareCampusData(request);
-        byte[] bytes = campusService.getCampusExample(prepareBuildingDTO);
-
-        HttpHeaders headers = Optional.of(new HttpHeaders())
-                .map(header -> {
-                    header.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-                    header.setContentLength(bytes.length);
-                    String fileName = URLEncoder.encode("校区导入模板.xlsx", StandardCharsets.UTF_8)
-                            .replace("+", "%20");
-                    header.add(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"" + fileName + "\"; filename*=UTF-8''" + fileName);
-                    return header;
-                })
-                .orElseThrow(() -> new BusinessException("获取响应头失败", ErrorCode.SERVER_INTERNAL_ERROR));
-        return new ResponseEntity<>(bytes, headers, org.springframework.http.HttpStatus.OK);
-
-    }
 }

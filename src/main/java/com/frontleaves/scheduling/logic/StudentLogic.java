@@ -321,6 +321,14 @@ public class StudentLogic implements StudentService {
                 .setAdministrativeClassDO(administrativeClassDO);
     }
 
+    /**
+     * 重写批量化导入学生信息的方法，本方法不忽略错误提醒
+     * 使用@Transactional注解确保数据一致性
+     *
+     * @param file Excel文件字节数组，包含学生信息
+     * @param departmentUuid 部门唯一标识符，用于关联学生和部门
+     * @return 返回包含导入结果的BackAddStudentDTO对象
+     */
     @Override
     @Transactional
     public BackAddStudentDTO batchImportNoIgnoreError(
@@ -329,11 +337,13 @@ public class StudentLogic implements StudentService {
         // 解析Excel文件
         List<StudentImportDTO> studentList = parseExcelToStudentList(file, 2,7);
         log.debug("第一个学生信息{}", studentList.get(0));
+        // 获取导入学生的基础信息DTO
         ImportBaseStudentDTO importBaseStudentDTO = fetchImportBaseStudentDTO(departmentUuid);
         // 不忽略警告提醒报错
         for (int i = 0; i < studentList.size(); i++) {
             // 创建并设置学生DO对象
             StudentDO studentDO = new StudentDO();
+            // 验证学生信息的合法性
             ValidateStudentReturnDTO validateStudentReturnDTO = this.validateStudent(
                     studentList, importBaseStudentDTO, i);
             // 设置性别
@@ -342,8 +352,10 @@ public class StudentLogic implements StudentService {
             } else if ("女".equals(studentList.get(i).getGender())) {
                 studentDO.setGender(false);
             } else {
+                // 性别填写错误抛出异常
                 throw new BusinessException("第" + (i + 3) + "行性别填写错误", ErrorCode.BODY_ERROR);
             }
+            // 设置学生基本信息
             studentDO.setId(studentList.get(i).getId())
                     .setName(studentList.get(i).getName())
                     .setGradeUuid(validateStudentReturnDTO.getGradeDO().getGradeUuid())
@@ -352,10 +364,10 @@ public class StudentLogic implements StudentService {
                     .setClazz(validateStudentReturnDTO.getAdministrativeClassDO()
                             .getAdministrativeClassUuid())
                     .setGraduated(false);
-            //继续数据存储
+            // 继续数据存储
             studentDAO.saveStudentBackError(studentDO, i);
         }
-        //成功
+        // 成功
         return new BackAddStudentDTO()
                 .setTotalCount(studentList.size())
                 .setFailedCount(0)
@@ -370,6 +382,7 @@ public class StudentLogic implements StudentService {
      * @return 学生导入信息模板
      */
     @Override
+    @Transactional
     public byte[] getExample(PrepareStudentExampleDTO prepareStudentExampleDTO) {
         // 创建ExcelWriter对象，用于写入Excel文件
         ExcelWriter writer = ExcelUtil.getWriter(true);
