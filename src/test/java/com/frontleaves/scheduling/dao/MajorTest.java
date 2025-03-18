@@ -299,4 +299,16 @@ class MajorTest {
         // 断言第二次获取的结果与第一次结果大小相同
         Assertions.assertEquals(firstResultSize, majorList2.size());
     }
+    @Test
+    void testGetMajorListByDepartmentUuidForUpdate (){
+        String departmentUuid = majorDAO.lambdaQuery().list().get(0).getDepartmentUuid();
+        // 先清除Redis中的专业列表缓存
+        redisson.getList(
+                StringConstant.Redis.MAJOR_LIST_BY_DEPARTMENT_UUID + departmentUuid).delete();
+        List<MajorDO> majorDOList = majorDAO.getMajorListByDepartmentUuidForUpdate(departmentUuid);
+        Assertions.assertFalse(majorDOList.isEmpty());
+        RList<MajorDO> rList = redisson.getList(
+                StringConstant.Redis.MAJOR_LIST_BY_DEPARTMENT_UUID + departmentUuid);
+        Assertions.assertTrue(rList.isExists());
+    }
 }
