@@ -174,6 +174,7 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
     public void deleteCampus(CampusDO campusDO) {
         RKeys keys = redisson.getKeys();
         keys.deleteByPattern(StringConstant.Redis.CLASSROOM_LIST + "*");
+        keys.deleteByPattern(StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
         keys.deleteByPattern(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode());
         keys.deleteByPattern(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
         keys.deleteByPattern(StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid());
