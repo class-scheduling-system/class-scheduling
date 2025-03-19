@@ -25,7 +25,7 @@ public class BackAddBuildingDTO {
     /**
      * 失败详情列表
      */
-    private List<BackAddStudentDTO.FailedDetail> failedDetails;
+    private List<BackAddBuildingDTO.FailedDetail> failedDetails;
 
     /**
      * 失败详情内部类
