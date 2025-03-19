@@ -30,6 +30,7 @@ package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.models.dto.EmailVerificationTokenDTO;
 import com.frontleaves.scheduling.models.dto.TokenDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.ErrorCode;
@@ -249,4 +250,102 @@ public class TokenDAO {
         }
         return null;
     }
+
+
+    /**
+     * 创建邮箱验证令牌
+     * 该方法用于生成并保存邮箱验证令牌，包括设置令牌的有效期和关联的用户信息
+     * 它利用Redis进行分布式事务处理，确保操作的原子性
+     *
+     * @param userDO 用户实体，包含用户UUID和邮箱信息，用于生成验证令牌
+     * @return 返回生成的EmailVerificationTokenDTO对象，包含验证令牌和相关用户信息
+     */
+    public EmailVerificationTokenDTO createEmailToken(UserDO userDO) {
+        // 创建Redis事务，用于确保后续操作的原子性
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            EmailVerificationTokenDTO emailVerificationTokenDTO = new EmailVerificationTokenDTO();
+            // 设置验证码过期时间为15分钟
+            long expirationTime = System.currentTimeMillis() + 900000;
+            // 生成唯一验证码字符串
+            String verificationToken = UuidUtil.generateStringUuid();
+            // 填充EmailVerificationTokenDTO对象的属性
+            emailVerificationTokenDTO.setUserUuid(userDO.getUserUuid())
+                    .setEmail(userDO.getEmail())
+                    .setToken(verificationToken)
+                    .setCreatedAt(System.currentTimeMillis())
+                    .setExpireTime(expirationTime);
+            // 获取事务中的Map对象，用于存储验证令牌信息
+            RMap<String, String> map = transaction.getMap(StringConstant.Redis.EMAIL_TOKEN + verificationToken);
+            // 将EmailVerificationTokenDTO对象转换为Map并保存到Redis
+            map.putAll(ConvertUtil.convertObjectToMapString(emailVerificationTokenDTO));
+            // 设置Map的过期时间为15分钟，与验证码过期时间一致
+            map.expire(Duration.ofSeconds(900000));
+            // 提交事务，确保所有操作生效
+            transaction.commit();
+            return emailVerificationTokenDTO;
+        }catch (Exception e) {
+            // 如果发生异常，回滚事务以撤销所有操作
+            transaction.rollback();
+            log.error("创建邮箱验证令牌失败", e);
+            // 抛出内部服务器错误异常，表示数据库操作失败
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
+
+    /**
+     * 验证邮箱验证令牌有效性
+     * <p>
+     * 该方法用于验证给定的邮箱验证令牌是否有效。首先检查令牌是否为空或空白，然后从 Redis 中获取与令牌关联的数据。
+     * 如果数据存在，则进一步验证用户 UUID 是否匹配以及令牌是否过期。如果所有条件都满足，则返回 true 表示令牌有效。
+     * 否则，返回 false 或抛出异常。
+     *
+     * @param token 待验证的令牌字符串
+     * @param email 邮箱地址
+     * @return 如果令牌有效且未过期，则返回 {@code true}；否则返回 {@code false}
+     * @throws BusinessException 当令牌归属不匹配时抛出业务异常
+     */
+    public boolean verifyEmailToken(String token, String email) throws BusinessException {
+        if (token == null || token.trim().isEmpty()) {
+            return false;
+        }
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.EMAIL_TOKEN + token);
+        if (map.isExists()) {
+            EmailVerificationTokenDTO tokenDTO = BeanUtil.toBean(map, EmailVerificationTokenDTO.class);
+            // 检查邮箱地址是否匹配
+            if (tokenDTO.getEmail() == null || !tokenDTO.getEmail().equals(email)) {
+                throw new BusinessException(StringConstant.EMAIL_VERIFICATION_TOKEN_MISMATCH,
+                        ErrorCode.SERVER_INTERNAL_ERROR);
+            }
+            // 检查令牌是否过期
+            if (Long.parseLong(map.get("expireTime")) < System.currentTimeMillis()) {
+                map.delete();
+                throw new BusinessException(StringConstant.EMAIL_VERIFICATION_TOKEN_EXPIRED,
+                        ErrorCode.SERVER_INTERNAL_ERROR);
+            }
+            return true;
+        } else {
+            throw new BusinessException(StringConstant.EMAIL_VERIFICATION_TOKEN_INVALID,
+                    ErrorCode.NOT_EXIST);
+        }
+    }
+    /**
+     * 验证并删除邮箱验证令牌
+     * <p>
+     * 该方法结合了验证和删除操作，首先验证令牌的有效性，如果有效则删除该令牌并返回 true。
+     * 这在用户完成邮箱验证过程时特别有用，可以确保令牌只被使用一次。
+     *
+     * @param token 待验证并删除的令牌字符串
+     * @param email 与令牌关联的邮箱地址
+     * @return 如果令牌有效且成功删除，则返回 {@code true}；否则返回 {@code false}
+     * @throws BusinessException 当令牌归属不匹配或已过期时抛出业务异常
+     */
+    public boolean verifyAndDeleteEmailToken(String token, String email) throws BusinessException {
+        if (this.verifyEmailToken(token, email)) {
+            redisson.getKeys().delete(StringConstant.Redis.EMAIL_TOKEN + token);
+            return true;
+        }
+        return false;
+    }
+
 }

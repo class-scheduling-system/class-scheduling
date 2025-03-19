@@ -60,6 +60,10 @@ public class StringConstant {
     public static final String DEPARTMENT_DELETE_FAILED = "删除部门失败";
     public static final String DEPARTMENT_NOT_EXIST = "部门不存在";
     public static final String DEPARTMENT_UUID_NOT_EMPTY = "部门主键不能为空";
+    public static final String EMAIL_VERIFICATION_TOKEN_EXPIRED = "邮箱验证令牌已过期";
+    public static final String EMAIL_VERIFICATION_TOKEN_INVALID = "邮箱验证令牌无效";
+    public static final String EMAIL_VERIFICATION_TOKEN_MISMATCH = "邮箱地址与验证令牌不匹配";
+
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -125,6 +129,7 @@ public class StringConstant {
         public static final String TEACHER_TYPE_UUID = "teacher:type:uuid:";
         public static final String TEACHER_TYPE_LIST = "teacher:type:list";
         public static final String TEACHER_TYPE_PAGE = "teacher:type:page:";
+        public static final String EMAIL_TOKEN = "email:token:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
