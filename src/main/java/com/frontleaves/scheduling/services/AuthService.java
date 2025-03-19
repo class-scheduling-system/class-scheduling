@@ -28,11 +28,13 @@
 
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.ForgetPasswordResponseDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Email;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -91,6 +93,17 @@ public interface AuthService {
      */
     void userRegistered(
             UserInitializationVO userInitializationVO,
+            HttpServletRequest request
+    );
+
+    /**
+     * 忘记密码
+     * @param email 邮箱
+     * @param request 请求
+     * @return 忘记密码响应DTO
+     */
+    ForgetPasswordResponseDTO forgetPassword(
+            @Email String email,
             HttpServletRequest request
     );
 }

@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.models.dto.ForgetPasswordResponseDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
@@ -35,15 +36,13 @@ import com.frontleaves.scheduling.services.AuthService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
 /**
@@ -119,5 +118,21 @@ public class AuthController {
         );
         authService.userRegistered(userInitializationVO, request);
         return ResultUtil.success("注册成功");
+    }
+
+    /**
+     * 忘记密码发送邮件接口
+     *
+     * @param email   邮箱
+     * @param request 请求
+     * @return 返回包含忘记密码响应信息的响应实体
+     */
+    @PostMapping("/forget-password")
+    public ResponseEntity<BaseResponse<ForgetPasswordResponseDTO>> forgetPassword(
+            @RequestParam @Email String email,
+            HttpServletRequest request
+    ) {
+        ForgetPasswordResponseDTO forgetPasswordResponseDTO = authService.forgetPassword(email, request);
+        return ResultUtil.success("重置密码链接已发送", forgetPasswordResponseDTO);
     }
 }

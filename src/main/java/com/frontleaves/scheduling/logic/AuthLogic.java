@@ -29,6 +29,9 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.io.IORuntimeException;
+import cn.hutool.core.io.resource.ResourceUtil;
+import cn.hutool.extra.mail.MailUtil;
 import cn.hutool.json.JSONUtil;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
@@ -53,6 +56,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,6 +82,8 @@ public class AuthLogic implements AuthService {
     private final RoleDAO roleDAO;
     private final TokenDAO tokenDAO;
     private final UserService userService;
+
+    private final Environment env;
 
     /**
      * 检查新用户通过学生信息登录
@@ -275,6 +281,36 @@ public class AuthLogic implements AuthService {
             studentDAO.updateUserUuid(userUuid, userInitializationVO.getUser());
         } else {
             teacherDAO.updateUserUuid(userUuid, userInitializationVO.getUser());
+        }
+    }
+
+    @Override
+    public ForgetPasswordResponseDTO forgetPassword(String email, HttpServletRequest request) {
+        // 检查用户是否存在
+        UserDO userDO = userDAO.getUserByMail(email);
+        if (userDO == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+        }
+        //生成邮箱Token
+        EmailVerificationTokenDTO tokenDTO = tokenDAO.createEmailToken(userDO);
+        String url = env.getProperty("project.base-api") +
+                env.getProperty("project.reset-password") + tokenDTO.getToken();
+        try {
+            // 使用Hutool的ResourceUtil
+            String templateContent = ResourceUtil.readUtf8Str("template/reset-password.html");
+            templateContent = templateContent.replace("${url}", url);
+            templateContent = templateContent.replace("${name}", userDO.getName());
+            // 发送邮件
+            MailUtil.send(email, "重置密码", templateContent, true);
+            ForgetPasswordResponseDTO forgetPasswordResponseDTO = new ForgetPasswordResponseDTO();
+            forgetPasswordResponseDTO.setTokenExpireTime(tokenDTO.getExpireTime());
+            return forgetPasswordResponseDTO;
+        } catch (IORuntimeException e) {
+            log.error(LogConstant.SERVICE + "邮件模板读取失败", e);
+            throw new BusinessException("系统错误，无法读取邮件模板", ErrorCode.SERVER_INTERNAL_ERROR);
+        } catch (Exception e) {
+            log.error(LogConstant.SERVICE + "邮件发送失败", e);
+            throw new BusinessException("邮件发送失败", ErrorCode.SERVER_INTERNAL_ERROR);
         }
     }
 
