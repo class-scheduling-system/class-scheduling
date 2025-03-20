@@ -20,12 +20,14 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Date;
+import java.util.List;
 
 @SpringBootTest
 @Slf4j
@@ -165,7 +167,7 @@ class DepartmentTest {
         log.debug("测试正常获取部门列表");
 
         // 调用getDepartmentList方法获取第一页数据
-        PageDTO<DepartmentDTO> pageDTO = departmentService.getDepartmentList(DEFAULT_PAGE, DEFAULT_SIZE, false, null);
+        PageDTO<DepartmentDTO> pageDTO = departmentService.getDepartmentPage(DEFAULT_PAGE, DEFAULT_SIZE, false, null);
 
         // 验证返回的数据不为空
         Assertions.assertNotNull(pageDTO, "返回的分页数据不应为空");
@@ -206,7 +208,7 @@ class DepartmentTest {
         log.debug("测试使用名称搜索部门");
 
         // 先获取一个部门名称用于搜索
-        Page<DepartmentDO> allDepts = departmentDAO.getDepartmentList(DEFAULT_PAGE, 1, false, null);
+        Page<DepartmentDO> allDepts = departmentDAO.getDepartmentPage(DEFAULT_PAGE, 1, false, null);
         if (allDepts.getRecords().isEmpty()) {
             log.warn("数据库中没有部门数据，跳过搜索测试");
             return;
@@ -219,7 +221,7 @@ class DepartmentTest {
         log.debug("使用 '{}' 作为搜索关键词", searchName);
 
         // 使用部门名称进行搜索
-        PageDTO<DepartmentDTO> searchResult = departmentService.getDepartmentList(
+        PageDTO<DepartmentDTO> searchResult = departmentService.getDepartmentPage(
                 DEFAULT_PAGE, DEFAULT_SIZE, false, searchName);
 
         // 验证返回的数据不为空
@@ -249,7 +251,7 @@ class DepartmentTest {
         log.debug("测试部门列表分页功能");
 
         // 获取总记录数
-        Page<DepartmentDO> countPage = departmentDAO.getDepartmentList(DEFAULT_PAGE, 1, false, null);
+        Page<DepartmentDO> countPage = departmentDAO.getDepartmentPage(DEFAULT_PAGE, 1, false, null);
         long totalCount = countPage.getTotal();
 
         if (totalCount <= DEFAULT_SIZE) {
@@ -258,10 +260,10 @@ class DepartmentTest {
         }
 
         // 获取第一页数据
-        PageDTO<DepartmentDTO> page1 = departmentService.getDepartmentList(1, DEFAULT_SIZE, false, null);
+        PageDTO<DepartmentDTO> page1 = departmentService.getDepartmentPage(1, DEFAULT_SIZE, false, null);
 
         // 获取第二页数据
-        PageDTO<DepartmentDTO> page2 = departmentService.getDepartmentList(2, DEFAULT_SIZE, false, null);
+        PageDTO<DepartmentDTO> page2 = departmentService.getDepartmentPage(2, DEFAULT_SIZE, false, null);
 
         // 验证两页数据不同
         Assertions.assertNotEquals(
@@ -290,7 +292,7 @@ class DepartmentTest {
         String nonExistentName = "非常不可能存在的部门名称" + System.currentTimeMillis();
 
         // 调用搜索方法
-        PageDTO<DepartmentDTO> emptyResult = departmentService.getDepartmentList(
+        PageDTO<DepartmentDTO> emptyResult = departmentService.getDepartmentPage(
                 DEFAULT_PAGE, DEFAULT_SIZE, false, nonExistentName);
 
         // 验证返回的数据不为空但结果为空
@@ -317,7 +319,7 @@ class DepartmentTest {
         log.debug("测试每页大小为0的情况");
 
         // 调用方法，设置每页大小为0
-        PageDTO<DepartmentDTO> result = departmentService.getDepartmentList(DEFAULT_PAGE, 0, false, null);
+        PageDTO<DepartmentDTO> result = departmentService.getDepartmentPage(DEFAULT_PAGE, 0, false, null);
 
         // 不对具体结果做断言，因为处理方式可能不同，只要不抛出异常即可
         Assertions.assertNotNull(result, "返回的PageDTO对象不应为空");
@@ -338,12 +340,32 @@ class DepartmentTest {
         log.debug("测试页码为负数的情况");
 
         // 调用方法，设置页码为负数
-        PageDTO<DepartmentDTO> result = departmentService.getDepartmentList(-1, DEFAULT_SIZE, false, null);
+        PageDTO<DepartmentDTO> result = departmentService.getDepartmentPage(-1, DEFAULT_SIZE, false, null);
 
         // 不对具体结果做断言，因为处理方式可能不同，只要不抛出异常即可
         Assertions.assertNotNull(result, "返回的PageDTO对象不应为空");
 
         log.debug("页码为负数的情况测试完成");
+    }
+    @Test
+    void testGetDepartmentList() {
+        log.debug("测试获取部门列表");
+        // 先删除Redis中的部门列表缓存
+        redisson.getKeys().delete(StringConstant.Redis.DEPARTMENT_LIST);
+        // 第一次调用getDepartmentList方法，应该从数据库获取数据并缓存到Redis
+        List<DepartmentDO> departmentList1 = departmentDAO.getDepartmentList();
+        // 断言从数据库获取的部门列表不为空
+        Assertions.assertNotNull(departmentList1);
+        Assertions.assertFalse(departmentList1.isEmpty());
+        // 验证Redis中是否已缓存部门列表
+        RList<String> redisCache = redisson.getList(StringConstant.Redis.DEPARTMENT_LIST);
+        Assertions.assertTrue(redisCache.isExists());
+        // 记录第一次查询结果的大小
+        int firstResultSize = departmentList1.size();
+        // 第二次调用getDepartmentList方法，应该从Redis缓存中获取数据
+        List<DepartmentDO> departmentList2 = departmentDAO.getDepartmentList();
+        // 断言第二次获取的结果与第一次结果大小相同
+        Assertions.assertEquals(firstResultSize, departmentList2.size());
     }
 
 }

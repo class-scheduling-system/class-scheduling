@@ -51,11 +51,17 @@ public class StringConstant {
     public static final String DATABASE_OPERATION_FAILED = "数据库操作失败";
     public static final String REDIS_OPERATION_FAILED = "缓存操作失败";
     public static final String USER_DATA_NOT_EXIST = "用户数据不存在";
-    public static final String DEPARTMENT_DELETE_FAILED = "删除部门失败";
     public static final String UNKNOWN_ERROR = "未知错误";
     public static final String TEACHER_NOT_EXIST = "教师不存在";
     public static final String USER_NOT_EXIST = "用户不存在";
+    public static final String TEACHER_TYPE_UUID_NOT_EMPTY = "教师类型UUID不能为空";
+    public static final String TEACHER_TYPE_UUID_FORMAT_ERROR = "教师类型UUID格式不正确";
+    public static final String TEACHER_UUID_FORMAT_ERROR = "教师UUID格式不正确";
+    public static final String DEPARTMENT_DELETE_FAILED = "删除部门失败";
     public static final String DEPARTMENT_NOT_EXIST = "部门不存在";
+    public static final String DEPARTMENT_UUID_NOT_EMPTY = "部门主键不能为空";
+    public static final String UNIT_TYPE_NOT_FOUND = "未找到该单位办别";
+    public static final String UNIT_CATEGORY_NOT_FOUND = "未找到该单位类别";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -86,6 +92,7 @@ public class StringConstant {
         public static final String BUILDING_UUID = "building:uuid:";
         public static final String BUILDING_NAME = "building:name:";
         public static final String BUILDING_CAMPUS = "building:campus:";
+        public static final String BUILDING_KEY_LIST = "building:key:list:";
         public static final String CAMPUS_UUID = "campus:uuid:";
         public static final String CAMPUS_NAME = "campus:name:";
         public static final String CAMPUS_CODE = "campus:code:";
@@ -106,8 +113,25 @@ public class StringConstant {
         public static final String CLASSROOM_NUMBER = "classroom:number:";
         public static final String TABLES_CHAIRS_UUID = "tc:uuid:";
         public static final String ROLE_LIST = "role:list";
-        public static final String BUILDING_KEY_LIST = "building:key:list";
-        public static final String TEACHER_TYPE_UUID = "teacher:type:UUID";
+        public static final String ADMINISTRATIVE_CLASS_UUID = "administrative:class:uuid:";
+        public static final String GRADE_UUID = "grade:uuid:";
+        public static final String MAJOR_LIST = "major:list";
+        public static final String GRADE_LIST = "grade:list";
+        public static final String ADMINISTRATIVE_CLASS_LIST = "ait:class:list";
+        public static final String ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT = "ait:class:list:department:";
+        public static final String ACADEMIC_AFFAIRS_PERMISSION_USER_UUID = "aca:affairs:per:user:uuid:";
+        public static final String ACADEMIC_AFFAIRS_PERMISSION_UUID = "aca:affairs:per:uuid:";
+        public static final String MAJOR_LIST_BY_DEPARTMENT_UUID = "major:list:department:uuid:";
+        public static final String DEPARTMENT_NAME = "department:name:";
+        public static final String GRADE_NAME = "grade:name:";
+        public static final String TEACHER_TYPE_UUID = "teacher:type:uuid:";
+        public static final String TEACHER_TYPE_LIST = "teacher:type:list";
+        public static final String TEACHER_TYPE_PAGE = "teacher:type:page:";
+        public static final String UNIT_TYPE_NAME = "unit:type:name:";
+        public static final String UNIT_TYPE_LIST = "unit:type:list";
+        public static final String UNIT_TYPE_PAGE_OF_LIST = "unit:type:page:";
+        public static final String UNIT_CATEGORY_LIST = "unit:cate:list";
+        public static final String UNIT_CATEGORY_PAGE = "unit:cate:page:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
@@ -151,19 +175,30 @@ public class StringConstant {
         public static final String PHONE_REGULAR_EXPRESSION ="^1[3456789]\\d{9}$";
         public static final String USER_NAME_REGULAR_EXPRESSION ="^[0-9A-Za-z_-]{4,32}$";
         public static final String PASSWORD_REGULAR_EXPRESSION = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$";
-        public static final String UUID_NO_DASH_REGULAR_EXPRESSION = "^[a-f0-9]{8}[a-f0-9]{4}4[a-f0-9]{3}[89ab][a-f0-9]{3}[a-f0-9]{12}$";
-        public static final String UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^[a-f0-9]{8}[a-f0-9]{4}4[a-f0-9]{3}[89ab][a-f0-9]{3}[a-f0-9]{12}$)";
+        public static final String PASSWORD_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$)";
+        public static final String UUID_NO_DASH_REGULAR_EXPRESSION = "^[a-f0-9]{32}$";
+        public static final String UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^[a-f0-9]{32}$)";
         public static final String UUID_REGULAR_EXPRESSION = "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$";
         public static final String EMAIL_REGULAR_EXPRESSION_ABLE_EMPTY ="^(|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6})$";
         public static final String USER_NAME_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^[0-9A-Za-z_-]{4,32}$)";
         public static final String PHONE_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^1[3456789]\\d{9}$)";
-        public static final String PASSWORD_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$)";
         public static final String STUDENT_ID_REGULAR_EXPRESSION = "^[a-zA-Z0-9]{4,32}$";
         public static final String STUDENT_NAME_REGULAR_EXPRESSION = "^[\u4E00-\u9FA5A-Za-z]{2,20}$";
         public static final String SERIAL_NUMBER_REGULAR_EXPRESSION = "^[A-Za-z0-9]{2,64}$";
         public static final String FIXED_PHONE_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^\\d{3}-\\d{8}|\\d{4}-\\d{7}$)";
         private Regular() {
             log.error("Regular 不能被实例化");
+        }
+    }
+
+    /**
+     * 忽略常量类
+     */
+    public static class Ignore {
+        public static final String ASSIGNED_TEACHING_BUILDING = "assignedTeachingBuilding";
+
+        private Ignore() {
+            log.error("Ignore 不能被实例化");
         }
     }
 

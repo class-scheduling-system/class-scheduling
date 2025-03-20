@@ -29,7 +29,6 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TablesChairsTypeMapper;
@@ -60,7 +59,7 @@ import java.time.Duration;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class TablesChairsTypeDAO extends ServiceImpl<TablesChairsTypeMapper, TablesChairsTypeDO> implements IService<TablesChairsTypeDO> {
+public class TablesChairsTypeDAO extends ServiceImpl<TablesChairsTypeMapper, TablesChairsTypeDO> {
     private final RedissonClient redisson;
 
     /**

@@ -66,7 +66,7 @@ public interface BuildingService {
      * @return 分页的教学楼数据传输对象 {@code PageDTO<BuildingDTO>}
      */
     @NotNull
-    PageDTO<BuildingDTO> getBuildingList(int page, int size, boolean isDesc, String keyword);
+    PageDTO<BuildingDTO> getBuildingPage(int page, int size, boolean isDesc, String keyword);
 
     /**
      * 根据教学楼标识获取教学楼信息
@@ -144,6 +144,6 @@ public interface BuildingService {
      * @param keyword 关键字
      * @return 教学楼列表
      */
-    List<BuildingLiteDTO> getBuildingPage(
+    List<BuildingLiteDTO> getBuildingList(
             String keyword);
 }

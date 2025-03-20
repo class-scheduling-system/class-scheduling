@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * 部门信息实体类
@@ -105,8 +106,7 @@ public class DepartmentVO {
     /**
      * 分配教学楼
      */
-    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "分配教学楼格式不正确")
-    private String assignedTeachingBuilding;
+    private List<@Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "分配教学楼格式不正确") String> assignedTeachingBuilding;
 
     /**
      * 是否为开课院系

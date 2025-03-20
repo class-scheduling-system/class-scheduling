@@ -3,7 +3,6 @@ package com.frontleaves.scheduling.daos;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
@@ -38,7 +37,7 @@ import java.util.Optional;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> implements IService<BuildingDO> {
+public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> {
     private final RedissonClient redisson;
 
     /**
@@ -79,7 +78,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      * @param keyword 查询关键字，用于匹配教学楼名称
      * @return 返回包含教学楼信息的分页对象
      */
-    public Page<BuildingDO> getBuildingList(int page, int size, boolean isDesc, String keyword) {
+    public Page<BuildingDO> getBuildingPage(int page, int size, boolean isDesc, String keyword) {
         String cacheKey = StringConstant.Redis.BUILDING_LIST + ":" + page + ":" + size + ":" + isDesc + ":" + keyword;
         RMap<String, String> map = redisson.getMap(cacheKey);
         if (!map.isExists()) {
@@ -252,29 +251,28 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> impleme
      * @return 返回建筑列表，如果找不到则返回null
      */
     @Nullable
-    public List<BuildingDO> getBuildingListByKey(String keyword) {
-        // 从Redis中获取缓存的建筑列表
-        RList<BuildingDO> rList = redisson.getList(StringConstant.Redis.BUILDING_KEY_LIST + keyword);
-        // 如果缓存不存在，则从数据库中查询
+    public List<BuildingDO> getBuildingListByKey(@Nullable String keyword) {
+        RList<BuildingDO> rList;
+        if (keyword == null || keyword.isBlank()) {
+            rList = redisson.getList(StringConstant.Redis.BUILDING_LIST);
+        } else {
+            rList = redisson.getList(StringConstant.Redis.BUILDING_KEY_LIST + keyword);
+        }
         if (!rList.isExists()) {
             // 构建查询条件
-            LambdaQueryChainWrapper<BuildingDO> queryWrapper = this.lambdaQuery();
-            // 如果关键字不为空，则添加模糊查询条件
-            if (keyword != null && !keyword.isEmpty()) {
+            LambdaQueryChainWrapper<BuildingDO> queryWrapper = this.lambdaQuery()
+                    .eq(BuildingDO::getStatus, 1);
+            if (keyword != null && !keyword.isBlank()) {
                 queryWrapper.like(BuildingDO::getBuildingName, keyword);
             }
-            List<BuildingDO> buildingDOList = queryWrapper.list();
-            // 如果查询结果不为空，则转换为DTO列表，并缓存到Redis中
-            if (buildingDOList != null && !buildingDOList.isEmpty()) {
-                // 将查询结果转换为Map并缓存到Redis中，设置缓存时间为1小时
-                rList.addAll(buildingDOList);
+            if (queryWrapper.exists()) {
+                rList.addAll(queryWrapper.list());
                 rList.expire(Duration.ofSeconds(3600));
-                return buildingDOList;
+                return rList.readAll();
             }
-            return null;
         } else {
-            // 将缓存的值转换为List<BuildingLiteDTO>
             return rList.readAll();
         }
+        return null;
     }
 }

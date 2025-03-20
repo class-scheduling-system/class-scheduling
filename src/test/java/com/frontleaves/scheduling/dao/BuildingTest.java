@@ -54,10 +54,10 @@ import java.util.List;
 class BuildingTest {
     @Resource
     private BuildingDAO buildingDAO;
-    
+
     @Resource
     private RedissonClient redisson;
-    
+
     /**
      * 测试前清理相关缓存
      */
@@ -66,7 +66,7 @@ class BuildingTest {
         // 清除可能存在的缓存，确保测试的独立性
         redisson.getKeys().deleteByPattern(StringConstant.Redis.BUILDING_KEY_LIST + "*");
     }
-    
+
     /**
      * 测试根据关键字获取建筑列表 - 空关键字
      * 预期行为：应当返回所有建筑物（若有），没有则返回null
@@ -74,15 +74,15 @@ class BuildingTest {
     @Test
     void testGetBuildingListByKeyWithEmptyKeyword() {
         log.debug("测试获取建筑列表 - 空关键字");
-        
+
         // 测试null关键字
         List<BuildingDO> buildingsWithNull = buildingDAO.getBuildingListByKey(null);
         log.debug("testGetBuildingListByKeyWithEmptyKeyword - null关键字: {}", buildingsWithNull);
-        
+
         // 测试空字符串关键字
         List<BuildingDO> buildingsWithEmpty = buildingDAO.getBuildingListByKey("");
         log.debug("testGetBuildingListByKeyWithEmptyKeyword - 空字符串关键字: {}", buildingsWithEmpty);
-        
+
         // 断言：两种情况应当有相同的结果
         if (buildingsWithNull == null) {
             Assertions.assertNull(buildingsWithEmpty, "空关键字和null关键字应当返回相同的结果");
@@ -92,7 +92,7 @@ class BuildingTest {
             }
         }
     }
-    
+
     /**
      * 测试根据关键字获取建筑列表 - 有效关键字
      * 预期行为：应当返回包含关键字的建筑物列表
@@ -100,14 +100,14 @@ class BuildingTest {
     @Test
     void testGetBuildingListByKeyWithValidKeyword() {
         log.debug("测试获取建筑列表 - 有效关键字");
-        
+
         // 假设数据库中存在一个名为"教学楼"的建筑物
         String testKeyword = "教学";
-        
+
         // 第一次调用，走数据库查询
         List<BuildingDO> buildings = buildingDAO.getBuildingListByKey(testKeyword);
         log.debug("testGetBuildingListByKeyWithValidKeyword - 从数据库查询: {}", buildings);
-        
+
         // 如果结果不为null，测试是否所有结果都包含关键字
         if (buildings != null && !buildings.isEmpty()) {
             for (BuildingDO building : buildings) {
@@ -116,11 +116,11 @@ class BuildingTest {
                     "查询结果中的建筑物名称应当包含关键字"
                 );
             }
-            
+
             // 第二次调用，走缓存查询
             List<BuildingDO> cachedBuildings = buildingDAO.getBuildingListByKey(testKeyword);
             log.debug("testGetBuildingListByKeyWithValidKeyword - 从缓存查询: {}", cachedBuildings);
-            
+
             // 断言：缓存结果与数据库结果应当一致
             if (cachedBuildings != null) {
                 Assertions.assertEquals(buildings.size(), cachedBuildings.size(), "缓存结果与数据库结果数量应当一致");
@@ -129,7 +129,7 @@ class BuildingTest {
             log.debug("数据库中没有包含关键字 '{}' 的建筑物", testKeyword);
         }
     }
-    
+
     /**
      * 测试根据关键字获取建筑列表 - 无匹配结果
      * 预期行为：应当返回null
@@ -137,17 +137,17 @@ class BuildingTest {
     @Test
     void testGetBuildingListByKeyWithNoMatch() {
         log.debug("测试获取建筑列表 - 无匹配结果");
-        
+
         // 使用一个不太可能存在的关键字
         String nonExistingKeyword = "非常不可能存在的建筑物名称XYZABC123";
-        
+
         List<BuildingDO> buildings = buildingDAO.getBuildingListByKey(nonExistingKeyword);
         log.debug("testGetBuildingListByKeyWithNoMatch - 无匹配结果: {}", buildings);
-        
+
         // 断言：应当返回null
         Assertions.assertNull(buildings, "不存在的关键字应当返回null");
     }
-    
+
     /**
      * 测试缓存功能
      * 预期行为：第一次查询后结果应被缓存，第二次查询应从缓存中获取
@@ -155,24 +155,24 @@ class BuildingTest {
     @Test
     void testCaching() {
         log.debug("测试缓存功能");
-        
+
         String testKeyword = "教学";
-        
+
         // 确保缓存不存在
         RList<BuildingDO> rList = redisson.getList(StringConstant.Redis.BUILDING_KEY_LIST + testKeyword);
         Assertions.assertFalse(rList.isExists(), "测试前缓存不应存在");
-        
+
         // 第一次调用，走数据库查询并缓存结果
         List<BuildingDO> firstCallResult = buildingDAO.getBuildingListByKey(testKeyword);
         log.debug("testCaching - 第一次调用结果: {}", firstCallResult);
-        
+
         // 验证缓存是否已创建
         Assertions.assertTrue(rList.isExists(), "第一次调用后缓存应当存在");
-        
+
         // 第二次调用，应从缓存中获取数据
         List<BuildingDO> secondCallResult = buildingDAO.getBuildingListByKey(testKeyword);
         log.debug("testCaching - 第二次调用结果: {}", secondCallResult);
-        
+
         // 断言：两次调用结果应当一致
         if (firstCallResult == null) {
             Assertions.assertNull(secondCallResult, "如果第一次调用返回null，第二次调用也应当返回null");

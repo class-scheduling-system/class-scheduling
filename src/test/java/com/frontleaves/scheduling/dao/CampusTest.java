@@ -73,7 +73,7 @@ class CampusTest {
 
         if (pageOfCampus.getTotal() > 0) {
             // 当有数据时，测试带关键词的查询结果应与不带关键词的结果不同
-            String keyword = "铁";
+            String keyword = "铁库";
             Page<CampusDO> keywordCampus = campusDAO.getPageOfCampus(pageNum, pageSize, isValid, keyword);
 
             // 断言带关键词和不带关键词的结果应不同
@@ -132,11 +132,13 @@ class CampusTest {
         RBucket<String> rBucket1 = redisson.getBucket(
                 StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
         RList<ListOfCampusDTO> rList = redisson.getList(StringConstant.Redis.CAMPUS_LIST + "*");
-
+        RMap<String, String> rPage = redisson.getMap(
+                StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
         // 5. 断言 Redis 缓存中的数据不存在
         Assertions.assertFalse(rList.isExists());
         Assertions.assertFalse(rMap.isExists());
         Assertions.assertFalse(rBucket.isExists());
         Assertions.assertFalse(rBucket1.isExists());
+        Assertions.assertFalse(rPage.isExists());
     }
 }

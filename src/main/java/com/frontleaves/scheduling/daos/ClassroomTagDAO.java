@@ -29,7 +29,6 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassroomTagMapper;
@@ -61,7 +60,7 @@ import java.util.List;
  */
 @Repository
 @RequiredArgsConstructor
-public class ClassroomTagDAO extends ServiceImpl<ClassroomTagMapper, ClassroomTagDO> implements IService<ClassroomTagDO> {
+public class ClassroomTagDAO extends ServiceImpl<ClassroomTagMapper, ClassroomTagDO> {
     private final RedissonClient redisson;
 
     /**

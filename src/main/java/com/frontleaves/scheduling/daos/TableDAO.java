@@ -20,7 +20,6 @@
 
 package com.frontleaves.scheduling.daos;
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.mappers.TableMapper;
 import com.frontleaves.scheduling.models.entity.TableDO;
@@ -36,5 +35,5 @@ import org.springframework.stereotype.Repository;
  * @since v1.0.0
  */
 @Repository
-public class TableDAO extends ServiceImpl<TableMapper, TableDO> implements IService<TableDO> {
+public class TableDAO extends ServiceImpl<TableMapper, TableDO> {
 }

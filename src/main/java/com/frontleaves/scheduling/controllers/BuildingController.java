@@ -49,7 +49,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 教学楼控制器
@@ -83,7 +82,7 @@ public class BuildingController {
      */
     @RequestRole({"管理员"})
     @GetMapping("/page")
-    public ResponseEntity<BaseResponse<PageDTO<BuildingDTO>>> getBuildingList(
+    public ResponseEntity<BaseResponse<PageDTO<BuildingDTO>>> getBuildingPage(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "20") Integer size,
             @RequestParam(value = "is_desc", defaultValue = "true") Boolean isDesc,
@@ -96,9 +95,9 @@ public class BuildingController {
         log.debug(LogConstant.CONTROLLER + "获取教学楼列表，page: {}, size: {}, keyword: {}", page, size, keyword);
         PageDTO<BuildingDTO> buildingList;
         if (keyword == null || keyword.isBlank()) {
-            buildingList = buildingService.getBuildingList(page, size, isDesc, null);
+            buildingList = buildingService.getBuildingPage(page, size, isDesc, null);
         } else {
-            buildingList = buildingService.getBuildingList(page, size, isDesc, keyword);
+            buildingList = buildingService.getBuildingPage(page, size, isDesc, keyword);
         }
         return ResultUtil.success("教学楼建筑列表成功", buildingList);
     }
@@ -117,16 +116,13 @@ public class BuildingController {
     public ResponseEntity<BaseResponse<BuildingDTO>> getBuilding(
             @RequestParam String building
     ) {
-        if (building == null || building.isBlank()) {
-            throw new BusinessException("教学楼UUID/名称不能为空", ErrorCode.PARAMETER_INVALID);
-        }
-        AtomicReference<BuildingDTO> buildingDTO = new AtomicReference<>();
-        Optional.ofNullable(buildingService.getBuildingByUuidOrName(building))
-                .ifPresentOrElse(buildingDTO::set,
-                        () -> {
-                            throw new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST);
-                        });
-        return ResultUtil.success("获取教学楼成功", buildingDTO.get());
+        String verifyBuilding = Optional.ofNullable(building)
+                .filter(buildingName -> !buildingName.isBlank())
+                .filter(buildingUuid -> buildingUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
+                .orElseThrow(() -> new BusinessException("教学楼主键格式有误", ErrorCode.PARAMETER_INVALID));
+        BuildingDTO buildingDTO = Optional.ofNullable(buildingService.getBuildingByUuidOrName(verifyBuilding))
+                .orElseThrow(() -> new BusinessException("教学楼不存在", ErrorCode.NOT_EXIST));
+        return ResultUtil.success("获取教学楼成功", buildingDTO);
     }
 
     /**
@@ -196,6 +192,7 @@ public class BuildingController {
             @PathVariable("building_uuid") String buildingUuid,
             @RequestBody @Validated BuildingOperateVO buildingVO
     ) {
+        log.debug(LogConstant.CONTROLLER + "更新教学楼信息，buildingUuid: {}", buildingUuid);
         if (!buildingUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException("教学楼主键不合法", ErrorCode.PARAMETER_INVALID);
         }
@@ -244,10 +241,10 @@ public class BuildingController {
      */
     @RequestLogin
     @GetMapping("/list")
-    public ResponseEntity<BaseResponse<List<BuildingLiteDTO>>> getBuildingPage(
+    public ResponseEntity<BaseResponse<List<BuildingLiteDTO>>> getBuildingList(
             @RequestParam(required = false) String keyword
     ) {
-        List<BuildingLiteDTO> buildingList = buildingService.getBuildingPage(keyword);
+        List<BuildingLiteDTO> buildingList = buildingService.getBuildingList(keyword);
         return ResultUtil.success("获取教学楼列表成功", buildingList);
     }
 }

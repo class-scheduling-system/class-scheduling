@@ -31,7 +31,6 @@ package com.frontleaves.scheduling.daos;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UserMapper;
@@ -63,7 +62,7 @@ import java.time.Duration;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class UserDAO extends ServiceImpl<UserMapper, UserDO> implements IService<UserDO> {
+public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
     private final RedissonClient redisson;
 
 
