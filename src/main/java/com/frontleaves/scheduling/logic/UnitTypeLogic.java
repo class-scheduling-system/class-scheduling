@@ -29,7 +29,6 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
@@ -45,7 +44,6 @@ import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
-import com.xlf.utility.util.UuidUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -53,13 +51,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 单位办别逻辑实现类
  *
- * @author Claude
+ * @author xiao_lfeng
  * @version v1.0.0
  */
 @Slf4j
@@ -78,9 +76,7 @@ public class UnitTypeLogic implements UnitTypeService {
     @Override
     public void checkAddUnitTypeVO(UnitTypeVO unitTypeVO) {
         // 检查单位名称是否已存在
-        UnitTypeDO existedUnitType = unitTypeDAO.lambdaQuery()
-                .eq(UnitTypeDO::getName, unitTypeVO.getName())
-                .one();
+        UnitTypeDO existedUnitType = unitTypeDAO.getUnitTypeByName(unitTypeVO.getName());
         if (existedUnitType != null) {
             throw new BusinessException("单位办别名称已存在", ErrorCode.PARAMETER_INVALID);
         }
@@ -98,21 +94,11 @@ public class UnitTypeLogic implements UnitTypeService {
         UnitTypeDO unitTypeDO = new UnitTypeDO();
         BeanUtil.copyProperties(unitTypeVO, unitTypeDO);
 
-        // 设置UUID
-        unitTypeDO.setUnitTypeUuid(UuidUtil.generateUuidNoDash());
-
-        // 设置创建和更新时间
-        Timestamp now = Timestamp.valueOf(LocalDateTime.now());
-        unitTypeDO.setCreatedAt(now);
-        unitTypeDO.setUpdatedAt(now);
-
         if (!unitTypeDAO.save(unitTypeDO)) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
 
-        UnitTypeDTO unitTypeDTO = new UnitTypeDTO();
-        BeanUtil.copyProperties(unitTypeDO, unitTypeDTO);
-        return unitTypeDTO;
+        return BeanUtil.toBean(unitTypeDO, UnitTypeDTO.class);
     }
 
     /**
@@ -131,10 +117,7 @@ public class UnitTypeLogic implements UnitTypeService {
         }
 
         // 检查新名称是否与其他单位办别重复
-        UnitTypeDO existedUnitType = unitTypeDAO.lambdaQuery()
-                .eq(UnitTypeDO::getName, unitTypeVO.getName())
-                .ne(UnitTypeDO::getUnitTypeUuid, unitTypeUuid)
-                .one();
+        UnitTypeDO existedUnitType = unitTypeDAO.getUnitTypeByName(unitTypeVO.getName());
         if (existedUnitType != null) {
             throw new BusinessException("单位办别名称已存在", ErrorCode.PARAMETER_INVALID);
         }
@@ -153,18 +136,18 @@ public class UnitTypeLogic implements UnitTypeService {
     @Transactional(rollbackFor = Exception.class)
     public UnitTypeDTO updateUnitType(UnitTypeVO unitTypeVO, UnitTypeDO unitTypeDO) {
         // 更新属性
-        if (unitTypeVO.getName() != null) {
-            unitTypeDO.setName(unitTypeVO.getName());
-        }
-        if (unitTypeVO.getEnglishName() != null) {
-            unitTypeDO.setEnglishName(unitTypeVO.getEnglishName());
-        }
-        if (unitTypeVO.getShortName() != null) {
-            unitTypeDO.setShortName(unitTypeVO.getShortName());
-        }
-        if (unitTypeVO.getOrder() != null) {
-            unitTypeDO.setOrder(unitTypeVO.getOrder());
-        }
+        Optional.ofNullable(unitTypeVO.getName())
+                .filter(name -> !name.equals(unitTypeDO.getName()))
+                .ifPresent(unitTypeDO::setName);
+        Optional.ofNullable(unitTypeVO.getEnglishName())
+                .filter(englishName -> !englishName.equals(unitTypeDO.getEnglishName()))
+                .ifPresent(unitTypeDO::setEnglishName);
+        Optional.ofNullable(unitTypeVO.getShortName())
+                .filter(shortName -> !shortName.equals(unitTypeDO.getShortName()))
+                .ifPresent(unitTypeDO::setShortName);
+        Optional.ofNullable(unitTypeVO.getOrder())
+                .filter(order -> !order.equals(unitTypeDO.getOrder()))
+                .ifPresent(unitTypeDO::setOrder);
 
         unitTypeDO.setUpdatedAt(Timestamp.valueOf(LocalDateTime.now()));
 
@@ -192,10 +175,8 @@ public class UnitTypeLogic implements UnitTypeService {
         }
 
         // 检查是否有部门使用该单位办别
-        List<DepartmentDO> departments = departmentDAO.lambdaQuery()
-                .eq(DepartmentDO::getUnitType, unitTypeUuid)
-                .list();
-        if (!departments.isEmpty()) {
+        DepartmentDO getDepartment = departmentDAO.getDepartmentByUuid(unitTypeUuid);
+        if (getDepartment != null) {
             throw new BusinessException("该单位办别已被部门使用，无法删除", ErrorCode.OPERATION_INVALID);
         }
 
@@ -210,6 +191,7 @@ public class UnitTypeLogic implements UnitTypeService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteUnitType(UnitTypeDO unitTypeDO) {
+        unitTypeDAO.deleteUnitTypeCache(unitTypeDO);
         if (!unitTypeDAO.removeById(unitTypeDO.getUnitTypeUuid())) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
@@ -244,30 +226,13 @@ public class UnitTypeLogic implements UnitTypeService {
      */
     @Override
     public PageDTO<UnitTypeDTO> getPageOfUnitType(Integer page, Integer size, Boolean isDesc, String keyword) {
-        LambdaQueryWrapper<UnitTypeDO> wrapper = new LambdaQueryWrapper<>();
-
-        // 添加搜索条件
-        if (keyword != null && !keyword.isBlank()) {
-            wrapper.like(UnitTypeDO::getName, keyword)
-                    .or()
-                    .like(UnitTypeDO::getEnglishName, keyword)
-                    .or()
-                    .like(UnitTypeDO::getShortName, keyword);
-        }
-
-        // 添加排序
-        if (Boolean.TRUE.equals(isDesc)) {
-            wrapper.orderByDesc(UnitTypeDO::getOrder, UnitTypeDO::getCreatedAt);
-        } else {
-            wrapper.orderByAsc(UnitTypeDO::getOrder, UnitTypeDO::getCreatedAt);
-        }
-
         // 执行分页查询
-        Page<UnitTypeDO> pageable = new Page<>(page, size);
-        Page<UnitTypeDO> result = unitTypeDAO.page(pageable, wrapper);
-
+        Page<UnitTypeDO> pageResult = unitTypeDAO.getPageOfUnitType(page, size, isDesc, keyword);
+        if (pageResult == null) {
+            return new PageDTO<>();
+        }
         // 使用项目工具类转换为PageDTO
-        return ProjectUtil.convertPageToPageDTO(result, UnitTypeDTO.class);
+        return ProjectUtil.convertPageToPageDTO(pageResult, UnitTypeDTO.class);
     }
 
     /**
@@ -277,20 +242,6 @@ public class UnitTypeLogic implements UnitTypeService {
      */
     @Override
     public List<UnitTypeLiteDTO> getUnitTypeList() {
-        List<UnitTypeDO> unitTypes = unitTypeDAO.lambdaQuery()
-                .orderByAsc(UnitTypeDO::getOrder, UnitTypeDO::getCreatedAt)
-                .list();
-
-        if (unitTypes.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        return unitTypes.stream()
-                .map(unitType -> {
-                    UnitTypeLiteDTO dto = new UnitTypeLiteDTO();
-                    BeanUtil.copyProperties(unitType, dto);
-                    return dto;
-                })
-                .toList();
+        return unitTypeDAO.getUnitTypeList();
     }
 }

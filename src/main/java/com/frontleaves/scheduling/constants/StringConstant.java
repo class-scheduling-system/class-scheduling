@@ -127,6 +127,11 @@ public class StringConstant {
         public static final String TEACHER_TYPE_UUID = "teacher:type:uuid:";
         public static final String TEACHER_TYPE_LIST = "teacher:type:list";
         public static final String TEACHER_TYPE_PAGE = "teacher:type:page:";
+        public static final String UNIT_TYPE_NAME = "unit:type:name:";
+        public static final String UNIT_TYPE_LIST = "unit:type:list";
+        public static final String UNIT_TYPE_PAGE_OF_LIST = "unit:type:page:";
+        public static final String UNIT_CATEGORY_LIST = "unit:cate:list";
+        public static final String UNIT_CATEGORY_PAGE = "unit:cate:page:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

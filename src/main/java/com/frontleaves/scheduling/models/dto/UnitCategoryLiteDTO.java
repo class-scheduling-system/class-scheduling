@@ -36,7 +36,7 @@ import lombok.Data;
  * 用于传输单位类别的简要信息，适用于列表查询等场景
  * </p>
  *
- * @author Claude
+ * @author xiao_lfeng
  * @version v1.0.0
  */
 @Data

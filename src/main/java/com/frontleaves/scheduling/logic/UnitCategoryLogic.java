@@ -29,7 +29,6 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
@@ -45,7 +44,6 @@ import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
-import com.xlf.utility.util.UuidUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -53,13 +51,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 单位类别逻辑实现类
  *
- * @author Claude
+ * @author xiao_lfeng
  * @version v1.0.0
  */
 @Slf4j
@@ -78,9 +76,7 @@ public class UnitCategoryLogic implements UnitCategoryService {
     @Override
     public void checkAddUnitCategoryVO(UnitCategoryVO unitCategoryVO) {
         // 检查单位类别名称是否已存在
-        UnitCategoryDO existedUnitCategory = unitCategoryDAO.lambdaQuery()
-                .eq(UnitCategoryDO::getName, unitCategoryVO.getName())
-                .one();
+        UnitCategoryDO existedUnitCategory = unitCategoryDAO.getUnitCategoryByName(unitCategoryVO.getName());
         if (existedUnitCategory != null) {
             throw new BusinessException("单位类别名称已存在", ErrorCode.PARAMETER_INVALID);
         }
@@ -95,24 +91,11 @@ public class UnitCategoryLogic implements UnitCategoryService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UnitCategoryDTO addUnitCategory(UnitCategoryVO unitCategoryVO) {
-        UnitCategoryDO unitCategoryDO = new UnitCategoryDO();
-        BeanUtil.copyProperties(unitCategoryVO, unitCategoryDO);
+        UnitCategoryDO getCategory = unitCategoryDAO.saveUnitCategory(
+                BeanUtil.toBean(unitCategoryVO, UnitCategoryDO.class)
+        );
 
-        // 设置UUID
-        unitCategoryDO.setUnitCategoryUuid(UuidUtil.generateUuidNoDash());
-
-        // 设置创建和更新时间
-        Timestamp now = Timestamp.valueOf(LocalDateTime.now());
-        unitCategoryDO.setCreatedAt(now);
-        unitCategoryDO.setUpdatedAt(now);
-
-        if (!unitCategoryDAO.save(unitCategoryDO)) {
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-        }
-
-        UnitCategoryDTO unitCategoryDTO = new UnitCategoryDTO();
-        BeanUtil.copyProperties(unitCategoryDO, unitCategoryDTO);
-        return unitCategoryDTO;
+        return BeanUtil.toBean(getCategory, UnitCategoryDTO.class);
     }
 
     /**
@@ -131,10 +114,10 @@ public class UnitCategoryLogic implements UnitCategoryService {
         }
 
         // 检查新名称是否与其他单位类别重复
-        UnitCategoryDO existedUnitCategory = unitCategoryDAO.lambdaQuery()
-                .eq(UnitCategoryDO::getName, unitCategoryVO.getName())
-                .ne(UnitCategoryDO::getUnitCategoryUuid, unitCategoryUuid)
-                .one();
+        UnitCategoryDO existedUnitCategory = unitCategoryDAO.getUnitCategoryByNameExceptUuid(
+                unitCategoryVO.getName(),
+                unitCategoryUuid
+        );
         if (existedUnitCategory != null) {
             throw new BusinessException("单位类别名称已存在", ErrorCode.PARAMETER_INVALID);
         }
@@ -153,31 +136,26 @@ public class UnitCategoryLogic implements UnitCategoryService {
     @Transactional(rollbackFor = Exception.class)
     public UnitCategoryDTO updateUnitCategory(UnitCategoryVO unitCategoryVO, UnitCategoryDO unitCategoryDO) {
         // 更新属性
-        if (unitCategoryVO.getName() != null) {
-            unitCategoryDO.setName(unitCategoryVO.getName());
-        }
-        if (unitCategoryVO.getEnglishName() != null) {
-            unitCategoryDO.setEnglishName(unitCategoryVO.getEnglishName());
-        }
-        if (unitCategoryVO.getShortName() != null) {
-            unitCategoryDO.setShortName(unitCategoryVO.getShortName());
-        }
-        if (unitCategoryVO.getOrder() != null) {
-            unitCategoryDO.setOrder(unitCategoryVO.getOrder());
-        }
-        if (unitCategoryVO.getIsEntity() != null) {
-            unitCategoryDO.setIsEntity(unitCategoryVO.getIsEntity());
-        }
+        Optional.ofNullable(unitCategoryVO.getName())
+                .filter(name -> !name.equals(unitCategoryDO.getName()))
+                .ifPresent(unitCategoryDO::setName);
+        Optional.ofNullable(unitCategoryVO.getEnglishName())
+                .filter(englishName -> !englishName.equals(unitCategoryDO.getEnglishName()))
+                .ifPresent(unitCategoryDO::setEnglishName);
+        Optional.ofNullable(unitCategoryVO.getShortName())
+                .filter(shortName -> !shortName.equals(unitCategoryDO.getShortName()))
+                .ifPresent(unitCategoryDO::setShortName);
+        Optional.ofNullable(unitCategoryVO.getOrder())
+                .filter(order -> !order.equals(unitCategoryDO.getOrder()))
+                .ifPresent(unitCategoryDO::setOrder);
+        Optional.ofNullable(unitCategoryVO.getIsEntity())
+                .filter(isEntity -> !isEntity.equals(unitCategoryDO.getIsEntity()))
+                .ifPresent(unitCategoryDO::setIsEntity);
 
         unitCategoryDO.setUpdatedAt(Timestamp.valueOf(LocalDateTime.now()));
 
-        if (!unitCategoryDAO.updateById(unitCategoryDO)) {
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-        }
-
-        UnitCategoryDTO unitCategoryDTO = new UnitCategoryDTO();
-        BeanUtil.copyProperties(unitCategoryDO, unitCategoryDTO);
-        return unitCategoryDTO;
+        UnitCategoryDO newUnitCategory = unitCategoryDAO.updateUnitCategory(unitCategoryDO);
+        return BeanUtil.copyProperties(newUnitCategory, UnitCategoryDTO.class);
     }
 
     /**
@@ -195,10 +173,8 @@ public class UnitCategoryLogic implements UnitCategoryService {
         }
 
         // 检查是否有部门使用该单位类别
-        List<DepartmentDO> departments = departmentDAO.lambdaQuery()
-                .eq(DepartmentDO::getUnitCategory, unitCategoryUuid)
-                .list();
-        if (!departments.isEmpty()) {
+        DepartmentDO getDepartment = departmentDAO.getDepartmentByUuid(unitCategoryUuid);
+        if (getDepartment != null) {
             throw new BusinessException("该单位类别已被部门使用，无法删除", ErrorCode.OPERATION_INVALID);
         }
 
@@ -213,6 +189,7 @@ public class UnitCategoryLogic implements UnitCategoryService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteUnitCategory(UnitCategoryDO unitCategoryDO) {
+        unitCategoryDAO.deleteUnitCategoryCache(unitCategoryDO);
         if (!unitCategoryDAO.removeById(unitCategoryDO.getUnitCategoryUuid())) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
@@ -247,30 +224,13 @@ public class UnitCategoryLogic implements UnitCategoryService {
      */
     @Override
     public PageDTO<UnitCategoryDTO> getPageOfUnitCategory(Integer page, Integer size, Boolean isDesc, String keyword) {
-        LambdaQueryWrapper<UnitCategoryDO> wrapper = new LambdaQueryWrapper<>();
-
-        // 添加搜索条件
-        if (keyword != null && !keyword.isBlank()) {
-            wrapper.like(UnitCategoryDO::getName, keyword)
-                    .or()
-                    .like(UnitCategoryDO::getEnglishName, keyword)
-                    .or()
-                    .like(UnitCategoryDO::getShortName, keyword);
-        }
-
-        // 添加排序
-        if (Boolean.TRUE.equals(isDesc)) {
-            wrapper.orderByDesc(UnitCategoryDO::getOrder, UnitCategoryDO::getCreatedAt);
-        } else {
-            wrapper.orderByAsc(UnitCategoryDO::getOrder, UnitCategoryDO::getCreatedAt);
-        }
-
         // 执行分页查询
-        Page<UnitCategoryDO> pageable = new Page<>(page, size);
-        Page<UnitCategoryDO> result = unitCategoryDAO.page(pageable, wrapper);
-
+        Page<UnitCategoryDO> pageResult = unitCategoryDAO.getPageOfUnitCategory(page, size, isDesc, keyword);
+        if (pageResult == null) {
+            return new PageDTO<>();
+        }
         // 使用项目工具类转换为PageDTO
-        return ProjectUtil.convertPageToPageDTO(result, UnitCategoryDTO.class);
+        return ProjectUtil.convertPageToPageDTO(pageResult, UnitCategoryDTO.class);
     }
 
     /**
@@ -280,20 +240,6 @@ public class UnitCategoryLogic implements UnitCategoryService {
      */
     @Override
     public List<UnitCategoryLiteDTO> getUnitCategoryList() {
-        List<UnitCategoryDO> unitCategories = unitCategoryDAO.lambdaQuery()
-                .orderByAsc(UnitCategoryDO::getOrder, UnitCategoryDO::getCreatedAt)
-                .list();
-
-        if (unitCategories.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        return unitCategories.stream()
-                .map(unitCategory -> {
-                    UnitCategoryLiteDTO dto = new UnitCategoryLiteDTO();
-                    BeanUtil.copyProperties(unitCategory, dto);
-                    return dto;
-                })
-                .toList();
+        return unitCategoryDAO.getUnitCategoryList();
     }
 }

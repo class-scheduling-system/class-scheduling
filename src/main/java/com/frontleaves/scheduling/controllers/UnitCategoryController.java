@@ -51,13 +51,13 @@ import java.util.Optional;
 /**
  * 单位类别控制器
  *
- * @author Claude
+ * @author xiao_lfeng
  * @version v1.0.0
  */
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/unit-category")
+@RequestMapping("/api/v1/unit/category")
 public class UnitCategoryController {
 
     private final UnitCategoryService unitCategoryService;

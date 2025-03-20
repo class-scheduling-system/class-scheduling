@@ -39,7 +39,7 @@ import java.sql.Timestamp;
  * 用于传输单位类别的完整信息
  * </p>
  *
- * @author Claude
+ * @author xiao_lfeng
  * @version v1.0.0
  */
 @Data

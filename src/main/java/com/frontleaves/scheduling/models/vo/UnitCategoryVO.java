@@ -40,7 +40,7 @@ import lombok.Data;
  * 用于接收前端提交的单位类别数据
  * </p>
  *
- * @author Claude
+ * @author xiao_lfeng
  * @version v1.0.0
  */
 @Data
