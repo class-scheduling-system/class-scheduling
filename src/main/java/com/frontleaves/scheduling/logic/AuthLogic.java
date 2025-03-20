@@ -530,10 +530,7 @@ public class AuthLogic implements AuthService {
         userDAO.updateUserProfile(userDO,oldUser);
         // 通过用户UUID获取最新的用户信息
         UserDO newUserDO = userDAO.getUserByUuid(userDO.getUserUuid());
-        // 检查获取的用户信息是否为空，如果为空则抛出异常
-        if (newUserDO == null) {
-            throw new BusinessException("系统错误", ErrorCode.SERVER_INTERNAL_ERROR);
-        }
+        assert newUserDO !=null;
         // 将获取的用户信息转换为DTO对象并返回
         return BeanUtil.toBean(newUserDO, BackProfileDTO.class);
     }
