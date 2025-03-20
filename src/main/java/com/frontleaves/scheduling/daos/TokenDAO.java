@@ -319,6 +319,7 @@ public class TokenDAO {
                 throw new BusinessException(StringConstant.EMAIL_VERIFICATION_TOKEN_EXPIRED,
                         ErrorCode.SERVER_INTERNAL_ERROR);
             }
+            redisson.getKeys().delete(StringConstant.Redis.EMAIL_TO_TOKEN + tokenDTO.getEmail());
             // 返回用户UUID
             return tokenDTO.getUserUuid();
         } else {
