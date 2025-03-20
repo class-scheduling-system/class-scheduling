@@ -285,7 +285,7 @@ public class BuildingLogic implements BuildingService {
 
     /**
      * 根据关键词获取建筑列表
-     *
+     * <p>
      * 此方法旨在通过特定关键词来检索一组建筑信息，并以轻量级数据传输对象的形式返回
      * 它首先调用DAO层方法获取数据库中的建筑实体列表，然后检查列表是否为空或不存在
      * 如果列表为空或不存在，则返回一个空列表否则，它将实体列表转换为DTO列表并返回
@@ -325,54 +325,21 @@ public class BuildingLogic implements BuildingService {
 
         // 处理状态字段 - 可以是数字(1/0)或文本(启用/禁用)
         String status = rowlist.get(2).toString().trim();
+        // 默认为启用状态
         if ("1".equals(status) || "启用".equals(status)) {
             building.setStatus(true);
-        } else if ("0".equals(status) || "禁用".equals(status)) {
-            building.setStatus(false);
         } else {
-            // 默认为启用状态
-            building.setStatus(true);
+            building.setStatus(!"0".equals(status) && !"禁用".equals(status));
         }
 
         // 返回填充了教学楼信息的DTO对象
         return building;
     }
 
-    /**
-     * 解析Excel字节流为BuildingImportDTO对象列表
-     * 该方法负责读取Excel文件的内容，从指定的起始行开始，检查一定数量的列，并将每行数据转换为BuildingImportDTO对象
-     *
-     * @param excelBytes Excel文件的字节流，用于读取Excel文件内容
-     * @param startRow 开始解析数据的行号，用于跳过标题行等不需要解析的部分
-     * @param columnsToCheck 每行中需要检查的列数，确保每行数据的完整性
-     * @return 解析后的BuildingImportDTO对象列表，包含Excel中解析出的建筑信息
-     */
-    private static List<BuildingImportDTO> parseExcelToBuildingList(byte[] excelBytes, int startRow, int columnsToCheck) {
-        // 解析Excel文件获取行数据列表
-        List<List<Object>> rowList = ProjectUtil.parseExcelToRowList(excelBytes, startRow, columnsToCheck);
-        log.debug("原生列表{}", rowList);
-        // 创建结果列表
-        List<BuildingImportDTO> buildingList = new ArrayList<>();
-        // 处理每一行数据，即使数据不完整也创建对象
-        for (List<Object> row : rowList) {
-            try {
-                // 确保行数据至少有一个元素，避免处理完全空的行
-                if (!row.isEmpty() && row.size() >= columnsToCheck) {
-                    // 转换为BuildingImportDTO对象并添加到结果列表
-                    BuildingImportDTO building = getBuildingImportDTO(row);
-                    buildingList.add(building);
-                }
-            } catch (Exception e) {
-                // 记录异常并继续处理下一行
-                log.error("解析教学楼数据时出错: {}", e.getMessage());
-            }
-        }
-        return buildingList;
-    }
 
     /**
      * 读取建筑导入通知文件的内容
-     *
+     * <p>
      * 此方法尝试从类路径下的特定位置读取一个名为 "building-import-notice.txt" 的文件
      * 如果文件存在，则读取其内容并以字符串形式返回如果文件不存在，或在读取过程中发生错误，
      * 则返回一个预定义的默认注意事项文本
@@ -407,38 +374,10 @@ public class BuildingLogic implements BuildingService {
         }
     }
 
-    /**
-     * 获取导入教学楼所需的基础数据
-     * <p>
-     * 该方法获取系统中所有的校区数据，用于校验导入的教学楼信息。
-     * </p>
-     *
-     * @return 包含所有校区数据的列表
-     */
-    private List<CampusDO> fetchImportBaseBuildingData() {
-        List<CampusDO> campusList = campusDAO.getAllCampus();
-        if (campusList == null || campusList.isEmpty()) {
-            throw new BusinessException("系统中不存在校区信息，请先添加校区", ErrorCode.NOT_EXIST);
-        }
-        return campusList;
-    }
-
-    private CampusDO findCampusByName(List<CampusDO> campusList, String campusName) throws DataNotFoundException {
-        CampusDO campusDO = campusList.stream()
-                .filter(campus -> campus.getCampusName().equals(campusName))
-                .findFirst()
-                .orElse(null);
-
-        if (campusDO == null) {
-            throw new DataNotFoundException(DataNotFoundException.TypeEnum.CAMPUS_NAME_NOT_FOUND);
-        }
-
-        return campusDO;
-    }
 
     /**
      * 准备校园数据
-     *
+     * <p>
      * 本方法用于准备校园的相关数据，通过访问数据库获取所有校园信息，并将其转换为所需的DTO格式
      * 主要包括从数据库模型对象（DAO）到传输对象（DTO）的转换，以及数据的收集和封装
      *
@@ -467,6 +406,7 @@ public class BuildingLogic implements BuildingService {
      * @param prepareBuildingExampleDTO 包含校区数据的DTO
      * @return 包含模板的字节数组
      */
+    //生成模板
     @Override
     public byte[] getBuildingImportTemplate(PrepareBuildingDTO prepareBuildingExampleDTO) {
         // 创建ExcelWriter对象
@@ -483,7 +423,7 @@ public class BuildingLogic implements BuildingService {
         wrapStyle.setWrapText(true);
 
         // 设置列宽
-        for (int i = 0; i <= 5; i++) {
+        for (int i = 0; i <= 6; i++) {
             Sheet sheet = writer.getSheet();
             int currentWidth = sheet.getColumnWidth(i);
             if (currentWidth == sheet.getDefaultColumnWidth() * 256) {
@@ -545,52 +485,6 @@ public class BuildingLogic implements BuildingService {
         return outputStream.toByteArray();
     }
 
-    /**
-     * 验证教学楼信息的合法性
-     * <p>
-     * 该方法用于验证导入的教学楼信息是否符合系统要求，包括校区名称是否存在、教学楼名称是否为空等。
-     * </p>
-     *
-     * @param buildingList    教学楼导入列表，包含待验证的教学楼信息
-     * @param campusList      系统中的校区列表，用于校验校区名称
-     * @param i               当前验证的教学楼在列表中的索引
-     * @return 验证通过的校区对象
-     * @throws BusinessException 当教学楼信息中的校区名称不存在，或教学楼名称为空时抛出
-     */
-    private CampusDO validateBuilding(
-            @NotNull List<BuildingImportDTO> buildingList,
-            @NotNull List<CampusDO> campusList,
-            int i
-    ) throws BusinessException {
-        BuildingImportDTO building = buildingList.get(i);
-        // 行号（假设从第3行开始）
-        int rowNumber = i + 3;
-
-        // 验证教学楼名称是否为空
-        if (building.getBuildingName() == null || building.getBuildingName().isEmpty()) {
-            throw new BusinessException("第" + rowNumber + "行教学楼名称不能为空", ErrorCode.BODY_ERROR);
-        }
-
-        // 验证校区名称是否为空
-        if (building.getCampusName() == null || building.getCampusName().isEmpty()) {
-            throw new BusinessException("第" + rowNumber + "行校区名称不能为空", ErrorCode.BODY_ERROR);
-        }
-
-        // 通过校区名称查找对应的校区对象
-        CampusDO campusDO = campusList.stream()
-                .filter(campus -> campus.getCampusName().equals(building.getCampusName()))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException("第" + rowNumber + "行校区名称不存在: " + building.getCampusName(), ErrorCode.BODY_ERROR));
-
-        // 检查教学楼名称是否已存在
-        BuildingDO existingBuilding = buildingDAO.getBuildingByName(building.getBuildingName());
-        if (existingBuilding != null) {
-            throw new BusinessException("第" + rowNumber + "行教学楼名称已存在: " + building.getBuildingName(), ErrorCode.EXISTED);
-        }
-
-        return campusDO;
-    }
-
 
     /**
      * 验证批量添加教学楼信息的请求体和Excel文件
@@ -602,6 +496,7 @@ public class BuildingLogic implements BuildingService {
      * @throws IllegalArgumentException 如果批量添加信息为空、文件为空、Base64解码失败、
      *                                  文件大小超过限制或文件不是有效的Excel格式
      */
+    //文件验证
     @Override
     public byte[] verifyBuildingBatchAndBackFile(BatchAddBuildingVO batchAddBuildingVO) {
         // 1. 检查 VO 对象是否为空
@@ -653,6 +548,126 @@ public class BuildingLogic implements BuildingService {
 
 
     /**
+     * 解析Excel字节流为BuildingImportDTO对象列表
+     * 该方法负责读取Excel文件的内容，从指定的起始行开始，检查一定数量的列，并将每行数据转换为BuildingImportDTO对象
+     *
+     * @param excelBytes Excel文件的字节流，用于读取Excel文件内容
+     * @return 解析后的BuildingImportDTO对象列表，包含Excel中解析出的建筑信息
+     */
+    //解析文件
+    private static List<BuildingImportDTO> parseExcelToBuildingList(byte[] excelBytes) {
+        // 解析Excel文件获取行数据列表
+        List<List<Object>> rowList = ProjectUtil.parseExcelToRowList(excelBytes, 2, 3);
+        log.debug("原生列表{}", rowList);
+        // 创建结果列表
+        List<BuildingImportDTO> buildingList = new ArrayList<>();
+        // 处理每一行数据，即使数据不完整也创建对象
+        for (List<Object> row : rowList) {
+            try {
+                // 确保行数据至少有一个元素，避免处理完全空的行
+                if (!row.isEmpty() && row.size() >= 3) {
+                    // 转换为BuildingImportDTO对象并添加到结果列表
+                    BuildingImportDTO building = getBuildingImportDTO(row);
+                    buildingList.add(building);
+                }
+            } catch (Exception e) {
+                // 记录异常并继续处理下一行
+                log.error("解析教学楼数据时出错: {}", e.getMessage());
+            }
+        }
+        return buildingList;
+    }
+
+
+    /**
+     * 获取导入教学楼所需的基础数据
+     * <p>
+     * 该方法获取系统中所有的校区数据，用于校验导入的教学楼信息。
+     * </p>
+     *
+     * @return 包含所有校区数据的列表
+     */
+    private List<CampusDO> fetchImportBaseBuildingData() {
+        List<CampusDO> campusList = campusDAO.getAllCampus();
+        if (campusList == null || campusList.isEmpty()) {
+            throw new BusinessException("系统中不存在校区信息，请先添加校区", ErrorCode.NOT_EXIST);
+        }
+        return campusList;
+    }
+
+    /**
+     * 根据校园名称查找校园信息
+     *
+     * @param campusList 校园信息列表，从中查找指定名称的校园
+     * @param campusName 要查找的校园名称
+     * @return 匹配的校园信息对象，如果找不到则抛出异常
+     * @throws DataNotFoundException 当指定名称的校园不存在时抛出此异常
+     */
+    private CampusDO findCampusByName(List<CampusDO> campusList, String campusName) throws DataNotFoundException {
+        // 使用流处理从校园列表中过滤出与指定名称匹配的校园信息
+        CampusDO campusDO = campusList.stream()
+                .filter(campus -> campus.getCampusName().equals(campusName))
+                .findFirst()
+                .orElse(null);
+
+        // 如果没有找到匹配的校园信息，则抛出异常
+        if (campusDO == null) {
+            throw new DataNotFoundException(DataNotFoundException.TypeEnum.CAMPUS_NAME_NOT_FOUND);
+        }
+
+        // 返回找到的校园信息对象
+        return campusDO;
+    }
+
+    /**
+     * 验证教学楼信息的合法性
+     * <p>
+     * 该方法用于验证导入的教学楼信息是否符合系统要求，包括校区名称是否存在、教学楼名称是否为空等。
+     * </p>
+     *
+     * @param buildingList    教学楼导入列表，包含待验证的教学楼信息
+     * @param campusList      系统中的校区列表，用于校验校区名称
+     * @param i               当前验证的教学楼在列表中的索引
+     * @return 验证通过的校区对象
+     * @throws BusinessException 当教学楼信息中的校区名称不存在，或教学楼名称为空时抛出
+     */
+    //数据验证
+    private CampusDO validateBuilding(
+            @NotNull List<BuildingImportDTO> buildingList,
+            @NotNull List<CampusDO> campusList,
+            int i
+    ) throws BusinessException {
+        BuildingImportDTO building = buildingList.get(i);
+        // 行号（假设从第3行开始）
+        int rowNumber = i + 3;
+
+        // 验证教学楼名称是否为空
+        if (building.getBuildingName() == null || building.getBuildingName().isEmpty()) {
+            throw new BusinessException("第" + rowNumber + "行教学楼名称不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        // 验证校区名称是否为空
+        if (building.getCampusName() == null || building.getCampusName().isEmpty()) {
+            throw new BusinessException("第" + rowNumber + "行校区名称不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        // 通过校区名称查找对应的校区对象
+        CampusDO campusDO = campusList.stream()
+                .filter(campus -> campus.getCampusName().equals(building.getCampusName()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("第" + rowNumber + "行校区名称不存在: " + building.getCampusName(), ErrorCode.BODY_ERROR));
+
+        // 检查教学楼名称是否已存在
+        BuildingDO existingBuilding = buildingDAO.getBuildingByName(building.getBuildingName());
+        if (existingBuilding != null) {
+            throw new BusinessException("第" + rowNumber + "行教学楼名称已存在: " + building.getBuildingName(), ErrorCode.EXISTED);
+        }
+
+        return campusDO;
+    }
+
+
+    /**
      * 批量导入教学楼信息，忽略错误
      * <p>
      * 该方法用于批量导入教学楼信息，并在遇到错误时忽略这些错误。
@@ -661,11 +676,12 @@ public class BuildingLogic implements BuildingService {
      * @param file Excel文件的字节数组，包含要导入的教学楼信息
      * @return 返回包含导入结果的BackAddBuildingDTO对象
      */
+    //数据导入
     @Override
     @Transactional(rollbackFor = BusinessException.class)
     public BackAddBuildingDTO batchImportIgnoreError(byte[] file) {
         // 解析Excel文件
-        List<BuildingImportDTO> buildingList = parseExcelToBuildingList(file, 2, 3);
+        List<BuildingImportDTO> buildingList = parseExcelToBuildingList(file);
         BackAddBuildingDTO backAddBuildingDTO = new BackAddBuildingDTO();
 
         // 获取所有校区数据
@@ -730,7 +746,7 @@ public class BuildingLogic implements BuildingService {
     @Transactional
     public BackAddBuildingDTO batchImportNoIgnoreError(byte[] file) {
         // 解析Excel文件
-        List<BuildingImportDTO> buildingList = parseExcelToBuildingList(file, 2, 3);
+        List<BuildingImportDTO> buildingList = parseExcelToBuildingList(file);
         log.debug("第一个教学楼信息{}", buildingList.get(0));
 
         // 获取基础数据
