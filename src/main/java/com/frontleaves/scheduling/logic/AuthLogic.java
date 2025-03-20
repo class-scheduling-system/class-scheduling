@@ -536,9 +536,11 @@ public class AuthLogic implements AuthService {
     }
 
     @Override
-    public void changePassword(String currentPassword, String newPassword, String confirmPassword, HttpServletRequest request) {
+    public void changePassword(
+            @NotNull String currentPassword, @NotNull String newPassword,
+            @NotNull String confirmPassword, HttpServletRequest request) {
         // 校验密码是否符合要求
-        if (newPassword.isEmpty()) {
+        if (newPassword.isEmpty() || currentPassword.isEmpty() || confirmPassword.isEmpty()) {
             throw new BusinessException("密码不能为空", ErrorCode.BODY_ERROR);
         }
         if (!newPassword.equals(confirmPassword)) {
