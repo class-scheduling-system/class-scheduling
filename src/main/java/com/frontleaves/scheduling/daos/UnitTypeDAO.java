@@ -1,20 +1,37 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UnitTypeMapper;
+import com.frontleaves.scheduling.models.dto.UnitTypeLiteDTO;
 import com.frontleaves.scheduling.models.entity.UnitTypeDO;
+import com.frontleaves.scheduling.utils.ProjectOption;
+import com.frontleaves.scheduling.utils.ProjectUtil;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
-import org.redisson.api.RMap;
-import org.redisson.api.RedissonClient;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
+import java.time.Duration;
+import java.util.List;
+
+/**
+ * UnitTypeDAO
+ *
+ * @author xiao_lfeng
+ * @since v1.0.0
+ * @version 1.0.0
+ */
 @Repository
 @RequiredArgsConstructor
 public class UnitTypeDAO extends ServiceImpl<UnitTypeMapper, UnitTypeDO> {
-
     private final RedissonClient redisson;
 
     /**
@@ -25,28 +42,86 @@ public class UnitTypeDAO extends ServiceImpl<UnitTypeMapper, UnitTypeDO> {
      * @return 返回单位类型对象，如果未找到则返回null
      */
     public UnitTypeDO getUnitTypeByUuid(String unitTypeUuid) {
-        // 构造Redis中单位类型信息的键名
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.UNIT_TYPE_UUID + unitTypeUuid);
-
-        // 检查Redis中是否存在该单位类型信息
         if (!map.isExists()) {
-            // 如果Redis中不存在，从数据库中获取单位类型信息
             UnitTypeDO unitTypeDO = this.getById(unitTypeUuid);
-
-            // 如果从数据库中获取到了单位类型信息
             if (unitTypeDO != null) {
-                // 将单位类型信息转换为Map并存入Redis中以缓存
                 map.putAll(ConvertUtil.convertObjectToMapString(unitTypeDO));
-                // 设置缓存过期时间为86400秒，即24小时
                 map.expire(java.time.Duration.ofSeconds(86400));
-                // 返回获取到的单位类型信息
                 return unitTypeDO;
             }
         } else {
-            // 如果Redis中存在该单位类型信息，直接从Redis中读取并返回
             return BeanUtil.toBean(map, UnitTypeDO.class);
         }
-        // 如果数据库和Redis中均未找到该单位类型信息，返回null
         return null;
+    }
+
+    public UnitTypeDO getUnitTypeByName(String unitTypeName) {
+        return getUnitTypeAndCache(
+                redisson.getBucket(StringConstant.Redis.UNIT_TYPE_NAME + unitTypeName),
+                this.lambdaQuery().eq(UnitTypeDO::getName, unitTypeName));
+    }
+
+    @Nullable
+    private UnitTypeDO getUnitTypeAndCache(@NotNull RBucket<String> rBucket, LambdaQueryChainWrapper<UnitTypeDO> eq) {
+        if (!rBucket.isExists()) {
+            UnitTypeDO unitTypeDO = eq.one();
+            if (unitTypeDO != null) {
+                rBucket.set(unitTypeDO.getUnitTypeUuid());
+                rBucket.expire(Duration.ofSeconds(86400));
+                RMap<String, String> unitTypeMap = redisson
+                        .getMap(StringConstant.Redis.UNIT_TYPE_UUID + unitTypeDO.getUnitTypeUuid());
+                unitTypeMap.putAll(ConvertUtil.convertObjectToMapString(unitTypeDO));
+                unitTypeMap.expire(Duration.ofSeconds(86400));
+                return unitTypeDO;
+            }
+        } else {
+            return this.getUnitTypeByUuid(rBucket.get());
+        }
+        return null;
+    }
+
+    public void deleteUnitTypeCache(UnitTypeDO unitTypeDO) {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            transaction.getMap(StringConstant.Redis.UNIT_TYPE_UUID + unitTypeDO.getUnitTypeUuid()).delete();
+            transaction.getBucket(StringConstant.Redis.UNIT_TYPE_NAME + unitTypeDO.getName()).delete();
+            this.removeById(unitTypeDO);
+            transaction.commit();
+        } catch (Exception e) {
+            transaction.rollback();
+            throw new BusinessException("缓存清理失败", ErrorCode.OPERATION_ERROR);
+        }
+    }
+
+    public Page<UnitTypeDO> getPageOfUnitType(int page, int size, boolean isDesc, @Nullable String keyword) {
+        RMap<String, String> map = redisson
+                .getMap(StringConstant.Redis.UNIT_TYPE_PAGE_OF_LIST + page + ":" + size + ":" + isDesc + ":" + keyword);
+        if (!map.isExists()) {
+            LambdaQueryChainWrapper<UnitTypeDO> queryWrapper = this.lambdaQuery();
+            if (isDesc) {
+                queryWrapper.orderByDesc(UnitTypeDO::getCreatedAt);
+            } else {
+                queryWrapper.orderByAsc(UnitTypeDO::getCreatedAt);
+            }
+            if (keyword != null) {
+                queryWrapper.like(UnitTypeDO::getName, keyword);
+            }
+            return ProjectUtil.queryAndCache(queryWrapper, page, size, map);
+        } else {
+            return ProjectUtil.convertMapToPage(map, UnitTypeDO.class);
+        }
+    }
+
+    public List<UnitTypeLiteDTO> getUnitTypeList() {
+        RList<UnitTypeLiteDTO> typeList = redisson.getList(StringConstant.Redis.UNIT_TYPE_LIST);
+        if (!typeList.isExists()) {
+            this.lambdaQuery().list().stream()
+                    .map(unitTypeDO -> BeanUtil.toBean(unitTypeDO, UnitTypeLiteDTO.class,
+                            ProjectOption.stringBlankToNull()))
+                    .forEach(typeList::add);
+            typeList.expire(Duration.ofSeconds(43200));
+        }
+        return typeList.readAll();
     }
 }

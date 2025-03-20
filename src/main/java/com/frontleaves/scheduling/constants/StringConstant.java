@@ -63,7 +63,8 @@ public class StringConstant {
     public static final String EMAIL_VERIFICATION_TOKEN_EXPIRED = "邮箱验证令牌已过期";
     public static final String EMAIL_VERIFICATION_TOKEN_INVALID = "邮箱验证令牌无效";
     public static final String EMAIL_VERIFICATION_TOKEN_MISMATCH = "邮箱地址与验证令牌不匹配";
-
+    public static final String UNIT_TYPE_NOT_FOUND = "未找到该单位办别";
+    public static final String UNIT_CATEGORY_NOT_FOUND = "未找到该单位类别";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -131,6 +132,11 @@ public class StringConstant {
         public static final String TEACHER_TYPE_PAGE = "teacher:type:page:";
         public static final String EMAIL_TOKEN = "email:token:";
         public static final String EMAIL_TO_TOKEN = "email:to:token:";
+        public static final String UNIT_TYPE_NAME = "unit:type:name:";
+        public static final String UNIT_TYPE_LIST = "unit:type:list";
+        public static final String UNIT_TYPE_PAGE_OF_LIST = "unit:type:page:";
+        public static final String UNIT_CATEGORY_LIST = "unit:cate:list";
+        public static final String UNIT_CATEGORY_PAGE = "unit:cate:page:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
