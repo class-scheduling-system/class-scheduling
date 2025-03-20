@@ -62,6 +62,8 @@ public class StringConstant {
     public static final String DEPARTMENT_UUID_NOT_EMPTY = "部门主键不能为空";
     public static final String UNIT_TYPE_NOT_FOUND = "未找到该单位办别";
     public static final String UNIT_CATEGORY_NOT_FOUND = "未找到该单位类别";
+    public static final String STUDENT_NOT_EXIST = "学生不存在";
+    public static final String STUDENT_SAVE_FAILED = "学生信息保存失败";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -183,7 +185,7 @@ public class StringConstant {
         public static final String USER_NAME_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^[0-9A-Za-z_-]{4,32}$)";
         public static final String PHONE_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^1[3456789]\\d{9}$)";
         public static final String STUDENT_ID_REGULAR_EXPRESSION = "^[a-zA-Z0-9]{4,32}$";
-        public static final String STUDENT_NAME_REGULAR_EXPRESSION = "^[\u4E00-\u9FA5A-Za-z]{2,20}$";
+        public static final String STUDENT_NAME_REGULAR_EXPRESSION = "^[一-龥A-Za-z]{2,20}$";
         public static final String SERIAL_NUMBER_REGULAR_EXPRESSION = "^[A-Za-z0-9]{2,64}$";
         public static final String FIXED_PHONE_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^\\d{3}-\\d{8}|\\d{4}-\\d{7}$)";
         private Regular() {

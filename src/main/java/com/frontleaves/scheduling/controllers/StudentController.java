@@ -3,9 +3,8 @@ package com.frontleaves.scheduling.controllers;
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.StudentDTO;
-import com.frontleaves.scheduling.models.dto.StudentDisableDTO;
+import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.services.StudentService;
 import com.xlf.utility.BaseResponse;
@@ -115,7 +114,7 @@ public class StudentController {
         // 查询学生信息
         StudentDTO studentDTO = studentService.getStudentByUuid(studentUuid);
         if (studentDTO == null) {
-            return ResultUtil.error(ErrorCode.NOT_EXIST, "学生不存在", null);
+            return ResultUtil.error(ErrorCode.NOT_EXIST, StringConstant.STUDENT_NOT_EXIST, null);
         }
         return ResultUtil.success("获取学生信息成功", studentDTO);
     }
@@ -191,7 +190,7 @@ public class StudentController {
         StudentDisableDTO studentDisableDTO = studentService.disableStudent(studentUuid, disable);
 
         // 根据disable值动态返回不同的信息
-        String message = disable ? "停用学生成功" : "启用学生成功";
+        String message = Boolean.TRUE.equals(disable) ? "停用学生成功" : "启用学生成功";
         return ResultUtil.success(message, studentDisableDTO);
     }
 
@@ -230,7 +229,7 @@ public class StudentController {
 
         // 检查编辑结果,如果返回null,则表示学生不存在
         if (studentDTO == null) {
-            return ResultUtil.error(ErrorCode.NOT_EXIST, "学生不存在", null);
+            return ResultUtil.error(ErrorCode.NOT_EXIST, StringConstant.STUDENT_NOT_EXIST, null);
         }
         return ResultUtil.success("编辑学生成功", studentDTO);
     }

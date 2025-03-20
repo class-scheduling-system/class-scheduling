@@ -39,9 +39,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.StudentMapper;
+import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
 import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
+import com.frontleaves.scheduling.utils.MappingUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
@@ -59,7 +61,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 学生数据访问对象类
@@ -391,167 +392,6 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
     }
 
     /**
-     * 根据学生ID获取学生信息
-     * <p>
-     * 该方法首先尝试从Redis缓存中获取学生信息。如果缓存中不存在，则从数据库查询，并将查询结果存储到Redis缓存中，设置过期时间为24小时。
-     * 如果在数据库中也未找到对应的学生信息，则返回null。
-     *
-     * @param id 学生的唯一标识符 {@code String}
-     * @return 返回与给定ID匹配的学生信息 {@code StudentDO}，如果没有找到则返回null
-     */
-    @Nullable
-    public StudentDO getStudentById(String id) {
-        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
-        try {
-            RBucket<String> tryGetStudentId = transaction.getBucket(StringConstant.Redis.STUDENT_ID + id);
-            if (!tryGetStudentId.isExists()) {
-                StudentDO studentDO = this.lambdaQuery().eq(StudentDO::getId, id).one();
-                if (studentDO != null) {
-                    tryGetStudentId.set(studentDO.getStudentUuid());
-                    tryGetStudentId.expire(Duration.ofSeconds(86400));
-                    RMap<String, String> studentMap = transaction.getMap(
-                            StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
-                    studentMap.putAll(ConvertUtil.convertObjectToMapString(studentDO));
-                    studentMap.expire(Duration.ofSeconds(86400));
-                    transaction.commit();
-                    return studentDO;
-                }
-            } else {
-                return this.getStudentByUuid(tryGetStudentId.get());
-            }
-            return null;
-        } catch (Exception e) {
-            transaction.rollback();
-            log.error(LogConstant.DAO + "根据学生ID获取学生信息失败", e);
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-        }
-    }
-
-    /**
-     * 通过UUID获取学生信息
-     * <p>该方法首先尝试从Redis缓存中根据给定的UUID查找学生信息。如果在Redis中找不到，则会尝试从数据库中查询。
-     * 如果从数据库中成功查找到学生信息，会将该信息存入Redis，并设置过期时间为一天（86400秒），然后返回该学生信息。
-     * 如果既在Redis中也未在数据库中找到学生信息，则返回null。
-     *
-     * @param studentUuid 学生的唯一标识符 {@code String}
-     * @return 返回与给定UUID对应的学生信息对象 {@code StudentDO}，若未找到则返回null
-     */
-    @Nullable
-    public StudentDO getStudentByUuid(String studentUuid) {
-        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_UUID + studentUuid);
-        if (!map.isExists()) {
-            StudentDO studentDO = this.getById(studentUuid);
-            if (studentDO != null) {
-                map.putAll(ConvertUtil.convertObjectToMapString(studentDO));
-                map.expire(Duration.ofSeconds(86400));
-                return studentDO;
-            }
-        } else {
-            return BeanUtil.toBean(map, StudentDO.class);
-        }
-        return null;
-    }
-
-    /**
-     * 更新学生信息中的用户 UUID
-     * <p>
-     * 该方法用于根据给定的学生 ID 更新其对应的用户 UUID。更新操作包括在 Redis 中删除与旧 UUID 相关的键，并在数据库中更新新的 UUID。
-     * 如果找不到对应的学生信息，将抛出业务异常。如果在执行过程中发生任何其他错误，将抛出服务器内部错误异常。
-     *
-     * @param userUuid  新的用户 UUID
-     * @param studentId 学生 ID
-     * @throws ServerInternalErrorException 如果在更新过程中发生服务器内部错误
-     * @throws BusinessException            如果未找到对应的学生信息
-     */
-    public void updateUserUuid(String userUuid, String studentId) throws BusinessException, ServerInternalErrorException {
-        StudentDO studentDO = this.getStudentById(studentId);
-        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
-        try {
-            if (studentDO != null) {
-                transaction.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
-                transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
-                this.lambdaUpdate()
-                        .eq(StudentDO::getStudentUuid, studentDO.getStudentUuid())
-                        .set(StudentDO::getUserUuid, userUuid)
-                        .update();
-                transaction.commit();
-            } else {
-                transaction.rollback();
-                throw new BusinessException("未找到对应的教师信息", ErrorCode.NOT_EXIST);
-            }
-        } catch (Exception e) {
-            transaction.rollback();
-            log.error(LogConstant.DAO + "更新学生信息中的用户 UUID 失败", e);
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-        }
-    }
-
-    /**
-     * 删除学生并删除token
-     * <p>
-     * 该方法用于删除学生信息，首先通过学生 UUID 获取学生信息，然后删除学生信息。
-     * 如果学生信息存在，则删除 Redis 中与学生相关的所有数据。
-     * 如果学生信息不存在或者删除失败，则抛出 {@code ServerInternalErrorException} 异常。
-     * </p>
-     *
-     * @param studentDO 学生实体
-     * @throws ServerInternalErrorException 如果删除过程中发生服务器内部错误
-     */
-    public void deleteStudent(StudentDO studentDO) throws ServerInternalErrorException {
-        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
-        try {
-            this.lambdaUpdate().eq(StudentDO::getStudentUuid, studentDO.getStudentUuid()).remove();
-            transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid()).delete();
-            transaction.getBucket(StringConstant.Redis.STUDENT_ID + studentDO.getId()).delete();
-            transaction.getBucket(StringConstant.Redis.STUDENT_USER_UUID + studentDO.getUserUuid()).delete();
-            transaction.commit();
-        } catch (Exception e) {
-            log.debug("删除学生信息失败", e);
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-        }
-    }
-
-    /**
-     * 通过用户 UUID 获取学生信息
-     * <p>
-     * 该方法根据提供的用户 UUID 从系统中检索对应的学生信息。首先尝试从缓存（如 Redis）中获取数据，如果缓存中没有找到，则从数据库中查询，并将结果存入缓存以提高后续访问速度。
-     * 如果在缓存和数据库中均未找到与给定 UUID 对应的学生信息，则返回 null。
-     * </p>
-     *
-     * @param userUuid 用户的唯一标识符
-     * @return 返回与指定 UUID 关联的学生信息，若无匹配项则返回 {@code null}
-     * @throws ServerInternalErrorException 当执行数据库查询或缓存操作时遇到错误
-     */
-    public StudentDO getStudentByUserUuid(String userUuid) {
-        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
-        try {
-            RBucket<String> tryGetStudentByUserUuid = transaction.getBucket(
-                    StringConstant.Redis.STUDENT_USER_UUID + userUuid);
-            if (!tryGetStudentByUserUuid.isExists()) {
-                StudentDO studentDO = this.lambdaQuery().eq(StudentDO::getUserUuid, userUuid).one();
-                if (studentDO != null) {
-                    tryGetStudentByUserUuid.set(studentDO.getStudentUuid());
-                    tryGetStudentByUserUuid.expire(Duration.ofSeconds(86400));
-                    RMap<String, String> studentMap = transaction.getMap(
-                            StringConstant.Redis.STUDENT_UUID + studentDO.getStudentUuid());
-                    studentMap.putAll(ConvertUtil.convertObjectToMapString(studentDO));
-                    studentMap.expire(Duration.ofSeconds(86400));
-                    transaction.commit();
-                    return studentDO;
-                }
-            } else {
-                return this.getStudentByUuid(tryGetStudentByUserUuid.get());
-            }
-            transaction.rollback();
-            return null;
-        } catch (Exception e) {
-            transaction.rollback();
-            log.error(LogConstant.DAO + "通过用户 UUID 获取学生信息失败", e);
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-        }
-    }
-
-    /**
      * 列出学生列表
      *
      * @param page 当前页码
@@ -575,7 +415,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
             if (studentListCache.isExists()) {
                 List<StudentDO> studentList = studentListCache.values().stream()
                         .map(json -> JSONUtil.toBean(json, StudentDO.class))
-                        .collect(Collectors.toList());
+                        .toList();
                 Page<StudentDO> cachePage = new Page<>();
                 cachePage.setRecords(studentList);
                 transaction.commit();
@@ -677,25 +517,6 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
             log.error(LogConstant.DAO + "编辑学生信息失败", e);
             throw new ServerInternalErrorException("学生信息更新失败");
         }
-    }
-
-    /**
-     * 根据专业唯一标识获取学生列表
-     *<p>
-     * 此方法通过专业唯一标识（majorUuid）查询数据库,获取所有该专业的学生列表
-     * 如果没有找到任何学生,即返回一个空列表,以避免返回null值导致的空指针异常
-     *</p>
-     *
-     * @param majorUuid 专业唯一标识,用于查询学生记录
-     * @return 包含StudentDO对象的列表, 表示所有该专业的学生如果没有找到学生, 则返回空列表
-     */
-    @NotNull
-    public List<StudentDO> getStudentByMajorUuid(String majorUuid) {
-        List<StudentDO> getList = this.lambdaQuery().eq(StudentDO::getMajor, majorUuid).list();
-        if (getList == null || getList.isEmpty()) {
-            return List.of();
-        }
-        return getList;
     }
 }
 

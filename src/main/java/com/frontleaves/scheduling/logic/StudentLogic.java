@@ -5,13 +5,16 @@ import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.StudentDTO;
-import com.frontleaves.scheduling.models.dto.StudentDisableDTO;
+import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.exceptions.lib.DataInvalidException;
+import com.frontleaves.scheduling.exceptions.lib.DataNotFoundException;
+import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.services.StudentService;
+import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.utils.MappingUtil;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -19,6 +22,8 @@ import com.xlf.utility.util.UuidUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.BeanUtils;
@@ -732,7 +737,7 @@ public class StudentLogic implements StudentService {
     public StudentDTO getStudentByUuid(String studentUuid) {
         StudentDO studentDO = studentDAO.getStudentByUuid(studentUuid);
         if (studentDO == null) {
-            throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.STUDENT_NOT_EXIST, ErrorCode.NOT_EXIST);
         }
         return BeanUtil.toBean(studentDO, StudentDTO.class);
     }
@@ -800,13 +805,13 @@ public class StudentLogic implements StudentService {
         try {
             studentDAO.save(studentDO);
         } catch (Exception e) {
-            log.error("学生信息保存失败", e);
-            throw new BusinessException("学生信息保存失败", ErrorCode.OPERATION_FAILED);
+            log.error(StringConstant.STUDENT_SAVE_FAILED, e);
+            throw new BusinessException(StringConstant.STUDENT_SAVE_FAILED, ErrorCode.OPERATION_FAILED);
         }
         // 从数据库重新查询完整记录,确保自动填充的数据能获取到
         StudentDO saveStudentDO = studentDAO.getStudentByUuid(studentUuid);
         if (saveStudentDO == null) {
-            throw new BusinessException("学生信息保存失败", ErrorCode.OPERATION_FAILED);
+            throw new BusinessException(StringConstant.STUDENT_SAVE_FAILED, ErrorCode.OPERATION_FAILED);
         }
 
         // DO -> DTO
@@ -830,7 +835,7 @@ public class StudentLogic implements StudentService {
     public StudentDisableDTO disableStudent(String studentUuid, Boolean disable) {
         StudentDO studentDO = studentDAO.getStudentByUuid(studentUuid);
         if (studentDO == null) {
-            throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.STUDENT_NOT_EXIST, ErrorCode.NOT_EXIST);
         }
 
         // 检查学生是否已有账号(是否注册)
@@ -846,7 +851,7 @@ public class StudentLogic implements StudentService {
         UserDO newUserDO = BeanUtil.toBean(oldUserDO, UserDO.class);
 
         // 更新用户状态
-        newUserDO.setStatus((byte) (disable ? 0 : 1));
+        newUserDO.setStatus((byte) (Boolean.TRUE.equals(disable) ? 0 : 1));
         userDAO.updateUser(oldUserDO, newUserDO);
 
         return new StudentDisableDTO()
@@ -870,7 +875,7 @@ public class StudentLogic implements StudentService {
         // 检查学生是否存在
         StudentDO studentDO = studentDAO.getStudentByUuid(studentUuid);
         if (studentDO == null) {
-            throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.STUDENT_NOT_EXIST, ErrorCode.NOT_EXIST);
         }
 
         // 检查学生是否已注册
