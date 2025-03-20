@@ -302,4 +302,32 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
         }
         return query.page(new Page<>(page, size));
     }
+
+    /**
+     * 更新用户密码
+     * 该方法负责更新用户数据库中的密码，并同时删除Redis缓存中的用户信息
+     * 为了确保数据一致性，使用Redis事务来管理缓存的删除操作
+     *
+     * @param userDO 包含用户新密码和其他必要信息的用户数据对象
+     */
+    public void updateUserPassword(UserDO userDO) {
+        // 创建Redis事务，使用默认的事务选项
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            // 更新数据库中的用户密码
+            this.lambdaUpdate()
+                    .eq(UserDO::getUserUuid, userDO.getUserUuid())
+                    .set(UserDO::getPassword, userDO.getPassword())
+                    .update();
+            // 删除Redis缓存中的用户信息，以保持数据一致性
+            this.deleteUserRedis(userDO, transaction);
+        } catch (Exception e) {
+            // 如果在更新或删除过程中发生异常，回滚事务以确保数据一致性
+            transaction.rollback();
+            // 记录异常日志
+            log.debug("更新用户密码失败", e);
+            // 抛出内部服务器错误异常，指示数据库操作失败
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
 }

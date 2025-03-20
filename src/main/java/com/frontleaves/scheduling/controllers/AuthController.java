@@ -30,13 +30,13 @@ package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.models.dto.ForgetPasswordResponseDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
+import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.AuthService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -124,15 +124,32 @@ public class AuthController {
      * 忘记密码发送邮件接口
      *
      * @param email   邮箱
-     * @param request 请求
      * @return 返回包含忘记密码响应信息的响应实体
      */
     @PostMapping("/forget-password")
     public ResponseEntity<BaseResponse<ForgetPasswordResponseDTO>> forgetPassword(
-            @RequestParam @Email String email,
-            HttpServletRequest request
+            @RequestParam String email
     ) {
-        ForgetPasswordResponseDTO forgetPasswordResponseDTO = authService.forgetPassword(email, request);
+        ForgetPasswordResponseDTO forgetPasswordResponseDTO = authService.forgetPassword(email);
         return ResultUtil.success("重置密码链接已发送", forgetPasswordResponseDTO);
+    }
+
+    /**
+     * 重置密码接口
+     *
+     * @param token           令牌
+     * @param newPassword     新密码
+     * @param confirmPassword 确认密码
+     * @return 返回空数据的响应实体，表示密码重置操作已成功处理
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<BaseResponse<Void>> resetPassword(
+            @RequestParam String token,
+            @RequestParam (value = "new_password")String newPassword,
+            @RequestParam (value = "confirm_password")String confirmPassword
+    ) {
+        UserDO userDO = authService.checkResetPassword(token, newPassword, confirmPassword);
+        authService.resetPassword(userDO, newPassword);
+        return ResultUtil.success("密码重置成功");
     }
 }

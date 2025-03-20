@@ -61,6 +61,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 用户认证逻辑处理类
@@ -213,6 +214,28 @@ public class AuthLogic implements AuthService {
         throw new ServerInternalErrorException("意料之外的错误");
     }
 
+    /**
+     * 检查邮箱是否在指定时间内重复发送
+     *
+     * @param userDO 用户数据对象
+     * @throws BusinessException 如果在限制时间内重复发送则抛出异常
+     */
+    private void checkEmailSendFrequency(UserDO userDO) {
+        // 从DAO层获取邮件验证令牌的创建时间
+        long lastSendTime = tokenDAO.getEmailTokenCreatAt(userDO);
+        // 如果存在上次发送记录
+        if (lastSendTime > 0) {
+            long currentTime = System.currentTimeMillis();
+            // 转换为毫秒
+            long limitTimeMillis = (long) 3 * 60 * 1000;
+            // 检查是否在限制时间内
+            if (currentTime - lastSendTime < limitTimeMillis) {
+                throw new BusinessException("邮件已发送，请勿重复操作", ErrorCode.OPERATION_ERROR);
+            }
+        }
+    }
+
+
     @Override
     public UserLoginDTO checkLoginForUser(@NotNull UserLoginVO userLoginVO, HttpServletRequest request) {
         UserDO userDO = null;
@@ -284,35 +307,56 @@ public class AuthLogic implements AuthService {
         }
     }
 
+    /**
+     * 忘记密码功能实现
+     *
+     * @param email   用户注册时使用的邮箱地址
+     * @return 返回一个包含Token过期时间的响应DTO
+     * @throws UserAuthenticationException 如果用户不存在，则抛出用户认证异常
+     */
     @Override
-    public ForgetPasswordResponseDTO forgetPassword(String email, HttpServletRequest request) {
+    public ForgetPasswordResponseDTO forgetPassword(String email) {
+        if (!email.matches(StringConstant.Regular.EMAIL_REGULAR_EXPRESSION)) {
+            throw new BusinessException("邮箱格式错误", ErrorCode.BODY_ERROR);
+        }
         // 检查用户是否存在
         UserDO userDO = userDAO.getUserByMail(email);
         if (userDO == null) {
-            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+            throw new BusinessException("此邮箱并未绑定用户",ErrorCode.BODY_ERROR);
         }
+        // 检查邮件发送频率，防止频繁发送
+        checkEmailSendFrequency(userDO);
         //生成邮箱Token
         EmailVerificationTokenDTO tokenDTO = tokenDAO.createEmailToken(userDO);
+        // 构造重置密码的URL
         String url = env.getProperty("project.base-api") +
                 env.getProperty("project.reset-password") + tokenDTO.getToken();
-        try {
-            // 使用Hutool的ResourceUtil
-            String templateContent = ResourceUtil.readUtf8Str("template/reset-password.html");
-            templateContent = templateContent.replace("${url}", url);
-            templateContent = templateContent.replace("${name}", userDO.getName());
-            // 发送邮件
-            MailUtil.send(email, "重置密码", templateContent, true);
-            ForgetPasswordResponseDTO forgetPasswordResponseDTO = new ForgetPasswordResponseDTO();
-            forgetPasswordResponseDTO.setTokenExpireTime(tokenDTO.getExpireTime());
-            return forgetPasswordResponseDTO;
-        } catch (IORuntimeException e) {
-            log.error(LogConstant.SERVICE + "邮件模板读取失败", e);
-            throw new BusinessException("系统错误，无法读取邮件模板", ErrorCode.SERVER_INTERNAL_ERROR);
-        } catch (Exception e) {
-            log.error(LogConstant.SERVICE + "邮件发送失败", e);
-            throw new BusinessException("邮件发送失败", ErrorCode.SERVER_INTERNAL_ERROR);
-        }
+        // 异步发送邮件
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 使用Hutool的ResourceUtil读取邮件模板
+                String templateContent = ResourceUtil.readUtf8Str("template/reset-password.html");
+                // 替换模板中的占位符
+                templateContent = templateContent.replace("${url}", url);
+                templateContent = templateContent.replace("${name}", userDO.getName());
+                // 发送邮件
+                MailUtil.send(email, "重置密码", templateContent, true);
+            } catch (IORuntimeException e) {
+                // 记录邮件模板读取失败的异常
+                log.error(LogConstant.SERVICE + "邮件模板读取失败", e);
+                // 异步处理中只记录异常，不抛出
+            } catch (Exception e) {
+                // 记录邮件发送失败的异常
+                log.error(LogConstant.SERVICE + "邮件发送失败", e);
+                // 异步处理中只记录异常，不抛出
+            }
+        });
+        // 不等待邮件发送完成，直接返回结果
+        ForgetPasswordResponseDTO forgetPasswordResponseDTO = new ForgetPasswordResponseDTO();
+        forgetPasswordResponseDTO.setTokenExpireTime(tokenDTO.getExpireTime());
+        return forgetPasswordResponseDTO;
     }
+
 
     /**
      * 检查用户是否使用了默认密码。
@@ -360,5 +404,56 @@ public class AuthLogic implements AuthService {
                 throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
             }
         }
+    }
+
+    /**
+     * 重置密码功能的实现方法
+     * 该方法用于验证用户提交的重置密码信息，包括token、新密码和确认密码
+     * 主要执行以下操作：
+     * 1. 校验新密码是否为空、是否与确认密码一致以及是否符合密码格式
+     * 2. 验证token的有效性，并根据token获取用户信息
+     * 3. 如果用户不存在，则抛出异常
+     *
+     * @param token           用户重置密码的令牌，用于验证用户身份
+     * @param newPassword     新密码，用户希望设置的新密码
+     * @param confirmPassword 确认新密码，确保用户两次输入的密码一致
+     * @return 返回用户对象，表示重置密码操作成功
+     * @throws BusinessException 如果密码为空、两次密码不一致、密码格式错误、token无效或用户不存在时，抛出此异常
+     */
+    @Override
+    public UserDO checkResetPassword(String token, @NotNull String newPassword, @NotNull String confirmPassword) {
+        // 校验密码是否符合要求
+        if (newPassword.isEmpty()) {
+            throw new BusinessException("密码不能为空", ErrorCode.BODY_ERROR);
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            throw new BusinessException("两次密码不一致", ErrorCode.BODY_ERROR);
+        }
+        // 使用正则表达式校验密码
+        if (!newPassword.matches(StringConstant.Regular.PASSWORD_REGULAR_EXPRESSION)) {
+            throw new BusinessException("密码格式错误", ErrorCode.BODY_ERROR);
+        }
+        //校验Token
+        String uuid = tokenDAO.verifyEmailToken(token);
+        tokenDAO.deleteEmailToken(token);
+        UserDO userDO = userDAO.getUserByUuid(uuid);
+        if (userDO == null) {
+            throw new BusinessException("用户不存在，意料之外的错误", ErrorCode.OPERATION_ERROR);
+        }
+        return userDO;
+    }
+
+    /**
+     * 重置用户密码
+     *
+     * @param userDO      用户实体对象，包含用户的相关信息
+     * @param newPassword 新密码，用于替换用户的旧密码
+     */
+    @Override
+    public void resetPassword(UserDO userDO, String newPassword) {
+        // 对新密码进行加密处理，以确保密码的安全性
+        userDO.setPassword(PasswordUtil.encrypt(newPassword));
+        // 更新数据库中的用户记录，以保存新的密码信息
+        userDAO.updateUserPassword(userDO);
     }
 }

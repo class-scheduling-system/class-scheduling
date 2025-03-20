@@ -130,6 +130,7 @@ public class StringConstant {
         public static final String TEACHER_TYPE_LIST = "teacher:type:list";
         public static final String TEACHER_TYPE_PAGE = "teacher:type:page:";
         public static final String EMAIL_TOKEN = "email:token:";
+        public static final String EMAIL_TO_TOKEN = "email:to:token:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
