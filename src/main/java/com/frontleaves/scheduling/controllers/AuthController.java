@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.models.dto.BackProfileDTO;
 import com.frontleaves.scheduling.models.dto.ForgetPasswordResponseDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
@@ -151,5 +152,18 @@ public class AuthController {
         UserDO userDO = authService.checkResetPassword(token, newPassword, confirmPassword);
         authService.resetPassword(userDO, newPassword);
         return ResultUtil.success("密码重置成功");
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<BaseResponse<BackProfileDTO>> profile(
+            @RequestParam (required = false) String name,
+            @RequestParam (required = false) String email,
+            @RequestParam (required = false) String phone,
+            HttpServletRequest request
+    ){
+        //检查修改内容是否合规
+        UserDO userDO = authService.checkProfile(name, email, phone,request);
+        BackProfileDTO backProfileDTO = authService.profile(userDO);
+        return ResultUtil.success("个人信息更新成功", backProfileDTO);
     }
 }

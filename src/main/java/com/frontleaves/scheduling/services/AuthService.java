@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.BackProfileDTO;
 import com.frontleaves.scheduling.models.dto.ForgetPasswordResponseDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
@@ -125,4 +126,25 @@ public interface AuthService {
      */
     void resetPassword(UserDO userDO
             , String newPassword);
+
+    /**
+     * 检查用户信息
+     * @param name 用户名
+     * @param email 邮箱
+     * @param phone 电话
+     * @param request HTTP请求对象
+     */
+    UserDO checkProfile(
+            String name,
+            String email,
+            String phone,
+            HttpServletRequest request);
+
+    /**
+     * 用户信息
+     * @param userDO 用户数据对象
+     * @return 后台用户信息数据传输对象
+     */
+    BackProfileDTO profile(
+            UserDO userDO);
 }

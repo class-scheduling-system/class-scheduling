@@ -330,4 +330,32 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }
+
+    /**
+     * 更新用户档案信息
+     * 此方法通过事务处理来确保数据一致性和完整性，仅更新传入对象中的非空字段
+     *
+     * @param userDO 包含要更新的用户信息的用户数据对象，包括用户UUID、用户名、电子邮件和电话号码
+     */
+    public void updateUserProfile(UserDO userDO) {
+        // 创建Redis事务，用于管理缓存的删除操作
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            // 使用链式调用，只更新非null字段
+            this.lambdaUpdate()
+                    .eq(UserDO::getUserUuid, userDO.getUserUuid())
+                    .set(userDO.getName() != null, UserDO::getName, userDO.getName())
+                    .set(userDO.getEmail() != null, UserDO::getEmail, userDO.getEmail())
+                    .set(userDO.getPhone() != null, UserDO::getPhone, userDO.getPhone())
+                    .update();
+            // 删除用户Redis缓存，确保缓存数据与数据库同步
+            this.deleteUserRedis(userDO, transaction);
+        } catch (Exception e) {
+            // 回滚事务，以应对任何在更新或删除缓存过程中发生的异常
+            transaction.rollback();
+            log.debug("更新用户信息失败", e);
+            // 抛出内部服务器错误异常，指示数据库操作失败
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+    }
 }

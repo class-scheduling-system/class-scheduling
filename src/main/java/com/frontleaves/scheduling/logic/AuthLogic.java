@@ -61,6 +61,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -310,7 +311,7 @@ public class AuthLogic implements AuthService {
     /**
      * 忘记密码功能实现
      *
-     * @param email   用户注册时使用的邮箱地址
+     * @param email 用户注册时使用的邮箱地址
      * @return 返回一个包含Token过期时间的响应DTO
      * @throws UserAuthenticationException 如果用户不存在，则抛出用户认证异常
      */
@@ -322,7 +323,7 @@ public class AuthLogic implements AuthService {
         // 检查用户是否存在
         UserDO userDO = userDAO.getUserByMail(email);
         if (userDO == null) {
-            throw new BusinessException("此邮箱并未绑定用户",ErrorCode.BODY_ERROR);
+            throw new BusinessException("此邮箱并未绑定用户", ErrorCode.BODY_ERROR);
         }
         // 检查邮件发送频率，防止频繁发送
         checkEmailSendFrequency(userDO);
@@ -455,5 +456,84 @@ public class AuthLogic implements AuthService {
         userDO.setPassword(PasswordUtil.encrypt(newPassword));
         // 更新数据库中的用户记录，以保存新的密码信息
         userDAO.updateUserPassword(userDO);
+    }
+
+    /**
+     * 根据请求检查并更新用户资料
+     * 此方法首先根据HTTP请求获取用户信息如果用户不存在，则抛出用户认证异常
+     * 对于每个提供的参数（姓名、邮箱、电话），如果参数不为空，则验证其格式
+     * 如果格式不正确，则抛出业务异常无论参数是否为空，都将更新用户信息
+     *
+     * @param name    用户名，可为空，但不能为空字符串，需要符合特定的正则表达式
+     * @param email   邮箱地址，可为空，但不能为空字符串，需要符合邮箱的正则表达式
+     * @param phone   电话号码，可为空，但不能为空字符串，需要符合电话号码的正则表达式
+     * @param request HTTP请求，用于获取当前用户信息
+     * @return 更新后的用户信息对象
+     * @throws UserAuthenticationException 如果用户不存在
+     * @throws BusinessException           如果用户名、邮箱或电话号码格式不正确
+     */
+    @Override
+    public UserDO checkProfile(String name, String email, String phone, HttpServletRequest request) {
+        // 根据请求获取用户信息
+        UserDO userDO = userService.getUserByRequest(request);
+        // 如果用户不存在，抛出用户认证异常
+        if (userDO == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+        }
+        // 处理名称字段 - 即使是null也会设置
+        Optional.ofNullable(name)
+                .ifPresent(n -> {
+                    // 验证用户名格式，如果不符合，抛出业务异常
+                    if (!n.isEmpty() && !n.matches(StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION)) {
+                        throw new BusinessException("用户名格式错误", ErrorCode.BODY_ERROR);
+                    }
+                });
+        // 更新用户姓名
+        userDO.setName(name);
+        // 处理邮箱字段 - 即使是null也会设置
+        Optional.ofNullable(email)
+                .ifPresent(e -> {
+                    // 验证邮箱格式，如果不符合，抛出业务异常
+                    if (!e.isEmpty() && !e.matches(StringConstant.Regular.EMAIL_REGULAR_EXPRESSION)) {
+                        throw new BusinessException("邮箱格式错误", ErrorCode.BODY_ERROR);
+                    }
+                });
+        // 更新用户邮箱
+        userDO.setEmail(email);
+        // 处理电话字段 - 即使是null也会设置
+        Optional.ofNullable(phone)
+                .ifPresent(p -> {
+                    // 验证电话号码格式，如果不符合，抛出业务异常
+                    if (!p.isEmpty() && !p.matches(StringConstant.Regular.PHONE_REGULAR_EXPRESSION)) {
+                        throw new BusinessException("手机号格式错误", ErrorCode.BODY_ERROR);
+                    }
+                });
+        // 更新用户电话号码
+        userDO.setPhone(phone);
+        // 返回更新后的用户信息
+        return userDO;
+    }
+
+    /**
+     * 更新并获取用户资料
+     * 此方法首先更新用户的资料，然后根据用户UUID获取最新的用户信息，并将其转换为BackProfileDTO对象返回
+     * 如果无法找到更新后的用户信息，抛出业务异常
+     *
+     * @param userDO 用户数据对象，包含用户的基本信息和更新内容
+     * @return 返回更新后的用户资料DTO对象
+     * @throws BusinessException 当系统错误时抛出此异常
+     */
+    @Override
+    public BackProfileDTO profile(UserDO userDO) {
+        // 更新用户资料
+        userDAO.updateUserProfile(userDO);
+        // 通过用户UUID获取最新的用户信息
+        UserDO newUserDO = userDAO.getUserByUuid(userDO.getUserUuid());
+        // 检查获取的用户信息是否为空，如果为空则抛出异常
+        if (newUserDO == null) {
+            throw new BusinessException("系统错误", ErrorCode.SERVER_INTERNAL_ERROR);
+        }
+        // 将获取的用户信息转换为DTO对象并返回
+        return BeanUtil.toBean(newUserDO, BackProfileDTO.class);
     }
 }
