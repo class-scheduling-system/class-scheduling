@@ -60,6 +60,7 @@ public class StringConstant {
     public static final String DEPARTMENT_DELETE_FAILED = "删除部门失败";
     public static final String DEPARTMENT_NOT_EXIST = "部门不存在";
     public static final String DEPARTMENT_UUID_NOT_EMPTY = "部门主键不能为空";
+    public static final String UNIT_TYPE_NOT_FOUND = "未找到该单位办别";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
