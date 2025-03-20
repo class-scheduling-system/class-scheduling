@@ -536,4 +536,31 @@ public class AuthLogic implements AuthService {
         // 将获取的用户信息转换为DTO对象并返回
         return BeanUtil.toBean(newUserDO, BackProfileDTO.class);
     }
+
+    @Override
+    public void changePassword(String currentPassword, String newPassword, String confirmPassword, HttpServletRequest request) {
+        // 校验密码是否符合要求
+        if (newPassword.isEmpty()) {
+            throw new BusinessException("密码不能为空", ErrorCode.BODY_ERROR);
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            throw new BusinessException("两次密码不一致", ErrorCode.BODY_ERROR);
+        }
+        // 使用正则表达式校验密码
+        if (!newPassword.matches(StringConstant.Regular.PASSWORD_REGULAR_EXPRESSION)) {
+            throw new BusinessException("密码格式错误", ErrorCode.BODY_ERROR);
+        }
+        // 获取当前用户信息
+        UserDO userDO = userService.getUserByRequest(request);
+        if (userDO == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+        }
+        // 验证当前密码是否正确
+        if (!PasswordUtil.verify(currentPassword, userDO.getPassword())) {
+            throw new BusinessException("当前密码错误", ErrorCode.BODY_ERROR);
+        }
+        // 对新密码进行加密处理，以确保密码的安全性
+        userDO.setPassword(PasswordUtil.encrypt(newPassword));
+        userDAO.updateUserPassword(userDO);
+    }
 }

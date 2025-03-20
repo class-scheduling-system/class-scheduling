@@ -174,4 +174,30 @@ public class AuthController {
         BackProfileDTO backProfileDTO = authService.profile(userDO);
         return ResultUtil.success("个人信息更新成功", backProfileDTO);
     }
+
+
+    /**
+     * 修改用户密码接口
+     *
+     * @param currentPassword 当前密码，用于验证用户身份
+     * @param newPassword 新密码，用户希望设置的新密码
+     * @param confirmPassword 确认新密码，确保用户两次输入的新密码一致
+     * @param request HTTP请求对象，可能用于获取用户信息或会话详情
+     * @return 返回一个包含成功消息的响应实体
+     *
+     * 此接口允许已登录的用户提交当前密码和新密码，以修改其账户密码
+     * 它首先验证当前密码的正确性，然后确保新密码和确认密码匹配，最后更新密码
+     */
+    @PutMapping("/change-password")
+    public ResponseEntity<BaseResponse<Void>> changePassword(
+            @RequestParam (value = "current_password")String currentPassword,
+            @RequestParam (value = "new_password")String newPassword,
+            @RequestParam (value = "confirm_password") String confirmPassword,
+            HttpServletRequest request
+    ){
+        // 调用认证服务的修改密码方法，传入当前密码、新密码、确认密码和请求对象
+        authService.changePassword(currentPassword, newPassword, confirmPassword, request);
+        // 使用ResultUtil工具类返回一个表示操作成功的响应实体
+        return ResultUtil.success("密码修改成功");
+    }
 }
