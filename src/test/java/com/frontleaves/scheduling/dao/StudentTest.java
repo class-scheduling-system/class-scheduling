@@ -5,12 +5,8 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
-import com.frontleaves.scheduling.models.entity.DepartmentDO;
-import com.frontleaves.scheduling.models.entity.MajorDO;
-import com.frontleaves.scheduling.models.entity.StudentDO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.StudentVO;
-import com.frontleaves.scheduling.utils.MappingUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
@@ -22,10 +18,10 @@ import org.junit.jupiter.api.*;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Duration;
+import java.util.List;
 
 @Slf4j
 @SpringBootTest
@@ -47,8 +43,6 @@ class StudentTest {
     private GradeDAO gradeDAO;
     private StudentDO setUpStudent;
     private UserDO setUpUser;
-    @Autowired
-    private MappingUtil mappingUtil;
 
     /**
      * 通过部门 名称获取部门数据
@@ -224,24 +218,63 @@ class StudentTest {
     void testListStudents() {
         log.debug("测试获取学生列表");
         // 清空 Redis 缓存, 以防影响测试
-        redisson.getMapCache(StringConstant.Redis.STUDENT_UUID).clear();
+        redisson.getMapCache(StringConstant.Redis.STUDENT_LIST).clear();
+
+        // 从行政班级中获取一个班级 UUID
+        List<AdministrativeClassDO> administrativeClassList = administrativeClassDAO.lambdaQuery().list();
+        Assertions.assertFalse(administrativeClassList.isEmpty(), "行政班级列表不能为空");
+        String clazzUuid = administrativeClassList.get(0).getAdministrativeClassUuid();
+        Assertions.assertNotNull(clazzUuid, "班级 UUID 不能为空");
+
+        // 获取班级映射
+        ClassMappingDTO classMapping = administrativeClassDAO.getClassMappingByClazz(clazzUuid);
+        Assertions.assertNotNull(classMapping, "班级映射信息不能为空");
+        Assertions.assertNotNull(classMapping.getGradeUuid(), "年级 UUID 不能为空");
+        Assertions.assertNotNull(classMapping.getDepartmentUuid(), "学院 UUID 不能为空");
+        Assertions.assertNotNull(classMapping.getMajorUuid(), "专业 UUID 不能为空");
+
+        // 获取有效用户数据
+        List<UserDO> userList = userDAO.lambdaQuery().list();
+        Assertions.assertFalse(userList.isEmpty(), "用户列表不能为空");
+        UserDO userDO = userList.get(1);
+
+        String studentUuid = UuidUtil.generateUuidNoDash();
+        String studentId = "233336";
+        // 如果存在相同学号的学生记录，先删除
+        studentDAO.lambdaUpdate().eq(StudentDO::getId, studentId).remove();
+
+        StudentDO testStudent = new StudentDO()
+                .setStudentUuid(studentUuid)
+                .setId(studentId)
+                .setName("王五")
+                .setClazz(clazzUuid)
+                .setGraduated(false)
+                .setGender(false)
+                .setGradeUuid(classMapping.getGradeUuid())
+                .setDepartment(classMapping.getDepartmentUuid())
+                .setMajor(classMapping.getMajorUuid())
+                .setUserUuid(userDO.getUserUuid());
+        boolean saveResult = studentDAO.save(testStudent);
+        Assertions.assertTrue(saveResult, "学生数据保存失败");
+        Assertions.assertNotNull(studentDAO.getById(studentUuid), "学生数据未成功插入");
 
         // 模拟查询数据库
         Page<StudentDO> pageResult = studentDAO.listStudents(
                 1, 10, true,
-                setUpStudent.getClazz(), Boolean.valueOf(setUpStudent.getDepartment()),
-                setUpStudent.getMajor(), setUpStudent.getGradeUuid());
+                clazzUuid, false,
+                "王五", studentId);
         Assertions.assertNotNull(pageResult, "listStudents返回值不应为null");
         Assertions.assertFalse(pageResult.getRecords().isEmpty(), "列表查询应至少返回一条记录");
+        Assertions.assertEquals(1, pageResult.getRecords().size(), "应返回1条记录");
 
         // 模拟 Redis 缓存命中
         Page<StudentDO> cachedPage = studentDAO.listStudents(
                 1, 10, true,
-                setUpStudent.getClazz(), Boolean.valueOf(setUpStudent.getDepartment()),
-                setUpStudent.getMajor(), setUpStudent.getGradeUuid());
+                clazzUuid, false,
+                "王五", studentId);
         Assertions.assertNotNull(cachedPage, "listStudents返回值不应为null");
         Assertions.assertFalse(cachedPage.getRecords().isEmpty(), "缓存命中时列表查询应返回记录");
-        Assertions.assertEquals(1, pageResult.getRecords().size(), "缓存结果应与数据库查询结果一致");
+        Assertions.assertEquals(pageResult.getRecords().size(), cachedPage.getRecords().size(), "缓存结果应与数据库查询结果一致");
 
         // 当所有选填字段为空时, 返回所有学生
         Page<StudentDO> allStudentPage = studentDAO.listStudents(
@@ -249,7 +282,7 @@ class StudentTest {
                 null, null, null, null
         );
         Assertions.assertNotNull(allStudentPage, "listStudents返回值不应为null");
-        Assertions.assertTrue(allStudentPage.getRecords().isEmpty(), "选填字段为空时列表查询应返回所有学生");
+        Assertions.assertFalse(allStudentPage.getRecords().isEmpty(), "全空查询应至少返回1条记录");
     }
 
     /**
@@ -263,13 +296,13 @@ class StudentTest {
         String studentId = "A951753";
 
         // 1. 如果存在相同学号的学生记录，先删除
-            studentDAO.lambdaUpdate().eq(StudentDO::getId, studentId).remove();
+        studentDAO.lambdaUpdate().eq(StudentDO::getId, studentId).remove();
 
         // 2. 构造初始学生数据并保存
         String clazzUuid = administrativeClassDAO.lambdaQuery().list().get(1).getAdministrativeClassUuid();
         Assertions.assertNotNull(clazzUuid, "班级 UUID 不能为空");
 
-        ClassMappingDTO classMapping = mappingUtil.getClassMappingByClazz(clazzUuid);
+        ClassMappingDTO classMapping = administrativeClassDAO.getClassMappingByClazz(clazzUuid);
         Assertions.assertNotNull(classMapping, "班级映射信息不能为空");
         Assertions.assertNotNull(classMapping.getGradeUuid(), "年级 UUID 不能为空");
         Assertions.assertNotNull(classMapping.getDepartmentUuid(), "学院 UUID 不能为空");

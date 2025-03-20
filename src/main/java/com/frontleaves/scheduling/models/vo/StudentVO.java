@@ -1,7 +1,9 @@
 package com.frontleaves.scheduling.models.vo;
 
+import com.frontleaves.scheduling.constants.StringConstant;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.Accessors;
 
@@ -26,12 +28,14 @@ public class StudentVO {
     private String id;
 
     @NotBlank(message = "姓名不能为空")
+    @Pattern(regexp = StringConstant.Regular.STUDENT_NAME_REGULAR_EXPRESSION, message = "姓名格式不正确")
     private String name;
 
     @NotNull(message = "性别不能为空")
     private Boolean gender;
 
     @NotBlank(message = "班级不能为空")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "班级UUID格式错误")
     private String clazz;
 
     @NotNull(message = "毕业状态不能为空")

@@ -32,7 +32,10 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.AdministrativeClassMapper;
+import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
 import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RList;
@@ -162,6 +165,21 @@ public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMappe
         return Collections.emptyList();
     }
 
+    public ClassMappingDTO getClassMappingByClazz(String clazz) {
+        // 查询行政班级表，寻找与给定班级UUID匹配的记录
+        AdministrativeClassDO adminClass = this.lambdaQuery()
+                .eq(AdministrativeClassDO::getAdministrativeClassUuid, clazz)
+                .one();
 
+        // 如果没有找到对应的班级信息，抛出业务异常
+        if (adminClass == null) {
+            throw new BusinessException("未找到对应班级信息", ErrorCode.NOT_EXIST);
+        }
 
+        // 构建并返回班级映射信息对象
+        return new ClassMappingDTO()
+                .setGradeUuid(adminClass.getGradeUuid())
+                .setDepartmentUuid(adminClass.getDepartmentUuid())
+                .setMajorUuid(adminClass.getMajorUuid());
+    }
 }

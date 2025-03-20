@@ -31,8 +31,7 @@ package com.frontleaves.scheduling.daos;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -43,7 +42,7 @@ import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
 import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
-import com.frontleaves.scheduling.utils.MappingUtil;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
@@ -80,7 +79,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements IService<StudentDO> {
     private final RedissonClient redisson;
-    private final MappingUtil mappingUtil;
+    private final AdministrativeClassDAO administrativeClassDAO;
 
     /**
      * 根据学生ID获取学生信息
@@ -394,44 +393,33 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
     /**
      * 列出学生列表
      *
-     * @param page 当前页码
-     * @param size 每页大小
-     * @param isDesc 是否降序排序
-     * @param clazz 班级名称，可为空
+     * @param page        当前页码
+     * @param size        每页大小
+     * @param isDesc      是否降序排序
+     * @param clazz       班级名称，可为空
      * @param isGraduated 是否毕业，可为空
-     * @param name 学生姓名，可为空
-     * @param id 学生学号，可为空
+     * @param name        学生姓名，可为空
+     * @param id          学生学号，可为空
      * @return 返回包含学生信息的页面对象
      */
-    public Page<StudentDO> listStudents(int page, int size, Boolean isDesc,
-                                        @Nullable String clazz, @Nullable Boolean isGraduated,
-                                        @Nullable String name, @Nullable String id
+    public @Nullable Page<StudentDO> listStudents(int page, int size, Boolean isDesc,
+                                       @Nullable String clazz, @Nullable Boolean isGraduated,
+                                       @Nullable String name, @Nullable String id
     ) {
-        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        // 构建唯一缓存 key 并获取缓存数据
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_LIST
+                + page + ":" + size + ":" + isDesc + ":" + clazz + ":" + isGraduated + ":" + name + ":" + id);
 
-        try {
-            // 尝试从缓存中获取数据
-            RMapCache<String, String> studentListCache = transaction.getMapCache(StringConstant.Redis.STUDENT_UUID);
-            if (studentListCache.isExists()) {
-                List<StudentDO> studentList = studentListCache.values().stream()
-                        .map(json -> JSONUtil.toBean(json, StudentDO.class))
-                        .toList();
-                Page<StudentDO> cachePage = new Page<>();
-                cachePage.setRecords(studentList);
-                transaction.commit();
-                return cachePage;
-            }
-            Page<StudentDO> pageParam = new Page<>(page, size);
-            LambdaQueryWrapper<StudentDO> queryWrapper = new LambdaQueryWrapper<>();
-
+        // 若缓存中不存在数据,则执行数据库查询,并缓存结果
+        if (!map.isExists()) {
+            LambdaQueryChainWrapper<StudentDO> queryWrapper = this.lambdaQuery();
             // 查看班级是否为空
             if (CharSequenceUtil.isNotBlank(clazz)) {
                 queryWrapper.like(StudentDO::getClazz, clazz);
             }
             // 查看学生是否毕业
             if (isGraduated != null) {
-                queryWrapper.eq(StudentDO::getGraduated, isGraduated)
-                        .or().isNull(StudentDO::getGraduated);
+                queryWrapper.eq(StudentDO::getGraduated, isGraduated);
             }
             // 查看姓名是否为空
             if (CharSequenceUtil.isNotBlank(name)) {
@@ -442,20 +430,16 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
                 queryWrapper.like(StudentDO::getId, id);
             }
             // 根据 isDesc 进行排序
-            queryWrapper.orderBy(isDesc != null && isDesc, false, StudentDO::getCreatedAt);
+            if (Boolean.TRUE.equals(isDesc)) {
+                queryWrapper.orderByDesc(StudentDO::getCreatedAt);
+            } else {
+                queryWrapper.orderByAsc(StudentDO::getCreatedAt);
+            }
 
-            // 查询数据库
-            Page<StudentDO> resultPage = this.page(pageParam, queryWrapper);
-            // 存入Redis
-            studentListCache.putAll(ConvertUtil.convertObjectToMapString(resultPage));
-            studentListCache.expire(Duration.ofSeconds(86400));
-
-            transaction.commit();
-            return resultPage;
-        } catch (Exception e) {
-            transaction.rollback();
-            log.error(LogConstant.DAO + "列出学生列表失败", e);
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+            // 调用 ProjectUtil 方法查询并缓存数据
+            return ProjectUtil.queryAndCache(queryWrapper, page, size, map);
+        } else {
+            return ProjectUtil.convertMapToPage(map, StudentDO.class);
         }
     }
 
@@ -478,7 +462,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
             }
 
             // 通过班级 UUID 获取班级映射信息
-            ClassMappingDTO classMapping = mappingUtil.getClassMappingByClazz(studentVO.getClazz());
+            ClassMappingDTO classMapping = administrativeClassDAO.getClassMappingByClazz(studentVO.getClazz());
 
             // 复制非空属性到 studentDO
             BeanUtil.copyProperties(studentVO, studentDO, CopyOptions.create().ignoreNullValue());
@@ -489,17 +473,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
                     .setMajor(classMapping.getMajorUuid());
 
             // 更新数据库
-            boolean success = this.lambdaUpdate()
-                    .set(StudentDO::getGradeUuid, classMapping.getGradeUuid())
-                    .set(StudentDO::getDepartment, classMapping.getDepartmentUuid())
-                    .set(StudentDO::getMajor, classMapping.getMajorUuid())
-                    .set(StudentDO::getClazz, studentVO.getClazz())
-                    .set(StudentDO::getId, studentVO.getId())
-                    .set(StudentDO::getName, studentVO.getName())
-                    .set(StudentDO::getGender, studentVO.getGender())
-                    .set(StudentDO::getGraduated, studentVO.getGraduated())
-                    .eq(StudentDO::getStudentUuid, studentUuid)
-                    .update();
+            boolean success = this.updateById(studentDO);
 
             if (!success) {
                 transaction.rollback();
