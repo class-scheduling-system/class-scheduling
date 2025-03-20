@@ -484,7 +484,7 @@ public class AuthLogic implements AuthService {
         Optional.ofNullable(name)
                 .ifPresent(n -> {
                     // 验证用户名格式，如果不符合，抛出业务异常
-                    if (!n.isEmpty() && !n.matches(StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION)) {
+                    if (!n.matches(StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION)) {
                         throw new BusinessException("用户名格式错误", ErrorCode.BODY_ERROR);
                     }
                 });
@@ -494,7 +494,7 @@ public class AuthLogic implements AuthService {
         Optional.ofNullable(email)
                 .ifPresent(e -> {
                     // 验证邮箱格式，如果不符合，抛出业务异常
-                    if (!e.isEmpty() && !e.matches(StringConstant.Regular.EMAIL_REGULAR_EXPRESSION)) {
+                    if (!e.matches(StringConstant.Regular.EMAIL_REGULAR_EXPRESSION)) {
                         throw new BusinessException("邮箱格式错误", ErrorCode.BODY_ERROR);
                     }
                 });
@@ -504,7 +504,7 @@ public class AuthLogic implements AuthService {
         Optional.ofNullable(phone)
                 .ifPresent(p -> {
                     // 验证电话号码格式，如果不符合，抛出业务异常
-                    if (!p.isEmpty() && !p.matches(StringConstant.Regular.PHONE_REGULAR_EXPRESSION)) {
+                    if (!p.matches(StringConstant.Regular.PHONE_REGULAR_EXPRESSION)) {
                         throw new BusinessException("手机号格式错误", ErrorCode.BODY_ERROR);
                     }
                 });

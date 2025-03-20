@@ -154,6 +154,14 @@ public class AuthController {
         return ResultUtil.success("密码重置成功");
     }
 
+    /**
+     * 个人信息更新接口
+     * @param name 用户名
+     * @param email 邮箱
+     * @param phone 手机号
+     * @param request 请求
+     * @return 返回包含个人信息更新响应信息的响应实体
+     */
     @PutMapping("/profile")
     public ResponseEntity<BaseResponse<BackProfileDTO>> profile(
             @RequestParam (required = false) String name,
