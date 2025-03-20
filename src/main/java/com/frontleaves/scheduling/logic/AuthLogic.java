@@ -451,7 +451,7 @@ public class AuthLogic implements AuthService {
      * @param newPassword 新密码，用于替换用户的旧密码
      */
     @Override
-    public void resetPassword(UserDO userDO, String newPassword) {
+    public void resetPassword(@NotNull UserDO userDO, String newPassword) {
         // 对新密码进行加密处理，以确保密码的安全性
         userDO.setPassword(PasswordUtil.encrypt(newPassword));
         // 更新数据库中的用户记录，以保存新的密码信息
