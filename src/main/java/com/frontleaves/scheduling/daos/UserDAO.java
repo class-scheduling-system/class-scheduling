@@ -337,7 +337,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
      *
      * @param userDO 包含要更新的用户信息的用户数据对象，包括用户UUID、用户名、电子邮件和电话号码
      */
-    public void updateUserProfile(UserDO userDO) {
+    public void updateUserProfile(UserDO userDO,UserDO oldUserDO) {
         // 创建Redis事务，用于管理缓存的删除操作
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
@@ -349,7 +349,7 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
                     .set(userDO.getPhone() != null, UserDO::getPhone, userDO.getPhone())
                     .update();
             // 删除用户Redis缓存，确保缓存数据与数据库同步
-            this.deleteUserRedis(userDO, transaction);
+            this.deleteUserRedis(oldUserDO, transaction);
         } catch (Exception e) {
             // 回滚事务，以应对任何在更新或删除缓存过程中发生的异常
             transaction.rollback();

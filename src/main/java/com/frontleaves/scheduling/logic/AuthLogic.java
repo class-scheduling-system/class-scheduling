@@ -525,8 +525,9 @@ public class AuthLogic implements AuthService {
      */
     @Override
     public BackProfileDTO profile(UserDO userDO) {
+        UserDO oldUser = userDAO.getUserByUuid(userDO.getUserUuid());
         // 更新用户资料
-        userDAO.updateUserProfile(userDO);
+        userDAO.updateUserProfile(userDO,oldUser);
         // 通过用户UUID获取最新的用户信息
         UserDO newUserDO = userDAO.getUserByUuid(userDO.getUserUuid());
         // 检查获取的用户信息是否为空，如果为空则抛出异常
