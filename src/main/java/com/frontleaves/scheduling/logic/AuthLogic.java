@@ -329,7 +329,7 @@ public class AuthLogic implements AuthService {
         //生成邮箱Token
         EmailVerificationTokenDTO tokenDTO = tokenDAO.createEmailToken(userDO);
         // 构造重置密码的URL
-        String url = env.getProperty("project.base-api") +
+        String url = "https://" + env.getProperty("project.base-api") +
                 env.getProperty("project.reset-password") + tokenDTO.getToken();
         // 异步发送邮件
         CompletableFuture.runAsync(() -> {
