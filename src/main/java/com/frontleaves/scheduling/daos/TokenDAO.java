@@ -349,7 +349,7 @@ public class TokenDAO {
      * @param userDO 用户实体对象
      * @return 验证令牌的创建时间，如果没有找到则返回0
      */
-    public long getEmailTokenCreatAt(UserDO userDO) {
+    public long getEmailTokenCreatedAt(UserDO userDO) {
         try {
             // 首先通过邮箱获取token
             RBucket<String> emailToTokenBucket = redisson.getBucket(

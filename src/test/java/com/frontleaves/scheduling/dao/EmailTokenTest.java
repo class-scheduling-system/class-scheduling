@@ -237,7 +237,7 @@ class EmailTokenTest {
 
         try {
             // 获取令牌创建时间
-            long createdAt = tokenDAO.getEmailTokenCreatAt(testUser);
+            long createdAt = tokenDAO.getEmailTokenCreatedAt(testUser);
 
             // 验证获取的创建时间与创建令牌时的时间相符
             Assertions.assertEquals(tokenDTO.getCreatedAt(), createdAt, 100,
@@ -245,7 +245,7 @@ class EmailTokenTest {
 
             // 测试不存在的令牌
             UserDO nonExistentUser = new UserDO().setEmail("non-existent@example.com");
-            Assertions.assertEquals(0, tokenDAO.getEmailTokenCreatAt(nonExistentUser),
+            Assertions.assertEquals(0, tokenDAO.getEmailTokenCreatedAt(nonExistentUser),
                     "对于不存在的令牌应返回0");
 
         } finally {
