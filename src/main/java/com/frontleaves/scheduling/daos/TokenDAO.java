@@ -319,7 +319,6 @@ public class TokenDAO {
                 throw new BusinessException(StringConstant.EMAIL_VERIFICATION_TOKEN_EXPIRED,
                         ErrorCode.SERVER_INTERNAL_ERROR);
             }
-            redisson.getKeys().delete(StringConstant.Redis.EMAIL_TO_TOKEN + tokenDTO.getEmail());
             // 返回用户UUID
             return tokenDTO.getUserUuid();
         } else {
@@ -339,8 +338,15 @@ public class TokenDAO {
      * @throws BusinessException 当删除操作失败时抛出的业务异常
      */
     public void deleteEmailToken(String token) throws BusinessException {
-        // 从Redis中删除指定的电子邮件验证令牌
-        redisson.getKeys().delete(StringConstant.Redis.EMAIL_TOKEN + token);
+        // 从Redis中获取与令牌关联的电子邮件验证信息
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.EMAIL_TOKEN + token);
+        if (map.isExists()) {
+            EmailVerificationTokenDTO tokenDTO = BeanUtil.toBean(map, EmailVerificationTokenDTO.class);
+            // 从Redis中删除与令牌关联的电子邮件验证信息
+            redisson.getKeys().delete(StringConstant.Redis.EMAIL_TO_TOKEN + tokenDTO.getEmail());
+            // 从Redis中删除指定的电子邮件验证令牌
+            redisson.getKeys().delete(StringConstant.Redis.EMAIL_TOKEN + token);
+        }
     }
 
     /**
