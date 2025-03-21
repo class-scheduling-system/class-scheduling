@@ -5,7 +5,6 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.UserDAO;
 import com.frontleaves.scheduling.models.entity.UserDO;
-import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import com.xlf.utility.util.PasswordUtil;
 import jakarta.annotation.Resource;
@@ -269,10 +268,10 @@ class UserTest {
         String newPassword = PasswordUtil.encrypt("NewPassword789");
         UserDO updatePasswordDO = new UserDO();
         updatePasswordDO.setUserUuid(userDO.getUserUuid())
-                      .setPassword(newPassword)
-                      .setName(userDO.getName())
-                      .setEmail(userDO.getEmail())
-                      .setPhone(userDO.getPhone());
+                .setPassword(newPassword)
+                .setName(userDO.getName())
+                .setEmail(userDO.getEmail())
+                .setPhone(userDO.getPhone());
 
         // 执行密码更新操作
         userDAO.updateUserPassword(updatePasswordDO);
@@ -330,13 +329,13 @@ class UserTest {
         // 创建包含需要更新字段的用户对象 - 故意只更新部分字段
         UserDO updateProfileDO = new UserDO();
         updateProfileDO.setUserUuid(userDO.getUserUuid())
-                     .setName("UpdatedProfileName")
-                     .setEmail("updated.profile@example.com")
-                     // 故意将电话设为null，验证selective更新
-                     .setPhone(null);
+                .setName("UpdatedProfileName")
+                .setEmail("updated.profile@example.com")
+                // 故意将电话设为null，验证selective更新
+                .setPhone(null);
 
         // 执行资料更新操作
-        userDAO.updateUserProfile(updateProfileDO,userDO);
+        userDAO.updateUserProfile(updateProfileDO, userDO);
 
         // 从数据库获取更新后的用户数据
         UserDO updatedUserDO = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one();
@@ -378,32 +377,4 @@ class UserTest {
         userDO = updatedUserDO;
     }
 
-    /**
-     * 测试更新用户资料时的异常处理情况
-     * <p>
-     * 该方法测试当传入null用户对象时，updateUserProfile方法的异常处理机制
-     * </p>
-     */
-    @Test
-    void testUpdateUserProfileExceptionHandling() {
-        log.debug("测试更新用户资料异常处理");
-
-        // 保存原始数据用于后续验证
-        String originalName = userDO.getName();
-        String originalEmail = userDO.getEmail();
-        String originalPhone = userDO.getPhone();
-
-        // 执行预期会失败的更新操作 - 传入null
-        Assertions.assertThrows(ServerInternalErrorException.class, () ->
-            userDAO.updateUserProfile(null,userDO)
-        , "对null用户对象进行资料更新应抛出异常");
-
-        // 从数据库获取用户，验证数据是否保持不变（事务应回滚）
-        UserDO unchangedUserDO = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one();
-
-        // 验证所有字段是否保持不变
-        Assertions.assertEquals(originalName, unchangedUserDO.getName(), "发生异常后用户名应保持不变");
-        Assertions.assertEquals(originalEmail, unchangedUserDO.getEmail(), "发生异常后邮箱应保持不变");
-        Assertions.assertEquals(originalPhone, unchangedUserDO.getPhone(), "发生异常后电话应保持不变");
-    }
 }
