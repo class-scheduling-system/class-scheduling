@@ -407,31 +407,34 @@ public class AuthLogic implements AuthService {
         }
     }
 
+
     /**
-     * 重置密码功能的实现方法
-     * 该方法用于验证用户提交的重置密码信息，包括token、新密码和确认密码
-     * 主要执行以下操作：
-     * 1. 校验新密码是否为空、是否与确认密码一致以及是否符合密码格式
-     * 2. 验证token的有效性，并根据token获取用户信息
-     * 3. 如果用户不存在，则抛出异常
-     *
-     * @param token           用户重置密码的令牌，用于验证用户身份
-     * @param newPassword     新密码，用户希望设置的新密码
-     * @return 返回用户对象，表示重置密码操作成功
-     * @throws BusinessException 如果密码为空、两次密码不一致、密码格式错误、token无效或用户不存在时，抛出此异常
+     * 重置密码前的验证方法
+     * 本方法主要用于验证用户提交的重置密码令牌(token)及新密码的合法性与正确性
+     * 它首先通过token验证用户的身份，然后检查新密码是否符合要求，以确保账户安全
+     * @param token 用户接收的重置密码邮件中的token，用于验证用户身份
+     * @param newPassword 用户设置的新密码，必须与旧密码不同
+     * @return 返回验证通过的用户信息对象UserDO，如果验证失败，则抛出异常
+     * @throws BusinessException 当用户不存在或新密码与旧密码相同时，抛出此异常
      */
     @Override
     public UserDO checkResetPassword(String token, @NotNull String newPassword) {
         //校验Token
         String uuid = tokenDAO.verifyEmailToken(token);
         tokenDAO.deleteEmailToken(token);
+
+        //根据UUID获取用户信息
         UserDO userDO = userDAO.getUserByUuid(uuid);
         if (userDO == null) {
             throw new BusinessException("用户不存在，意料之外的错误", ErrorCode.OPERATION_ERROR);
         }
+
+        //验证新密码是否与旧密码相同
         if(PasswordUtil.verify(newPassword,userDO.getPassword())){
             throw new BusinessException("新密码不能与旧密码相同",ErrorCode.BODY_ERROR);
         }
+
+        //验证通过，返回用户信息
         return userDO;
     }
 
