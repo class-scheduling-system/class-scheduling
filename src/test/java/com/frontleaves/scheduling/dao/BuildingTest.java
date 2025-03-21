@@ -30,7 +30,11 @@ package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.BuildingDAO;
+import com.frontleaves.scheduling.daos.CampusDAO;
+import com.frontleaves.scheduling.models.dto.BackAddBuildingDTO;
 import com.frontleaves.scheduling.models.entity.BuildingDO;
+import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -38,6 +42,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
@@ -57,6 +62,8 @@ class BuildingTest {
 
     @Resource
     private RedissonClient redisson;
+    @Autowired
+    private CampusDAO campusDAO;
 
     /**
      * 测试前清理相关缓存
@@ -181,5 +188,85 @@ class BuildingTest {
                 Assertions.assertEquals(firstCallResult.size(), secondCallResult.size(), "两次调用结果数量应当一致");
             }
         }
+    }
+
+    @Test
+    void testSaveBuildingBackError() {
+        // 创建一个新的建筑物对象
+        BuildingDO newBuilding = new BuildingDO();
+        newBuilding.setBuildingUuid(UuidUtil.generateUuidNoDash())
+                .setBuildingName("测试教学楼")
+                .setCampusUuid(campusDAO.lambdaQuery().list().get(0).getCampusUuid())
+                .setStatus(true);
+        buildingDAO.saveBuildingBackError(newBuilding, 1);
+        BuildingDO building = buildingDAO.lambdaQuery()
+                .eq(BuildingDO::getBuildingUuid, newBuilding.getBuildingUuid())
+                .one();
+        Assertions.assertNotNull(building);
+        buildingDAO.deleteBuilding(newBuilding);
+    }
+
+    @Test
+    void testSaveBuildingBackErrorWithError(){
+        BuildingDO buildingDO = new BuildingDO();
+        buildingDO.setBuildingUuid(UuidUtil.generateUuidNoDash())
+                  .setBuildingName("测试教学楼")
+                 .setCampusUuid(UuidUtil.generateUuidNoDash())
+                 .setStatus(true);
+        Assertions.assertThrows(BusinessException.class, () -> {
+            buildingDAO.saveBuildingBackError(buildingDO, 1);
+        }, "保存教学楼时应抛出异常·1");
+
+        buildingDO.setBuildingUuid(UuidUtil.generateUuidNoDash())
+                .setBuildingName("测试教学楼")
+                .setCampusUuid(campusDAO.lambdaQuery().list().get(0).getCampusUuid())
+                .setStatus(true);
+        Assertions.assertThrows(BusinessException.class, () -> {
+            buildingDAO.saveBuildingBackError(buildingDO, 1);
+            buildingDAO.saveBuildingBackError(buildingDO, 1);
+        }, "保存教学楼时应抛出异常·2");
+
+        buildingDO.setBuildingUuid(UuidUtil.generateUuidNoDash())
+                .setBuildingName(null)
+                .setCampusUuid(campusDAO.lambdaQuery().list().get(0).getCampusUuid())
+                .setStatus(true);
+        Assertions.assertThrows(BusinessException.class, () -> {
+            buildingDAO.saveBuildingBackError(buildingDO, 1);
+        }, "保存教学楼时应抛出异常");
+    }
+
+   @Test
+    void testSaveBuildingIgnoreError() {
+       // 创建一个新的建筑物对象
+       BuildingDO newBuilding = new BuildingDO();
+       newBuilding.setBuildingUuid(UuidUtil.generateUuidNoDash())
+               .setBuildingName("行政楼")
+               .setCampusUuid(campusDAO.lambdaQuery().list().get(0).getCampusUuid())
+               .setStatus(true);
+       List<BackAddBuildingDTO.FailedDetail> failedDetails = buildingDAO.saveBuildingIgnoreError(newBuilding, 1);
+       BuildingDO buildingDO = buildingDAO.lambdaQuery()
+               .eq(BuildingDO::getBuildingUuid, newBuilding.getBuildingUuid())
+               .one();
+       Assertions.assertTrue(failedDetails.isEmpty());
+         Assertions.assertNotNull(buildingDO);
+         buildingDAO.deleteBuilding(newBuilding);
+
+   }
+
+    @Test
+    void testSaveBuildingIgnoreError2() {
+        // 创建一个新的建筑物对象
+        BuildingDO newBuilding = new BuildingDO();
+        newBuilding.setBuildingUuid(UuidUtil.generateUuidNoDash())
+                .setBuildingName(null)
+                .setCampusUuid(campusDAO.lambdaQuery().list().get(0).getCampusUuid())
+                .setStatus(true);
+        List<BackAddBuildingDTO.FailedDetail> failedDetails = buildingDAO.saveBuildingIgnoreError(newBuilding, 1);
+        BuildingDO buildingDO = buildingDAO.lambdaQuery()
+                .eq(BuildingDO::getBuildingUuid, newBuilding.getBuildingUuid())
+                .one();
+        Assertions.assertFalse(failedDetails.isEmpty());
+        Assertions.assertNull(buildingDO);
+
     }
 }

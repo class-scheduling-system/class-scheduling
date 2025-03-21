@@ -304,6 +304,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> {
             // 分析数据完整性异常的具体原因
             String errorMessage = e.getMessage();
             String detailedReason = analyzeBuildingDataError(errorMessage);
+            log.error("数据完整性错误", e);
             throw new BusinessException("第" + (i + 3) + "行" + detailedReason, ErrorCode.BODY_ERROR);
         } catch (Exception e) {
             // 其他未预期的异常
@@ -354,8 +355,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> {
      */
     public List<BackAddBuildingDTO.FailedDetail> saveBuildingIgnoreError(BuildingDO buildingDO, int i) {
         try {
-            this.addBuilding(buildingDO);
-            // 成功时返回空列表
+            this.save(buildingDO);
             return Collections.emptyList();
         } catch (Exception e) {
             return Collections.singletonList(createBuildingFailedDetail(e, i));
