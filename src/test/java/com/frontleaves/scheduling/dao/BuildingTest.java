@@ -213,9 +213,7 @@ class BuildingTest {
                   .setBuildingName("测试教学楼")
                  .setCampusUuid(UuidUtil.generateUuidNoDash())
                  .setStatus(true);
-        Assertions.assertThrows(BusinessException.class, () -> {
-            buildingDAO.saveBuildingBackError(buildingDO, 1);
-        }, "保存教学楼时应抛出异常·1");
+        Assertions.assertThrows(BusinessException.class, () -> buildingDAO.saveBuildingBackError(buildingDO, 1), "保存教学楼时应抛出异常·1");
 
         buildingDO.setBuildingUuid(UuidUtil.generateUuidNoDash())
                 .setBuildingName("测试教学楼")
@@ -230,9 +228,7 @@ class BuildingTest {
                 .setBuildingName(null)
                 .setCampusUuid(campusDAO.lambdaQuery().list().get(0).getCampusUuid())
                 .setStatus(true);
-        Assertions.assertThrows(BusinessException.class, () -> {
-            buildingDAO.saveBuildingBackError(buildingDO, 1);
-        }, "保存教学楼时应抛出异常");
+        Assertions.assertThrows(BusinessException.class, () -> buildingDAO.saveBuildingBackError(buildingDO, 1), "保存教学楼时应抛出异常");
     }
 
    @Test
