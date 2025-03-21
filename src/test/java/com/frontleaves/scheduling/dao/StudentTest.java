@@ -3,6 +3,7 @@ package com.frontleaves.scheduling.dao;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.MajorDO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
@@ -24,6 +25,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Duration;
+import java.util.List;
 
 @Slf4j
 @SpringBootTest
@@ -211,5 +213,127 @@ class StudentTest {
         redisson.getBucket(StringConstant.Redis.STUDENT_USER_UUID + setUpStudent.getUserUuid()).delete();
         StudentDO studentByUserUuid1 = studentDAO.getStudentByUserUuid(setUpStudent.getUserUuid());
         Assertions.assertNotNull(studentByUserUuid1);
+    }
+    @Test
+    void testSaveStudentBackError (){
+        StudentDO studentDO =new StudentDO();
+        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
+                .setId("11564564564")
+                .setName("ZhangSan1314")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false);
+        studentDAO.saveStudentBackError(studentDO,1);
+        StudentDO studentDO1 = studentDAO.lambdaQuery()
+                .eq(StudentDO::getStudentUuid, studentDO.getStudentUuid()).one();
+        Assertions.assertNotNull(studentDO1);
+        studentDAO.deleteStudent(studentDO);
+    }
+
+    @Test
+    void testSaveStudentBackErrorWithError (){
+        StudentDO studentDO =new StudentDO();
+        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
+                .setId("1")
+                .setName("ZhangSan1314")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false);
+        Assertions.assertThrows(BusinessException.class,()->studentDAO.saveStudentBackError(studentDO,1));
+        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
+                .setId("123456789")
+                .setName(null)
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false);
+        Assertions.assertThrows(BusinessException.class,()->studentDAO.saveStudentBackError(studentDO,1));
+        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
+                .setId("123456789")
+                .setName("ZhangSan1314")
+                .setGender(true)
+                .setGradeUuid(UuidUtil.generateUuidNoDash())
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false);
+        Assertions.assertThrows(BusinessException.class,()->studentDAO.saveStudentBackError(studentDO,1));
+        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
+                .setId("123243232")
+                .setName("ZhangSan1314")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
+                .setDepartment(UuidUtil.generateUuidNoDash())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false);
+        Assertions.assertThrows(BusinessException.class,()->studentDAO.saveStudentBackError(studentDO,1));
+        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
+                .setId("12123312312321")
+                .setName("ZhangSan1314")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(UuidUtil.generateUuidNoDash())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false);
+        Assertions.assertThrows(BusinessException.class,()->studentDAO.saveStudentBackError(studentDO,1));
+        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
+                .setId("1312321321321")
+                .setName("ZhangSan1314")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz(UuidUtil.generateUuidNoDash())
+                .setGraduated(false);
+        Assertions.assertThrows(BusinessException.class,()->studentDAO.saveStudentBackError(studentDO,1));
+    }
+
+
+    @Test
+    void testSaveStudentIgnoreError (){
+        StudentDO studentDO =new StudentDO();
+        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
+                .setId("12312312312312")
+                .setName("ZhangSan1314")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false);
+        List<BackAddStudentDTO.FailedDetail>  failedDetailList = studentDAO.saveStudentIgnoreError(studentDO,1);
+        StudentDO studentDO1 = studentDAO.lambdaQuery()
+                .eq(StudentDO::getStudentUuid, studentDO.getStudentUuid()).one();
+        Assertions.assertTrue(failedDetailList.isEmpty());
+        Assertions.assertNotNull(studentDO1);
+        studentDAO.deleteStudent(studentDO);
+    }
+    @Test
+    void testSaveStudentIgnoreErrorWithFail (){
+        StudentDO studentDO =new StudentDO();
+        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
+                .setId("1")
+                .setName("ZhangSan1314")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false);
+        List<BackAddStudentDTO.FailedDetail>  failedDetailList = studentDAO.saveStudentIgnoreError(studentDO,1);
+        StudentDO studentDO1 = studentDAO.lambdaQuery()
+                .eq(StudentDO::getStudentUuid, studentDO.getStudentUuid()).one();
+        Assertions.assertFalse(failedDetailList.isEmpty());
+        Assertions.assertNull(studentDO1);
     }
 }
