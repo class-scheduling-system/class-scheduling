@@ -3,7 +3,7 @@ package com.frontleaves.scheduling.logic;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.UserLoginDTO;
+import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
@@ -11,12 +11,14 @@ import com.frontleaves.scheduling.services.AuthService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
+import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +44,8 @@ class AuthTest {
     private UserDAO userDAO;
     @Resource
     private AdministrativeClassDAO administrativeClassDAO;
+    @Autowired
+    private TokenDAO tokenDAO;
 
 
     /**
@@ -241,5 +245,151 @@ class AuthTest {
             redisson.getBucket(StringConstant.Redis.USER_MAIL + userDO.getEmail()).delete();
             redisson.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone()).delete();
         }
+    }
+
+    @Test
+    void testForgetPassword() {
+        log.debug("测试忘记密码");
+        String email = userDAO.lambdaQuery().list().get(0).getEmail();
+        ForgetPasswordResponseDTO forgetPasswordResponseDTO = authService.forgetPassword(email);
+        Assertions.assertNotNull(forgetPasswordResponseDTO);
+    }
+
+    @Test
+    void testForgetPasswordWihError() {
+        log.debug("测试忘记密码错误");
+        String email = "2903128990321@";
+        Assertions.assertThrows(BusinessException.class, () -> authService.forgetPassword(email));
+        String email1 = "asdhajihdkjashdkjas@qq.com";
+        Assertions.assertThrows(BusinessException.class, () -> authService.forgetPassword(email1));
+    }
+
+    private UserDO setUp() {
+        UserDO userDO = new UserDO();
+        userDO.setUserUuid(UuidUtil.generateUuidNoDash())
+                .setName("logicUserTest")
+                .setPassword(PasswordUtil.encrypt("123456Aa"))
+                .setEmail("logicAuthTest@test.com")
+                .setPhone("13800000000")
+                .setStatus((byte) 1)
+                .setBan(false)
+                .setPermission("[\"user:unit:department:tag:category:delete\"]")
+                .setRoleUuid(SystemConstant.getRoleAdmin());
+        if (userDAO.lambdaQuery().eq(UserDO::getName, userDO.getName()).one() != null) {
+            userDAO.lambdaUpdate().eq(UserDO::getName, userDO.getName()).remove();
+        }
+        userDAO.save(userDO);
+        return userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one();
+    }
+
+    private void tearDown(UserDO setUpUser) {
+        if (userDAO.lambdaQuery().eq(UserDO::getUserUuid, setUpUser.getUserUuid()).one() != null) {
+            userDAO.lambdaUpdate().eq(UserDO::getUserUuid, setUpUser.getUserUuid()).remove();
+        }
+        redisson.getMap(StringConstant.Redis.USER_UUID + setUpUser.getUserUuid()).delete();
+        redisson.getBucket(StringConstant.Redis.USER_NAME + setUpUser.getName()).delete();
+        redisson.getBucket(StringConstant.Redis.USER_MAIL + setUpUser.getEmail()).delete();
+        redisson.getBucket(StringConstant.Redis.USER_TEL + setUpUser.getPhone()).delete();
+    }
+
+    @Test
+    void testCheckResetPassword() {
+        log.debug("测试检查重置密码");
+        UserDO userDO = setUp();
+        EmailVerificationTokenDTO emailVerificationTokenDTO = tokenDAO.createEmailToken(userDO);
+        String token = emailVerificationTokenDTO.getToken();
+        UserDO backUserDO = authService.checkResetPassword(token, "654321Aa");
+        Assertions.assertNotNull(backUserDO);
+        tearDown(userDO);
+    }
+
+    @Test
+    void testCheckResetPasswordWithError() {
+        log.debug("测试检查重置密码报错");
+        Assertions.assertThrows(
+                BusinessException.class, () ->
+                        authService.checkResetPassword(
+                                "1213213145241453112", "654321Aa")
+        );
+    }
+
+    @Test
+    void testCheckProfile() {
+        log.debug("测试检查个人信息");
+        UserDO userDO = setUp();
+        TokenDTO tokenDTO = tokenDAO.createToken(userDO);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + tokenDTO.getToken());
+        UserDO backUserDO = authService.checkProfile("logicAuthTest", "logicAuthTest@test123.com"
+                , "13800000011", request);
+        Assertions.assertNotNull(backUserDO);
+        tearDown(userDO);
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.TOKEN + "*");
+    }
+
+    @Test
+    void testCheckProfileWithError() {
+        log.debug("测试检查个人信息报错");
+        UserDO userDO = setUp();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + UuidUtil.generateStringUuid());
+        Assertions.assertThrows(
+                UserAuthenticationException.class,
+                () -> authService.checkProfile("logicAuthTest", "logicAuthTest@test123.com"
+                        , "13800000011", request)
+        );
+        tearDown(userDO);
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.TOKEN + "*");
+    }
+
+    @Test
+    void testProfile() {
+        log.debug("测试个人信息更新");
+        UserDO userDO = setUp();
+        BackProfileDTO backProfileDTO = authService.profile(userDO);
+        Assertions.assertNotNull(backProfileDTO);
+        tearDown(userDO);
+    }
+
+
+    @Test
+    void testChangePassword() {
+        log.debug("测试修改密码");
+        UserDO userDO = setUp();
+        TokenDTO tokenDTO = tokenDAO.createToken(userDO);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + tokenDTO.getToken());
+        authService.changePassword("123456Aa", "654321Aa", request);
+        //检查密码是否更改成功
+        UserDO backUserDO = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one();
+        Assertions.assertNotNull(backUserDO);
+        Assertions.assertTrue(PasswordUtil.verify("654321Aa", backUserDO.getPassword()));
+        tearDown(userDO);
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.TOKEN + "*");
+    }
+
+    @Test
+    void testChangePasswordWithError() {
+        log.debug("测试修改密码报错");
+        UserDO userDO = setUp();
+        TokenDTO tokenDTO = tokenDAO.createToken(userDO);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + tokenDTO.getToken());
+        //当前密码错误
+        Assertions.assertThrows(
+                BusinessException.class,
+                () -> authService.changePassword("",
+                        "654321Aa", request)
+        );
+        MockHttpServletRequest request1 = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + UuidUtil.generateStringUuid());
+        //token错误
+        Assertions.assertThrows(
+                UserAuthenticationException.class,
+                () -> authService.changePassword("123456Aa",
+                        "654321Aa", request1)
+        );
+        tearDown(userDO);
+        redisson.getKeys().deleteByPattern(StringConstant.Redis.TOKEN + "*");
     }
 }
