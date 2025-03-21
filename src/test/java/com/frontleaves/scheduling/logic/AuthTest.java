@@ -378,7 +378,7 @@ class AuthTest {
         TokenDTO tokenDTO = tokenDAO.createToken(userDO);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer " + tokenDTO.getToken());
-        authService.changePassword("123456Aa", "654321Aa", "654321Aa", request);
+        authService.changePassword("123456Aa", "654321Aa", request);
         //检查密码是否更改成功
         UserDO backUserDO = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one();
         Assertions.assertNotNull(backUserDO);
@@ -394,42 +394,19 @@ class AuthTest {
         TokenDTO tokenDTO = tokenDAO.createToken(userDO);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer " + tokenDTO.getToken());
+        //当前密码错误
         Assertions.assertThrows(
                 BusinessException.class,
                 () -> authService.changePassword("",
-                        "654321Aa", "654321Aa", request)
-        );
-        Assertions.assertThrows(
-                BusinessException.class,
-                () -> authService.changePassword("123456Aa",
-                        "", "654321Aa", request)
-        );
-        Assertions.assertThrows(
-                BusinessException.class,
-                () -> authService.changePassword("123456Aa",
-                        "654321Aa", "", request)
-        );
-        Assertions.assertThrows(
-                BusinessException.class,
-                () -> authService.changePassword("123456Aa",
-                        "654321Aa", "654321A", request)
-        );
-        Assertions.assertThrows(
-                BusinessException.class,
-                () -> authService.changePassword("123456Aa",
-                        "654321", "654321", request)
-        );
-        Assertions.assertThrows(
-                BusinessException.class,
-                () -> authService.changePassword("123456",
-                        "654321Aa", "654321Aa", request)
+                        "654321Aa", request)
         );
         MockHttpServletRequest request1 = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer " + UuidUtil.generateStringUuid());
+        //token错误
         Assertions.assertThrows(
                 UserAuthenticationException.class,
                 () -> authService.changePassword("123456Aa",
-                        "654321Aa", "654321Aa", request1)
+                        "654321Aa", request1)
         );
         tearDown(userDO);
         redisson.getKeys().deleteByPattern(StringConstant.Redis.TOKEN + "*");

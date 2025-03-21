@@ -209,8 +209,22 @@ public class AuthController {
             @RequestParam (value = "confirm_password") String confirmPassword,
             HttpServletRequest request
     ){
+        // 校验密码是否符合要求
+        if (newPassword.isEmpty() || currentPassword.isEmpty() || confirmPassword.isEmpty()) {
+            throw new BusinessException("密码不能为空", ErrorCode.BODY_ERROR);
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            throw new BusinessException("两次密码不一致", ErrorCode.BODY_ERROR);
+        }
+        // 使用正则表达式校验密码
+        if (!newPassword.matches(StringConstant.Regular.PASSWORD_REGULAR_EXPRESSION)) {
+            throw new BusinessException("密码格式错误", ErrorCode.BODY_ERROR);
+        }
+        if (currentPassword.equals(newPassword)){
+            throw new BusinessException("新密码不能与当前密码相同", ErrorCode.BODY_ERROR);
+        }
         // 调用认证服务的修改密码方法，传入当前密码、新密码、确认密码和请求对象
-        authService.changePassword(currentPassword, newPassword, confirmPassword, request);
+        authService.changePassword(currentPassword, newPassword, request);
         // 使用ResultUtil工具类返回一个表示操作成功的响应实体
         return ResultUtil.success("密码修改成功");
     }

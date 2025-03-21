@@ -33,6 +33,7 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.CampusDAO;
 import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -115,22 +116,32 @@ class CampusTest {
 
     @Test
     void testDeleteCampus() {
-        // 1. 从数据库中获取一个 CampusDO 对象
-        CampusDO campusDO = campusDAO.lambdaQuery().list().get(0);
+        // 1.1 创建虚假校区数据
+        CampusDO fakeCampus = new CampusDO();
+        fakeCampus.setCampusUuid(UuidUtil.generateUuidNoDash()); // 生成32位UUID
+        fakeCampus.setCampusName("测试校区");
+        fakeCampus.setCampusCode("TEST_CAMPUS");
+        fakeCampus.setCampusDesc("这是一个测试校区");
+        fakeCampus.setCampusStatus(true); // 启用状态
+        fakeCampus.setCampusAddress("测试地址");
+        fakeCampus.setLatitude(30.1234567);
+        fakeCampus.setLongitude(120.1234567);
+
+        campusDAO.save(fakeCampus);
 
         // 2. 调用 deleteCampus 方法删除校园信息
-        campusDAO.deleteCampus(campusDO);
+        campusDAO.deleteCampus(fakeCampus);
 
         // 3. 验证数据库中是否已删除该校园信息
-        Assertions.assertNull(campusDAO.getById(campusDO.getCampusUuid()));
+        Assertions.assertNull(campusDAO.getById(fakeCampus.getCampusUuid()));
 
         // 4. 检查 Redis 缓存中的相关数据是否被删除
         RMap<String, String> rMap = redisson.getMap(
-                StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid());
+                StringConstant.Redis.CAMPUS_UUID + fakeCampus.getCampusUuid());
         RBucket<String> rBucket = redisson.getBucket(
-                StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode());
+                StringConstant.Redis.CAMPUS_CODE + fakeCampus.getCampusCode());
         RBucket<String> rBucket1 = redisson.getBucket(
-                StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
+                StringConstant.Redis.CAMPUS_NAME + fakeCampus.getCampusName());
         RList<ListOfCampusDTO> rList = redisson.getList(StringConstant.Redis.CAMPUS_LIST + "*");
         RMap<String, String> rPage = redisson.getMap(
                 StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");

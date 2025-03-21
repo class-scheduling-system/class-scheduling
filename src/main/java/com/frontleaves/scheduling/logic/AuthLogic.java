@@ -524,18 +524,7 @@ public class AuthLogic implements AuthService {
     @Override
     public void changePassword(
             @NotNull String currentPassword, @NotNull String newPassword,
-            @NotNull String confirmPassword, HttpServletRequest request) {
-        // 校验密码是否符合要求
-        if (newPassword.isEmpty() || currentPassword.isEmpty() || confirmPassword.isEmpty()) {
-            throw new BusinessException("密码不能为空", ErrorCode.BODY_ERROR);
-        }
-        if (!newPassword.equals(confirmPassword)) {
-            throw new BusinessException("两次密码不一致", ErrorCode.BODY_ERROR);
-        }
-        // 使用正则表达式校验密码
-        if (!newPassword.matches(StringConstant.Regular.PASSWORD_REGULAR_EXPRESSION)) {
-            throw new BusinessException("密码格式错误", ErrorCode.BODY_ERROR);
-        }
+            HttpServletRequest request) {
         // 获取当前用户信息
         UserDO userDO = userService.getUserByRequest(request);
         if (userDO == null) {

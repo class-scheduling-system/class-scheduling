@@ -150,12 +150,10 @@ public interface AuthService {
      * 修改密码
      * @param currentPassword 当前密码
      * @param newPassword 新密码
-     * @param confirmPassword 确认密码
      * @param request HTTP请求对象
      */
     void changePassword(
             String currentPassword,
             String newPassword,
-            String confirmPassword,
             HttpServletRequest request);
 }
