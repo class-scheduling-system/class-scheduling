@@ -30,7 +30,6 @@ package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.GradeMapper;
@@ -61,7 +60,7 @@ import java.util.List;
  */
 @Repository
 @RequiredArgsConstructor
-public class GradeDAO extends ServiceImpl<GradeMapper, GradeDO> implements IService<GradeDO> {
+public class GradeDAO extends ServiceImpl<GradeMapper, GradeDO> {
     private final RedissonClient redisson;
 
 

@@ -31,7 +31,6 @@ package com.frontleaves.scheduling.daos;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.PermissionMapper;
@@ -62,7 +61,7 @@ import java.util.List;
  */
 @Repository
 @RequiredArgsConstructor
-public class PermissionDAO extends ServiceImpl<PermissionMapper, PermissionDO> implements IService<PermissionDO> {
+public class PermissionDAO extends ServiceImpl<PermissionMapper, PermissionDO> {
 
     private final RedissonClient redisson;
 

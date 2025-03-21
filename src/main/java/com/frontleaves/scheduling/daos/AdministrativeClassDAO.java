@@ -29,7 +29,6 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.AdministrativeClassMapper;
@@ -60,8 +59,7 @@ import java.util.List;
  */
 @Repository
 @RequiredArgsConstructor
-public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMapper, AdministrativeClassDO>
-        implements IService<AdministrativeClassDO> {
+public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMapper, AdministrativeClassDO> {
 
     private final RedissonClient redisson;
 

@@ -132,11 +132,13 @@ class CampusTest {
         RBucket<String> rBucket1 = redisson.getBucket(
                 StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
         RList<ListOfCampusDTO> rList = redisson.getList(StringConstant.Redis.CAMPUS_LIST + "*");
-
+        RMap<String, String> rPage = redisson.getMap(
+                StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
         // 5. 断言 Redis 缓存中的数据不存在
         Assertions.assertFalse(rList.isExists());
         Assertions.assertFalse(rMap.isExists());
         Assertions.assertFalse(rBucket.isExists());
         Assertions.assertFalse(rBucket1.isExists());
+        Assertions.assertFalse(rPage.isExists());
     }
 }

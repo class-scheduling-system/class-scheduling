@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
 
@@ -14,6 +16,8 @@ import java.sql.Timestamp;
  */
 @Data
 @TableName("cs_unit_type")
+@NoArgsConstructor
+@Accessors(chain = true)
 public class UnitTypeDO  {
 
     /**

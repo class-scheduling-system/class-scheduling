@@ -60,6 +60,8 @@ public class StringConstant {
     public static final String DEPARTMENT_DELETE_FAILED = "删除部门失败";
     public static final String DEPARTMENT_NOT_EXIST = "部门不存在";
     public static final String DEPARTMENT_UUID_NOT_EMPTY = "部门主键不能为空";
+    public static final String UNIT_TYPE_NOT_FOUND = "未找到该单位办别";
+    public static final String UNIT_CATEGORY_NOT_FOUND = "未找到该单位类别";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -125,6 +127,11 @@ public class StringConstant {
         public static final String TEACHER_TYPE_UUID = "teacher:type:uuid:";
         public static final String TEACHER_TYPE_LIST = "teacher:type:list";
         public static final String TEACHER_TYPE_PAGE = "teacher:type:page:";
+        public static final String UNIT_TYPE_NAME = "unit:type:name:";
+        public static final String UNIT_TYPE_LIST = "unit:type:list";
+        public static final String UNIT_TYPE_PAGE_OF_LIST = "unit:type:page:";
+        public static final String UNIT_CATEGORY_LIST = "unit:cate:list";
+        public static final String UNIT_CATEGORY_PAGE = "unit:cate:page:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

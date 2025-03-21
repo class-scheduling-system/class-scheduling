@@ -4,7 +4,6 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.DepartmentMapper;
@@ -33,8 +32,7 @@ import java.util.List;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> implements
-        IService<DepartmentDO> {
+public class DepartmentDAO extends ServiceImpl<DepartmentMapper, DepartmentDO> {
 
     // Redis 缓存客户端
     private final RedissonClient redisson;

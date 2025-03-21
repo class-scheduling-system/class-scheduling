@@ -1,22 +1,39 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UnitCategoryMapper;
+import com.frontleaves.scheduling.models.dto.UnitCategoryLiteDTO;
 import com.frontleaves.scheduling.models.entity.UnitCategoryDO;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
+import com.xlf.utility.util.UuidUtil;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
 
+/**
+ * 单位类别数据访问对象
+ * <p>
+ * 该类实现了对单位类别数据的增删改查操作，并提供了通过单位类别UUID和名称获取单位类别信息的方法。
+ * 同时，利用Redis进行数据缓存，以提高查询效率。
+ * </p>
+ *
+ * @author xiao_lfeng
+ * @version v1.0.0
+ */
 @Repository
 @RequiredArgsConstructor
-public class UnitCategoryDAO extends ServiceImpl<UnitCategoryMapper, UnitCategoryDO> implements IService<UnitCategoryDO> {
+public class UnitCategoryDAO extends ServiceImpl<UnitCategoryMapper, UnitCategoryDO> {
 
     // Redis 缓存客户端
     private final RedissonClient redisson;
@@ -75,7 +92,9 @@ public class UnitCategoryDAO extends ServiceImpl<UnitCategoryMapper, UnitCategor
                     map.putAll(ConvertUtil.convertObjectToMapString(unitCategoryDO));
                     map.expire(Duration.ofSeconds(86400));
                     transaction.commit();
+                    return unitCategoryDO;
                 }
+                transaction.commit();
             } else {
                 // 如果Redis中存在，直接返回单位类别信息
                 return this.getUnitCategoryByUuid(getCategoryUuid.get());
@@ -86,5 +105,134 @@ public class UnitCategoryDAO extends ServiceImpl<UnitCategoryMapper, UnitCategor
             transaction.rollback();
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
+    }
+
+    /**
+     * 根据单位类别名称获取单位类别，排除指定的UUID
+     * <p>
+     * 该方法用于检查更新单位类别时名称是否与其他单位类别重复
+     * </p>
+     *
+     * @param name 单位类别名称
+     * @param uuid 要排除的UUID
+     * @return 单位类别对象，如果找不到则返回null
+     */
+    public UnitCategoryDO getUnitCategoryByNameExceptUuid(String name, String uuid) {
+        return this.lambdaQuery()
+                .eq(UnitCategoryDO::getName, name)
+                .ne(UnitCategoryDO::getUnitCategoryUuid, uuid)
+                .one();
+    }
+
+    /**
+     * 删除单位类别相关缓存
+     * <p>
+     * 该方法在删除或更新单位类别信息时，清除相关的Redis缓存
+     * </p>
+     *
+     * @param unitCategoryDO 单位类别DO
+     */
+    public void deleteUnitCategoryCache(UnitCategoryDO unitCategoryDO) {
+        RKeys keys = redisson.getKeys();
+        // 删除通过UUID存储的缓存
+        keys.delete(StringConstant.Redis.UNIT_CATEGORY_UUID + unitCategoryDO.getUnitCategoryUuid());
+        // 删除通过名称存储的缓存
+        keys.delete(StringConstant.Redis.UNIT_CATEGORY_NAME + unitCategoryDO.getName());
+        // 删除单位类别列表缓存
+        keys.delete(StringConstant.Redis.UNIT_CATEGORY_LIST);
+        // 删除单位类别分页缓存
+        keys.deleteByPattern(StringConstant.Redis.UNIT_CATEGORY_PAGE + "*");
+    }
+
+    /**
+     * 获取单位类别分页数据
+     * <p>
+     * 该方法根据给定的分页参数和查询条件，获取单位类别的分页数据
+     * </p>
+     *
+     * @param pageNum  页码
+     * @param pageSize 每页大小
+     * @param isDesc   是否降序
+     * @param keyword  关键词
+     * @return 分页数据
+     */
+    public Page<UnitCategoryDO> getPageOfUnitCategory(Integer pageNum, Integer pageSize, Boolean isDesc, String keyword) {
+        String cacheKey = StringConstant.Redis.UNIT_CATEGORY_PAGE + pageNum + ":" + pageSize + ":" + isDesc + ":" + keyword;
+        RMap<String, String> map = redisson.getMap(cacheKey);
+
+        if (!map.isExists()) {
+            LambdaQueryChainWrapper<UnitCategoryDO> queryWrapper = this.lambdaQuery();
+
+            // 添加关键词搜索条件
+            if (keyword != null && !keyword.isBlank()) {
+                queryWrapper.like(UnitCategoryDO::getName, keyword)
+                        .or(i -> i.like(UnitCategoryDO::getEnglishName, keyword))
+                        .or(i -> i.like(UnitCategoryDO::getShortName, keyword));
+            }
+
+            // 添加排序
+            queryWrapper.orderBy(true, isDesc, UnitCategoryDO::getCreatedAt);
+
+            return ProjectUtil.queryAndCache(queryWrapper, pageNum, pageSize, map);
+        } else {
+            return ProjectUtil.convertMapToPage(map, UnitCategoryDO.class);
+        }
+    }
+
+    /**
+     * 获取单位类别列表
+     * <p>
+     * 该方法用于获取所有单位类别的精简列表信息，优先从缓存获取
+     * </p>
+     *
+     * @return 单位类别列表
+     */
+    public List<UnitCategoryLiteDTO> getUnitCategoryList() {
+        RList<UnitCategoryLiteDTO> categoryList = redisson.getList(StringConstant.Redis.UNIT_CATEGORY_LIST);
+
+        if (!categoryList.isExists()) {
+            this.lambdaQuery()
+                    .orderByAsc(UnitCategoryDO::getOrder)
+                    .list()
+                    .stream()
+                    .map(unitCategoryDO -> {
+                        UnitCategoryLiteDTO dto = new UnitCategoryLiteDTO();
+                        dto.setUnitCategoryUuid(unitCategoryDO.getUnitCategoryUuid());
+                        dto.setName(unitCategoryDO.getName());
+                        dto.setShortName(unitCategoryDO.getShortName());
+                        dto.setOrder(unitCategoryDO.getOrder());
+                        dto.setIsEntity(unitCategoryDO.getIsEntity());
+                        return dto;
+                    })
+                    .forEach(categoryList::add);
+            categoryList.expire(Duration.ofSeconds(86400));
+
+            return categoryList.readAll();
+        }
+
+        return categoryList.readAll();
+    }
+
+    public UnitCategoryDO updateUnitCategory(UnitCategoryDO unitCategoryDO) {
+        this.deleteUnitCategoryCache(unitCategoryDO);
+        if (!this.updateById(unitCategoryDO)) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+        return this.getUnitCategoryByUuid(unitCategoryDO.getUnitCategoryUuid());
+    }
+
+    public UnitCategoryDO saveUnitCategory(@NotNull UnitCategoryDO unitCategoryDO) {
+        Optional.ofNullable(redisson.getKeys())
+                .ifPresent(keys -> {
+                    keys.delete(StringConstant.Redis.UNIT_CATEGORY_LIST);
+                    keys.deleteByPattern(StringConstant.Redis.UNIT_CATEGORY_PAGE + "*");
+                });
+        String newNoDashUuid = UuidUtil.generateUuidNoDash();
+        unitCategoryDO.setUnitCategoryUuid(newNoDashUuid);
+        if (!this.save(unitCategoryDO)) {
+            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+        }
+
+        return this.getUnitCategoryByUuid(newNoDashUuid);
     }
 }
