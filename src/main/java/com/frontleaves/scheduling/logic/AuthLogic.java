@@ -223,7 +223,7 @@ public class AuthLogic implements AuthService {
      */
     private void checkEmailSendFrequency(UserDO userDO) {
         // 从DAO层获取邮件验证令牌的创建时间
-        long lastSendTime = tokenDAO.getEmailTokenCreatAt(userDO);
+        long lastSendTime = tokenDAO.getEmailTokenCreatedAt(userDO);
         // 如果存在上次发送记录
         if (lastSendTime > 0) {
             long currentTime = System.currentTimeMillis();
@@ -417,29 +417,20 @@ public class AuthLogic implements AuthService {
      *
      * @param token           用户重置密码的令牌，用于验证用户身份
      * @param newPassword     新密码，用户希望设置的新密码
-     * @param confirmPassword 确认新密码，确保用户两次输入的密码一致
      * @return 返回用户对象，表示重置密码操作成功
      * @throws BusinessException 如果密码为空、两次密码不一致、密码格式错误、token无效或用户不存在时，抛出此异常
      */
     @Override
-    public UserDO checkResetPassword(String token, @NotNull String newPassword, @NotNull String confirmPassword) {
-        // 校验密码是否符合要求
-        if (newPassword.isEmpty()) {
-            throw new BusinessException("密码不能为空", ErrorCode.BODY_ERROR);
-        }
-        if (!newPassword.equals(confirmPassword)) {
-            throw new BusinessException("两次密码不一致", ErrorCode.BODY_ERROR);
-        }
-        // 使用正则表达式校验密码
-        if (!newPassword.matches(StringConstant.Regular.PASSWORD_REGULAR_EXPRESSION)) {
-            throw new BusinessException("密码格式错误", ErrorCode.BODY_ERROR);
-        }
+    public UserDO checkResetPassword(String token, @NotNull String newPassword) {
         //校验Token
         String uuid = tokenDAO.verifyEmailToken(token);
         tokenDAO.deleteEmailToken(token);
         UserDO userDO = userDAO.getUserByUuid(uuid);
         if (userDO == null) {
             throw new BusinessException("用户不存在，意料之外的错误", ErrorCode.OPERATION_ERROR);
+        }
+        if(PasswordUtil.verify(newPassword,userDO.getPassword())){
+            throw new BusinessException("新密码不能与旧密码相同",ErrorCode.BODY_ERROR);
         }
         return userDO;
     }
@@ -480,36 +471,28 @@ public class AuthLogic implements AuthService {
         if (userDO == null) {
             throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
         }
-        // 处理名称字段 - 即使是null也会设置
         Optional.ofNullable(name)
-                .ifPresent(n -> {
-                    // 验证用户名格式，如果不符合，抛出业务异常
-                    if (!n.matches(StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION)) {
-                        throw new BusinessException("用户名格式错误", ErrorCode.BODY_ERROR);
-                    }
-                });
-        // 更新用户姓名
-        userDO.setName(name);
-        // 处理邮箱字段 - 即使是null也会设置
+                .filter(n -> n.matches(StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION))
+                .ifPresentOrElse(
+                        // 如果格式正确，设置用户名
+                        userDO::setName,
+                        // 如果格式错误，抛出异常
+                        () -> { throw new BusinessException("用户名格式错误", ErrorCode.BODY_ERROR); }
+                );
+        // 处理邮箱字段
         Optional.ofNullable(email)
-                .ifPresent(e -> {
-                    // 验证邮箱格式，如果不符合，抛出业务异常
-                    if (!e.matches(StringConstant.Regular.EMAIL_REGULAR_EXPRESSION)) {
-                        throw new BusinessException("邮箱格式错误", ErrorCode.BODY_ERROR);
-                    }
-                });
-        // 更新用户邮箱
-        userDO.setEmail(email);
-        // 处理电话字段 - 即使是null也会设置
+                .filter(e -> e.matches(StringConstant.Regular.EMAIL_REGULAR_EXPRESSION))
+                .ifPresentOrElse(
+                        userDO::setEmail,
+                        () -> { throw new BusinessException("邮箱格式错误", ErrorCode.BODY_ERROR); }
+                );
+        // 处理电话字段
         Optional.ofNullable(phone)
-                .ifPresent(p -> {
-                    // 验证电话号码格式，如果不符合，抛出业务异常
-                    if (!p.matches(StringConstant.Regular.PHONE_REGULAR_EXPRESSION)) {
-                        throw new BusinessException("手机号格式错误", ErrorCode.BODY_ERROR);
-                    }
-                });
-        // 更新用户电话号码
-        userDO.setPhone(phone);
+                .filter(p -> p.matches(StringConstant.Regular.PHONE_REGULAR_EXPRESSION))
+                .ifPresentOrElse(
+                        userDO::setPhone,
+                        () -> { throw new BusinessException("手机号格式错误", ErrorCode.BODY_ERROR); }
+                );
         // 返回更新后的用户信息
         return userDO;
     }

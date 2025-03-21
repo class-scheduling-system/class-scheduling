@@ -111,13 +111,11 @@ public interface AuthService {
      * 检查重置密码
      * @param token 令牌
      * @param newPassword 新密码
-     * @param confirmPassword 确认密码
      * @return 用户数据对象
      */
     UserDO checkResetPassword(
             String token,
-            String newPassword,
-            String confirmPassword);
+            String newPassword);
 
     /**
      * 重置密码

@@ -298,7 +298,7 @@ class AuthTest {
         UserDO userDO = setUp();
         EmailVerificationTokenDTO emailVerificationTokenDTO = tokenDAO.createEmailToken(userDO);
         String token = emailVerificationTokenDTO.getToken();
-        UserDO backUserDO = authService.checkResetPassword(token, "654321Aa", "654321Aa");
+        UserDO backUserDO = authService.checkResetPassword(token, "654321Aa");
         Assertions.assertNotNull(backUserDO);
         tearDown(userDO);
     }
@@ -309,15 +309,7 @@ class AuthTest {
         Assertions.assertThrows(
                 BusinessException.class, () ->
                         authService.checkResetPassword(
-                                "1213213145241453112", "", "654321Aa")
-        );
-        Assertions.assertThrows(BusinessException.class, () ->
-                authService.checkResetPassword(
-                        "1213213145241453112", "654321Aa", "654321")
-        );
-        Assertions.assertThrows(BusinessException.class, () ->
-                authService.checkResetPassword(
-                        "1213213145241453112", "654321AA", "654321AA")
+                                "1213213145241453112", "654321Aa")
         );
     }
 

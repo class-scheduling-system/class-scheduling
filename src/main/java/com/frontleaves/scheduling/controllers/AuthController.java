@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.BackProfileDTO;
 import com.frontleaves.scheduling.models.dto.ForgetPasswordResponseDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
@@ -36,7 +37,9 @@ import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.AuthService;
 import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
+import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -149,7 +152,18 @@ public class AuthController {
             @RequestParam (value = "new_password")String newPassword,
             @RequestParam (value = "confirm_password")String confirmPassword
     ) {
-        UserDO userDO = authService.checkResetPassword(token, newPassword, confirmPassword);
+        // 校验密码是否符合要求
+        if (newPassword.isEmpty()) {
+            throw new BusinessException("密码不能为空", ErrorCode.BODY_ERROR);
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            throw new BusinessException("两次密码不一致", ErrorCode.BODY_ERROR);
+        }
+        // 使用正则表达式校验密码
+        if (!newPassword.matches(StringConstant.Regular.PASSWORD_REGULAR_EXPRESSION)) {
+            throw new BusinessException("密码格式错误", ErrorCode.BODY_ERROR);
+        }
+        UserDO userDO = authService.checkResetPassword(token, newPassword);
         authService.resetPassword(userDO, newPassword);
         return ResultUtil.success("密码重置成功");
     }
