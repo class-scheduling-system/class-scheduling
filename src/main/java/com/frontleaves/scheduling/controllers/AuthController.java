@@ -183,6 +183,16 @@ public class AuthController {
             @RequestParam (required = false) String phone,
             HttpServletRequest request
     ){
+        //检查格式是否正确
+        if (name != null && !name.matches(StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION)) {
+            throw new BusinessException("用户名格式错误", ErrorCode.BODY_ERROR);
+        }
+        if (email != null && !email.matches(StringConstant.Regular.EMAIL_REGULAR_EXPRESSION)) {
+            throw new BusinessException("邮箱格式错误", ErrorCode.BODY_ERROR);
+        }
+        if (phone != null && !phone.matches(StringConstant.Regular.PHONE_REGULAR_EXPRESSION)) {
+            throw new BusinessException("手机号格式错误", ErrorCode.BODY_ERROR);
+        }
         //检查修改内容是否合规
         UserDO userDO = authService.checkProfile(name, email, phone,request);
         BackProfileDTO backProfileDTO = authService.profile(userDO);

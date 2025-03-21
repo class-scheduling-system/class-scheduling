@@ -338,25 +338,6 @@ class AuthTest {
                 () -> authService.checkProfile("logicAuthTest", "logicAuthTest@test123.com"
                         , "13800000011", request)
         );
-        redisson.getKeys().deleteByPattern(StringConstant.Redis.TOKEN + "*");
-        TokenDTO tokenDTO = tokenDAO.createToken(userDO);
-        MockHttpServletRequest request1 = new MockHttpServletRequest();
-        request1.addHeader("Authorization", "Bearer " + tokenDTO.getToken());
-        Assertions.assertThrows(
-                BusinessException.class,
-                () -> authService.checkProfile(
-                        "123", "logicAuthTest@test123.com", "13800000011", request1)
-        );
-        Assertions.assertThrows(
-                BusinessException.class,
-                () -> authService.checkProfile("logicAuthTest", "logicAuthTest@"
-                        , "13800000011", request1)
-        );
-        Assertions.assertThrows(
-                BusinessException.class,
-                () -> authService.checkProfile("logicAuthTest", "logicAuthTest@test123.com"
-                        , "1380", request1)
-        );
         tearDown(userDO);
         redisson.getKeys().deleteByPattern(StringConstant.Redis.TOKEN + "*");
     }

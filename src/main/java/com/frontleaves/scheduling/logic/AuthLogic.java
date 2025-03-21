@@ -61,7 +61,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -412,7 +411,8 @@ public class AuthLogic implements AuthService {
      * 重置密码前的验证方法
      * 本方法主要用于验证用户提交的重置密码令牌(token)及新密码的合法性与正确性
      * 它首先通过token验证用户的身份，然后检查新密码是否符合要求，以确保账户安全
-     * @param token 用户接收的重置密码邮件中的token，用于验证用户身份
+     *
+     * @param token       用户接收的重置密码邮件中的token，用于验证用户身份
      * @param newPassword 用户设置的新密码，必须与旧密码不同
      * @return 返回验证通过的用户信息对象UserDO，如果验证失败，则抛出异常
      * @throws BusinessException 当用户不存在或新密码与旧密码相同时，抛出此异常
@@ -430,8 +430,8 @@ public class AuthLogic implements AuthService {
         }
 
         //验证新密码是否与旧密码相同
-        if(PasswordUtil.verify(newPassword,userDO.getPassword())){
-            throw new BusinessException("新密码不能与旧密码相同",ErrorCode.BODY_ERROR);
+        if (PasswordUtil.verify(newPassword, userDO.getPassword())) {
+            throw new BusinessException("新密码不能与旧密码相同", ErrorCode.BODY_ERROR);
         }
 
         //验证通过，返回用户信息
@@ -474,28 +474,11 @@ public class AuthLogic implements AuthService {
         if (userDO == null) {
             throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
         }
-        Optional.ofNullable(name)
-                .filter(n -> n.matches(StringConstant.Regular.USER_NAME_REGULAR_EXPRESSION))
-                .ifPresentOrElse(
-                        // 如果格式正确，设置用户名
-                        userDO::setName,
-                        // 如果格式错误，抛出异常
-                        () -> { throw new BusinessException("用户名格式错误", ErrorCode.BODY_ERROR); }
-                );
-        // 处理邮箱字段
-        Optional.ofNullable(email)
-                .filter(e -> e.matches(StringConstant.Regular.EMAIL_REGULAR_EXPRESSION))
-                .ifPresentOrElse(
-                        userDO::setEmail,
-                        () -> { throw new BusinessException("邮箱格式错误", ErrorCode.BODY_ERROR); }
-                );
-        // 处理电话字段
-        Optional.ofNullable(phone)
-                .filter(p -> p.matches(StringConstant.Regular.PHONE_REGULAR_EXPRESSION))
-                .ifPresentOrElse(
-                        userDO::setPhone,
-                        () -> { throw new BusinessException("手机号格式错误", ErrorCode.BODY_ERROR); }
-                );
+        //控制层已经判断，不为空不为空字符串
+        //如果为空则为null，后面的update会判断空值更新
+        userDO.setName(name)
+                .setEmail(email)
+                .setPhone(phone);
         // 返回更新后的用户信息
         return userDO;
     }
@@ -513,10 +496,10 @@ public class AuthLogic implements AuthService {
     public BackProfileDTO profile(UserDO userDO) {
         UserDO oldUser = userDAO.getUserByUuid(userDO.getUserUuid());
         // 更新用户资料
-        userDAO.updateUserProfile(userDO,oldUser);
+        userDAO.updateUserProfile(userDO, oldUser);
         // 通过用户UUID获取最新的用户信息
         UserDO newUserDO = userDAO.getUserByUuid(userDO.getUserUuid());
-        assert newUserDO !=null;
+        assert newUserDO != null;
         // 将获取的用户信息转换为DTO对象并返回
         return BeanUtil.toBean(newUserDO, BackProfileDTO.class);
     }
