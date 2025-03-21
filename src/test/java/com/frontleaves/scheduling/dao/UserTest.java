@@ -244,5 +244,137 @@ class UserTest {
                     "数据应该按降序排列，当前数据顺序错误");
         }
     }
-}
 
+    /**
+     * 测试更新用户密码功能
+     * <p>
+     * 该方法测试 UserDAO 中的 updateUserPassword 方法，验证以下功能：
+     * 1. 密码是否成功更新到数据库
+     * 2. Redis 缓存是否被正确清除以保持数据一致性
+     * </p>
+     */
+    @Test
+    void testUpdateUserPassword() {
+        log.debug("测试更新用户密码");
+
+        // 验证初始缓存状态
+        RMap<String, String> userUuidMap = redisson.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+        Assertions.assertTrue(userUuidMap.isExists(), "测试前用户UUID缓存应该存在");
+
+        // 保存原始密码以便验证
+        String originalPassword = userDO.getPassword();
+
+        // 创建包含新密码的用户对象
+        String newPassword = PasswordUtil.encrypt("NewPassword789");
+        UserDO updatePasswordDO = new UserDO();
+        updatePasswordDO.setUserUuid(userDO.getUserUuid())
+                .setPassword(newPassword)
+                .setName(userDO.getName())
+                .setEmail(userDO.getEmail())
+                .setPhone(userDO.getPhone());
+
+        // 执行密码更新操作
+        userDAO.updateUserPassword(updatePasswordDO);
+
+        // 从数据库获取更新后的用户数据
+        UserDO updatedUserDO = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one();
+
+        // 验证密码是否已更新
+        Assertions.assertNotNull(updatedUserDO, "更新后应能从数据库获取用户");
+        Assertions.assertNotEquals(originalPassword, updatedUserDO.getPassword(), "密码应该已被更改");
+        Assertions.assertEquals(newPassword, updatedUserDO.getPassword(), "新密码应该已正确保存");
+
+        // 验证其他字段没有被修改
+        Assertions.assertEquals(userDO.getName(), updatedUserDO.getName(), "用户名不应被修改");
+        Assertions.assertEquals(userDO.getEmail(), updatedUserDO.getEmail(), "邮箱不应被修改");
+        Assertions.assertEquals(userDO.getPhone(), updatedUserDO.getPhone(), "电话不应被修改");
+
+        // 验证Redis缓存是否已被清除
+        userUuidMap = redisson.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+        RBucket<String> userNameBucket = redisson.getBucket(StringConstant.Redis.USER_NAME + userDO.getName());
+        RBucket<String> userMailBucket = redisson.getBucket(StringConstant.Redis.USER_MAIL + userDO.getEmail());
+        RBucket<String> userTelBucket = redisson.getBucket(StringConstant.Redis.USER_TEL + userDO.getPhone());
+
+        // 检查所有缓存是否已被删除
+        Assertions.assertFalse(userUuidMap.isExists(), "更新密码后用户UUID缓存应被删除");
+        Assertions.assertFalse(userNameBucket.isExists(), "更新密码后用户名缓存应被删除");
+        Assertions.assertFalse(userMailBucket.isExists(), "更新密码后用户邮箱缓存应被删除");
+        Assertions.assertFalse(userTelBucket.isExists(), "更新密码后用户电话缓存应被删除");
+
+        // 更新用户对象以反映数据库中的新状态（为了tearDown正常工作）
+        userDO = updatedUserDO;
+    }
+
+    /**
+     * 测试更新用户资料功能
+     * <p>
+     * 该方法测试 UserDAO 中的 updateUserProfile 方法，验证以下功能：
+     * 1. 只有非null字段被更新到数据库
+     * 2. Redis 缓存是否被正确清除以保持数据一致性
+     * </p>
+     */
+    @Test
+    void testUpdateUserProfile() {
+        log.debug("测试更新用户资料");
+
+        // 验证初始缓存状态
+        RMap<String, String> userUuidMap = redisson.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+        Assertions.assertTrue(userUuidMap.isExists(), "测试前用户UUID缓存应该存在");
+
+        // 保存原始数据以便验证
+        String originalName = userDO.getName();
+        String originalEmail = userDO.getEmail();
+        String originalPhone = userDO.getPhone();
+
+        // 创建包含需要更新字段的用户对象 - 故意只更新部分字段
+        UserDO updateProfileDO = new UserDO();
+        updateProfileDO.setUserUuid(userDO.getUserUuid())
+                .setName("UpdatedProfileName")
+                .setEmail("updated.profile@example.com")
+                // 故意将电话设为null，验证selective更新
+                .setPhone(null);
+
+        // 执行资料更新操作
+        userDAO.updateUserProfile(updateProfileDO, userDO);
+
+        // 从数据库获取更新后的用户数据
+        UserDO updatedUserDO = userDAO.lambdaQuery().eq(UserDO::getUserUuid, userDO.getUserUuid()).one();
+
+        // 验证资料是否已正确更新
+        Assertions.assertNotNull(updatedUserDO, "更新后应能从数据库获取用户");
+
+        // 验证已提供值的字段是否已更新
+        Assertions.assertNotEquals(originalName, updatedUserDO.getName(), "用户名应该已被更改");
+        Assertions.assertEquals(updateProfileDO.getName(), updatedUserDO.getName(), "新用户名应该已正确保存");
+
+        Assertions.assertNotEquals(originalEmail, updatedUserDO.getEmail(), "邮箱应该已被更改");
+        Assertions.assertEquals(updateProfileDO.getEmail(), updatedUserDO.getEmail(), "新邮箱应该已正确保存");
+
+        // 验证未提供值的字段是否保持不变（因为是null）
+        Assertions.assertEquals(originalPhone, updatedUserDO.getPhone(), "未提供值的电话号码不应被更新为null");
+
+        // 验证密码等其他字段没有被修改
+        Assertions.assertEquals(userDO.getPassword(), updatedUserDO.getPassword(), "密码不应被修改");
+        Assertions.assertEquals(userDO.getStatus(), updatedUserDO.getStatus(), "状态不应被修改");
+
+        // 验证Redis缓存是否已被清除
+        userUuidMap = redisson.getMap(StringConstant.Redis.USER_UUID + userDO.getUserUuid());
+        RBucket<String> oldUserNameBucket = redisson.getBucket(StringConstant.Redis.USER_NAME + originalName);
+        RBucket<String> newUserNameBucket = redisson.getBucket(StringConstant.Redis.USER_NAME + updateProfileDO.getName());
+        RBucket<String> oldUserMailBucket = redisson.getBucket(StringConstant.Redis.USER_MAIL + originalEmail);
+        RBucket<String> newUserMailBucket = redisson.getBucket(StringConstant.Redis.USER_MAIL + updateProfileDO.getEmail());
+        RBucket<String> userTelBucket = redisson.getBucket(StringConstant.Redis.USER_TEL + originalPhone);
+
+        // 检查所有缓存是否已被删除
+        Assertions.assertFalse(userUuidMap.isExists(), "更新资料后用户UUID缓存应被删除");
+        Assertions.assertFalse(oldUserNameBucket.isExists(), "更新资料后原用户名缓存应被删除");
+        Assertions.assertFalse(newUserNameBucket.isExists(), "更新后的用户名不应有缓存");
+        Assertions.assertFalse(oldUserMailBucket.isExists(), "更新资料后原邮箱缓存应被删除");
+        Assertions.assertFalse(newUserMailBucket.isExists(), "更新后的邮箱不应有缓存");
+        Assertions.assertFalse(userTelBucket.isExists(), "更新资料后用户电话缓存应被删除");
+
+        // 更新用户对象以反映数据库中的新状态（为了tearDown正常工作）
+        userDO = updatedUserDO;
+    }
+
+}

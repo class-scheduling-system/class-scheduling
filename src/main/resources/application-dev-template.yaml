@@ -22,3 +22,6 @@ xutil:
     password: ""
     nickname: "ClassScheduling"
     port: 25
+project:
+  base-api: "http://localhost:5173/"
+  reset-password: "reset-password/"
