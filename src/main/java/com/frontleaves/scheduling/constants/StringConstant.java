@@ -60,6 +60,9 @@ public class StringConstant {
     public static final String DEPARTMENT_DELETE_FAILED = "删除部门失败";
     public static final String DEPARTMENT_NOT_EXIST = "部门不存在";
     public static final String DEPARTMENT_UUID_NOT_EMPTY = "部门主键不能为空";
+    public static final String EMAIL_VERIFICATION_TOKEN_EXPIRED = "邮箱验证令牌已过期";
+    public static final String EMAIL_VERIFICATION_TOKEN_INVALID = "邮箱验证令牌无效";
+    public static final String EMAIL_VERIFICATION_TOKEN_MISMATCH = "邮箱地址与验证令牌不匹配";
     public static final String UNIT_TYPE_NOT_FOUND = "未找到该单位办别";
     public static final String UNIT_CATEGORY_NOT_FOUND = "未找到该单位类别";
     public static final String STUDENT_NOT_EXIST = "学生不存在";
@@ -131,6 +134,8 @@ public class StringConstant {
         public static final String TEACHER_TYPE_UUID = "teacher:type:uuid:";
         public static final String TEACHER_TYPE_LIST = "teacher:type:list";
         public static final String TEACHER_TYPE_PAGE = "teacher:type:page:";
+        public static final String EMAIL_TOKEN = "email:token:";
+        public static final String EMAIL_TO_TOKEN = "email:to:token:";
         public static final String UNIT_TYPE_NAME = "unit:type:name:";
         public static final String UNIT_TYPE_LIST = "unit:type:list";
         public static final String UNIT_TYPE_PAGE_OF_LIST = "unit:type:page:";

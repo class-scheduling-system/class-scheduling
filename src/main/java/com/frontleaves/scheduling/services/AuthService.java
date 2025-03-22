@@ -28,11 +28,15 @@
 
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.BackProfileDTO;
+import com.frontleaves.scheduling.models.dto.ForgetPasswordResponseDTO;
 import com.frontleaves.scheduling.models.dto.UserLoginDTO;
+import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Email;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -93,4 +97,63 @@ public interface AuthService {
             UserInitializationVO userInitializationVO,
             HttpServletRequest request
     );
+
+    /**
+     * 忘记密码
+     * @param email 邮箱
+     * @return 忘记密码响应DTO
+     */
+    ForgetPasswordResponseDTO forgetPassword(
+            @Email String email
+    );
+
+    /**
+     * 检查重置密码
+     * @param token 令牌
+     * @param newPassword 新密码
+     * @return 用户数据对象
+     */
+    UserDO checkResetPassword(
+            String token,
+            String newPassword);
+
+    /**
+     * 重置密码
+     * @param userDO 用户数据对象
+     * @param newPassword 新密码
+     */
+    void resetPassword(UserDO userDO
+            , String newPassword);
+
+    /**
+     * 检查用户信息
+     * @param name 用户名
+     * @param email 邮箱
+     * @param phone 电话
+     * @param request HTTP请求对象
+     */
+    UserDO checkProfile(
+            String name,
+            String email,
+            String phone,
+            HttpServletRequest request);
+
+    /**
+     * 用户信息
+     * @param userDO 用户数据对象
+     * @return 后台用户信息数据传输对象
+     */
+    BackProfileDTO profile(
+            UserDO userDO);
+
+    /**
+     * 修改密码
+     * @param currentPassword 当前密码
+     * @param newPassword 新密码
+     * @param request HTTP请求对象
+     */
+    void changePassword(
+            String currentPassword,
+            String newPassword,
+            HttpServletRequest request);
 }

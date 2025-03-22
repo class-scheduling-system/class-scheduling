@@ -29,6 +29,9 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.io.IORuntimeException;
+import cn.hutool.core.io.resource.ResourceUtil;
+import cn.hutool.extra.mail.MailUtil;
 import cn.hutool.json.JSONUtil;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
@@ -53,10 +56,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 用户认证逻辑处理类
@@ -78,6 +83,8 @@ public class AuthLogic implements AuthService {
     private final RoleDAO roleDAO;
     private final TokenDAO tokenDAO;
     private final UserService userService;
+
+    private final Environment env;
 
     /**
      * 检查新用户通过学生信息登录
@@ -207,6 +214,28 @@ public class AuthLogic implements AuthService {
         throw new ServerInternalErrorException("意料之外的错误");
     }
 
+    /**
+     * 检查邮箱是否在指定时间内重复发送
+     *
+     * @param userDO 用户数据对象
+     * @throws BusinessException 如果在限制时间内重复发送则抛出异常
+     */
+    private void checkEmailSendFrequency(UserDO userDO) {
+        // 从DAO层获取邮件验证令牌的创建时间
+        long lastSendTime = tokenDAO.getEmailTokenCreatedAt(userDO);
+        // 如果存在上次发送记录
+        if (lastSendTime > 0) {
+            long currentTime = System.currentTimeMillis();
+            // 转换为毫秒
+            long limitTimeMillis = (long) 3 * 60 * 1000;
+            // 检查是否在限制时间内
+            if (currentTime - lastSendTime < limitTimeMillis) {
+                throw new BusinessException("邮件已发送，请勿重复操作", ErrorCode.OPERATION_ERROR);
+            }
+        }
+    }
+
+
     @Override
     public UserLoginDTO checkLoginForUser(@NotNull UserLoginVO userLoginVO, HttpServletRequest request) {
         UserDO userDO = null;
@@ -279,6 +308,57 @@ public class AuthLogic implements AuthService {
     }
 
     /**
+     * 忘记密码功能实现
+     *
+     * @param email 用户注册时使用的邮箱地址
+     * @return 返回一个包含Token过期时间的响应DTO
+     * @throws UserAuthenticationException 如果用户不存在，则抛出用户认证异常
+     */
+    @Override
+    public ForgetPasswordResponseDTO forgetPassword(String email) {
+        if (!email.matches(StringConstant.Regular.EMAIL_REGULAR_EXPRESSION)) {
+            throw new BusinessException("邮箱格式错误", ErrorCode.BODY_ERROR);
+        }
+        // 检查用户是否存在
+        UserDO userDO = userDAO.getUserByMail(email);
+        if (userDO == null) {
+            throw new BusinessException("此邮箱并未绑定用户", ErrorCode.BODY_ERROR);
+        }
+        // 检查邮件发送频率，防止频繁发送
+        checkEmailSendFrequency(userDO);
+        //生成邮箱Token
+        EmailVerificationTokenDTO tokenDTO = tokenDAO.createEmailToken(userDO);
+        // 构造重置密码的URL
+        String url =env.getProperty("project.base-api") +
+                env.getProperty("project.reset-password") + tokenDTO.getToken();
+        // 异步发送邮件
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 使用Hutool的ResourceUtil读取邮件模板
+                String templateContent = ResourceUtil.readUtf8Str("template/reset-password.html");
+                // 替换模板中的占位符
+                templateContent = templateContent.replace("${url}", url);
+                templateContent = templateContent.replace("${name}", userDO.getName());
+                // 发送邮件
+                MailUtil.send(email, "重置密码", templateContent, true);
+            } catch (IORuntimeException e) {
+                // 记录邮件模板读取失败的异常
+                log.error(LogConstant.SERVICE + "邮件模板读取失败", e);
+                // 异步处理中只记录异常，不抛出
+            } catch (Exception e) {
+                // 记录邮件发送失败的异常
+                log.error(LogConstant.SERVICE + "邮件发送失败", e);
+                // 异步处理中只记录异常，不抛出
+            }
+        });
+        // 不等待邮件发送完成，直接返回结果
+        ForgetPasswordResponseDTO forgetPasswordResponseDTO = new ForgetPasswordResponseDTO();
+        forgetPasswordResponseDTO.setTokenExpireTime(tokenDTO.getExpireTime());
+        return forgetPasswordResponseDTO;
+    }
+
+
+    /**
      * 检查用户是否使用了默认密码。
      * <p>
      * 该方法用于验证用户设置的新密码是否为系统生成的默认密码。如果新密码与默认密码相同，则抛出 {@code BusinessException} 异常。
@@ -324,5 +404,121 @@ public class AuthLogic implements AuthService {
                 throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
             }
         }
+    }
+
+
+    /**
+     * 重置密码前的验证方法
+     * 本方法主要用于验证用户提交的重置密码令牌(token)及新密码的合法性与正确性
+     * 它首先通过token验证用户的身份，然后检查新密码是否符合要求，以确保账户安全
+     *
+     * @param token       用户接收的重置密码邮件中的token，用于验证用户身份
+     * @param newPassword 用户设置的新密码，必须与旧密码不同
+     * @return 返回验证通过的用户信息对象UserDO，如果验证失败，则抛出异常
+     * @throws BusinessException 当用户不存在或新密码与旧密码相同时，抛出此异常
+     */
+    @Override
+    public UserDO checkResetPassword(String token, @NotNull String newPassword) {
+        //校验Token
+        String uuid = tokenDAO.verifyEmailToken(token);
+        tokenDAO.deleteEmailToken(token);
+
+        //根据UUID获取用户信息
+        UserDO userDO = userDAO.getUserByUuid(uuid);
+        if (userDO == null) {
+            throw new BusinessException("用户不存在，意料之外的错误", ErrorCode.OPERATION_ERROR);
+        }
+
+        //验证新密码是否与旧密码相同
+        if (PasswordUtil.verify(newPassword, userDO.getPassword())) {
+            throw new BusinessException("新密码不能与旧密码相同", ErrorCode.BODY_ERROR);
+        }
+
+        //验证通过，返回用户信息
+        return userDO;
+    }
+
+    /**
+     * 重置用户密码
+     *
+     * @param userDO      用户实体对象，包含用户的相关信息
+     * @param newPassword 新密码，用于替换用户的旧密码
+     */
+    @Override
+    public void resetPassword(@NotNull UserDO userDO, String newPassword) {
+        // 对新密码进行加密处理，以确保密码的安全性
+        userDO.setPassword(PasswordUtil.encrypt(newPassword));
+        // 更新数据库中的用户记录，以保存新的密码信息
+        userDAO.updateUserPassword(userDO);
+    }
+
+    /**
+     * 根据请求检查并更新用户资料
+     * 此方法首先根据HTTP请求获取用户信息如果用户不存在，则抛出用户认证异常
+     * 对于每个提供的参数（姓名、邮箱、电话），如果参数不为空，则验证其格式
+     * 如果格式不正确，则抛出业务异常无论参数是否为空，都将更新用户信息
+     *
+     * @param name    用户名，可为空，但不能为空字符串，需要符合特定的正则表达式
+     * @param email   邮箱地址，可为空，但不能为空字符串，需要符合邮箱的正则表达式
+     * @param phone   电话号码，可为空，但不能为空字符串，需要符合电话号码的正则表达式
+     * @param request HTTP请求，用于获取当前用户信息
+     * @return 更新后的用户信息对象
+     * @throws UserAuthenticationException 如果用户不存在
+     * @throws BusinessException           如果用户名、邮箱或电话号码格式不正确
+     */
+    @Override
+    public UserDO checkProfile(String name, String email, String phone, HttpServletRequest request) {
+        // 根据请求获取用户信息
+        UserDO userDO = userService.getUserByRequest(request);
+        // 如果用户不存在，抛出用户认证异常
+        if (userDO == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+        }
+        //控制层已经判断，不为空不为空字符串
+        //如果为空则为null，后面的update会判断空值更新
+        userDO.setName(name)
+                .setEmail(email)
+                .setPhone(phone);
+        // 返回更新后的用户信息
+        return userDO;
+    }
+
+    /**
+     * 更新并获取用户资料
+     * 此方法首先更新用户的资料，然后根据用户UUID获取最新的用户信息，并将其转换为BackProfileDTO对象返回
+     * 如果无法找到更新后的用户信息，抛出业务异常
+     *
+     * @param userDO 用户数据对象，包含用户的基本信息和更新内容
+     * @return 返回更新后的用户资料DTO对象
+     * @throws BusinessException 当系统错误时抛出此异常
+     */
+    @Override
+    public BackProfileDTO profile(UserDO userDO) {
+        UserDO oldUser = userDAO.getUserByUuid(userDO.getUserUuid());
+        // 更新用户资料
+        userDAO.updateUserProfile(userDO, oldUser);
+        // 通过用户UUID获取最新的用户信息
+        UserDO newUserDO = userDAO.getUserByUuid(userDO.getUserUuid());
+        assert newUserDO != null;
+        // 将获取的用户信息转换为DTO对象并返回
+        return BeanUtil.toBean(newUserDO, BackProfileDTO.class);
+    }
+
+    @Override
+    public void changePassword(
+            @NotNull String currentPassword, @NotNull String newPassword,
+            HttpServletRequest request) {
+        // 获取当前用户信息
+        UserDO userDO = userService.getUserByRequest(request);
+        if (userDO == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_EXIST, request);
+        }
+        // 验证当前密码是否正确
+        if (!PasswordUtil.verify(currentPassword, userDO.getPassword())) {
+            throw new BusinessException("当前密码错误", ErrorCode.BODY_ERROR);
+        }
+        // 对新密码进行加密处理，以确保密码的安全性
+        userDO.setPassword(PasswordUtil.encrypt(newPassword));
+        userDAO.updateUserPassword(userDO);
     }
 }
