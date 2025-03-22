@@ -39,7 +39,7 @@ import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.StudentMapper;
 import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
-import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
+import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.utils.ProjectUtil;
@@ -462,7 +462,7 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
             }
 
             // 通过班级 UUID 获取班级映射信息
-            ClassMappingDTO classMapping = administrativeClassDAO.getClassMappingByClazz(studentVO.getClazz());
+            AdministrativeClassDO classMapping = administrativeClassDAO.getAdministrativeClassMappingByClazz(studentVO.getClazz());
 
             // 复制非空属性到 studentDO
             BeanUtil.copyProperties(studentVO, studentDO, CopyOptions.create().ignoreNullValue());
@@ -474,11 +474,11 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements
 
             // 更新数据库
             boolean success = this.updateById(studentDO);
-
             if (!success) {
                 transaction.rollback();
                 throw new ServerInternalErrorException("学生信息更新失败");
             }
+
             // 更新缓存
             RMap<String, String> studentMap = transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentUuid);
             studentMap.putAll(ConvertUtil.convertObjectToMapString(studentDO));

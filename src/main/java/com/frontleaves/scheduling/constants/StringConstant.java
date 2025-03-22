@@ -122,6 +122,7 @@ public class StringConstant {
         public static final String GRADE_LIST = "grade:list";
         public static final String ADMINISTRATIVE_CLASS_LIST = "ait:class:list";
         public static final String ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT = "ait:class:list:department:";
+        public static final String ADMINISTRATIVE_CLASS_MAPPING_BY_CALZZ = "ait:class:mapping:class:";
         public static final String ACADEMIC_AFFAIRS_PERMISSION_USER_UUID = "aca:affairs:per:user:uuid:";
         public static final String ACADEMIC_AFFAIRS_PERMISSION_UUID = "aca:affairs:per:uuid:";
         public static final String MAJOR_LIST_BY_DEPARTMENT_UUID = "major:list:department:uuid:";

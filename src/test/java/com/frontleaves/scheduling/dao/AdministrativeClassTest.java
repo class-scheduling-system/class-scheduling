@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RList;
+import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -99,5 +100,48 @@ class AdministrativeClassTest {
         RList<AdministrativeClassDO> redisCache = redisson.getList(
                 StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT + departmentUuid);
         Assertions.assertTrue(redisCache.isExists());
+    }
+
+    @Test
+    void testGetAdministrativeClassMappingByClazz() {
+        // 1.假设数据库中至少有一条数据
+        AdministrativeClassDO dbRecord = administrativeClassDAO.lambdaQuery().list().get(0);
+        String clazzUuid = dbRecord.getAdministrativeClassUuid();
+
+        // 构造缓存键，并清除缓存，确保测试从数据库获取数据
+        String cacheKey = StringConstant.Redis.ADMINISTRATIVE_CLASS_MAPPING_BY_CALZZ + clazzUuid;
+        redisson.getMap(cacheKey).delete();
+
+        // 第一次调用：应从数据库中查询，并缓存数据
+        AdministrativeClassDO fetched = administrativeClassDAO.getAdministrativeClassMappingByClazz(clazzUuid);
+        Assertions.assertNotNull(fetched, "存在的行政班级首次查询应返回数据");
+        Assertions.assertEquals(dbRecord.getAdministrativeClassUuid(), fetched.getAdministrativeClassUuid(),
+                "返回的数据应与数据库记录一致");
+
+        // 验证缓存已写入
+        RMap<String, String> rMap = redisson.getMap(cacheKey);
+        Assertions.assertTrue(rMap.isExists(), "缓存应已存在");
+
+        // 第二次调用：应从缓存中获取数据
+        AdministrativeClassDO cachedFetched = administrativeClassDAO.getAdministrativeClassMappingByClazz(clazzUuid);
+        Assertions.assertNotNull(cachedFetched, "从缓存中查询应返回数据");
+        Assertions.assertEquals(dbRecord.getAdministrativeClassUuid(), cachedFetched.getAdministrativeClassUuid(),
+                "缓存中的数据应与数据库记录一致");
+
+        // 清理缓存
+        redisson.getMap(cacheKey).delete();
+
+        // 2.不存在行政班级
+        String nonExistingClazz = UuidUtil.generateUuidNoDash();
+        String nonExistCacheKey = StringConstant.Redis.ADMINISTRATIVE_CLASS_MAPPING_BY_CALZZ + nonExistingClazz;
+        redisson.getMap(nonExistCacheKey).delete();
+
+        // 查询不存在的数据，应返回 null
+        AdministrativeClassDO result = administrativeClassDAO.getAdministrativeClassMappingByClazz(nonExistingClazz);
+        Assertions.assertNull(result, "不存在的行政班级应返回 null");
+
+        // 确认缓存没有被创建
+        RMap<String, String> nonExistMap = redisson.getMap(nonExistCacheKey);
+        Assertions.assertFalse(nonExistMap.isExists(), "不存在的数据不应在缓存中");
     }
 }

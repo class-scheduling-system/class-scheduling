@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.xlf.utility.ErrorCode;
@@ -227,7 +226,7 @@ class StudentTest {
         Assertions.assertNotNull(clazzUuid, "班级 UUID 不能为空");
 
         // 获取班级映射
-        ClassMappingDTO classMapping = administrativeClassDAO.getClassMappingByClazz(clazzUuid);
+        AdministrativeClassDO classMapping = administrativeClassDAO.getAdministrativeClassMappingByClazz(clazzUuid);
         Assertions.assertNotNull(classMapping, "班级映射信息不能为空");
         Assertions.assertNotNull(classMapping.getGradeUuid(), "年级 UUID 不能为空");
         Assertions.assertNotNull(classMapping.getDepartmentUuid(), "学院 UUID 不能为空");
@@ -302,7 +301,7 @@ class StudentTest {
         String clazzUuid = administrativeClassDAO.lambdaQuery().list().get(1).getAdministrativeClassUuid();
         Assertions.assertNotNull(clazzUuid, "班级 UUID 不能为空");
 
-        ClassMappingDTO classMapping = administrativeClassDAO.getClassMappingByClazz(clazzUuid);
+        AdministrativeClassDO classMapping = administrativeClassDAO.getAdministrativeClassMappingByClazz(clazzUuid);
         Assertions.assertNotNull(classMapping, "班级映射信息不能为空");
         Assertions.assertNotNull(classMapping.getGradeUuid(), "年级 UUID 不能为空");
         Assertions.assertNotNull(classMapping.getDepartmentUuid(), "学院 UUID 不能为空");

@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.StudentDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.StudentDTO;
 import com.frontleaves.scheduling.models.dto.StudentDisableDTO;
@@ -126,7 +125,7 @@ public class StudentLogic implements StudentService {
         String studentUuid = UuidUtil.generateUuidNoDash();
 
         // 根据班级信息自动定位年级、学院和专业
-        ClassMappingDTO classMapping = administrativeClassDAO.getClassMappingByClazz(studentDTO.getClazz());
+        AdministrativeClassDO classMapping = administrativeClassDAO.getAdministrativeClassMappingByClazz(studentDTO.getClazz());
         // 将映射出来的信息设置到DTO中
         studentDTO.setGradeUuid(classMapping.getGradeUuid());
         studentDTO.setDepartment(classMapping.getDepartmentUuid());
@@ -233,6 +232,17 @@ public class StudentLogic implements StudentService {
      */
     @Override
     public StudentDTO editStudent(String studentUuid, StudentVO studentVO) {
+        // 验证班级是否存在
+        AdministrativeClassDO administrativeClass = administrativeClassDAO.getAdministrativeClassByUuid(studentVO.getClazz());
+        if (administrativeClass == null) {
+            throw new BusinessException("指定的班级不存在", ErrorCode.NOT_EXIST);
+        }
+
+        // 验证班级是否启用
+        if (!administrativeClass.getIsEnabled()) {
+            throw new BusinessException("指定的班级已禁用", ErrorCode.OPERATION_DENIED);
+        }
+
         StudentDO studentDO = studentDAO.editStudent(studentUuid, studentVO);
         StudentDTO studentDTO = new StudentDTO();
         BeanUtils.copyProperties(studentDO, studentDTO);
