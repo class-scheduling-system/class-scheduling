@@ -2,6 +2,7 @@ package com.frontleaves.scheduling.models.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
@@ -12,7 +13,7 @@ import java.util.List;
  *
  * @author FLASHLACK
  */
-@Data
+@Getter
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -73,6 +74,7 @@ public class AutomaticClassSchedulingVO {
          */
         Boolean specializationRoomMatching;
     }
+
     @Data
     public static class AlgorithmParams {
         /**
@@ -92,6 +94,7 @@ public class AutomaticClassSchedulingVO {
          */
         private Double mutationRate;
     }
+
     @Data
     public static class PrioritySettings {
         /**
@@ -111,6 +114,7 @@ public class AutomaticClassSchedulingVO {
             private Integer priority;
         }
     }
+
     @Data
     public static class TimePreferences {
         /**
@@ -142,6 +146,7 @@ public class AutomaticClassSchedulingVO {
             private Integer periodEnd;
         }
     }
+
     @Data
     public static class ScopeSettings {
         /**
