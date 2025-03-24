@@ -1,18 +1,21 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
-import com.frontleaves.scheduling.models.dto.PrepareStudentExampleDTO;
+
+import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
+import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.xlf.utility.exception.BusinessException;
+import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 学生服务接口
  *
- * @author FLASHLACK
+ * @author fanfan187 | FLASHLACK
+ * @version v1.0.0
+ * @since v1.0.0
  */
 public interface StudentService {
-
     /**
      * 批量导入学生信息 忽略警告
      * @param file 文件
@@ -72,4 +75,40 @@ public interface StudentService {
      */
     String getDepartmentUuid(
             HttpServletRequest request);
+
+
+    /**
+     * 获取学生信息
+     *
+     * @param studentUuid 学生 UUID
+     */
+    StudentDTO getStudentByUuid(String studentUuid);
+
+    /**
+     * 获取学生分页列表
+     */
+    PageDTO<StudentDTO> getStudentList(int page, int size, Boolean isDesc,
+                                       @Nullable String clazz, @Nullable Boolean isGraduated,
+                                       @Nullable String name, @Nullable String id);
+
+    /**
+     * 添加学生
+     *
+     */
+    StudentDTO addStudent(StudentDTO studentDTO);
+
+    /**
+     * 停用学生
+     */
+    StudentDisableDTO disableStudent(String studentUuid, Boolean disable);
+
+    /**
+     * 删除学生
+     */
+    void deleteStudent(String studentUuid);
+
+    /**
+     * 编辑学生
+     */
+    StudentDTO editStudent(String studentUuid, StudentVO studentVO);
 }

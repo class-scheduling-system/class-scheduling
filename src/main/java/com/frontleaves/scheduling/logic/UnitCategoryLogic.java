@@ -46,9 +46,11 @@ import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -190,7 +192,14 @@ public class UnitCategoryLogic implements UnitCategoryService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteUnitCategory(UnitCategoryDO unitCategoryDO) {
         unitCategoryDAO.deleteUnitCategoryCache(unitCategoryDO);
-        if (!unitCategoryDAO.removeById(unitCategoryDO.getUnitCategoryUuid())) {
+        try {
+            unitCategoryDAO.removeById(unitCategoryDO.getUnitCategoryUuid());
+        } catch (DataIntegrityViolationException e) {
+            log.warn(e.getMessage());
+            if (e.getRootCause() instanceof SQLIntegrityConstraintViolationException integrityException) {
+                throw new BusinessException("该单位类别已被其他数据使用，无法删除", ErrorCode.OPERATION_INVALID, integrityException.getMessage());
+            }
+        } catch (Exception e) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
     }

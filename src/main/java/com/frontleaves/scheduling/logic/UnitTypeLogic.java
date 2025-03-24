@@ -94,7 +94,7 @@ public class UnitTypeLogic implements UnitTypeService {
         UnitTypeDO unitTypeDO = new UnitTypeDO();
         BeanUtil.copyProperties(unitTypeVO, unitTypeDO);
 
-        if (!unitTypeDAO.save(unitTypeDO)) {
+        if (!unitTypeDAO.addUnitType(unitTypeDO)) {
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
         }
 
