@@ -135,16 +135,30 @@ public class UnitTypeDAO extends ServiceImpl<UnitTypeMapper, UnitTypeDO> {
      * 添加单位办别信息，并清除缓存
      *
      * @param unitTypeDO 单位办别DO
-     * @return 添加成功返回true，否则返回false
      */
-    public boolean addUnitType(UnitTypeDO unitTypeDO) {
-        if (this.save(unitTypeDO)) {
-            Optional.ofNullable(redisson.getKeys())
-                    .ifPresent(keys -> {
-                        keys.delete(StringConstant.Redis.UNIT_TYPE_LIST);
-                        keys.deleteByPattern(StringConstant.Redis.UNIT_TYPE_PAGE_OF_LIST + "*");
-                    });
+    public void addUnitType(UnitTypeDO unitTypeDO) {
+        this.save(unitTypeDO);
+        Optional.ofNullable(redisson.getKeys())
+                .ifPresent(keys -> {
+                    keys.delete(StringConstant.Redis.UNIT_TYPE_LIST);
+                    keys.deleteByPattern(StringConstant.Redis.UNIT_TYPE_PAGE_OF_LIST + "*");
+                });
+    }
+
+    /**
+     * 删除单位办别
+     * <p>
+     * 删除单位办别信息，并清除缓存
+     *
+     * @param unitTypeDO 单位办别DO
+     */
+    public void deleteUnitType(UnitTypeDO unitTypeDO) {
+        try {
+            this.deleteUnitTypeCache(unitTypeDO);
+            this.removeById(unitTypeDO);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new BusinessException("删除单位办别失败", ErrorCode.OPERATION_ERROR);
         }
-        return false;
     }
 }

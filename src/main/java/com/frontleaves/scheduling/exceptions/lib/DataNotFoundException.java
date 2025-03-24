@@ -72,7 +72,8 @@ public class DataNotFoundException extends RuntimeException {
         MAJOR_NAME_NOT_FOUND("Major", "专业名称不存在"),
         CLASS_NAME_NOT_FOUND("Classroom", "班级名称不存在"),
         GRADE_NAME_NOT_FOUND("Grade", "年级名称不存在"),
-        DEPARTMENT_NAME_NOT_FOUND("Department", "学院名称不存在");
+        DEPARTMENT_NAME_NOT_FOUND("Department", "学院名称不存在"),
+        CAMPUS_NAME_NOT_FOUND("Campus", "校区名称不存在"),;
 
         private final String type;
         private final String reason;

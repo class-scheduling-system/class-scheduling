@@ -145,4 +145,6 @@ public class CampusController {
         List<ListOfCampusDTO> campusList = campusService.getCampusList();
         return ResultUtil.success("获取校区列表成功", campusList);
     }
+
+
 }

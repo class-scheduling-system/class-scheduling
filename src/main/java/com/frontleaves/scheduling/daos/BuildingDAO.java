@@ -7,8 +7,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.BuildingMapper;
+import com.frontleaves.scheduling.models.dto.BackAddBuildingDTO;
 import com.frontleaves.scheduling.models.entity.BuildingDO;
 import com.frontleaves.scheduling.utils.ProjectUtil;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
@@ -16,10 +19,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.redisson.api.*;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -274,5 +281,148 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> {
             return rList.readAll();
         }
         return null;
+    }
+
+    /**
+     * 保存教学楼信息，遇到错误时抛出异常
+     * <p>
+     * 该方法尝试保存教学楼信息，并处理可能出现的各种异常，将其转换为业务异常抛出。
+     * </p>
+     *
+     * @param buildingDO 教学楼实体对象
+     * @param i 行号索引
+     * @throws BusinessException 当保存过程中发生异常时抛出，并包含详细的错误信息
+     */
+    public void saveBuildingBackError(BuildingDO buildingDO, int i) {
+        try {
+            this.addBuilding(buildingDO);
+        } catch (DuplicateKeyException e) {
+            // 教学楼名称重复异常
+            log.error("教学楼名称重复", e);
+            throw new BusinessException("第" + (i + 3) + "行教学楼名称重复，请检查", ErrorCode.BODY_ERROR);
+        } catch (DataIntegrityViolationException e) {
+            // 分析数据完整性异常的具体原因
+            String errorMessage = e.getMessage();
+            String detailedReason = analyzeBuildingDataError(errorMessage);
+            log.error("数据完整性错误", e);
+            throw new BusinessException("第" + (i + 3) + "行" + detailedReason, ErrorCode.BODY_ERROR);
+        } catch (Exception e) {
+            // 其他未预期的异常
+            throw new BusinessException("第" + (i + 3) + "行保存失败：" + e.getMessage(), ErrorCode.BODY_ERROR);
+        }
+    }
+
+    /**
+     * 分析教学楼数据完整性错误的详细原因
+     *
+     * @param errorMessage 错误信息
+     * @return 具体的错误原因
+     */
+    private String analyzeBuildingDataError(String errorMessage) {
+        // 外键错误映射
+        Map<String, String> foreignKeyErrors = Map.of(
+                "fk_cs_building_cs_campus", "校区信息错误"
+        );
+
+        // 检查外键错误
+        for (Map.Entry<String, String> entry : foreignKeyErrors.entrySet()) {
+            if (errorMessage.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+
+        // 长度错误检查
+        if (errorMessage.contains("Data too long")) {
+            if (errorMessage.contains("building_name")) {
+                return "教学楼名称长度超出限制，最大64个字符";
+            }
+            return "数据长度超出限制";
+        }
+
+        // 默认错误信息
+        return "数据错误：可能包含错误的值（意料之外的报错）";
+    }
+
+    /**
+     * 保存教学楼信息，忽略错误并返回失败详情
+     * <p>
+     * 该方法尝试保存教学楼信息，发生异常时不抛出，而是收集错误信息并返回。
+     * </p>
+     *
+     * @param buildingDO 教学楼实体对象
+     * @param i 当前处理的行索引
+     * @return 失败详情列表，如果成功则返回空列表
+     */
+    public List<BackAddBuildingDTO.FailedDetail> saveBuildingIgnoreError(BuildingDO buildingDO, int i) {
+        try {
+            this.save(buildingDO);
+            return Collections.emptyList();
+        } catch (Exception e) {
+            return Collections.singletonList(createBuildingFailedDetail(e, i));
+        }
+    }
+
+    /**
+     * 根据异常创建教学楼失败详情
+     *
+     * @param e 异常对象
+     * @param i 行索引
+     * @return 失败详情对象
+     */
+    private BackAddBuildingDTO.FailedDetail createBuildingFailedDetail(Exception e, int i) {
+        BackAddBuildingDTO.FailedDetail failedDetail = new BackAddBuildingDTO.FailedDetail();
+        failedDetail.setRow(i + 3);  // Excel行号从第3行开始
+
+        if (e instanceof DuplicateKeyException) {
+            failedDetail.setReason("教学楼名称重复");
+        } else if (e instanceof DataIntegrityViolationException) {
+            String errorMessage = e.getMessage();
+            failedDetail.setReason(analyzeBuildingDataIntegrityError(errorMessage));
+        } else {
+            failedDetail.setReason("保存失败：" + e.getMessage());
+        }
+
+        return failedDetail;
+    }
+
+    /**
+     * 分析教学楼数据完整性错误（详细版本）
+     *
+     * @param errorMessage 错误信息
+     * @return 格式化的错误原因
+     */
+    private String analyzeBuildingDataIntegrityError(String errorMessage) {
+        // 外键错误映射
+        Map<String, String> foreignKeyErrors = Map.of(
+                "fk_cs_building_cs_campus", "校区信息错误"
+        );
+
+        // 检查外键错误
+        String foreignKeyMatch = foreignKeyErrors.entrySet().stream()
+                .filter(entry -> errorMessage.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
+
+        if (foreignKeyMatch != null) {
+            return foreignKeyMatch;
+        }
+
+        // 长度错误检查
+        if (errorMessage.contains("Data too long")) {
+            Map<String, String> lengthErrors = Map.of(
+                    "building_name", "教学楼名称长度超出限制，最大64个字符",
+                    "campus_uuid", "校区ID格式错误"
+            );
+
+            return lengthErrors.entrySet().stream()
+                    .filter(entry -> errorMessage.contains(entry.getKey()))
+                    .map(Map.Entry::getValue)
+                    .findFirst()
+                    .orElse("数据长度超出限制");
+        }
+
+        // 默认错误信息
+        return "数据错误：可能包含空值、超出长度限制或不符合外键约束";
     }
 }
