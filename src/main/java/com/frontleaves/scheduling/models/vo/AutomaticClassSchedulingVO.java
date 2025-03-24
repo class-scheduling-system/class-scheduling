@@ -26,14 +26,21 @@ public class AutomaticClassSchedulingVO {
     @NotBlank(message = "学期ID不能为空")
     private String semesterId;
     /**
-     * 院系UUID，对应cs_department表的department_uuid，可选，限定排课范围
+     * 院系UUID，对应cs_department表的department_uuid，限定排课范围
      */
+    @NotBlank(message = "部门ID不能为空")
     private String departmentId;
     /**
      * 排课策略，可选: optimal(最优), balanced(平衡), quick(快速)
      */
     @NotBlank(message = "排课策略不能为空")
     private String strategy;
+    /**
+     * 结束周
+     */
+    @NotNull(message = "排课结束周不能为空")
+    @Min(value = 1, message = "排课结束周必须大于等于 1")
+    private Integer endWeek;
     /**
      * 排课约束
      */
