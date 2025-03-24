@@ -64,6 +64,11 @@ public class StudentDTO {
     private String clazz;
 
     /**
+     * 是否毕业
+     */
+    private Boolean graduated;
+
+    /**
      * 对应用户主键
      */
     private String userUuid;
@@ -77,4 +82,9 @@ public class StudentDTO {
      * 更新时间（单位：毫秒时间戳）
      */
     private Long updatedAt;
+
+    /**
+     * 学生状态
+     */
+    private Boolean status;
 }

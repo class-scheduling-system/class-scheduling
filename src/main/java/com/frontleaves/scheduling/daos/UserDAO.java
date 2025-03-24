@@ -304,6 +304,16 @@ public class UserDAO extends ServiceImpl<UserMapper, UserDO> {
     }
 
     /**
+     * 检查用户是否存在
+     *
+     * @param userUuid 用户 UUID
+     * @return 如果用户存在则返回 true，否则返回 false
+     */
+    public boolean existsByUserUuid(String userUuid) {
+        return userUuid != null && this.getUserByUuid(userUuid) != null;
+    }
+
+    /**
      * 更新用户密码
      * 该方法负责更新用户数据库中的密码，并同时删除Redis缓存中的用户信息
      * 为了确保数据一致性，使用Redis事务来管理缓存的删除操作

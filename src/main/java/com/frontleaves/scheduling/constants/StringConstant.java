@@ -65,6 +65,8 @@ public class StringConstant {
     public static final String EMAIL_VERIFICATION_TOKEN_MISMATCH = "邮箱地址与验证令牌不匹配";
     public static final String UNIT_TYPE_NOT_FOUND = "未找到该单位办别";
     public static final String UNIT_CATEGORY_NOT_FOUND = "未找到该单位类别";
+    public static final String STUDENT_NOT_EXIST = "学生不存在";
+    public static final String STUDENT_SAVE_FAILED = "学生信息保存失败";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -87,6 +89,7 @@ public class StringConstant {
         public static final String USER_TEL = "user:tel:";
         public static final String STUDENT_ID = "stu:id:";
         public static final String STUDENT_UUID = "stu:uuid:";
+        public static final String STUDENT_LIST = "stu:list";
         public static final String STUDENT_USER_UUID = "stu:user:uuid:";
         public static final String TEACHER_ID = "tea:id:";
         public static final String TEACHER_UUID = "tea:uuid:";
@@ -122,6 +125,7 @@ public class StringConstant {
         public static final String GRADE_LIST = "grade:list";
         public static final String ADMINISTRATIVE_CLASS_LIST = "ait:class:list";
         public static final String ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT = "ait:class:list:department:";
+        public static final String ADMINISTRATIVE_CLASS_MAPPING_BY_CALZZ = "ait:class:mapping:class:";
         public static final String ACADEMIC_AFFAIRS_PERMISSION_USER_UUID = "aca:affairs:per:user:uuid:";
         public static final String ACADEMIC_AFFAIRS_PERMISSION_UUID = "aca:affairs:per:uuid:";
         public static final String MAJOR_LIST_BY_DEPARTMENT_UUID = "major:list:department:uuid:";
@@ -187,6 +191,8 @@ public class StringConstant {
         public static final String EMAIL_REGULAR_EXPRESSION_ABLE_EMPTY ="^(|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6})$";
         public static final String USER_NAME_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^[0-9A-Za-z_-]{4,32}$)";
         public static final String PHONE_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^1[3456789]\\d{9}$)";
+        public static final String STUDENT_ID_REGULAR_EXPRESSION = "^[a-zA-Z0-9]{4,32}$";
+        public static final String STUDENT_NAME_REGULAR_EXPRESSION = "^[一-龥A-Za-z]{2,20}$";
         public static final String SERIAL_NUMBER_REGULAR_EXPRESSION = "^[A-Za-z0-9]{2,64}$";
         public static final String FIXED_PHONE_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^\\d{3}-\\d{8}|\\d{4}-\\d{7}$)";
         private Regular() {
