@@ -39,7 +39,7 @@ import java.util.regex.Pattern;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/students")
+@RequestMapping("/api/v1/students")
 public class StudentController {
 
     private final StudentService studentService;
@@ -82,7 +82,7 @@ public class StudentController {
      * @param id          学生学号
      * @return 返回包含学生信息列表的响应实体
      */
-    @GetMapping("/list")
+    @GetMapping("/page")
     public @NotNull ResponseEntity<BaseResponse<PageDTO<StudentDTO>>> getStudentList(
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "20") int size,

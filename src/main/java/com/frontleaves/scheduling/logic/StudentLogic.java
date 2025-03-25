@@ -149,7 +149,7 @@ public class StudentLogic implements StudentService {
         }
 
         // DO -> DTO
-        StudentDTO resultDTO = BeanUtil.toBean(studentDO, StudentDTO.class);
+        StudentDTO resultDTO = BeanUtil.toBean(saveStudentDO, StudentDTO.class);
         resultDTO.setStatus(resultDTO.getUserUuid() != null && !resultDTO.getUserUuid().isBlank());
         return resultDTO;
     }
