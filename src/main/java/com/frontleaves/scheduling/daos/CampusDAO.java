@@ -252,7 +252,7 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
             List<CampusDO> campusDOList = this.lambdaQuery().list();
             if (!campusDOList.isEmpty()) {
                 campusList.addAll(campusDOList);
-                campusList.expire(Duration.ofSeconds(43200)); // 12小时过期
+                campusList.expire(Duration.ofSeconds(43200));
             }
             return campusDOList;
         }

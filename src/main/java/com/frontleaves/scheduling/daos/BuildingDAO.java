@@ -371,7 +371,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> {
      */
     private BackAddBuildingDTO.FailedDetail createBuildingFailedDetail(Exception e, int i) {
         BackAddBuildingDTO.FailedDetail failedDetail = new BackAddBuildingDTO.FailedDetail();
-        failedDetail.setRow(i + 3);  // Excel行号从第3行开始
+        failedDetail.setRow(i + 3);
 
         if (e instanceof DuplicateKeyException) {
             failedDetail.setReason("教学楼名称重复");
