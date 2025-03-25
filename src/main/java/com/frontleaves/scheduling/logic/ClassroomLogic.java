@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -49,6 +49,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 教室逻辑处理类，实现了 {@code ClassroomService} 接口。
@@ -68,11 +69,12 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
      * <p>
      * 该构造函数用于初始化教室逻辑处理类，通过注入多个数据访问对象来提供对教室、标签、类型、校园和建筑等信息的访问与操作能力。
      * <p>
-     * @param classroomTagDAO 用于管理教室标签的数据访问对象
+     *
+     * @param classroomTagDAO  用于管理教室标签的数据访问对象
      * @param classroomTypeDAO 用于管理教室类型的数据访问对象
-     * @param classroomDAO 用于管理教室基本信息的数据访问对象
-     * @param campusDAO 用于管理校园信息的数据访问对象
-     * @param buildingDAO 用于管理建筑物信息的数据访问对象
+     * @param classroomDAO     用于管理教室基本信息的数据访问对象
+     * @param campusDAO        用于管理校园信息的数据访问对象
+     * @param buildingDAO      用于管理建筑物信息的数据访问对象
      */
     public ClassroomLogic(
             ClassroomTagDAO classroomTagDAO,
@@ -289,7 +291,7 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
     @Override
     public ClassroomInfoDTO editClassroom(String classroomUuid, ClassroomVO classroomVO) {
         ClassroomDO classroomDO = this.classroomDataVerify(classroomVO)
-                        .setClassroomUuid(classroomUuid);
+                .setClassroomUuid(classroomUuid);
         classroomDAO.updateClassroom(classroomDO);
         ClassroomDO classroom = classroomDAO.getClassroomByUuid(classroomUuid);
         if (classroom == null) {
@@ -365,5 +367,24 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
             });
         }
         return tags;
+    }
+
+    @Override
+    public List<ClassroomLiteDTO> listClassroomLite(String keyword) {
+        return Optional.ofNullable(classroomDAO.getClassroomByStatus(true))
+                .map(classroom -> {
+                    if (keyword != null && !keyword.isBlank()) {
+                        return classroom.stream()
+                                .filter(classroomDO -> classroomDO.getNumber().contains(keyword) || classroomDO.getName().contains(keyword))
+                                .toList();
+                    }
+                    return classroom;
+                })
+                .map(classroom ->
+                        classroom.stream()
+                                .map(classroomDO -> BeanUtil.toBean(classroomDO, ClassroomLiteDTO.class))
+                                .toList()
+                )
+                .orElse(List.of());
     }
 }

@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -171,4 +171,16 @@ public interface ClassroomService {
      * @param classroomUuid 教室的唯一标识符，用于定位需要删除的具体教室
      */
     void deleteClassroom(String classroomUuid);
+
+    /**
+     * 获取教室简单列表
+     * <p>
+     * 该方法用于获取所有教室的简化信息列表。每个教室由 {@code ClassroomLiteDTO} 对象表示，
+     * 仅包含教室的基本信息，如UUID、编号、名称、容量和状态。主要用于下拉框等简单展示场景。
+     * </p>
+     *
+     * @param keyword 搜索关键词，用于在教室名称或编号中进行模糊搜索
+     * @return 返回一个包含所有教室简化信息的列表
+     */
+    List<ClassroomLiteDTO> listClassroomLite(String keyword);
 }

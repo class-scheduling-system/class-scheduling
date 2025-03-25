@@ -114,9 +114,10 @@ public class StringConstant {
         public static final String CLASSROOM_TAG_UUID = "classroom:tag:uuid:";
         public static final String CLASSROOM_TYPE_LIST = "classroom:type:list";
         public static final String CLASSROOM_TYPE_UUID = "classroom:type:uuid:";
-        public static final String CLASSROOM_LIST = "classroom:list:";
+        public static final String CLASSROOM_PAGE = "classroom:page:";
         public static final String CLASSROOM_UUID = "classroom:uuid:";
         public static final String CLASSROOM_NUMBER = "classroom:number:";
+        public static final String CLASSROOM_STATUS = "classroom:status:";
         public static final String TABLES_CHAIRS_UUID = "tc:uuid:";
         public static final String ROLE_LIST = "role:list";
         public static final String ADMINISTRATIVE_CLASS_UUID = "administrative:class:uuid:";
