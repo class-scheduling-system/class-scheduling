@@ -312,6 +312,11 @@ public class DepartmentLogic implements DepartmentService {
                 .orElse(List.of());
     }
 
+    /**
+     *  根据部门唯一标识获取部门信息
+     * @param departmentUuid 部门的唯一标识
+     * @return 部门信息
+     */
     @Override
     public DepartmentDO getDepartmentByUuidWithThrows(@NotBlank String departmentUuid) {
         DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(departmentUuid);

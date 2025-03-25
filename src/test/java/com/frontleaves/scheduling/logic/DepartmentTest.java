@@ -1128,4 +1128,17 @@ class DepartmentTest {
         // 验证结果为null（或其他预期行为，取决于实现）
         Assertions.assertNull(departmentDTO, "超长UUID应返回null");
     }
+
+
+
+    @Test
+    void testGetDepartmentByUuidWithThrows (){
+        log.debug("测试通过UUID获取部门信息会传出报错");
+        DepartmentDO departmentDO = departmentDAO.lambdaQuery().list().get(0);
+        Assertions.assertNotNull(
+                departmentService.getDepartmentByUuidWithThrows(departmentDO.getDepartmentUuid()));
+        String departmentUuid = UuidUtil.generateUuidNoDash();
+        Assertions.assertThrows(BusinessException.class,() ->
+                departmentService.getDepartmentByUuidWithThrows(departmentUuid));
+    }
 }
