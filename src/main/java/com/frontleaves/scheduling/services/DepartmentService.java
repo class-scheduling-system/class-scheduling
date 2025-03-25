@@ -31,8 +31,10 @@ package com.frontleaves.scheduling.services;
 import com.frontleaves.scheduling.models.dto.DepartmentDTO;
 import com.frontleaves.scheduling.models.dto.DepartmentLiteDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.vo.DepartmentVO;
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -80,4 +82,14 @@ public interface DepartmentService {
      * @return 返回部门的简要信息列表
      */
     List<DepartmentLiteDTO> getDepartmentList();
+
+
+    /**
+     * 获取部门信息伴随报错
+     *
+     * @param departmentUuid 部门的唯一标识
+     * @return 部门信息
+     */
+    DepartmentDO getDepartmentByUuidWithThrows(
+            @NotBlank String departmentUuid);
 }

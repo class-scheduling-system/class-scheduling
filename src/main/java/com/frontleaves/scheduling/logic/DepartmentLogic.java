@@ -49,6 +49,7 @@ import com.frontleaves.scheduling.utils.ProjectOption;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -309,6 +310,15 @@ public class DepartmentLogic implements DepartmentService {
         return Optional.ofNullable(departmentDAO.getDepartmentList())
                 .map(data -> BeanUtil.copyToList(data, DepartmentLiteDTO.class))
                 .orElse(List.of());
+    }
+
+    @Override
+    public DepartmentDO getDepartmentByUuidWithThrows(@NotBlank String departmentUuid) {
+        DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(departmentUuid);
+        if (departmentDO == null) {
+            throw new BusinessException("通过部门ID查询，部门不存在", ErrorCode.NOT_EXIST);
+        }
+        return departmentDO;
     }
 
     /**
