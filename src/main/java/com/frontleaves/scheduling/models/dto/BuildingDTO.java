@@ -38,7 +38,7 @@ public class BuildingDTO {
     /**
      * 所属校区信息
      */
-    private CampusDTO campus;
+    private CampusDTO campusUuid;
 
     /**
      * 教学楼状态

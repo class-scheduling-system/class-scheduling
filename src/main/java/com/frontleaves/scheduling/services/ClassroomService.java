@@ -141,13 +141,15 @@ public interface ClassroomService {
     /**
      * 根据教室 UUID 获取教室信息
      * <p>
-     * 该方法用于根据给定的教室 UUID 获取对应的教室信息。如果找到匹配的记录，则返回一个 {@code ClassroomDTO} 对象，否则返回 {@code null}。
+     * 该方法用于根据给定的教室 UUID 获取对应的教室信息。如果找到匹配的记录，则返回一个 {@code ClassroomInfoDTO} 对象，否则返回 {@code null}。
+     * 返回的对象包含教室的基本信息、标签、类型、所属校区及所在楼宇等详细信息。
      * </p>
      *
      * @param classroomUuid 教室的唯一标识符
-     * @return 返回与给定教室 UUID 匹配的教室数据传输对象，如果没有找到匹配的记录则返回 {@code null}
+     * @return 返回与给定教室 UUID 匹配的教室信息，如果没有找到匹配的记录则返回 {@code null}
      */
-    ClassroomDTO getClassroomByUuid(String classroomUuid);
+    @Nullable
+    ClassroomInfoDTO getClassroomByUuid(String classroomUuid);
 
     /**
      * 编辑教室

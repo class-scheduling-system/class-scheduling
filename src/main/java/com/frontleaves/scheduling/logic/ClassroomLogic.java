@@ -262,19 +262,29 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
     /**
      * 根据教室 UUID 获取教室信息
      * <p>
-     * 该方法用于根据给定的教室 UUID 获取对应的教室信息。如果找到匹配的记录，则返回一个 {@code ClassroomDTO} 对象，否则返回 {@code null}。
+     * 该方法用于根据给定的教室 UUID 获取对应的教室信息。如果找到匹配的记录，则返回一个 {@code ClassroomInfoDTO} 对象，否则返回 {@code null}。
+     * 返回的对象包含教室的基本信息、标签、类型、所属校区及所在楼宇等详细信息。
      * </p>
      *
      * @param classroomUuid 教室的唯一标识符
-     * @return 返回与给定教室 UUID 匹配的教室数据传输对象，如果没有找到匹配的记录则返回 {@code null}
+     * @return 返回与给定教室 UUID 匹配的教室信息，如果没有找到匹配的记录则返回 {@code null}
      */
     @Override
-    public ClassroomDTO getClassroomByUuid(String classroomUuid) {
+    @Nullable
+    public ClassroomInfoDTO getClassroomByUuid(String classroomUuid) {
+        // 从 DAO 获取 DO 对象
         ClassroomDO classroomDO = classroomDAO.getClassroomByUuid(classroomUuid);
         if (classroomDO == null) {
             return null;
         }
-        return BeanUtil.toBean(classroomDO, ClassroomDTO.class);
+
+        // 在 Logic 层进行 DO 到 DTO 的转换
+        return new ClassroomInfoDTO()
+                .setClassroom(BeanUtil.toBean(classroomDO, ClassroomDTO.class))
+                .setTag(getTagListForJson(classroomDO.getTag()))
+                .setType(this.cacheSaveClassroomType(classroomDO.getType()))
+                .setCampus(this.cacheSaveCampus(classroomDO.getCampusUuid()))
+                .setBuilding(this.cacheSaveBuilding(classroomDO.getBuildingUuid()));
     }
 
     /**
