@@ -1,10 +1,12 @@
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
+import com.frontleaves.scheduling.models.dto.TeacherLiteDTO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
 import com.frontleaves.scheduling.services.TeacherService;
 import com.xlf.utility.BaseResponse;
@@ -17,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -167,5 +170,34 @@ public class TeacherController {
                 .orElseThrow(() -> new BusinessException(StringConstant.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         teacherService.updateTeacher(getUuid, teacherVO);
         return ResultUtil.success("教师信息已更新");
+    }
+
+    /**
+     * 获取教师简单列表接口
+     * 该接口返回教师的基本信息列表，包括UUID、姓名、部门和类型。
+     * 支持按部门和教师类型进行筛选。
+     *
+     * @param departmentUuid  部门UUID，可选参数
+     * @param teacherTypeUuid 教师类型UUID，可选参数
+     * @return 返回包含教师简单信息列表的响应实体
+     */
+    @RequestLogin
+    @GetMapping("/list")
+    public ResponseEntity<BaseResponse<List<TeacherLiteDTO>>> getTeacherLiteList(
+            @RequestParam(value = "department_uuid", required = false) String departmentUuid,
+            @RequestParam(value = "teacher_type_uuid", required = false) String teacherTypeUuid
+    ) {
+        // 验证部门UUID格式（如果提供）
+        if (departmentUuid != null && !departmentUuid.isBlank() && !departmentUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+            throw new BusinessException(StringConstant.DEPARTMENT_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
+        }
+
+        // 验证教师类型UUID格式（如果提供）
+        if (teacherTypeUuid != null && !teacherTypeUuid.isBlank() && !teacherTypeUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+            throw new BusinessException(StringConstant.TEACHER_TYPE_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
+        }
+
+        List<TeacherLiteDTO> teacherList = teacherService.getTeacherLiteList(departmentUuid, teacherTypeUuid);
+        return ResultUtil.success("查询教师列表成功", teacherList);
     }
 }
