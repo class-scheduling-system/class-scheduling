@@ -1,7 +1,9 @@
 package com.frontleaves.scheduling.logic;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.CourseLibraryDAO;
 import com.frontleaves.scheduling.daos.TeacherCourseQualificationDAO;
+import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
 import com.frontleaves.scheduling.models.entity.TeacherCourseQualificationDO;
 import com.frontleaves.scheduling.services.TeacherCourseQualificationService;
@@ -31,14 +33,14 @@ class TeacherCourseQualificationTest {
         TeacherCourseQualificationDO teacherCourseQualificationDO = teacherCourseQualificationDAO.lambdaQuery().list().get(0);
         CourseLibraryDO courseLibraryDO = courseLibraryDAO.lambdaQuery().eq(CourseLibraryDO::getCourseLibraryUuid,
                 teacherCourseQualificationDO.getCourseUuid()).one();
-        List<CourseLibraryDO> courseLibraryDOList =  new ArrayList<>();
-        courseLibraryDOList.add(courseLibraryDO);
+        List<CourseLibraryDTO> courseLibraryDTOList =  new ArrayList<>();
+        courseLibraryDTOList.add(BeanUtil.toBean(courseLibraryDO, CourseLibraryDTO.class));
         Assertions.assertFalse(teacherCourseQualificationService
-                .getCourseLibraryAndTeacherCourseQualificationList(courseLibraryDOList).isEmpty());
+                .getCourseLibraryAndTeacherCourseQualificationList(courseLibraryDTOList).isEmpty());
         courseLibraryDO.setCourseLibraryUuid(UuidUtil.generateUuidNoDash());
-        List<CourseLibraryDO> courseLibraryDOList1 =  new ArrayList<>();
-        courseLibraryDOList1.add(courseLibraryDO);
+        List<CourseLibraryDTO> courseLibraryDTOList1 =  new ArrayList<>();
+        courseLibraryDTOList1.add(BeanUtil.toBean(courseLibraryDO, CourseLibraryDTO.class));
         Assertions.assertThrows(Exception.class, () -> teacherCourseQualificationService
-                .getCourseLibraryAndTeacherCourseQualificationList(courseLibraryDOList1));
+                .getCourseLibraryAndTeacherCourseQualificationList(courseLibraryDTOList1));
     }
 }

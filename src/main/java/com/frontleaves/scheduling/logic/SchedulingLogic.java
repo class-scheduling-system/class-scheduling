@@ -1,9 +1,6 @@
 package com.frontleaves.scheduling.logic;
 
-import com.frontleaves.scheduling.models.dto.AcademicAffairsPermissionDTO;
-import com.frontleaves.scheduling.models.dto.AutomaticClassSchedulingBaseDTO;
-import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.dto.SemesterDTO;
+import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.services.*;
@@ -12,6 +9,7 @@ import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,6 +27,7 @@ public class SchedulingLogic implements SchedulingService {
     private final AcademicAffairsPermissionService academicAffairsPermissionService;
     private final SemesterService semesterService;
     private final CourseLibraryService courseLibraryService;
+    private final TeacherCourseQualificationService teacherCourseQualificationService;
 
     /**
      * 检查结束周是否超过学期周
@@ -48,7 +47,7 @@ public class SchedulingLogic implements SchedulingService {
 
     @Override
     public AutomaticClassSchedulingBaseDTO getAutoClassSchedulingBaseDTO(
-            AutomaticClassSchedulingVO automaticClassSchedulingVO, HttpServletRequest request) {
+            @NotNull AutomaticClassSchedulingVO automaticClassSchedulingVO, HttpServletRequest request) {
         UserDO userDO = userService.getUserByRequest(request);
         assert userDO != null;
         // 检查用户所属部门与所填写部门是否一致
@@ -71,6 +70,10 @@ public class SchedulingLogic implements SchedulingService {
                         automaticClassSchedulingVO.getScopeSettings().getExcludeCourseIds());
         assert courseLibraryDTOList != null;
         //获取课程库中教课的老师表
+        List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationListDTOS =
+                teacherCourseQualificationService.getCourseLibraryAndTeacherCourseQualificationList(
+                        courseLibraryDTOList);
+
         return null;
     }
 }
