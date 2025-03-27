@@ -1,6 +1,8 @@
 package com.frontleaves.scheduling.logic;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.AcademicAffairsPermissionDAO;
+import com.frontleaves.scheduling.models.dto.AcademicAffairsPermissionDTO;
 import com.frontleaves.scheduling.models.entity.AcademicAffairsPermissionDO;
 import com.frontleaves.scheduling.services.AcademicAffairsPermissionService;
 import com.xlf.utility.ErrorCode;
@@ -27,7 +29,7 @@ public class AcademicAffairsPermissionLogic implements AcademicAffairsPermission
      * @throws BusinessException 当用户没有设置教务权限时抛出此异常
      */
     @Override
-    public AcademicAffairsPermissionDO getAcademicAffairsPermission(String userUuid) {
+    public AcademicAffairsPermissionDTO getAcademicAffairsPermission(String userUuid) {
         // 根据用户UUID从数据库中获取教务权限信息
         AcademicAffairsPermissionDO academicAffairsPermissionDO =
                 academicAffairsPermissionDAO.getAcademicAffairsPermissionByUserUuid(userUuid);
@@ -38,6 +40,6 @@ public class AcademicAffairsPermissionLogic implements AcademicAffairsPermission
         }
 
         // 返回获取的教务权限信息
-        return academicAffairsPermissionDO;
+        return BeanUtil.toBean(academicAffairsPermissionDO,AcademicAffairsPermissionDTO.class);
     }
 }

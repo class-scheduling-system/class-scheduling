@@ -1,6 +1,8 @@
 package com.frontleaves.scheduling.logic;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.SemesterDAO;
+import com.frontleaves.scheduling.models.dto.SemesterDTO;
 import com.frontleaves.scheduling.models.entity.SemesterDO;
 import com.frontleaves.scheduling.services.SemesterService;
 import com.xlf.utility.ErrorCode;
@@ -30,7 +32,7 @@ public class SemesterLogic implements SemesterService {
      * @throws BusinessException 如果学期不存在或未启用
      */
     @Override
-    public SemesterDO getSemesterByUuidCheckEnabled(String semesterUuid) {
+    public SemesterDTO getSemesterByUuidCheckEnabled(String semesterUuid) {
         SemesterDO semesterDO = semesterDAO.getSemesterByUuid(semesterUuid);
         if (semesterDO == null) {
             throw new BusinessException("学期不存在", ErrorCode.OPERATION_ERROR);
@@ -38,6 +40,6 @@ public class SemesterLogic implements SemesterService {
         if (Boolean.FALSE.equals(semesterDO.getIsEnabled())) {
             throw new BusinessException("学期未启用", ErrorCode.OPERATION_ERROR);
         }
-        return semesterDO;
+        return BeanUtil.toBean(semesterDO, SemesterDTO.class);
     }
 }

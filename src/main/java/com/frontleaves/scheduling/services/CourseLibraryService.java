@@ -1,6 +1,6 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
+import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
 import jakarta.validation.constraints.NotBlank;
 
 import java.util.List;
@@ -20,7 +20,7 @@ public interface CourseLibraryService {
      * @param excludeCourseIds  排除的课程id
      * @return 课程库列表
      */
-    List<CourseLibraryDO> listCourseLibraryByDepartmentAndSpecifyWithThrow(
+    List<CourseLibraryDTO> listCourseLibraryByDepartmentAndSpecifyWithThrow(
             @NotBlank String departmentUuid,
             List<String> specificCourseIds,
             List<String> excludeCourseIds

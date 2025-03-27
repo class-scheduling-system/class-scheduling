@@ -3,6 +3,7 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.SemesterDAO;
+import com.frontleaves.scheduling.models.dto.SemesterDTO;
 import com.frontleaves.scheduling.models.entity.SemesterDO;
 import com.frontleaves.scheduling.services.SemesterService;
 import com.xlf.utility.exception.BusinessException;
@@ -57,7 +58,7 @@ class SemesterTest {
         semesterDAO.save(testSemester);
 
         // 测试场景1：正常获取已启用的学期
-        SemesterDO enabledSemester = semesterService.getSemesterByUuidCheckEnabled(semesterUuid);
+        SemesterDTO enabledSemester = semesterService.getSemesterByUuidCheckEnabled(semesterUuid);
         Assertions.assertNotNull(enabledSemester, "获取的学期信息不应为空");
         Assertions.assertEquals(semesterName, enabledSemester.getName(), "学期名称应该匹配");
         Assertions.assertEquals(semesterDescription, enabledSemester.getDescription(), "学期描述应该匹配");

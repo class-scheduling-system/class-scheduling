@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.daos.AcademicAffairsPermissionDAO;
+import com.frontleaves.scheduling.models.dto.AcademicAffairsPermissionDTO;
 import com.frontleaves.scheduling.models.entity.AcademicAffairsPermissionDO;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;
@@ -33,7 +34,7 @@ class AcademicAffairsPermissionTest {
                 academicAffairsPermissionDAO.lambdaQuery().list().get(0);
         String userUuid = academicAffairsPermissionDO.getAuthorizedUser();
         // 执行测试
-        AcademicAffairsPermissionDO result = academicAffairsPermissionLogic.getAcademicAffairsPermission(userUuid);
+        AcademicAffairsPermissionDTO result = academicAffairsPermissionLogic.getAcademicAffairsPermission(userUuid);
         Assertions.assertNotNull(result);
     }
 
