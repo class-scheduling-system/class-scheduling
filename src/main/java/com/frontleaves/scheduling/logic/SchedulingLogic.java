@@ -28,6 +28,7 @@ public class SchedulingLogic implements SchedulingService {
     private final SemesterService semesterService;
     private final CourseLibraryService courseLibraryService;
     private final TeacherCourseQualificationService teacherCourseQualificationService;
+    private final TeacherPreferencesService teacherPreferencesService;
 
     /**
      * 检查结束周是否超过学期周
@@ -63,17 +64,19 @@ public class SchedulingLogic implements SchedulingService {
         assert semesterDTO != null;
         //检查结束周是否超过学期周
         checkEndWeekExceedSemesterWeeks(automaticClassSchedulingVO.getEndWeek(), semesterDTO);
+        //获取课程库
         List<CourseLibraryDTO> courseLibraryDTOList =
                 courseLibraryService.listCourseLibraryByDepartmentAndSpecifyWithThrow(
                         automaticClassSchedulingVO.getDepartmentId(),
                         automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds(),
                         automaticClassSchedulingVO.getScopeSettings().getExcludeCourseIds());
         assert courseLibraryDTOList != null;
-        //获取课程库中教课的老师表
-        List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationListDTOS =
-                teacherCourseQualificationService.getCourseLibraryAndTeacherCourseQualificationList(
-                        courseLibraryDTOList);
-
+        //获取老师所有数据
+        List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList =
+                    teacherCourseQualificationService.getCourseLibraryAndTeacherCourseQualificationList(
+                            courseLibraryDTOList,automaticClassSchedulingVO.getConstraints().getTeacherPreference());
+        assert courseQualificationList != null;
+        //创建返回结果
         return null;
     }
 }

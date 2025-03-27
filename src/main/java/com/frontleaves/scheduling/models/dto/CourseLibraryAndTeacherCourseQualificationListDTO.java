@@ -14,5 +14,5 @@ import java.util.List;
 @Accessors(chain = true)
 public class CourseLibraryAndTeacherCourseQualificationListDTO {
     private CourseLibraryDTO courseLibraryDTO;
-    private List<TeacherCourseQualificationDTO> teacherCourseQualificationDOList;
+    private List<TeacherCoursePreferencesDTO> teacherCoursePreferencesDTOList;
 }

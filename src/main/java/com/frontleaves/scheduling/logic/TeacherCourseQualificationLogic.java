@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.TeacherCourseQualificationDAO;
 import com.frontleaves.scheduling.models.dto.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.TeacherCoursePreferencesDTO;
 import com.frontleaves.scheduling.models.dto.TeacherCourseQualificationDTO;
 import com.frontleaves.scheduling.models.entity.TeacherCourseQualificationDO;
 import com.frontleaves.scheduling.services.TeacherCourseQualificationService;
@@ -42,7 +43,8 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
      */
     @Override
     public List<CourseLibraryAndTeacherCourseQualificationListDTO>
-    getCourseLibraryAndTeacherCourseQualificationList(@NotNull List<CourseLibraryDTO> courseLibraryDOList) {
+    getCourseLibraryAndTeacherCourseQualificationList(@NotNull List<CourseLibraryDTO> courseLibraryDOList
+    , Boolean isTeacherPreferences) {
         // 创建返回结果列表
         List<CourseLibraryAndTeacherCourseQualificationListDTO> courseLibraryAndTeacherCourseQualificationListDTO
                 = new ArrayList<>();
@@ -54,27 +56,28 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
                             courseLibraryDTO.getCourseLibraryUuid());
             // 检查是否已分配教师，未分配则抛出异常
             if (teacherCourseQualificationList.isEmpty()) {
-                throw new BusinessException("此" + courseLibraryDTO.getName() + "课程没有分配老师教学", ErrorCode.BODY_ERROR);
+                throw new BusinessException("此" + courseLibraryDTO.getName() + "课程没有分配老师教学",
+                        ErrorCode.BODY_ERROR);
             }
-            // 创建课程库和教师资格的关联DTO对象
-            CourseLibraryAndTeacherCourseQualificationListDTO courseLibraryAndTeacherCourseQualificationListDto1 =
+            // 创建返回数据的最终关联DTO对象
+            CourseLibraryAndTeacherCourseQualificationListDTO dto =
                     new CourseLibraryAndTeacherCourseQualificationListDTO();
-            // 将课程库DO转换为DTO
-            courseLibraryAndTeacherCourseQualificationListDto1.setCourseLibraryDTO(BeanUtil.toBean(
-                    courseLibraryDTO, CourseLibraryDTO.class));
             // 创建教师课程资格DTO列表
-            List<TeacherCourseQualificationDTO> teacherCourseQualificationDTOList = new ArrayList<>();
-            // 将教师课程资格DO转换为DTO并添加到列表中
-            for (TeacherCourseQualificationDO teacherCourseQualificationDO : teacherCourseQualificationList) {
-                teacherCourseQualificationDTOList.add(BeanUtil.toBean(
-                        teacherCourseQualificationDO, TeacherCourseQualificationDTO.class));
+            List<TeacherCoursePreferencesDTO> coursePreferencesDTOList = new ArrayList<>();
+            for (TeacherCourseQualificationDO courseQualificationDO : teacherCourseQualificationList){
+                TeacherCourseQualificationDTO courseQualificationDTO = BeanUtil.toBean(
+                        courseQualificationDO, TeacherCourseQualificationDTO.class);
+                TeacherCoursePreferencesDTO coursePreferences = new TeacherCoursePreferencesDTO();
+                coursePreferences.setCourseQualification(courseQualificationDTO);
+                coursePreferencesDTOList.add(coursePreferences);
             }
-            // 设置教师课程资格DTO列表
-            courseLibraryAndTeacherCourseQualificationListDto1
-                    .setTeacherCourseQualificationDOList(teacherCourseQualificationDTOList);
+            // 将数据转换为DTO
+            dto.setCourseLibraryDTO(BeanUtil.toBean(
+                    courseLibraryDTO, CourseLibraryDTO.class))
+                            .setTeacherCoursePreferencesDTOList(coursePreferencesDTOList);
             // 将关联DTO添加到返回结果列表中
             courseLibraryAndTeacherCourseQualificationListDTO
-                    .add(courseLibraryAndTeacherCourseQualificationListDto1);
+                    .add(dto);
         }
         return courseLibraryAndTeacherCourseQualificationListDTO;
     }

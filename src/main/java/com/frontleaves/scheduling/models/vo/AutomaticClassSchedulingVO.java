@@ -68,7 +68,7 @@ public class AutomaticClassSchedulingVO {
     private ScopeSettings scopeSettings;
 
     @Data
-    private static class Constraints {
+    public static class Constraints {
         /**
          * 是否考虑教师时间偏好
          */
