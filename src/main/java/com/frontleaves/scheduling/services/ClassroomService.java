@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.services;
 import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.vo.ClassroomVO;
 import jakarta.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -185,4 +186,8 @@ public interface ClassroomService {
      * @return 返回一个包含所有教室简化信息的列表
      */
     List<ClassroomLiteDTO> listClassroomLite(String keyword);
+
+
+    @NotNull
+    ClassroomAndTypeDTO getClassroomAndTypeByUuidWihError(String uuid);
 }

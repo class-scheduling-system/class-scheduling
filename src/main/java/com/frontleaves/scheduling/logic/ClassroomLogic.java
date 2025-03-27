@@ -397,4 +397,11 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
                 )
                 .orElse(List.of());
     }
+
+    @Override
+    public @NotNull ClassroomAndTypeDTO getClassroomAndTypeByUuidWihError(String uuid) {
+        return null;
+    }
+
+
 }

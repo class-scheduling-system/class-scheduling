@@ -12,7 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 调度逻辑
@@ -28,7 +30,7 @@ public class SchedulingLogic implements SchedulingService {
     private final SemesterService semesterService;
     private final CourseLibraryService courseLibraryService;
     private final TeacherCourseQualificationService teacherCourseQualificationService;
-    private final TeacherPreferencesService teacherPreferencesService;
+    private final CourseTypeService courseTypeService;
 
     /**
      * 检查结束周是否超过学期周
@@ -64,6 +66,22 @@ public class SchedulingLogic implements SchedulingService {
         assert semesterDTO != null;
         //检查结束周是否超过学期周
         checkEndWeekExceedSemesterWeeks(automaticClassSchedulingVO.getEndWeek(), semesterDTO);
+        // 使用 Map 存储课程类型优先级，以 courseTypeUuid 为键
+        Map<String, CourseTypePriorityDTO> courseTypePriorityMap = new HashMap<>();
+        // 获取优先级并填充到 Map 中
+        for (AutomaticClassSchedulingVO.PrioritySettings.CourseTypePriority courseTypePriority
+                : automaticClassSchedulingVO.getPrioritySettings().getCourseTypes()) {
+            // 根据 typeId 获取 CourseTypeDTO
+            CourseTypeDTO courseTypeDTO =
+                    courseTypeService.getCourseTypeByUuidWithError(courseTypePriority.getTypeId());
+            assert courseTypeDTO != null;
+            // 创建 CourseTypePriorityDTO 并设置优先级
+            CourseTypePriorityDTO courseTypePriorityDTO = new CourseTypePriorityDTO();
+            courseTypePriorityDTO.setCourseTypeDTO(courseTypeDTO)
+                    .setPriority(Short.parseShort(courseTypePriority.getTypeId()));
+            // 将其添加到 Map 中，以 courseTypeUuid 为键
+            courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
+        }
         //获取课程库
         List<CourseLibraryDTO> courseLibraryDTOList =
                 courseLibraryService.listCourseLibraryByDepartmentAndSpecifyWithThrow(
@@ -73,12 +91,23 @@ public class SchedulingLogic implements SchedulingService {
         assert courseLibraryDTOList != null;
         //获取老师所有数据
         List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList =
-                    teacherCourseQualificationService.getCourseLibraryAndTeacherCourseQualificationList(
-                            courseLibraryDTOList,automaticClassSchedulingVO.getConstraints().getTeacherPreference());
+                teacherCourseQualificationService.getCourseLibraryAndTeacherCourseQualificationList(
+                        courseLibraryDTOList, automaticClassSchedulingVO.getConstraints().getTeacherPreference());
         assert courseQualificationList != null;
-        //添加课程的优先级
-
+        for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
+            //设置优先级
+            CourseLibraryDTO courseLibraryDTO = dto.getCourseLibraryDTO();
+            assert courseLibraryDTO != null;
+            // 获取课程类型 UUID
+            String courseTypeUuid = courseLibraryDTO.getType();
+            assert courseTypeUuid != null;
+            // 在 Map 中查找对应的优先级信息
+            CourseTypePriorityDTO courseTypePriorityDTO = courseTypePriorityMap.get(courseTypeUuid);
+            // 匹配成功，设置优先级
+            dto.setCourseTypes(courseTypePriorityDTO.getPriority());
+        }
         //获取教室数据
+
         //创建返回结果
         return null;
     }

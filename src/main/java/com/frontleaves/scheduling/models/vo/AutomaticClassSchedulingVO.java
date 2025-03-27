@@ -211,5 +211,9 @@ public class AutomaticClassSchedulingVO {
          * 排除的课程ID列表
          */
         private List<String> excludeCourseIds;
+        /**
+         * 允许的教学楼ID列表
+         */
+        private List<String> allowedBuildingIds;
     }
 }
