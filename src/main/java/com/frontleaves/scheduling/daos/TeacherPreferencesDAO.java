@@ -15,7 +15,7 @@ import org.springframework.stereotype.Repository;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class TeacherPreferencesDao extends ServiceImpl<TeacherPreferencesMapper, TeacherPreferencesDO> {
+public class TeacherPreferencesDAO extends ServiceImpl<TeacherPreferencesMapper, TeacherPreferencesDO> {
 
 
 }
