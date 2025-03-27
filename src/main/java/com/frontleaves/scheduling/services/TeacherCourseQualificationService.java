@@ -1,7 +1,5 @@
 package com.frontleaves.scheduling.services;
 
-import org.springframework.stereotype.Service;
-
 /**
  * 教师课程资格服务接口
  * <p>
@@ -12,6 +10,5 @@ import org.springframework.stereotype.Service;
  * @version v1.0.0
  * @since v1.0.0
  */
-@Service
 public interface TeacherCourseQualificationService {
 }
