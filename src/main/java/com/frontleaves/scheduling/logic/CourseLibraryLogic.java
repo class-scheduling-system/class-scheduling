@@ -36,13 +36,13 @@ public class CourseLibraryLogic implements CourseLibraryService {
     public List<CourseLibraryDO> listCourseLibraryByDepartmentAndSpecifyWithThrow(
             @NotBlank String departmentUuid, List<String> specificCourseIds, List<String> excludeCourseIds) {
         // 调用DAO层方法获取课程库列表
-        List<CourseLibraryDO> libraryDOS = courseLibraryDAO.getListCourseLibraryByDepartmentAndSpecify(
+        List<CourseLibraryDO> listCourseLibraryByDepartmentAndSpecify = courseLibraryDAO.getListCourseLibraryByDepartmentAndSpecify(
                 departmentUuid, specificCourseIds, excludeCourseIds);
         // 检查获取的课程库列表是否为空，如果为空则抛出业务异常
-        if (libraryDOS != null && libraryDOS.isEmpty()) {
+        if (listCourseLibraryByDepartmentAndSpecify != null && listCourseLibraryByDepartmentAndSpecify.isEmpty()) {
             throw new BusinessException("课程库列表为空", ErrorCode.BODY_ERROR);
         }
         // 返回获取的课程库列表
-        return libraryDOS;
+        return listCourseLibraryByDepartmentAndSpecify;
     }
 }
