@@ -392,7 +392,7 @@ class StudentTest {
     void testSaveStudentBackErrorWithError (){
         StudentDO studentDO =new StudentDO();
         studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
-                .setId("1")
+                .setId("1456456465")
                 .setName("ZhangSan1314")
                 .setGender(true)
                 .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
