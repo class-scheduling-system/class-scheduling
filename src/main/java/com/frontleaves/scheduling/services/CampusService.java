@@ -146,4 +146,5 @@ public interface CampusService {
      * @return 返回一个包含所有校区简要信息的 {@code List<ListOfCampusDTO>} 列表
      */
     List<ListOfCampusDTO> getCampusList();
+
 }

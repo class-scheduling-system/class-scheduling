@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -49,6 +49,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 教室逻辑处理类，实现了 {@code ClassroomService} 接口。
@@ -68,11 +69,12 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
      * <p>
      * 该构造函数用于初始化教室逻辑处理类，通过注入多个数据访问对象来提供对教室、标签、类型、校园和建筑等信息的访问与操作能力。
      * <p>
-     * @param classroomTagDAO 用于管理教室标签的数据访问对象
+     *
+     * @param classroomTagDAO  用于管理教室标签的数据访问对象
      * @param classroomTypeDAO 用于管理教室类型的数据访问对象
-     * @param classroomDAO 用于管理教室基本信息的数据访问对象
-     * @param campusDAO 用于管理校园信息的数据访问对象
-     * @param buildingDAO 用于管理建筑物信息的数据访问对象
+     * @param classroomDAO     用于管理教室基本信息的数据访问对象
+     * @param campusDAO        用于管理校园信息的数据访问对象
+     * @param buildingDAO      用于管理建筑物信息的数据访问对象
      */
     public ClassroomLogic(
             ClassroomTagDAO classroomTagDAO,
@@ -260,19 +262,29 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
     /**
      * 根据教室 UUID 获取教室信息
      * <p>
-     * 该方法用于根据给定的教室 UUID 获取对应的教室信息。如果找到匹配的记录，则返回一个 {@code ClassroomDTO} 对象，否则返回 {@code null}。
+     * 该方法用于根据给定的教室 UUID 获取对应的教室信息。如果找到匹配的记录，则返回一个 {@code ClassroomInfoDTO} 对象，否则返回 {@code null}。
+     * 返回的对象包含教室的基本信息、标签、类型、所属校区及所在楼宇等详细信息。
      * </p>
      *
      * @param classroomUuid 教室的唯一标识符
-     * @return 返回与给定教室 UUID 匹配的教室数据传输对象，如果没有找到匹配的记录则返回 {@code null}
+     * @return 返回与给定教室 UUID 匹配的教室信息，如果没有找到匹配的记录则返回 {@code null}
      */
     @Override
-    public ClassroomDTO getClassroomByUuid(String classroomUuid) {
+    @Nullable
+    public ClassroomInfoDTO getClassroomByUuid(String classroomUuid) {
+        // 从 DAO 获取 DO 对象
         ClassroomDO classroomDO = classroomDAO.getClassroomByUuid(classroomUuid);
         if (classroomDO == null) {
             return null;
         }
-        return BeanUtil.toBean(classroomDO, ClassroomDTO.class);
+
+        // 在 Logic 层进行 DO 到 DTO 的转换
+        return new ClassroomInfoDTO()
+                .setClassroom(BeanUtil.toBean(classroomDO, ClassroomDTO.class))
+                .setTag(getTagListForJson(classroomDO.getTag()))
+                .setType(this.cacheSaveClassroomType(classroomDO.getType()))
+                .setCampus(this.cacheSaveCampus(classroomDO.getCampusUuid()))
+                .setBuilding(this.cacheSaveBuilding(classroomDO.getBuildingUuid()));
     }
 
     /**
@@ -289,7 +301,7 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
     @Override
     public ClassroomInfoDTO editClassroom(String classroomUuid, ClassroomVO classroomVO) {
         ClassroomDO classroomDO = this.classroomDataVerify(classroomVO)
-                        .setClassroomUuid(classroomUuid);
+                .setClassroomUuid(classroomUuid);
         classroomDAO.updateClassroom(classroomDO);
         ClassroomDO classroom = classroomDAO.getClassroomByUuid(classroomUuid);
         if (classroom == null) {
@@ -365,5 +377,24 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
             });
         }
         return tags;
+    }
+
+    @Override
+    public List<ClassroomLiteDTO> listClassroomLite(String keyword) {
+        return Optional.ofNullable(classroomDAO.getClassroomByStatus(true))
+                .map(classroom -> {
+                    if (keyword != null && !keyword.isBlank()) {
+                        return classroom.stream()
+                                .filter(classroomDO -> classroomDO.getNumber().contains(keyword) || classroomDO.getName().contains(keyword))
+                                .toList();
+                    }
+                    return classroom;
+                })
+                .map(classroom ->
+                        classroom.stream()
+                                .map(classroomDO -> BeanUtil.toBean(classroomDO, ClassroomLiteDTO.class))
+                                .toList()
+                )
+                .orElse(List.of());
     }
 }

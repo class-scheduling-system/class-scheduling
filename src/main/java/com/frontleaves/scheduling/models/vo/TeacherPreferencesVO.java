@@ -26,22 +26,21 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.models.vo;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.sql.Timestamp;
-
 /**
- * 教师课程偏好实体类
+ * 教师课程偏好视图对象
  * <p>
- * 对应数据库表：`cs_teacher_preferences`
- * 本类用于封装教师对课程时间段的偏好信息，主键为 preference_uuid，采用 UUID 自动生成。
+ * 该类用于接收前端传递的教师课程偏好信息，包含了教师对特定时间段的课程偏好设置。
+ * 所有字段都经过了适当的验证注解，以确保数据的合法性。
  * </p>
  *
  * @author xiao_lfeng
@@ -49,53 +48,49 @@ import java.sql.Timestamp;
  * @since v1.0.0
  */
 @Data
-@TableName("cs_teacher_preferences")
 @NoArgsConstructor
 @Accessors(chain = true)
-public class TeacherPreferencesDO {
-    /**
-     * 教师偏好主键，采用 UUID 自动生成
-     */
-    @TableId(value = "preference_uuid", type = IdType.ASSIGN_UUID)
-    private String preferenceUuid;
-
+public class TeacherPreferencesVO {
     /**
      * 教师主键
      */
+    @NotNull(message = "教师主键不能为空")
+    @Pattern(regexp = "^[0-9a-f]{32}$", message = "教师主键格式不正确")
     private String teacherUuid;
 
     /**
      * 学期主键
      */
+    @NotNull(message = "学期主键不能为空")
+    @Pattern(regexp = "^[0-9a-f]{32}$", message = "学期主键格式不正确")
     private String semesterUuid;
 
     /**
      * 星期几（1-7）
      */
+    @NotNull(message = "星期几不能为空")
+    @Min(value = 1, message = "星期几必须在1-7之间")
+    @Max(value = 7, message = "星期几必须在1-7之间")
     private Integer dayOfWeek;
 
     /**
      * 第几节课（1-12）
      */
+    @NotNull(message = "第几节课不能为空")
+    @Min(value = 1, message = "第几节课必须在1-12之间")
+    @Max(value = 12, message = "第几节课必须在1-12之间")
     private Integer timeSlot;
 
     /**
      * 偏好程度（1：最不期望，2：尽量避免，3：可接受，4：较期望，5：非常期望）
      */
+    @NotNull(message = "偏好程度不能为空")
+    @Min(value = 1, message = "偏好程度必须在1-5之间")
+    @Max(value = 5, message = "偏好程度必须在1-5之间")
     private Integer preferenceLevel;
 
     /**
      * 偏好原因
      */
     private String reason;
-
-    /**
-     * 创建时间
-     */
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    private Timestamp updatedAt;
 }

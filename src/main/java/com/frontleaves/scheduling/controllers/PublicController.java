@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
+import com.frontleaves.scheduling.models.dto.JvmStackDTO;
 import com.frontleaves.scheduling.models.dto.SiteDTO;
 import com.frontleaves.scheduling.models.dto.SystemDTO;
 import com.frontleaves.scheduling.services.PublicService;
@@ -17,12 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>
  * 该控制器提供了对外的公共接口，主要用于获取站点的基本信息。通过调用 {@code PublicService} 接口的方法，从系统数据库中获取详细的站点信息，并将其封装到一个 {@code SiteDTO} 对象中返回。
  *
+ * @author fanfan187
+ * @version v1.0.0
  * @see PublicService
  * @see SiteDTO
- *
  * @since v1.0.0
- * @version v1.0.0
- * @author fanfan187
  */
 @RestController
 @RequestMapping("/api/v1/web")
@@ -59,5 +59,19 @@ public class PublicController {
         SystemDTO systemInfo = publicService.getSystemInfo();
         return ResultUtil.success("成功", systemInfo);
     }
-}
 
+    /**
+     * 获取 JVM 堆栈信息
+     * <p>
+     * 该方法用于获取当前 JVM 的运行时信息。通过调用 {@code publicService.getJvmStackInfo()} 方法获取详细的 JVM 堆栈信息，
+     * 并将其封装到一个 {@code JvmStackDTO} 对象中返回。返回的信息包括内存使用情况、系统属性、线程状态等。
+     *
+     * @return 包含 JVM 堆栈详细信息的响应实体，其中数据部分为 {@code BaseResponse<JvmStackDTO>} 类型
+     */
+    @RequestRole({"管理员"})
+    @GetMapping("/jvm-stack")
+    public ResponseEntity<BaseResponse<JvmStackDTO>> getJvmStackInfo() {
+        JvmStackDTO jvmStackInfo = publicService.getJvmStackInfo();
+        return ResultUtil.success("成功", jvmStackInfo);
+    }
+}

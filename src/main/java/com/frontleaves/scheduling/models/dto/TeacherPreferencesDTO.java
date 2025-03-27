@@ -26,26 +26,70 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.mappers;
+package com.frontleaves.scheduling.models.dto;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.TeacherPreferencesDO;
-import org.apache.ibatis.annotations.Mapper;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+
+import java.sql.Timestamp;
 
 /**
- * 教师课程偏好表映射器
+ * 教师课程偏好数据传输对象
  * <p>
- * 该类用于定义教师课程偏好表映射器，继承自 MyBatis-Plus 的 {@code BaseMapper} 接口。
- * 通过此接口可以实现对教师课程偏好信息的增删改查等基本数据库操作。
- * 对应的实体类为 {@code TeacherPreferencesDO}，该类表示教师课程偏好信息，包含教师对课程时间段的偏好设置。
- * 教师课程偏好信息存储在数据库表 `cs_teacher_preferences` 中。
+ * 该类用于在系统各层之间传递教师课程偏好信息，包含了教师对特定时间段的课程偏好设置。
  * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
- * @see TeacherPreferencesDO
  * @since v1.0.0
  */
-@Mapper
-public interface TeacherPreferencesMapper extends BaseMapper<TeacherPreferencesDO> {
+@Data
+@NoArgsConstructor
+@Accessors(chain = true)
+public class TeacherPreferencesDTO {
+    /**
+     * 教师偏好主键
+     */
+    private String preferenceUuid;
+
+    /**
+     * 教师主键
+     */
+    private String teacherUuid;
+
+    /**
+     * 学期主键
+     */
+    private String semesterUuid;
+
+    /**
+     * 星期几（1-7）
+     */
+    private Integer dayOfWeek;
+
+    /**
+     * 第几节课（1-12）
+     */
+    private Integer timeSlot;
+
+    /**
+     * 偏好程度（1：最不期望，2：尽量避免，3：可接受，4：较期望，5：非常期望）
+     */
+    private Integer preferenceLevel;
+
+    /**
+     * 偏好原因
+     */
+    private String reason;
+
+    /**
+     * 创建时间
+     */
+    private Timestamp createdAt;
+
+    /**
+     * 更新时间
+     */
+    private Timestamp updatedAt;
 }

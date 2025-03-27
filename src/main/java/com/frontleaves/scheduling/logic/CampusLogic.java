@@ -286,4 +286,5 @@ public class CampusLogic implements CampusService {
         return campusDAO.getCampusList();
     }
 
+
 }

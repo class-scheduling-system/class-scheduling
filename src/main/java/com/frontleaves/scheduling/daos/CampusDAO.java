@@ -173,7 +173,7 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
      */
     public void deleteCampus(CampusDO campusDO) {
         RKeys keys = redisson.getKeys();
-        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_LIST + "*");
+        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_PAGE + "*");
         keys.deleteByPattern(StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
         keys.deleteByPattern(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode());
         keys.deleteByPattern(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
@@ -231,6 +231,30 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
                     .map(campusDO -> BeanUtil.toBean(campusDO, ListOfCampusDTO.class, ProjectOption.stringBlankToNull()))
                     .forEach(campusList::add);
             campusList.expire(Duration.ofSeconds(43200));
+        }
+        return campusList.readAll();
+    }
+
+
+    /**
+     * 获取所有校区信息
+     * <p>
+     * 该方法用于从Redis缓存或数据库中获取所有校区的完整信息。
+     * 如果在Redis缓存中没有找到相应的数据，则从数据库中查询，并将结果缓存到Redis中以提高后续查询效率。
+     * 与getCampusList方法不同，此方法返回校区的完整实体对象（CampusDO），包含所有字段信息。
+     * </p>
+     *
+     * @return 返回包含所有校区完整信息的列表
+     */
+    public List<CampusDO> getAllCampus() {
+        RList<CampusDO> campusList = redisson.getList(StringConstant.Redis.CAMPUS_LIST);
+        if (!campusList.isExists()) {
+            List<CampusDO> campusDOList = this.lambdaQuery().list();
+            if (!campusDOList.isEmpty()) {
+                campusList.addAll(campusDOList);
+                campusList.expire(Duration.ofSeconds(43200));
+            }
+            return campusDOList;
         }
         return campusList.readAll();
     }

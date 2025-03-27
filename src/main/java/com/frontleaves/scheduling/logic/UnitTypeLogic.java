@@ -93,11 +93,7 @@ public class UnitTypeLogic implements UnitTypeService {
     public UnitTypeDTO addUnitType(UnitTypeVO unitTypeVO) {
         UnitTypeDO unitTypeDO = new UnitTypeDO();
         BeanUtil.copyProperties(unitTypeVO, unitTypeDO);
-
-        if (!unitTypeDAO.addUnitType(unitTypeDO)) {
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-        }
-
+        unitTypeDAO.addUnitType(unitTypeDO);
         return BeanUtil.toBean(unitTypeDO, UnitTypeDTO.class);
     }
 
@@ -189,12 +185,9 @@ public class UnitTypeLogic implements UnitTypeService {
      * @param unitTypeDO 单位办别DO
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional
     public void deleteUnitType(UnitTypeDO unitTypeDO) {
-        unitTypeDAO.deleteUnitTypeCache(unitTypeDO);
-        if (!unitTypeDAO.removeById(unitTypeDO.getUnitTypeUuid())) {
-            throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
-        }
+        unitTypeDAO.deleteUnitType(unitTypeDO);
     }
 
     /**

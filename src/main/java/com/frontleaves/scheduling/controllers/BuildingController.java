@@ -32,9 +32,8 @@ import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.BuildingDTO;
-import com.frontleaves.scheduling.models.dto.BuildingLiteDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.vo.BatchAddBuildingVO;
 import com.frontleaves.scheduling.models.vo.BuildingOperateVO;
 import com.frontleaves.scheduling.services.BuildingService;
 import com.xlf.utility.BaseResponse;
@@ -43,10 +42,15 @@ import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -246,5 +250,78 @@ public class BuildingController {
     ) {
         List<BuildingLiteDTO> buildingList = buildingService.getBuildingList(keyword);
         return ResultUtil.success("获取教学楼列表成功", buildingList);
+    }
+
+    /**
+     * 获取教学楼导入模板
+     * 该方法用于提供用户下载建筑物信息导入的Excel模板，特别适用于管理员角色
+     * 使用了RequestRole注解来限制只有具有"管理员"角色的用户才能访问此端点
+     *
+     * @return ResponseEntity<byte[]> 返回包含模板文件的响应实体，设置为附件形式，文件名为"教学楼导入模板.xlsx"
+     */
+    @RequestRole({"管理员"})
+    @GetMapping("/get-template")
+    public ResponseEntity<byte[]> getBuildingImportTemplate() {
+        // 准备建筑物示例数据，用于生成导入模板
+        PrepareBuildingDTO prepareBuildingExampleDTO = buildingService.prepareCampusData();
+        // 获取建筑物导入模板的字节数组
+        byte[] bytes = buildingService.getBuildingImportTemplate(prepareBuildingExampleDTO);
+
+        // 初始化HTTP响应头，用于设置模板文件的下载信息
+        HttpHeaders headers = Optional.of(new HttpHeaders())
+                .map(header -> {
+                    // 设置内容类型为二进制流
+                    header.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                    // 设置内容长度
+                    header.setContentLength(bytes.length);
+                    // 对文件名进行URL编码，确保文件名在不同浏览器中正确显示
+                    String fileName = URLEncoder.encode("教学楼导入模板.xlsx", StandardCharsets.UTF_8)
+                            .replace("+", "%20");
+                    // 设置内容处置，以附件形式下载文件，并处理文件名的UTF-8编码
+                    header.add(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + fileName + "\"; filename*=UTF-8''" + fileName);
+                    return header;
+                })
+                // 如果生成响应头失败，则抛出业务异常
+                .orElseThrow(() -> new BusinessException("获取响应头失败", ErrorCode.SERVER_INTERNAL_ERROR));
+
+        // 返回包含模板文件的响应实体，状态码为HTTP 200 OK
+        return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+    }
+
+    /**
+     * 批量导入教学楼信息
+     * <p>
+     * 该方法用于批量导入教学楼信息，支持忽略错误的选项。
+     * 只有具有"管理员"角色的用户才能访问此方法。
+     *
+     * @param batchAddBuildingVO 批量添加教学楼的信息对象
+     * @return 返回一个包含操作结果的ResponseEntity对象
+     */
+    @RequestRole({"管理员"})
+    @PostMapping("/batch-import")
+    // 定义方法批量导入教学楼信息，返回一个包含操作结果的ResponseEntity对象
+    public ResponseEntity<BaseResponse<BackAddBuildingDTO>> batchImportBuildings(
+            @RequestBody @Validated BatchAddBuildingVO batchAddBuildingVO
+    ) {
+        // 调用buildingService的verifyBuildingBatchAndBackFile方法验证批量导入的数据并获取处理后的文件
+        byte[] file = buildingService.verifyBuildingBatchAndBackFile(batchAddBuildingVO);
+
+        // 根据batchAddBuildingVO中的ignoreError标志决定是否忽略错误并继续执行批量导入
+        // 如果ignoreError为true，则调用batchImportIgnoreError方法，否则调用batchImportNoIgnoreError方法
+        // 执行批量导入教学楼的操作
+        BackAddBuildingDTO backAddBuildingDTO = Optional.ofNullable(batchAddBuildingVO.getIgnoreError())
+                .filter(Boolean.TRUE::equals)
+                .map(ignoreError -> buildingService.batchImportIgnoreError(file))
+                .orElseGet(() -> buildingService.batchImportNoIgnoreError(file));
+
+        // 检查是否有教学楼导入失败
+        if (backAddBuildingDTO.getFailedCount() > 0) {
+            // 如果有教学楼导入失败，返回带有错误信息的响应
+            return ResultUtil.success("存在添加失败的教学楼", backAddBuildingDTO);
+        }
+
+        // 如果所有教学楼都成功导入，返回批量添加教学楼成功的响应
+        return ResultUtil.success("批量添加教学楼成功", backAddBuildingDTO);
     }
 }

@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -41,11 +41,13 @@ import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RBucket;
+import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -90,7 +92,7 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> {
             @Nullable String tag,
             @Nullable String type
     ) {
-        RMap<String, String> map = redisson.getMap(StringConstant.Redis.CLASSROOM_LIST + page + ":" + size + ":" + isDesc + ":" + keyword + ":" + tag + ":" + type);
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.CLASSROOM_PAGE + page + ":" + size + ":" + isDesc + ":" + keyword + ":" + tag + ":" + type);
         if (!map.isExists()) {
             LambdaQueryChainWrapper<ClassroomDO> queryWrapper = this.lambdaQuery();
             if (tag != null) {
@@ -206,10 +208,41 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> {
                     .ifPresent(rKeys -> {
                         rKeys.delete(StringConstant.Redis.CLASSROOM_UUID + classroomDO.getClassroomUuid());
                         rKeys.delete(StringConstant.Redis.CLASSROOM_NUMBER + classroomDO.getNumber());
+                        rKeys.deleteByPattern(StringConstant.Redis.CLASSROOM_STATUS + "*");
+                        rKeys.deleteByPattern(StringConstant.Redis.CLASSROOM_PAGE + "*");
                     });
             this.removeById(classroomDO);
             return true;
         }
         return false;
+    }
+
+    /**
+     * 根据状态获取教室列表
+     * <p>
+     * 该方法用于获取指定状态的所有教室信息。首先会尝试从 Redis 缓存中获取数据，
+     * 如果缓存中不存在，则从数据库中查询并将结果缓存到 Redis 中。
+     * </p>
+     *
+     * @param status 教室状态（true 表示启用，false 表示禁用）
+     * @return 返回符合状态条件的教室列表
+     */
+    @Nullable
+    public List<ClassroomDO> getClassroomByStatus(boolean status) {
+        RList<ClassroomDO> list = redisson.getList(StringConstant.Redis.CLASSROOM_STATUS + status);
+        if (!list.isExists()) {
+            List<ClassroomDO> classrooms = this.lambdaQuery()
+                    .eq(ClassroomDO::getStatus, status)
+                    .orderByAsc(ClassroomDO::getNumber)
+                    .list();
+            if (!classrooms.isEmpty()) {
+                list.addAll(classrooms);
+                list.expire(Duration.ofSeconds(3600));
+                return classrooms;
+            }
+        } else {
+            return list.readAll();
+        }
+        return null;
     }
 }

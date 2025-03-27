@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -31,10 +31,7 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.ClassroomInfoDTO;
-import com.frontleaves.scheduling.models.dto.ClassroomTagDTO;
-import com.frontleaves.scheduling.models.dto.ClassroomTypeDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.vo.ClassroomVO;
 import com.frontleaves.scheduling.services.*;
 import com.xlf.utility.BaseResponse;
@@ -118,7 +115,7 @@ public class ClassroomController {
      * @return 包含教室列表分页数据的响应实体
      */
     @RequestLogin
-    @GetMapping("/list")
+    @GetMapping("/page")
     public ResponseEntity<BaseResponse<PageDTO<ClassroomInfoDTO>>> getClassroomPage(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "20") Integer size,
@@ -132,6 +129,48 @@ public class ClassroomController {
         }
         PageDTO<ClassroomInfoDTO> classroomList = classroomService.getClassroomPage(page, size, isDesc, keyword, tag, type);
         return ResultUtil.success("教室列表成功", classroomList);
+    }
+
+    /**
+     * 获取教室简单列表
+     * <p>
+     * 该方法用于获取教室的简化信息列表，主要用于下拉框等简单展示场景。
+     * 返回的数据仅包含教室的基本信息，如UUID、编号、名称、容量和状态。
+     * </p>
+     *
+     * @return 包含教室简单信息列表的响应实体
+     */
+    @RequestLogin
+    @GetMapping("/list")
+    public ResponseEntity<BaseResponse<List<ClassroomLiteDTO>>> getClassroomLiteList(
+            @RequestParam(value = "keyword", required = false) String keyword
+    ) {
+        List<ClassroomLiteDTO> classroomList = classroomService.listClassroomLite(keyword);
+        return ResultUtil.success("获取教室列表成功", classroomList);
+    }
+
+    /**
+     * 获取单个教室信息
+     * <p>
+     * 该方法用于根据教室的 UUID 获取教室的详细信息。如果提供的教室 UUID 不符合 UUID 格式，
+     * 将抛出 {@code BusinessException} 异常，并返回相应的错误信息。如果教室不存在，
+     * 也将抛出 {@code BusinessException} 异常。成功获取后，将返回包含教室详细信息的响应。
+     * </p>
+     *
+     * @param classroomUuid 教室的唯一标识符，必须符合 UUID 格式（不含中划线）
+     * @return 包含教室详细信息的 ResponseEntity 对象
+     */
+    @RequestLogin
+    @GetMapping("/{classroom_uuid}")
+    public ResponseEntity<BaseResponse<ClassroomInfoDTO>> getClassroom(
+            @PathVariable("classroom_uuid") String classroomUuid
+    ) {
+        if (!classroomUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+            throw new BusinessException("教室主键不合法", ErrorCode.PARAMETER_INVALID);
+        }
+        ClassroomInfoDTO classroomInfoDTO = Optional.ofNullable(classroomService.getClassroomByUuid(classroomUuid))
+                .orElseThrow(() -> new BusinessException("教室不存在", ErrorCode.NOT_EXIST));
+        return ResultUtil.success("获取教室信息成功", classroomInfoDTO);
     }
 
     /**

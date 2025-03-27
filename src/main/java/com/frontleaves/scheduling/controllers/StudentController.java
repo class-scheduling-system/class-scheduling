@@ -1,22 +1,19 @@
 package com.frontleaves.scheduling.controllers;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.StudentDTO;
-import com.frontleaves.scheduling.models.dto.StudentDisableDTO;
-import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.annotations.RequestRole;
-import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
-import com.frontleaves.scheduling.models.dto.PrepareStudentExampleDTO;
+import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
+import com.frontleaves.scheduling.models.vo.StudentVO;
+import com.frontleaves.scheduling.services.BuildingService;
 import com.frontleaves.scheduling.services.StudentService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
-import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -46,6 +43,8 @@ import java.util.regex.Pattern;
 public class StudentController {
 
     private final StudentService studentService;
+    private final BuildingService buildingService;
+
     /**
      * 查看学生
      *
@@ -85,11 +84,11 @@ public class StudentController {
      */
     @GetMapping("/list")
     public @NotNull ResponseEntity<BaseResponse<PageDTO<StudentDTO>>> getStudentList(
-            @RequestParam(value = "page") int page,
-            @RequestParam(value = "size") int size,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size,
             @RequestParam(value = "is_desc", required = false, defaultValue = "true") Boolean isDesc,
             @RequestParam(value = "class", required = false) String clazz,
-            @RequestParam(value = "is_graduated", required = false) Boolean isGraduated,
+            @RequestParam(value = "is_graduated", required = false, defaultValue = "false") Boolean isGraduated,
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "id", required = false) String id
     ) {

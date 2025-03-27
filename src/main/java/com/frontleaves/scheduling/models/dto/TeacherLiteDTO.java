@@ -26,26 +26,42 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.mappers;
+package com.frontleaves.scheduling.models.dto;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.TeacherPreferencesDO;
-import org.apache.ibatis.annotations.Mapper;
+import lombok.Data;
+import lombok.experimental.Accessors;
 
 /**
- * 教师课程偏好表映射器
+ * 教师简单信息数据传输对象
  * <p>
- * 该类用于定义教师课程偏好表映射器，继承自 MyBatis-Plus 的 {@code BaseMapper} 接口。
- * 通过此接口可以实现对教师课程偏好信息的增删改查等基本数据库操作。
- * 对应的实体类为 {@code TeacherPreferencesDO}，该类表示教师课程偏好信息，包含教师对课程时间段的偏好设置。
- * 教师课程偏好信息存储在数据库表 `cs_teacher_preferences` 中。
+ * 该类用于传输教师的基本信息，包括教师UUID、姓名、部门和类型等。
+ * 主要用于列表展示等不需要完整教师信息的场景。
  * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
- * @see TeacherPreferencesDO
  * @since v1.0.0
  */
-@Mapper
-public interface TeacherPreferencesMapper extends BaseMapper<TeacherPreferencesDO> {
+@Data
+@Accessors(chain = true)
+public class TeacherLiteDTO {
+    /**
+     * 教师UUID
+     */
+    private String teacherUuid;
+
+    /**
+     * 教师姓名
+     */
+    private String teacherName;
+
+    /**
+     * 部门名称
+     */
+    private String departmentName;
+
+    /**
+     * 教师类型名称
+     */
+    private String teacherTypeName;
 }

@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -26,26 +26,45 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.mappers;
+package com.frontleaves.scheduling.configs.threads;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.TeacherPreferencesDO;
-import org.apache.ibatis.annotations.Mapper;
+import com.frontleaves.scheduling.thread.ConditionThread;
+import com.frontleaves.scheduling.thread.WaitNotifyThread;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
- * 教师课程偏好表映射器
+ * 线程执行配置类
  * <p>
- * 该类用于定义教师课程偏好表映射器，继承自 MyBatis-Plus 的 {@code BaseMapper} 接口。
- * 通过此接口可以实现对教师课程偏好信息的增删改查等基本数据库操作。
- * 对应的实体类为 {@code TeacherPreferencesDO}，该类表示教师课程偏好信息，包含教师对课程时间段的偏好设置。
- * 教师课程偏好信息存储在数据库表 `cs_teacher_preferences` 中。
- * </p>
+ * 该类主要用于配置线程执行的相关配置，如线程池、线程等。
+ * <p>
+ * <ul>
+ * <li>通过 {@link WaitNotifyThread} 注解标注该方法为等待唤醒线程。</li>
+ * <li>通过 {@link ConditionThread} 注解标注该方法为等待唤醒线程。</li>
+ * <li>通过 {@link WaitNotifyThread#start()} 方法启动等待唤醒线程。</li>
+ * <li>通过 {@link ConditionThread#start()} 方法启动等待唤醒线程。</li>
+ * </ul>
  *
  * @author xiao_lfeng
  * @version v1.0.0
- * @see TeacherPreferencesDO
+ * @see WaitNotifyThread
+ * @see ConditionThread
  * @since v1.0.0
  */
-@Mapper
-public interface TeacherPreferencesMapper extends BaseMapper<TeacherPreferencesDO> {
+@Configuration
+public class ExecutionThreadConfig {
+
+    @Bean
+    public WaitNotifyThread waitNotifyThread() {
+        WaitNotifyThread thread = new WaitNotifyThread("等待唤醒线程-WaitNotify");
+        thread.start();
+        return thread;
+    }
+
+    @Bean
+    public ConditionThread conditionThread() {
+        ConditionThread thread = new ConditionThread("等待唤醒线程-Condition");
+        thread.start();
+        return thread;
+    }
 }
