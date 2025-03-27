@@ -1,11 +1,20 @@
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherCourseQualificationMapper;
 import com.frontleaves.scheduling.models.entity.TeacherCourseQualificationDO;
+import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.redisson.api.RBucket;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
+
+import java.time.Duration;
 
 /**
  * 教师课程资格数据访问对象
@@ -25,4 +34,60 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class TeacherCourseQualificationDAO extends
         ServiceImpl<TeacherCourseQualificationMapper, TeacherCourseQualificationDO> {
+    private final RedissonClient redisson;
+
+    /**
+     * 根据教师课程资格UUID获取教师课程资格信息
+     * @param teacherCourseQualificationUuid 教师课程资格UUID
+     * @return 教师课程资格信息
+     */
+    public TeacherCourseQualificationDO getTeacherCourseQualificationByUuid(
+            String teacherCourseQualificationUuid) {
+        RMap<String, String> rMap = redisson.getMap(
+                StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_UUID + teacherCourseQualificationUuid);
+        if (!rMap.isExists()){
+            TeacherCourseQualificationDO teacherCourseQualificationDO = this.getById(teacherCourseQualificationUuid);
+            if (teacherCourseQualificationDO != null) {
+                rMap.putAll(ConvertUtil.convertObjectToMapString(teacherCourseQualificationDO));
+                rMap.expire(Duration.ofSeconds(3600));
+                return teacherCourseQualificationDO;
+            }
+            return null;
+        }
+        return BeanUtil.toBean(rMap, TeacherCourseQualificationDO.class);
+    }
+
+    /**
+     * 根据课程库UUID获取教师课程资格信息
+     * <p>
+     * 该方法首先尝试从Redis缓存中获取教师课程资格信息。如果缓存中不存在，则从数据库中查询，
+     * 并将查询结果存入Redis缓存中。缓存的有效期为1小时。
+     * </p>
+     * @param courseLibraryUuid 课程库UUID，用于查询对应的教师课程资格信息
+     * @return 教师课程资格信息，如果未找到则返回null
+     * @see TeacherCourseQualificationDO
+     */
+    public TeacherCourseQualificationDO getTeacherCourseQualificationByCourseLibraryUuid(
+            String courseLibraryUuid) {
+        RBucket<String> rBucket = redisson.getBucket(
+                StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_COURSE_LIBRARY_UUID + courseLibraryUuid);
+        if (!rBucket.isExists()){
+            TeacherCourseQualificationDO teacherCourseQualificationDO = this.lambdaQuery()
+                    .eq(TeacherCourseQualificationDO::getCourseUuid, courseLibraryUuid).one();
+            if (teacherCourseQualificationDO != null) {
+                rBucket.set(teacherCourseQualificationDO.getCourseUuid());
+                rBucket.expire(Duration.ofSeconds(3600));
+                RMap<String, String> rMap = redisson.getMap(
+                        StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_UUID
+                                + teacherCourseQualificationDO.getQualificationUuid());
+                rMap.putAll(ConvertUtil.convertObjectToMapString(teacherCourseQualificationDO));
+                rMap.expire(Duration.ofSeconds(3600));
+                return teacherCourseQualificationDO;
+            }
+            return null;
+        }
+        RMap<String,String> rMap = redisson.getMap(
+                StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_UUID + rBucket.get());
+        return BeanUtil.toBean(rMap, TeacherCourseQualificationDO.class);
+    }
 }

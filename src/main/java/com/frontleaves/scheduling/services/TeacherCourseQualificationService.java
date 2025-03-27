@@ -16,9 +16,13 @@ import java.util.List;
  * @since v1.0.0
  */
 public interface TeacherCourseQualificationService {
-
+    /**
+     * 获取课程库和教师课程资格的关联信息
+     * @param courseLibraryDOList 课程库数据对象列表
+     * @return 包含课程库和教师课程资格信息的DTO列表
+     */
     List<CourseLibraryAndTeacherCourseQualificationListDTO>
-    getCourseLibraryDOAndTeacherCourseQualificationDO(
+    getCourseLibraryAndTeacherCourseQualificationList(
             List<CourseLibraryDO> courseLibraryDOList
     );
 }
