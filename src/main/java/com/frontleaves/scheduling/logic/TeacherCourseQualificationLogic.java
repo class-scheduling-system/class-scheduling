@@ -49,11 +49,11 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
         // 遍历课程库列表，获取每个课程的教师资格信息
         for (CourseLibraryDTO courseLibraryDTO : courseLibraryDOList) {
             // 根据课程库UUID获取教师课程资格信息
-            TeacherCourseQualificationDO teacherCourseQualificationDO =
+            List<TeacherCourseQualificationDO> teacherCourseQualificationList =
                     teacherCourseQualificationDAO.getTeacherCourseQualificationByCourseLibraryUuid(
                             courseLibraryDTO.getCourseLibraryUuid());
             // 检查是否已分配教师，未分配则抛出异常
-            if (teacherCourseQualificationDO == null) {
+            if (teacherCourseQualificationList.isEmpty()) {
                 throw new BusinessException("此" + courseLibraryDTO.getName() + "课程没有分配老师教学", ErrorCode.BODY_ERROR);
             }
             // 创建课程库和教师资格的关联DTO对象
@@ -65,8 +65,10 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
             // 创建教师课程资格DTO列表
             List<TeacherCourseQualificationDTO> teacherCourseQualificationDTOList = new ArrayList<>();
             // 将教师课程资格DO转换为DTO并添加到列表中
-            teacherCourseQualificationDTOList.add(BeanUtil.toBean(
-                    teacherCourseQualificationDO, TeacherCourseQualificationDTO.class));
+            for (TeacherCourseQualificationDO teacherCourseQualificationDO : teacherCourseQualificationList) {
+                teacherCourseQualificationDTOList.add(BeanUtil.toBean(
+                        teacherCourseQualificationDO, TeacherCourseQualificationDTO.class));
+            }
             // 设置教师课程资格DTO列表
             courseLibraryAndTeacherCourseQualificationListDto1
                     .setTeacherCourseQualificationDOList(teacherCourseQualificationDTOList);

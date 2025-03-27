@@ -8,13 +8,13 @@ import com.frontleaves.scheduling.models.entity.TeacherCourseQualificationDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.redisson.api.RBucket;
+import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 教师课程资格数据访问对象
@@ -67,27 +67,20 @@ public class TeacherCourseQualificationDAO extends
      * @return 教师课程资格信息，如果未找到则返回null
      * @see TeacherCourseQualificationDO
      */
-    public TeacherCourseQualificationDO getTeacherCourseQualificationByCourseLibraryUuid(
+    public List<TeacherCourseQualificationDO> getTeacherCourseQualificationByCourseLibraryUuid(
             String courseLibraryUuid) {
-        RBucket<String> rBucket = redisson.getBucket(
+        RList<TeacherCourseQualificationDO> rList = redisson.getList(
                 StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_COURSE_LIBRARY_UUID + courseLibraryUuid);
-        if (!rBucket.isExists()){
-            TeacherCourseQualificationDO teacherCourseQualificationDO = this.lambdaQuery()
-                    .eq(TeacherCourseQualificationDO::getCourseUuid, courseLibraryUuid).one();
-            if (teacherCourseQualificationDO != null) {
-                rBucket.set(teacherCourseQualificationDO.getCourseUuid());
-                rBucket.expire(Duration.ofSeconds(3600));
-                RMap<String, String> rMap = redisson.getMap(
-                        StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_UUID
-                                + teacherCourseQualificationDO.getQualificationUuid());
-                rMap.putAll(ConvertUtil.convertObjectToMapString(teacherCourseQualificationDO));
-                rMap.expire(Duration.ofSeconds(3600));
-                return teacherCourseQualificationDO;
+        if (!rList.isExists()){
+            List<TeacherCourseQualificationDO> teacherCourseQualificationDOList = this.lambdaQuery()
+                    .eq(TeacherCourseQualificationDO::getCourseUuid, courseLibraryUuid).list();
+            if (teacherCourseQualificationDOList != null) {
+                rList.addAll(teacherCourseQualificationDOList);
+                rList.expire(Duration.ofSeconds(3600));
+                return teacherCourseQualificationDOList;
             }
-            return null;
+            return list();
         }
-        RMap<String,String> rMap = redisson.getMap(
-                StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_UUID + rBucket.get());
-        return BeanUtil.toBean(rMap, TeacherCourseQualificationDO.class);
+        return rList.readAll();
     }
 }

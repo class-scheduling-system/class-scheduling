@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.List;
+
 @Slf4j
 @SpringBootTest
 class TeacherCourseQualificationTest {
@@ -27,9 +29,9 @@ class TeacherCourseQualificationTest {
     void testGetTeacherCourseQualificationByCourseLibraryUuid () {
         TeacherCourseQualificationDO teacherCourseQualificationDO = teacherCourseQualificationDAO.lambdaQuery().list()
                 .get(0);
-        TeacherCourseQualificationDO teacherCourseQualificationDO1 = teacherCourseQualificationDAO.getTeacherCourseQualificationByCourseLibraryUuid(
+        List<TeacherCourseQualificationDO> teacherCourseQualificationDO1 = teacherCourseQualificationDAO.getTeacherCourseQualificationByCourseLibraryUuid(
                 teacherCourseQualificationDO.getCourseUuid());
-        Assertions.assertNotNull(teacherCourseQualificationDO1);
+        Assertions.assertFalse(teacherCourseQualificationDO1.isEmpty());
     }
 
 }
