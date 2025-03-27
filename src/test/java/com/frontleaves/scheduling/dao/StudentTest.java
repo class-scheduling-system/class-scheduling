@@ -4,11 +4,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.StudentVO;
-import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
-import com.frontleaves.scheduling.models.entity.StudentDO;
-import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
@@ -16,7 +14,10 @@ import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -285,6 +286,8 @@ class StudentTest {
         );
         Assertions.assertNotNull(allStudentPage, "listStudents返回值不应为null");
         Assertions.assertFalse(allStudentPage.getRecords().isEmpty(), "全空查询应至少返回1条记录");
+
+        studentDAO.lambdaUpdate().eq(StudentDO::getId, studentId).remove();
     }
 
     /**
@@ -362,6 +365,8 @@ class StudentTest {
         Assertions.assertTrue(studentCache.isExists(), "学生缓存应存在");
         String cachedName = studentCache.get("name");
         Assertions.assertEquals(editStudent.getName(), cachedName, "缓存中的姓名应该被更新");
+
+        studentDAO.lambdaUpdate().eq(StudentDO::getId, studentId).remove();
     }
 
     @Test
