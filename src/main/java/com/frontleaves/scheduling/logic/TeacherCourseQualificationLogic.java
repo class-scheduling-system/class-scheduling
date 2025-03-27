@@ -2,11 +2,10 @@ package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.TeacherCourseQualificationDAO;
-import com.frontleaves.scheduling.models.dto.CourseLibraryAndTeacherCourseQualificationListDTO;
-import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.dto.TeacherCoursePreferencesDTO;
-import com.frontleaves.scheduling.models.dto.TeacherCourseQualificationDTO;
+import com.frontleaves.scheduling.daos.TeacherDAO;
+import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.TeacherCourseQualificationDO;
+import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.services.TeacherCourseQualificationService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -33,13 +32,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TeacherCourseQualificationLogic implements TeacherCourseQualificationService {
     private final TeacherCourseQualificationDAO teacherCourseQualificationDAO;
+    private final TeacherDAO teacherDAO;
+
 
     /**
-     * 获取课程库和教师课程资格的关联信息
-     *
-     * @param courseLibraryDOList 课程库数据对象列表
-     * @return 包含课程库和教师课程资格信息的DTO列表
-     * @throws BusinessException 当课程没有分配教师时抛出异常
+     * 获取课程库和教师课程资格列表
+     * @param courseLibraryDOList 课程库DTO列表，不能为空
+     * @param isTeacherPreferences 是否是教师偏好查询，用于决定是否加载教师偏好信息
+     * @return 返回一个包含课程库和教师课程资格信息的DTO列表
+     * @throws BusinessException 当课程没有分配教师或系统错误时抛出业务异常
      */
     @Override
     public List<CourseLibraryAndTeacherCourseQualificationListDTO>
@@ -68,7 +69,20 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
                 TeacherCourseQualificationDTO courseQualificationDTO = BeanUtil.toBean(
                         courseQualificationDO, TeacherCourseQualificationDTO.class);
                 TeacherCoursePreferencesDTO coursePreferences = new TeacherCoursePreferencesDTO();
-                coursePreferences.setCourseQualification(courseQualificationDTO);
+                //获取老师的DTO
+                TeacherDO teacherDO = teacherDAO.getTeacherByUuid(courseQualificationDO.getTeacherUuid());
+                if (teacherDO == null){
+                    throw new BusinessException("系统错误，老师不存在",ErrorCode.SERVER_INTERNAL_ERROR);
+                }
+                // 根据isTeacherPreferences参数决定是否加载教师偏好信息
+                if (Boolean.TRUE.equals(isTeacherPreferences)){
+                    TeacherPreferencesDTO teacherPreferencesDTO = BeanUtil.toBean(
+                            teacherDO, TeacherPreferencesDTO.class);
+                    coursePreferences.setTeacherPreferencesDTO(teacherPreferencesDTO);
+                }
+                TeacherDTO teacherDTO = BeanUtil.toBean(teacherDO, TeacherDTO.class);
+                coursePreferences.setCourseQualification(courseQualificationDTO)
+                        .setTeacher(teacherDTO);
                 coursePreferencesDTOList.add(coursePreferences);
             }
             // 将数据转换为DTO
@@ -79,6 +93,7 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
             courseLibraryAndTeacherCourseQualificationListDTO
                     .add(dto);
         }
+        // 返回最终的DTO列表
         return courseLibraryAndTeacherCourseQualificationListDTO;
     }
 }
