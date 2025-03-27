@@ -1,5 +1,10 @@
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.CourseLibraryAndTeacherCourseQualificationListDTO;
+import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
+
+import java.util.List;
+
 /**
  * 教师课程资格服务接口
  * <p>
@@ -11,4 +16,9 @@ package com.frontleaves.scheduling.services;
  * @since v1.0.0
  */
 public interface TeacherCourseQualificationService {
+
+    List<CourseLibraryAndTeacherCourseQualificationListDTO>
+    getCourseLibraryDOAndTeacherCourseQualificationDO(
+            List<CourseLibraryDO> courseLibraryDOList
+    );
 }

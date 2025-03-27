@@ -40,6 +40,7 @@ import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
@@ -50,6 +51,7 @@ import java.util.Optional;
 
 /**
  *
+ * @author FLASHLACK
  */
 @Repository
 @RequiredArgsConstructor
