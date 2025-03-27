@@ -15,4 +15,5 @@ import java.util.List;
 public class CourseLibraryAndTeacherCourseQualificationListDTO {
     private CourseLibraryDTO courseLibraryDTO;
     private List<TeacherCoursePreferencesDTO> teacherCoursePreferencesDTOList;
+    private Short courseTypes;
 }

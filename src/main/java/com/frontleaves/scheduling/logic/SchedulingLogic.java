@@ -76,6 +76,9 @@ public class SchedulingLogic implements SchedulingService {
                     teacherCourseQualificationService.getCourseLibraryAndTeacherCourseQualificationList(
                             courseLibraryDTOList,automaticClassSchedulingVO.getConstraints().getTeacherPreference());
         assert courseQualificationList != null;
+        //添加课程的优先级
+
+        //获取教室数据
         //创建返回结果
         return null;
     }
