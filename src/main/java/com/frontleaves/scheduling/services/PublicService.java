@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.JvmStackDTO;
 import com.frontleaves.scheduling.models.dto.SiteDTO;
 import com.frontleaves.scheduling.models.dto.SystemDTO;
 
@@ -56,5 +57,23 @@ public interface PublicService {
      */
     SiteDTO getSiteInfo();
 
+    /**
+     * 获取系统的详细信息。
+     * <p>
+     * 该方法从系统数据库中获取系统的详细信息，并将其封装到一个 {@code SystemDTO} 对象中返回。
+     * 返回的信息包括系统版本、服务器状态、数据库状态等。
+     *
+     * @return 包含系统详细信息的 {@code SystemDTO} 对象
+     */
     SystemDTO getSystemInfo();
+
+    /**
+     * 获取当前 JVM 的堆栈信息。
+     * <p>
+     * 该方法收集当前 JVM 的运行时信息，包括内存使用情况、系统属性、线程状态等，
+     * 并将这些信息封装到一个 {@code JvmStackDTO} 对象中返回。
+     *
+     * @return 包含 JVM 堆栈详细信息的 {@code JvmStackDTO} 对象
+     */
+    JvmStackDTO getJvmStackInfo();
 }

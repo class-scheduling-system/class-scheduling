@@ -29,12 +29,20 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.text.CharSequenceUtil;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.StudentMapper;
 import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
+import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.frontleaves.scheduling.models.vo.StudentVO;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
@@ -69,8 +77,9 @@ import java.util.Map;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> {
+public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements IService<StudentDO> {
     private final RedissonClient redisson;
+    private final AdministrativeClassDAO administrativeClassDAO;
 
     /**
      * 根据学生ID获取学生信息
@@ -379,6 +388,109 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> {
         }
         // 默认错误信息
         return "数据错误：可能包含空值、超出长度限制或不符合外键约束";
+    }
+
+    /**
+     * 列出学生列表
+     *
+     * @param page        当前页码
+     * @param size        每页大小
+     * @param isDesc      是否降序排序
+     * @param clazz       班级名称，可为空
+     * @param isGraduated 是否毕业，可为空
+     * @param name        学生姓名，可为空
+     * @param id          学生学号，可为空
+     * @return 返回包含学生信息的页面对象
+     */
+    public @Nullable Page<StudentDO> listStudents(int page, int size, Boolean isDesc,
+                                       @Nullable String clazz, @Nullable Boolean isGraduated,
+                                       @Nullable String name, @Nullable String id
+    ) {
+        // 构建唯一缓存 key 并获取缓存数据
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_LIST
+                + page + ":" + size + ":" + isDesc + ":" + clazz + ":" + isGraduated + ":" + name + ":" + id);
+
+        // 若缓存中不存在数据,则执行数据库查询,并缓存结果
+        if (!map.isExists()) {
+            LambdaQueryChainWrapper<StudentDO> queryWrapper = this.lambdaQuery();
+            // 查看班级是否为空
+            if (CharSequenceUtil.isNotBlank(clazz)) {
+                queryWrapper.like(StudentDO::getClazz, clazz);
+            }
+            // 查看学生是否毕业
+            if (isGraduated != null) {
+                queryWrapper.eq(StudentDO::getGraduated, isGraduated);
+            }
+            // 查看姓名是否为空
+            if (CharSequenceUtil.isNotBlank(name)) {
+                queryWrapper.like(StudentDO::getName, name);
+            }
+            // 查看学号是否为空
+            if (CharSequenceUtil.isNotBlank(id)) {
+                queryWrapper.like(StudentDO::getId, id);
+            }
+            // 根据 isDesc 进行排序
+            if (Boolean.TRUE.equals(isDesc)) {
+                queryWrapper.orderByDesc(StudentDO::getCreatedAt);
+            } else {
+                queryWrapper.orderByAsc(StudentDO::getCreatedAt);
+            }
+
+            // 调用 ProjectUtil 方法查询并缓存数据
+            return ProjectUtil.queryAndCache(queryWrapper, page, size, map);
+        } else {
+            return ProjectUtil.convertMapToPage(map, StudentDO.class);
+        }
+    }
+
+    /**
+     * 编辑学生信息
+     *
+     * @param studentUuid 学生的唯一标识符
+     * @param studentVO 包含学生新信息的视图对象
+     * @return 更新后的学生数据对象
+     * @throws BusinessException 当学生信息不存在时抛出的业务异常
+     * @throws ServerInternalErrorException 当学生信息更新失败时抛出的服务器内部错误异常
+     */
+    public StudentDO editStudent(String studentUuid, StudentVO studentVO) {
+        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
+        try {
+            // 先查询学生,如果不存在则抛出异常
+            StudentDO studentDO = this.getStudentByUuid(studentUuid);
+            if (studentDO == null) {
+                throw new BusinessException("未找到该学生信息", ErrorCode.NOT_EXIST);
+            }
+
+            // 通过班级 UUID 获取班级映射信息
+            AdministrativeClassDO classMapping = administrativeClassDAO.getAdministrativeClassMappingByClazz(studentVO.getClazz());
+
+            // 复制非空属性到 studentDO
+            BeanUtil.copyProperties(studentVO, studentDO, CopyOptions.create().ignoreNullValue());
+
+            // 设置外键字段
+            studentDO.setGradeUuid(classMapping.getGradeUuid())
+                    .setDepartment(classMapping.getDepartmentUuid())
+                    .setMajor(classMapping.getMajorUuid());
+
+            // 更新数据库
+            boolean success = this.updateById(studentDO);
+            if (!success) {
+                transaction.rollback();
+                throw new ServerInternalErrorException("学生信息更新失败");
+            }
+
+            // 更新缓存
+            RMap<String, String> studentMap = transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentUuid);
+            studentMap.putAll(ConvertUtil.convertObjectToMapString(studentDO));
+            studentMap.expire(Duration.ofSeconds(86400));
+
+            transaction.commit();
+            return studentDO;
+        } catch (Exception e) {
+            transaction.rollback();
+            log.error(LogConstant.DAO + "编辑学生信息失败", e);
+            throw new ServerInternalErrorException("学生信息更新失败");
+        }
     }
 }
 

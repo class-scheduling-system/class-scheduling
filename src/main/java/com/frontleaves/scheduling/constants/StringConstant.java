@@ -57,14 +57,25 @@ public class StringConstant {
     public static final String TEACHER_TYPE_UUID_NOT_EMPTY = "教师类型UUID不能为空";
     public static final String TEACHER_TYPE_UUID_FORMAT_ERROR = "教师类型UUID格式不正确";
     public static final String TEACHER_UUID_FORMAT_ERROR = "教师UUID格式不正确";
+    public static final String TEACHER_PREFERENCES_NOT_EXIST = "教师偏好不存在";
+    public static final String TEACHER_PREFERENCES_UUID_FORMAT_ERROR = "教师偏好UUID格式不正确";
+    public static final String TEACHER_PREFERENCES_SAVE_FAILED = "教师偏好保存失败";
+    public static final String TEACHER_PREFERENCES_UPDATE_FAILED = "教师偏好更新失败";
+    public static final String TEACHER_PREFERENCES_DELETE_FAILED = "教师偏好删除失败";
+    public static final String TEACHER_PREFERENCES_UUID_ILLEGAL = "教师课程偏好主键不合法";
+    public static final String SEMESTER_UUID_FORMAT_ERROR = "学期UUID格式不正确";
+    public static final String SEMESTER_NOT_EXIST = "学期不存在";
     public static final String DEPARTMENT_DELETE_FAILED = "删除部门失败";
     public static final String DEPARTMENT_NOT_EXIST = "部门不存在";
     public static final String DEPARTMENT_UUID_NOT_EMPTY = "部门主键不能为空";
+    public static final String DEPARTMENT_UUID_FORMAT_ERROR = "部门UUID格式不正确";
     public static final String EMAIL_VERIFICATION_TOKEN_EXPIRED = "邮箱验证令牌已过期";
     public static final String EMAIL_VERIFICATION_TOKEN_INVALID = "邮箱验证令牌无效";
     public static final String EMAIL_VERIFICATION_TOKEN_MISMATCH = "邮箱地址与验证令牌不匹配";
     public static final String UNIT_TYPE_NOT_FOUND = "未找到该单位办别";
     public static final String UNIT_CATEGORY_NOT_FOUND = "未找到该单位类别";
+    public static final String STUDENT_NOT_EXIST = "学生不存在";
+    public static final String STUDENT_SAVE_FAILED = "学生信息保存失败";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -87,10 +98,16 @@ public class StringConstant {
         public static final String USER_TEL = "user:tel:";
         public static final String STUDENT_ID = "stu:id:";
         public static final String STUDENT_UUID = "stu:uuid:";
+        public static final String STUDENT_LIST = "stu:list";
         public static final String STUDENT_USER_UUID = "stu:user:uuid:";
         public static final String TEACHER_ID = "tea:id:";
         public static final String TEACHER_UUID = "tea:uuid:";
         public static final String TEACHER_USER_UUID = "tea:user:uuid:";
+        public static final String TEACHER_PREFERENCES_UUID = "tea:pref:uuid:";
+        public static final String TEACHER_PREFERENCES_LIST = "tea:pref:list";
+        public static final String TEACHER_PREFERENCES_PAGE = "tea:pref:page:";
+        public static final String TEACHER_PREFERENCES_TEACHER = "tea:pref:teacher:";
+        public static final String TEACHER_PREFERENCES_SEMESTER = "tea:pref:semester:";
         public static final String BUILDING_LIST = "building:list";
         public static final String BUILDING_UUID = "building:uuid:";
         public static final String BUILDING_NAME = "building:name:";
@@ -111,9 +128,10 @@ public class StringConstant {
         public static final String CLASSROOM_TAG_UUID = "classroom:tag:uuid:";
         public static final String CLASSROOM_TYPE_LIST = "classroom:type:list";
         public static final String CLASSROOM_TYPE_UUID = "classroom:type:uuid:";
-        public static final String CLASSROOM_LIST = "classroom:list:";
+        public static final String CLASSROOM_PAGE = "classroom:page:";
         public static final String CLASSROOM_UUID = "classroom:uuid:";
         public static final String CLASSROOM_NUMBER = "classroom:number:";
+        public static final String CLASSROOM_STATUS = "classroom:status:";
         public static final String TABLES_CHAIRS_UUID = "tc:uuid:";
         public static final String ROLE_LIST = "role:list";
         public static final String ADMINISTRATIVE_CLASS_UUID = "administrative:class:uuid:";
@@ -122,6 +140,7 @@ public class StringConstant {
         public static final String GRADE_LIST = "grade:list";
         public static final String ADMINISTRATIVE_CLASS_LIST = "ait:class:list";
         public static final String ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT = "ait:class:list:department:";
+        public static final String ADMINISTRATIVE_CLASS_MAPPING_BY_CALZZ = "ait:class:mapping:class:";
         public static final String ACADEMIC_AFFAIRS_PERMISSION_USER_UUID = "aca:affairs:per:user:uuid:";
         public static final String ACADEMIC_AFFAIRS_PERMISSION_UUID = "aca:affairs:per:uuid:";
         public static final String MAJOR_LIST_BY_DEPARTMENT_UUID = "major:list:department:uuid:";
@@ -130,6 +149,7 @@ public class StringConstant {
         public static final String TEACHER_TYPE_UUID = "teacher:type:uuid:";
         public static final String TEACHER_TYPE_LIST = "teacher:type:list";
         public static final String TEACHER_TYPE_PAGE = "teacher:type:page:";
+        public static final String TEACHER_LITE_LIST = "tea:lite:list:";
         public static final String EMAIL_TOKEN = "email:token:";
         public static final String EMAIL_TO_TOKEN = "email:to:token:";
         public static final String UNIT_TYPE_NAME = "unit:type:name:";
@@ -187,6 +207,8 @@ public class StringConstant {
         public static final String EMAIL_REGULAR_EXPRESSION_ABLE_EMPTY ="^(|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6})$";
         public static final String USER_NAME_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^[0-9A-Za-z_-]{4,32}$)";
         public static final String PHONE_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^1[3456789]\\d{9}$)";
+        public static final String STUDENT_ID_REGULAR_EXPRESSION = "^[a-zA-Z0-9]{4,32}$";
+        public static final String STUDENT_NAME_REGULAR_EXPRESSION = "^[一-龥A-Za-z]{2,20}$";
         public static final String SERIAL_NUMBER_REGULAR_EXPRESSION = "^[A-Za-z0-9]{2,64}$";
         public static final String FIXED_PHONE_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^\\d{3}-\\d{8}|\\d{4}-\\d{7}$)";
         private Regular() {

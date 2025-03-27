@@ -66,7 +66,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> {
         RKeys keys = redisson.getKeys();
         long checkTotal = 0;
         checkTotal += keys.deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*");
-        checkTotal += keys.deleteByPattern(StringConstant.Redis.CLASSROOM_LIST + "*");
+        checkTotal += keys.deleteByPattern(StringConstant.Redis.CLASSROOM_PAGE + "*");
         checkTotal += keys.delete(StringConstant.Redis.BUILDING_UUID + buildingDO.getBuildingUuid());
         checkTotal += keys.delete(StringConstant.Redis.BUILDING_NAME + buildingDO.getBuildingName());
         checkTotal += keys.delete(StringConstant.Redis.BUILDING_CAMPUS + buildingDO.getCampusUuid());
@@ -371,7 +371,7 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> {
      */
     private BackAddBuildingDTO.FailedDetail createBuildingFailedDetail(Exception e, int i) {
         BackAddBuildingDTO.FailedDetail failedDetail = new BackAddBuildingDTO.FailedDetail();
-        failedDetail.setRow(i + 3);  // Excel行号从第3行开始
+        failedDetail.setRow(i + 3);
 
         if (e instanceof DuplicateKeyException) {
             failedDetail.setReason("教学楼名称重复");

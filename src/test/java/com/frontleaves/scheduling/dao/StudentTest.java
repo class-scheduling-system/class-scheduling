@@ -1,11 +1,12 @@
 package com.frontleaves.scheduling.dao;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
-import com.frontleaves.scheduling.models.entity.DepartmentDO;
-import com.frontleaves.scheduling.models.entity.MajorDO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.ErrorCode;
@@ -15,10 +16,7 @@ import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -214,6 +212,158 @@ class StudentTest {
         StudentDO studentByUserUuid1 = studentDAO.getStudentByUserUuid(setUpStudent.getUserUuid());
         Assertions.assertNotNull(studentByUserUuid1);
     }
+
+    /**
+     * 测试获取学生列表
+     */
+    @Test
+    void testListStudents() {
+        log.debug("测试获取学生列表");
+        // 清空 Redis 缓存, 以防影响测试
+        redisson.getMapCache(StringConstant.Redis.STUDENT_LIST).clear();
+
+        // 从行政班级中获取一个班级 UUID
+        List<AdministrativeClassDO> administrativeClassList = administrativeClassDAO.lambdaQuery().list();
+        Assertions.assertFalse(administrativeClassList.isEmpty(), "行政班级列表不能为空");
+        String clazzUuid = administrativeClassList.get(0).getAdministrativeClassUuid();
+        Assertions.assertNotNull(clazzUuid, "班级 UUID 不能为空");
+
+        // 获取班级映射
+        AdministrativeClassDO classMapping = administrativeClassDAO.getAdministrativeClassMappingByClazz(clazzUuid);
+        Assertions.assertNotNull(classMapping, "班级映射信息不能为空");
+        Assertions.assertNotNull(classMapping.getGradeUuid(), "年级 UUID 不能为空");
+        Assertions.assertNotNull(classMapping.getDepartmentUuid(), "学院 UUID 不能为空");
+        Assertions.assertNotNull(classMapping.getMajorUuid(), "专业 UUID 不能为空");
+
+        // 获取有效用户数据
+        List<UserDO> userList = userDAO.lambdaQuery().list();
+        Assertions.assertFalse(userList.isEmpty(), "用户列表不能为空");
+        UserDO userDO = userList.get(1);
+
+        String studentUuid = UuidUtil.generateUuidNoDash();
+        String studentId = "233336";
+        // 如果存在相同学号的学生记录，先删除
+        studentDAO.lambdaUpdate().eq(StudentDO::getId, studentId).remove();
+
+        StudentDO testStudent = new StudentDO()
+                .setStudentUuid(studentUuid)
+                .setId(studentId)
+                .setName("王五")
+                .setClazz(clazzUuid)
+                .setGraduated(false)
+                .setGender(false)
+                .setGradeUuid(classMapping.getGradeUuid())
+                .setDepartment(classMapping.getDepartmentUuid())
+                .setMajor(classMapping.getMajorUuid())
+                .setUserUuid(userDO.getUserUuid());
+        boolean saveResult = studentDAO.save(testStudent);
+        Assertions.assertTrue(saveResult, "学生数据保存失败");
+        Assertions.assertNotNull(studentDAO.getById(studentUuid), "学生数据未成功插入");
+
+        // 模拟查询数据库
+        Page<StudentDO> pageResult = studentDAO.listStudents(
+                1, 10, true,
+                clazzUuid, false,
+                "王五", studentId);
+        Assertions.assertNotNull(pageResult, "listStudents返回值不应为null");
+        Assertions.assertFalse(pageResult.getRecords().isEmpty(), "列表查询应至少返回一条记录");
+        Assertions.assertEquals(1, pageResult.getRecords().size(), "应返回1条记录");
+
+        // 模拟 Redis 缓存命中
+        Page<StudentDO> cachedPage = studentDAO.listStudents(
+                1, 10, true,
+                clazzUuid, false,
+                "王五", studentId);
+        Assertions.assertNotNull(cachedPage, "listStudents返回值不应为null");
+        Assertions.assertFalse(cachedPage.getRecords().isEmpty(), "缓存命中时列表查询应返回记录");
+        Assertions.assertEquals(pageResult.getRecords().size(), cachedPage.getRecords().size(), "缓存结果应与数据库查询结果一致");
+
+        // 当所有选填字段为空时, 返回所有学生
+        Page<StudentDO> allStudentPage = studentDAO.listStudents(
+                1, 10, null,
+                null, null, null, null
+        );
+        Assertions.assertNotNull(allStudentPage, "listStudents返回值不应为null");
+        Assertions.assertFalse(allStudentPage.getRecords().isEmpty(), "全空查询应至少返回1条记录");
+    }
+
+    /**
+     * 测试编辑学生
+     */
+    @Test
+    void testEditStudent() {
+        log.debug("测试编辑学生信息");
+
+        String studentUuid = UuidUtil.generateUuidNoDash();
+        String studentId = "A951753";
+
+        // 1. 如果存在相同学号的学生记录，先删除
+        studentDAO.lambdaUpdate().eq(StudentDO::getId, studentId).remove();
+
+        // 2. 构造初始学生数据并保存
+        String clazzUuid = administrativeClassDAO.lambdaQuery().list().get(1).getAdministrativeClassUuid();
+        Assertions.assertNotNull(clazzUuid, "班级 UUID 不能为空");
+
+        AdministrativeClassDO classMapping = administrativeClassDAO.getAdministrativeClassMappingByClazz(clazzUuid);
+        Assertions.assertNotNull(classMapping, "班级映射信息不能为空");
+        Assertions.assertNotNull(classMapping.getGradeUuid(), "年级 UUID 不能为空");
+        Assertions.assertNotNull(classMapping.getDepartmentUuid(), "学院 UUID 不能为空");
+        Assertions.assertNotNull(classMapping.getMajorUuid(), "专业 UUID 不能为空");
+
+        StudentDO initialStudent = new StudentDO();
+        UserDO userDO = userDAO.lambdaQuery().list().get(1);
+        initialStudent.setStudentUuid(studentUuid)
+                .setId(studentId)
+                .setName("OriginalName")
+                .setGender(false)
+                .setClazz(clazzUuid)
+                .setGraduated(false)
+                .setGradeUuid(classMapping.getGradeUuid())
+                .setDepartment(classMapping.getDepartmentUuid())
+                .setMajor(classMapping.getMajorUuid())
+                .setUserUuid(userDO.getUserUuid());
+        studentDAO.save(initialStudent);
+
+        // 3. 确保初始数据写入缓存
+        RMap<String, String> initialStudentCache = redisson.getMap(StringConstant.Redis.STUDENT_UUID + studentUuid);
+        initialStudentCache.putAll(ConvertUtil.convertObjectToMapString(initialStudent));
+        initialStudentCache.expire(Duration.ofSeconds(86400));
+
+        // 4. 构造更新用的 VO 对象
+        StudentVO studentTestVO = new StudentVO();
+        studentTestVO.setId(studentId)
+                .setName("LiSi456")
+                .setGender(false)
+                .setClazz(clazzUuid)
+                .setGraduated(true);
+
+        // 5. 执行更新操作
+        StudentDO editStudent = null;
+        try {
+            editStudent = studentDAO.editStudent(studentUuid, studentTestVO);
+        } catch (BusinessException e) {
+            Assertions.fail("editStudent 异常：" + e.getMessage());
+        }
+
+        // 6. 校验更新结果
+        Assertions.assertNotNull(editStudent, "更新后的学生不应为null");
+        Assertions.assertEquals("A951753", editStudent.getId(), "学号应该被更新");
+        Assertions.assertEquals("LiSi456", editStudent.getName(), "姓名应该被更新");
+        Assertions.assertTrue(editStudent.getGraduated(), "毕业状态应更新为 true");
+
+        // 7. 验证数据库中数据是否更新
+        StudentDO dbStudent = studentDAO.lambdaQuery().eq(StudentDO::getStudentUuid, studentUuid).one();
+        Assertions.assertNotNull(dbStudent, "数据库中应存在学生记录");
+        Assertions.assertEquals(editStudent.getName(), dbStudent.getName(), "数据库中的姓名应该被更新");
+        Assertions.assertTrue(dbStudent.getGraduated(), "数据库中的毕业状态应更新为 true");
+
+        // 8. 验证缓存是否更新
+        RMap<String, String> studentCache = redisson.getMap(StringConstant.Redis.STUDENT_UUID + studentUuid);
+        Assertions.assertTrue(studentCache.isExists(), "学生缓存应存在");
+        String cachedName = studentCache.get("name");
+        Assertions.assertEquals(editStudent.getName(), cachedName, "缓存中的姓名应该被更新");
+    }
+
     @Test
     void testSaveStudentBackError (){
         StudentDO studentDO =new StudentDO();

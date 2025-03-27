@@ -29,6 +29,7 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
@@ -47,6 +48,7 @@ import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -65,6 +67,49 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> {
     private final RedissonClient redisson;
+
+    /**
+     * 获取教师简单列表
+     * <p>
+     * 该方法用于获取教师的基本信息列表，包括UUID、姓名、部门和类型。
+     * 支持按部门和教师类型进行筛选。
+     * </p>
+     *
+     * @param departmentUuid  部门UUID，可选参数
+     * @param teacherTypeUuid 教师类型UUID，可选参数
+     * @return 返回教师列表
+     */
+    public List<TeacherDO> getTeacherLiteList(String departmentUuid, String teacherTypeUuid) {
+        // 构建缓存键
+        String cacheKey = StringConstant.Redis.TEACHER_LITE_LIST +
+                (departmentUuid != null ? departmentUuid : "all") + ":" +
+                (teacherTypeUuid != null ? teacherTypeUuid : "all");
+
+        // 尝试从缓存获取数据
+        RList<TeacherDO> cacheList = redisson.getList(cacheKey);
+        if (!cacheList.isExists()) {
+            // 构建查询条件
+            LambdaQueryWrapper<TeacherDO> queryWrapper = new LambdaQueryWrapper<>();
+            if (departmentUuid != null && !departmentUuid.isBlank()) {
+                queryWrapper.eq(TeacherDO::getUnitUuid, departmentUuid);
+            }
+            if (teacherTypeUuid != null && !teacherTypeUuid.isBlank()) {
+                queryWrapper.eq(TeacherDO::getType, teacherTypeUuid);
+            }
+            queryWrapper.orderByAsc(TeacherDO::getName);
+
+            // 查询教师列表
+            List<TeacherDO> teacherList = this.list(queryWrapper);
+            if (!teacherList.isEmpty()) {
+                cacheList.addAll(teacherList);
+                cacheList.expire(Duration.ofHours(1));
+                return teacherList;
+            }
+            return new ArrayList<>();
+        } else {
+            return cacheList.readAll();
+        }
+    }
 
     /**
      * 根据教师ID获取教师信息

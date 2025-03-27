@@ -173,7 +173,7 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
      */
     public void deleteCampus(CampusDO campusDO) {
         RKeys keys = redisson.getKeys();
-        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_LIST + "*");
+        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_PAGE + "*");
         keys.deleteByPattern(StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
         keys.deleteByPattern(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode());
         keys.deleteByPattern(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
@@ -252,7 +252,7 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
             List<CampusDO> campusDOList = this.lambdaQuery().list();
             if (!campusDOList.isEmpty()) {
                 campusList.addAll(campusDOList);
-                campusList.expire(Duration.ofSeconds(43200)); // 12小时过期
+                campusList.expire(Duration.ofSeconds(43200));
             }
             return campusDOList;
         }

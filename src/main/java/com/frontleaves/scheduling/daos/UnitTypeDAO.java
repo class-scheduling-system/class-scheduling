@@ -21,13 +21,14 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * UnitTypeDAO
  *
  * @author xiao_lfeng
- * @since v1.0.0
  * @version 1.0.0
+ * @since v1.0.0
  */
 @Repository
 @RequiredArgsConstructor
@@ -99,20 +100,23 @@ public class UnitTypeDAO extends ServiceImpl<UnitTypeMapper, UnitTypeDO> {
                 .getMap(StringConstant.Redis.UNIT_TYPE_PAGE_OF_LIST + page + ":" + size + ":" + isDesc + ":" + keyword);
         if (!map.isExists()) {
             LambdaQueryChainWrapper<UnitTypeDO> queryWrapper = this.lambdaQuery();
-            if (isDesc) {
-                queryWrapper.orderByDesc(UnitTypeDO::getCreatedAt);
-            } else {
-                queryWrapper.orderByAsc(UnitTypeDO::getCreatedAt);
+            if (keyword != null && !keyword.isBlank()) {
+                queryWrapper
+                        .or(i -> i.like(UnitTypeDO::getName, keyword))
+                        .or(i -> i.like(UnitTypeDO::getUnitTypeUuid, keyword));
             }
-            if (keyword != null) {
-                queryWrapper.like(UnitTypeDO::getName, keyword);
-            }
+            queryWrapper.orderBy(true, !isDesc, UnitTypeDO::getOrder);
             return ProjectUtil.queryAndCache(queryWrapper, page, size, map);
         } else {
             return ProjectUtil.convertMapToPage(map, UnitTypeDO.class);
         }
     }
 
+    /**
+     * 获取单位办别列表
+     *
+     * @return 单位办别列表
+     */
     public List<UnitTypeLiteDTO> getUnitTypeList() {
         RList<UnitTypeLiteDTO> typeList = redisson.getList(StringConstant.Redis.UNIT_TYPE_LIST);
         if (!typeList.isExists()) {
@@ -123,5 +127,38 @@ public class UnitTypeDAO extends ServiceImpl<UnitTypeMapper, UnitTypeDO> {
             typeList.expire(Duration.ofSeconds(43200));
         }
         return typeList.readAll();
+    }
+
+    /**
+     * 添加单位办别
+     * <p>
+     * 添加单位办别信息，并清除缓存
+     *
+     * @param unitTypeDO 单位办别DO
+     */
+    public void addUnitType(UnitTypeDO unitTypeDO) {
+        this.save(unitTypeDO);
+        Optional.ofNullable(redisson.getKeys())
+                .ifPresent(keys -> {
+                    keys.delete(StringConstant.Redis.UNIT_TYPE_LIST);
+                    keys.deleteByPattern(StringConstant.Redis.UNIT_TYPE_PAGE_OF_LIST + "*");
+                });
+    }
+
+    /**
+     * 删除单位办别
+     * <p>
+     * 删除单位办别信息，并清除缓存
+     *
+     * @param unitTypeDO 单位办别DO
+     */
+    public void deleteUnitType(UnitTypeDO unitTypeDO) {
+        try {
+            this.deleteUnitTypeCache(unitTypeDO);
+            this.removeById(unitTypeDO);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new BusinessException("删除单位办别失败", ErrorCode.OPERATION_ERROR);
+        }
     }
 }
