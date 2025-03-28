@@ -150,6 +150,30 @@ public class ClassroomController {
     }
 
     /**
+     * 获取单个教室信息
+     * <p>
+     * 该方法用于根据教室的 UUID 获取教室的详细信息。如果提供的教室 UUID 不符合 UUID 格式，
+     * 将抛出 {@code BusinessException} 异常，并返回相应的错误信息。如果教室不存在，
+     * 也将抛出 {@code BusinessException} 异常。成功获取后，将返回包含教室详细信息的响应。
+     * </p>
+     *
+     * @param classroomUuid 教室的唯一标识符，必须符合 UUID 格式（不含中划线）
+     * @return 包含教室详细信息的 ResponseEntity 对象
+     */
+    @RequestLogin
+    @GetMapping("/{classroom_uuid}")
+    public ResponseEntity<BaseResponse<ClassroomInfoDTO>> getClassroom(
+            @PathVariable("classroom_uuid") String classroomUuid
+    ) {
+        if (!classroomUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+            throw new BusinessException("教室主键不合法", ErrorCode.PARAMETER_INVALID);
+        }
+        ClassroomInfoDTO classroomInfoDTO = Optional.ofNullable(classroomService.getClassroomByUuid(classroomUuid))
+                .orElseThrow(() -> new BusinessException("教室不存在", ErrorCode.NOT_EXIST));
+        return ResultUtil.success("获取教室信息成功", classroomInfoDTO);
+    }
+
+    /**
      * 添加教室
      * <p>
      * 该方法用于根据传入的 {@code ClassroomVO} 对象添加一个新的教室。在添加过程中，会进行一系列数据可用性检查，确保关联的教学楼、校区、教室类型、管理部门以及桌椅类型均存在。

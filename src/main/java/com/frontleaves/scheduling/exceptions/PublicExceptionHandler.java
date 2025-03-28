@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -28,19 +28,29 @@
 
 package com.frontleaves.scheduling.exceptions;
 
+import com.frontleaves.scheduling.daos.RequestLogDAO;
+import com.frontleaves.scheduling.models.entity.RequestLogDO;
+import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.utils.RequestUtil;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.PublicExceptionHandlerAbstract;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.UnexpectedTypeException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.Map;
 
 /**
@@ -55,7 +65,11 @@ import java.util.Map;
  */
 @Slf4j
 @ControllerAdvice
+@RequiredArgsConstructor
 public class PublicExceptionHandler extends PublicExceptionHandlerAbstract {
+
+    private final RequestLogDAO requestLogDAO;
+    private final UserService userService;
 
     /**
      * 处理 HttpMessageNotReadableException 异常
@@ -68,6 +82,8 @@ public class PublicExceptionHandler extends PublicExceptionHandlerAbstract {
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<BaseResponse<Map<String, String>>> handleHttpMessageNotReadableException(@NotNull HttpMessageNotReadableException e) {
+        // 记录异常日志
+        logException(e, ErrorCode.BODY_ERROR);
         return ResultUtil.error(ErrorCode.BODY_ERROR, "消息不可读", Map.of("message", e.getMessage()));
     }
 
@@ -82,6 +98,8 @@ public class PublicExceptionHandler extends PublicExceptionHandlerAbstract {
      */
     @ExceptionHandler(UnexpectedTypeException.class)
     public ResponseEntity<BaseResponse<Map<String, String>>> handleUnexpectedTypeException(@NotNull UnexpectedTypeException e) {
+        // 记录异常日志
+        logException(e, ErrorCode.OPERATION_INVALID);
         return ResultUtil.error(ErrorCode.OPERATION_INVALID, "参数类型错误", Map.of("message", e.getMessage()));
     }
 
@@ -95,8 +113,67 @@ public class PublicExceptionHandler extends PublicExceptionHandlerAbstract {
      * @return 包含错误码和错误消息的响应实体
      */
     @ExceptionHandler(IOException.class)
-    public ResponseEntity<BaseResponse<Map<String, String>>> handleIOException(@NotNull IOException e) {
+    public ResponseEntity<BaseResponse<Map<String, String>>> handleIoException(@NotNull IOException e) {
         log.error("IO异常: {}", e.getMessage(), e);
+        // 记录异常日志
+        logException(e, ErrorCode.OPERATION_ERROR);
         return ResultUtil.error(ErrorCode.OPERATION_ERROR, "IO操作异常", Map.of("message", e.getMessage()));
+    }
+
+    /**
+     * 记录异常日志
+     * <p>
+     * 该方法统一处理异常日志记录逻辑，确保所有通过全局异常处理器捕获的异常都被记录。
+     *
+     * @param e        异常对象
+     * @param errorCode 错误代码
+     */
+    private void logException(Exception e, ErrorCode errorCode) {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes == null) {
+                return;
+            }
+
+            HttpServletRequest request = attributes.getRequest();
+            RequestLogDO requestLog = new RequestLogDO();
+
+            // 记录请求时间和当前时间
+            long currentTime = System.currentTimeMillis();
+            requestLog.setRequestTime(new Timestamp(currentTime));
+            requestLog.setResponseTime(new Timestamp(currentTime));
+            requestLog.setCreatedAt(new Timestamp(currentTime));
+
+            // 计算从请求开始到异常发生的执行时间
+            // 注意：这里我们无法准确获取请求开始时间，所以设置为0
+            requestLog.setExecutionTime(0L);
+
+            // 设置请求基本信息
+            requestLog.setRequestUrl(request.getRequestURI());
+            requestLog.setRequestMethod(request.getMethod());
+            requestLog.setRequestIp(RequestUtil.getClientIp(request));
+            requestLog.setUserAgent(request.getHeader("User-Agent"));
+
+            // 获取用户信息
+            String token = request.getHeader("Authorization");
+            if (token != null && token.startsWith("Bearer")) {
+                UserDO getUser = userService.getUserByRequest(request);
+                if (getUser != null) {
+                    requestLog.setUserUuid(getUser.getUserUuid());
+                }
+            }
+
+            // 记录请求参数
+            requestLog.setRequestParams(RequestUtil.buildQueryParams(request));
+
+            // 设置响应状态和错误信息
+            requestLog.setResponseCode(errorCode.getCode());
+            requestLog.setErrorMessage(e.getMessage());
+
+            // 异步保存日志
+            requestLogDAO.addRequestLog(requestLog);
+        } catch (Exception ex) {
+            log.error("记录异常日志时发生错误: {}", ex.getMessage(), ex);
+        }
     }
 }

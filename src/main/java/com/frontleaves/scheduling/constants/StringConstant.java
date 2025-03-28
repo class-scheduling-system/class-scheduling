@@ -57,9 +57,18 @@ public class StringConstant {
     public static final String TEACHER_TYPE_UUID_NOT_EMPTY = "教师类型UUID不能为空";
     public static final String TEACHER_TYPE_UUID_FORMAT_ERROR = "教师类型UUID格式不正确";
     public static final String TEACHER_UUID_FORMAT_ERROR = "教师UUID格式不正确";
+    public static final String TEACHER_PREFERENCES_NOT_EXIST = "教师偏好不存在";
+    public static final String TEACHER_PREFERENCES_UUID_FORMAT_ERROR = "教师偏好UUID格式不正确";
+    public static final String TEACHER_PREFERENCES_SAVE_FAILED = "教师偏好保存失败";
+    public static final String TEACHER_PREFERENCES_UPDATE_FAILED = "教师偏好更新失败";
+    public static final String TEACHER_PREFERENCES_DELETE_FAILED = "教师偏好删除失败";
+    public static final String TEACHER_PREFERENCES_UUID_ILLEGAL = "教师课程偏好主键不合法";
+    public static final String SEMESTER_UUID_FORMAT_ERROR = "学期UUID格式不正确";
+    public static final String SEMESTER_NOT_EXIST = "学期不存在";
     public static final String DEPARTMENT_DELETE_FAILED = "删除部门失败";
     public static final String DEPARTMENT_NOT_EXIST = "部门不存在";
     public static final String DEPARTMENT_UUID_NOT_EMPTY = "部门主键不能为空";
+    public static final String DEPARTMENT_UUID_FORMAT_ERROR = "部门UUID格式不正确";
     public static final String EMAIL_VERIFICATION_TOKEN_EXPIRED = "邮箱验证令牌已过期";
     public static final String EMAIL_VERIFICATION_TOKEN_INVALID = "邮箱验证令牌无效";
     public static final String EMAIL_VERIFICATION_TOKEN_MISMATCH = "邮箱地址与验证令牌不匹配";
@@ -67,6 +76,7 @@ public class StringConstant {
     public static final String UNIT_CATEGORY_NOT_FOUND = "未找到该单位类别";
     public static final String STUDENT_NOT_EXIST = "学生不存在";
     public static final String STUDENT_SAVE_FAILED = "学生信息保存失败";
+    public static final String REQUEST_LOG_CACHE = "request:log:cache";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -94,6 +104,11 @@ public class StringConstant {
         public static final String TEACHER_ID = "tea:id:";
         public static final String TEACHER_UUID = "tea:uuid:";
         public static final String TEACHER_USER_UUID = "tea:user:uuid:";
+        public static final String TEACHER_PREFERENCES_UUID = "tea:pref:uuid:";
+        public static final String TEACHER_PREFERENCES_LIST = "tea:pref:list";
+        public static final String TEACHER_PREFERENCES_PAGE = "tea:pref:page:";
+        public static final String TEACHER_PREFERENCES_TEACHER = "tea:pref:teacher:";
+        public static final String TEACHER_PREFERENCES_SEMESTER = "tea:pref:semester:";
         public static final String BUILDING_LIST = "building:list";
         public static final String BUILDING_UUID = "building:uuid:";
         public static final String BUILDING_NAME = "building:name:";
@@ -135,6 +150,7 @@ public class StringConstant {
         public static final String TEACHER_TYPE_UUID = "teacher:type:uuid:";
         public static final String TEACHER_TYPE_LIST = "teacher:type:list";
         public static final String TEACHER_TYPE_PAGE = "teacher:type:page:";
+        public static final String TEACHER_LITE_LIST = "tea:lite:list:";
         public static final String EMAIL_TOKEN = "email:token:";
         public static final String EMAIL_TO_TOKEN = "email:to:token:";
         public static final String UNIT_TYPE_NAME = "unit:type:name:";
@@ -170,6 +186,7 @@ public class StringConstant {
             public static final String REFRESH_EXPIRE_TIME = "refreshExpireTime";
             public static final String CREATED_AT = "createdAt";
             public static final String UPDATED_AT = "updatedAt";
+            public static final String UNKNOWN = "unknown";
 
             private Hump() {
                 log.error("Hump 不能被实例化");
