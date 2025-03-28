@@ -58,7 +58,7 @@ public class TeacherCourseQualificationDAO extends
     }
 
     /**
-     * 根据课程库UUID获取教师课程资格信息
+     * 根据课程库UUID获取已通过审核教师课程资格信息,并将查询结果存入Redis缓存
      * <p>
      * 该方法首先尝试从Redis缓存中获取教师课程资格信息。如果缓存中不存在，则从数据库中查询，
      * 并将查询结果存入Redis缓存中。缓存的有效期为1小时。
@@ -67,13 +67,14 @@ public class TeacherCourseQualificationDAO extends
      * @return 教师课程资格信息，如果未找到则返回null
      * @see TeacherCourseQualificationDO
      */
-    public List<TeacherCourseQualificationDO> getTeacherCourseQualificationByCourseLibraryUuid(
+    public List<TeacherCourseQualificationDO> getTeacherCourseQualificationStatusByCourseLibraryUuid(
             String courseLibraryUuid) {
         RList<TeacherCourseQualificationDO> rList = redisson.getList(
                 StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_COURSE_LIBRARY_UUID + courseLibraryUuid);
         if (!rList.isExists()){
             List<TeacherCourseQualificationDO> teacherCourseQualificationDOList = this.lambdaQuery()
-                    .eq(TeacherCourseQualificationDO::getCourseUuid, courseLibraryUuid).list();
+                    .eq(TeacherCourseQualificationDO::getCourseUuid, courseLibraryUuid)
+                    .eq(TeacherCourseQualificationDO::getStatus,1).list();
             if (teacherCourseQualificationDOList != null) {
                 rList.addAll(teacherCourseQualificationDOList);
                 rList.expire(Duration.ofSeconds(3600));

@@ -114,15 +114,15 @@ public class AutomaticClassSchedulingVO {
          * 交叉率
          */
         @NotNull(message = "交叉率不能为空")
-        @DecimalMin(value = "0.0", message = "交叉率必须大于等于 0")
-        @DecimalMax(value = "1.0", message = "交叉率必须小于等于 1")
+        @DecimalMin(value = "0.00", message = "交叉率必须大于等于 0")
+        @DecimalMax(value = "1.00", message = "交叉率必须小于等于 1")
         private Double crossoverRate;
         /**
          * 变异率
          */
         @NotNull(message = "变异率不能为空")
-        @DecimalMin(value = "0.0", message = "变异率必须大于等于 0")
-        @DecimalMax(value = "1.0", message = "变异率必须小于等于 1")
+        @DecimalMin(value = "0.00", message = "变异率必须大于等于 0")
+        @DecimalMax(value = "1.00", message = "变异率必须小于等于 1")
         private Double mutationRate;
     }
 
@@ -167,9 +167,7 @@ public class AutomaticClassSchedulingVO {
         /**
          * 优先时间段
          */
-        @NotNull(message = "优先时间段不能为空")
-        @Size(min = 1, message = "至少设置一个优先时间段")
-        @Valid
+
         private List<PreferredTimeSlot> preferredTimeSlots;
 
         @Data
@@ -180,19 +178,20 @@ public class AutomaticClassSchedulingVO {
             @NotNull(message = "星期几不能为空")
             @Min(value = 1, message = "星期几必须大于等于 1")
             @Max(value = 7, message = "星期几必须小于等于 7")
-            private Integer day;
+            private Short day;
             /**
              * 开始节次
              */
             @NotNull(message = "开始节次不能为空")
             @Min(value = 1, message = "开始节次必须大于等于 1")
-            private Integer periodStart;
+            private Short periodStart;
             /**
              * 结束节次
              */
             @NotNull(message = "结束节次不能为空")
             @Min(value = 1, message = "结束节次必须大于等于 1")
-            private Integer periodEnd;
+            @Max(value = 12, message = "结束节次必须小于等于 12")
+            private Short periodEnd;
         }
     }
 

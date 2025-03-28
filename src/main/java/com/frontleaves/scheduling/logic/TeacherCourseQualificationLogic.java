@@ -53,7 +53,7 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
         for (CourseLibraryDTO courseLibraryDTO : courseLibraryDOList) {
             // 根据课程库UUID获取教师课程资格信息
             List<TeacherCourseQualificationDO> teacherCourseQualificationList =
-                    teacherCourseQualificationDAO.getTeacherCourseQualificationByCourseLibraryUuid(
+                    teacherCourseQualificationDAO.getTeacherCourseQualificationStatusByCourseLibraryUuid(
                             courseLibraryDTO.getCourseLibraryUuid());
             // 检查是否已分配教师，未分配则抛出异常
             if (teacherCourseQualificationList.isEmpty()) {

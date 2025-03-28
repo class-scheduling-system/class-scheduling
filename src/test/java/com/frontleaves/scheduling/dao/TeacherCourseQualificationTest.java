@@ -18,18 +18,22 @@ class TeacherCourseQualificationTest {
     private TeacherCourseQualificationDAO teacherCourseQualificationDAO;
 
     @Test
-    void testGetTeacherCourseQualificationByUuid () {
-        TeacherCourseQualificationDO teacherCourseQualificationDO = teacherCourseQualificationDAO.lambdaQuery().list()
-                .get(0);
+    void testGetTeacherCourseQualificationByUuid() {
+        TeacherCourseQualificationDO teacherCourseQualificationDO =
+                teacherCourseQualificationDAO.lambdaQuery()
+                        .eq(TeacherCourseQualificationDO::getStatus, 1)
+                        .list()
+                        .get(0);
         TeacherCourseQualificationDO teacherCourseQualificationDO1 = teacherCourseQualificationDAO.getTeacherCourseQualificationByUuid(
                 teacherCourseQualificationDO.getQualificationUuid());
         Assertions.assertNotNull(teacherCourseQualificationDO1);
     }
+
     @Test
-    void testGetTeacherCourseQualificationByCourseLibraryUuid () {
+    void testGetTeacherCourseQualificationByCourseLibraryUuid() {
         TeacherCourseQualificationDO teacherCourseQualificationDO = teacherCourseQualificationDAO.lambdaQuery().list()
                 .get(0);
-        List<TeacherCourseQualificationDO> teacherCourseQualificationDO1 = teacherCourseQualificationDAO.getTeacherCourseQualificationByCourseLibraryUuid(
+        List<TeacherCourseQualificationDO> teacherCourseQualificationDO1 = teacherCourseQualificationDAO.getTeacherCourseQualificationStatusByCourseLibraryUuid(
                 teacherCourseQualificationDO.getCourseUuid());
         Assertions.assertFalse(teacherCourseQualificationDO1.isEmpty());
     }

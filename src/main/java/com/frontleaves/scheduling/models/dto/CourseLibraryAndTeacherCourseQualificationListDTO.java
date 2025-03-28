@@ -13,7 +13,16 @@ import java.util.List;
 @Data
 @Accessors(chain = true)
 public class CourseLibraryAndTeacherCourseQualificationListDTO {
+    /**
+     * 课程库DTO
+     **/
     private CourseLibraryDTO courseLibraryDTO;
+    /**
+     * 教师课程资格列表
+     */
     private List<TeacherCoursePreferencesDTO> teacherCoursePreferencesDTOList;
+    /**
+     * 课程优先级
+     */
     private Short courseTypes;
 }

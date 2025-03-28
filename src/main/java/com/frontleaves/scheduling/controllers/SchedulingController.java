@@ -3,7 +3,6 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.BackAutomaticClassSchedulingDTO;
-import com.frontleaves.scheduling.models.entity.AcademicAffairsPermissionDO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.services.SchedulingService;
 import com.xlf.utility.BaseResponse;
@@ -48,20 +47,24 @@ public class SchedulingController {
         if (automaticClassSchedulingVO.getEndWeek() < 1) {
             throw new BusinessException("排课结束周必须大于等于1", ErrorCode.BODY_ERROR);
         }
+        //检查晚间排课约束是否为空
+        Optional.ofNullable(automaticClassSchedulingVO.getTimePreferences().getPreferredTimeSlots())
+                .orElseThrow(() -> new BusinessException("晚间排课约束为空数据", ErrorCode.BODY_ERROR));
         if (Boolean.TRUE
                 .equals(automaticClassSchedulingVO.getScopeSettings().getIncludeAllSemesterCourses())) {
             // 检测列表是否为空
             Optional.ofNullable(automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds())
                     .filter(data -> !data.isEmpty())
-                    .orElseThrow(() -> new BusinessException("课程ID列表不能为空", ErrorCode.BODY_ERROR));
+                    .orElseThrow(() -> new BusinessException("课程ID列表为空数据", ErrorCode.BODY_ERROR));
         }
         //检测排除课程列表是否为空
         Optional.ofNullable(automaticClassSchedulingVO.getScopeSettings().getExcludeCourseIds())
                 .filter(data -> !data.isEmpty())
-                .orElseThrow(() -> new BusinessException("排除课程ID列表不能为空", ErrorCode.BODY_ERROR));
-
+                .orElseThrow(() -> new BusinessException("排除课程ID列表为空数据", ErrorCode.BODY_ERROR));
+        //准备用户数据
         AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO = schedulingService
-                .getAutoClassSchedulingBaseDTO(automaticClassSchedulingVO,request);
+                .getAutoClassSchedulingBaseDTO(automaticClassSchedulingVO, request);
+        log.debug("automaticClassSchedulingBaseDTO: {}", automaticClassSchedulingBaseDTO);
         return null;
     }
 }

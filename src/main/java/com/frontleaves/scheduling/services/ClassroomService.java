@@ -187,7 +187,11 @@ public interface ClassroomService {
      */
     List<ClassroomLiteDTO> listClassroomLite(String keyword);
 
-
+    /**
+     * 获取教室详情
+     * @param uuid 教室UUID
+     * @return 教室详情
+     */
     @NotNull
     ClassroomAndTypeDTO getClassroomAndTypeByUuidWihError(String uuid);
 }
