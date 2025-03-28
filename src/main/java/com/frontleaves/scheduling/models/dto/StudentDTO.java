@@ -84,7 +84,7 @@ public class StudentDTO {
     private Long updatedAt;
 
     /**
-     * 学生状态
+     * 学生状态（0：未注册，1：已注册，2：已停用）
      */
-    private Boolean status;
+    private Byte status;
 }
