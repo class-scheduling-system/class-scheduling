@@ -24,7 +24,6 @@ class SchedulingTest {
 
     @Test
     void testGetAutoClassSchedulingBaseDTO() {
-        //准备数据
 
     }
 }
