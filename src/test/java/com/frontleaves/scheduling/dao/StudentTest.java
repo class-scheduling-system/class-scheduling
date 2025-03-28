@@ -264,7 +264,7 @@ class StudentTest {
         Page<StudentDO> pageResult = studentDAO.listStudents(
                 1, 10, true,
                 clazzUuid, false,
-                "王五", studentId);
+                "王五", studentId, (byte) 1);
         Assertions.assertNotNull(pageResult, "listStudents返回值不应为null");
         Assertions.assertFalse(pageResult.getRecords().isEmpty(), "列表查询应至少返回一条记录");
         Assertions.assertEquals(1, pageResult.getRecords().size(), "应返回1条记录");
@@ -273,7 +273,7 @@ class StudentTest {
         Page<StudentDO> cachedPage = studentDAO.listStudents(
                 1, 10, true,
                 clazzUuid, false,
-                "王五", studentId);
+                "王五", studentId, (byte) 1);
         Assertions.assertNotNull(cachedPage, "listStudents返回值不应为null");
         Assertions.assertFalse(cachedPage.getRecords().isEmpty(), "缓存命中时列表查询应返回记录");
         Assertions.assertEquals(pageResult.getRecords().size(), cachedPage.getRecords().size(), "缓存结果应与数据库查询结果一致");
@@ -281,7 +281,7 @@ class StudentTest {
         // 当所有选填字段为空时, 返回所有学生
         Page<StudentDO> allStudentPage = studentDAO.listStudents(
                 1, 10, null,
-                null, null, null, null
+                null, null, null, null, null
         );
         Assertions.assertNotNull(allStudentPage, "listStudents返回值不应为null");
         Assertions.assertFalse(allStudentPage.getRecords().isEmpty(), "全空查询应至少返回1条记录");
