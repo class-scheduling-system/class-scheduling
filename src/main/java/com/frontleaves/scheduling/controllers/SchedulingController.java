@@ -1,7 +1,6 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
-import com.frontleaves.scheduling.models.dto.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.BackAutomaticClassSchedulingDTO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.services.SchedulingService;
@@ -50,8 +49,7 @@ public class SchedulingController {
         //检查晚间排课约束是否为空
         Optional.ofNullable(automaticClassSchedulingVO.getTimePreferences().getPreferredTimeSlots())
                 .orElseThrow(() -> new BusinessException("晚间排课约束为空数据", ErrorCode.BODY_ERROR));
-        if (Boolean.TRUE
-                .equals(automaticClassSchedulingVO.getScopeSettings().getIncludeAllSemesterCourses())) {
+        if (Boolean.TRUE.equals(automaticClassSchedulingVO.getScopeSettings().getIncludeAllSemesterCourses())) {
             // 检测列表是否为空
             Optional.ofNullable(automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds())
                     .filter(data -> !data.isEmpty())
@@ -62,9 +60,7 @@ public class SchedulingController {
                 .filter(data -> !data.isEmpty())
                 .orElseThrow(() -> new BusinessException("排除课程ID列表为空数据", ErrorCode.BODY_ERROR));
         //准备用户数据
-        AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO = schedulingService
-                .getAutoClassSchedulingBaseDTO(automaticClassSchedulingVO, request);
-        log.debug("automaticClassSchedulingBaseDTO: {}", automaticClassSchedulingBaseDTO);
+        schedulingService.getAutoClassSchedulingBaseDTO(automaticClassSchedulingVO, request);
         return null;
     }
 }
