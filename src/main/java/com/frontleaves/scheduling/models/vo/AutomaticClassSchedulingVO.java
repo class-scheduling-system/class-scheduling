@@ -1,6 +1,5 @@
 package com.frontleaves.scheduling.models.vo;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -68,6 +67,8 @@ public class AutomaticClassSchedulingVO {
     private ScopeSettings scopeSettings;
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Constraints {
         /**
          * 是否考虑教师时间偏好
@@ -97,6 +98,8 @@ public class AutomaticClassSchedulingVO {
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class AlgorithmParams {
         /**
          * 种群大小
@@ -127,16 +130,18 @@ public class AutomaticClassSchedulingVO {
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class PrioritySettings {
         /**
          * 课程类型优先级设置
          */
-        @NotNull(message = "课程类型优先级设置不能为空")
-        @Size(min = 1, message = "至少设置一个课程类型优先级")
-        @Valid
+
         private List<CourseTypePriority> courseTypes;
 
         @Data
+        @NoArgsConstructor
+        @AllArgsConstructor
         public static class CourseTypePriority {
             /**
              * 课程类型ID，对应cs_course_type表的course_type_uuid
@@ -148,11 +153,13 @@ public class AutomaticClassSchedulingVO {
              */
             @NotNull(message = "优先级不能为空")
             @Min(value = 1, message = "优先级必须大于等于 1")
-            private Integer priority;
+            private Short priority;
         }
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class TimePreferences {
         /**
          * 是否避免晚间课程安排
@@ -171,6 +178,8 @@ public class AutomaticClassSchedulingVO {
         private List<PreferredTimeSlot> preferredTimeSlots;
 
         @Data
+        @NoArgsConstructor
+        @AllArgsConstructor
         public static class PreferredTimeSlot {
             /**
              * 星期几（1-7，1表示周一）
@@ -196,6 +205,8 @@ public class AutomaticClassSchedulingVO {
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ScopeSettings {
         /**
          * 是否包含所有学期课程

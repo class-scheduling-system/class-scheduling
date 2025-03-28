@@ -9,8 +9,9 @@ import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * 课程类型逻辑
@@ -20,7 +21,6 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Repository
 public class CourseTypeLogic implements CourseTypeService {
     private final CourseTypeDAO courseTypeDAO;
 
@@ -37,5 +37,11 @@ public class CourseTypeLogic implements CourseTypeService {
             throw new BusinessException("课程类型不存在", ErrorCode.BODY_ERROR);
         }
         return BeanUtil.toBean(courseTypeDO,CourseTypeDTO.class);
+    }
+
+    @Override
+    public List<CourseTypeDTO> listCourseType() {
+        List<CourseTypeDO> courseTypeDOList = courseTypeDAO.listCourseType();
+        return BeanUtil.copyToList(courseTypeDOList,CourseTypeDTO.class);
     }
 }

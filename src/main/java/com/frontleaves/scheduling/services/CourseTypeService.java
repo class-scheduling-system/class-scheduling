@@ -2,6 +2,8 @@ package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.CourseTypeDTO;
 
+import java.util.List;
+
 /**
  * 课程类型服务接口
  *
@@ -15,5 +17,9 @@ public interface CourseTypeService {
      */
     CourseTypeDTO getCourseTypeByUuidWithError (
         String uuid
+    );
+
+    List<CourseTypeDTO> listCourseType(
+
     );
 }

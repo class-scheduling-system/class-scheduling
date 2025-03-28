@@ -189,9 +189,9 @@ public interface ClassroomService {
 
     /**
      * 获取教室详情
-     * @param uuid 教室UUID
+     * @param buildingUuid 教室UUID
      * @return 教室详情
      */
     @NotNull
-    ClassroomAndTypeDTO getClassroomAndTypeByUuidWihError(String uuid);
+    List<ClassroomAndTypeDTO> getClassroomAndTypeByUuidWihError(String buildingUuid);
 }

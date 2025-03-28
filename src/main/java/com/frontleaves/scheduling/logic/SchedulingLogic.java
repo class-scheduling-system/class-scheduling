@@ -78,18 +78,28 @@ public class SchedulingLogic implements SchedulingService {
         // 使用 Map 存储课程类型优先级，以 courseTypeUuid 为键
         Map<String, CourseTypePriorityDTO> courseTypePriorityMap = new HashMap<>();
         // 获取优先级并填充到 Map 中
-        for (AutomaticClassSchedulingVO.PrioritySettings.CourseTypePriority courseTypePriority
-                : automaticClassSchedulingVO.getPrioritySettings().getCourseTypes()) {
-            // 根据 typeId 获取 CourseTypeDTO
-            CourseTypeDTO courseTypeDTO =
-                    courseTypeService.getCourseTypeByUuidWithError(courseTypePriority.getTypeId());
-            assert courseTypeDTO != null;
-            // 创建 CourseTypePriorityDTO 并设置优先级
-            CourseTypePriorityDTO courseTypePriorityDTO = new CourseTypePriorityDTO();
-            courseTypePriorityDTO.setCourseTypeDTO(courseTypeDTO)
-                    .setPriority(Short.parseShort(courseTypePriority.getTypeId()));
-            // 将其添加到 Map 中，以 courseTypeUuid 为键
-            courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
+        //检查优先级是否存在
+        if (automaticClassSchedulingVO.getPrioritySettings().getCourseTypes().isEmpty()) {
+            //全部设为5
+            for (CourseTypeDTO courseTypeDTO : courseTypeService.listCourseType()) {
+                CourseTypePriorityDTO courseTypePriorityDTO = new CourseTypePriorityDTO();
+                courseTypePriorityDTO.setCourseTypeDTO(courseTypeDTO).setPriority((short) 5);
+                courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
+            }
+        }else {
+            for (AutomaticClassSchedulingVO.PrioritySettings.CourseTypePriority courseTypePriority
+                    : automaticClassSchedulingVO.getPrioritySettings().getCourseTypes()) {
+                // 根据 typeId 获取 CourseTypeDTO
+                CourseTypeDTO courseTypeDTO =
+                        courseTypeService.getCourseTypeByUuidWithError(courseTypePriority.getTypeId());
+                assert courseTypeDTO != null;
+                // 创建 CourseTypePriorityDTO 并设置优先级
+                CourseTypePriorityDTO courseTypePriorityDTO = new CourseTypePriorityDTO();
+                courseTypePriorityDTO.setCourseTypeDTO(courseTypeDTO)
+                        .setPriority(courseTypePriority.getPriority());
+                // 将其添加到 Map 中，以 courseTypeUuid 为键
+                courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
+            }
         }
         //获取课程库
         List<CourseLibraryDTO> courseLibraryDTOList =
@@ -112,15 +122,17 @@ public class SchedulingLogic implements SchedulingService {
             assert courseTypeUuid != null;
             // 在 Map 中查找对应的优先级信息
             CourseTypePriorityDTO courseTypePriorityDTO = courseTypePriorityMap.get(courseTypeUuid);
-            // 匹配成功，设置优先级
-            dto.setCourseTypes(courseTypePriorityDTO.getPriority());
+            if (courseTypePriorityDTO == null) {
+                dto.setCourseTypes((short) 5);
+            }else {
+                // 匹配成功，设置优先级
+                dto.setCourseTypes(courseTypePriorityDTO.getPriority());
+            }
         }
         //获取教室数据
-        List<ClassroomAndTypeDTO> classroomAndTypeDTOS = new ArrayList<>();
-        for (String classroomUuid : automaticClassSchedulingVO.getScopeSettings().getAllowedBuildingIds()) {
-            ClassroomAndTypeDTO classroomAndTypeDTO =
-                    classroomService.getClassroomAndTypeByUuidWihError(classroomUuid);
-            classroomAndTypeDTOS.add(classroomAndTypeDTO);
+        List<ClassroomAndTypeDTO> classroomAndTypeDTOList = new ArrayList<>();
+        for (String buildingUuid : automaticClassSchedulingVO.getScopeSettings().getAllowedBuildingIds()) {
+            classroomAndTypeDTOList.addAll(classroomService.getClassroomAndTypeByUuidWihError(buildingUuid));
         }
         //获取部门DTO
         DepartmentDTO departmentDTO = departmentService.
@@ -136,7 +148,7 @@ public class SchedulingLogic implements SchedulingService {
                 .setStrategy(automaticClassSchedulingVO.getStrategy())
                 .setEndWeek(automaticClassSchedulingVO.getEndWeek())
                 .setCourseAndTeacherList(courseQualificationList)
-                .setClassroomAndType(classroomAndTypeDTOS);
+                .setClassroomAndType(classroomAndTypeDTOList);
         //设置约束
         AutomaticClassSchedulingBaseDTO.Constraints constraints =
                 new AutomaticClassSchedulingBaseDTO.Constraints();
@@ -164,6 +176,7 @@ public class SchedulingLogic implements SchedulingService {
             preferredTimeSlotDTO.setDay(preferredTimeSlot.getDay())
                     .setPeriodStart(preferredTimeSlot.getPeriodStart())
                     .setPeriodEnd(preferredTimeSlot.getPeriodEnd());
+            timePreferences.setPreferredTimeSlots(new ArrayList<>());
             timePreferences.getPreferredTimeSlots().add(preferredTimeSlotDTO);
         }
         timePreferences.setAvoidEveningCourses(automaticClassSchedulingVO.getTimePreferences().getAvoidEveningCourses())
