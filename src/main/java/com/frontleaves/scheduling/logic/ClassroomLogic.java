@@ -398,9 +398,30 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
                 .orElse(List.of());
     }
 
+    /**
+     * 根据UUID获取教室及其类型信息，如果教室不存在或类型信息获取失败，则抛出相应异常
+     * @param uuid 教室的唯一标识符
+     * @return 返回包含教室及其类型信息的DTO对象
+     * @throws BusinessException 如果教室不存在或获取教室类型时发生错误，则抛出此异常
+     */
     @Override
     public @NotNull ClassroomAndTypeDTO getClassroomAndTypeByUuidWihError(String uuid) {
-        return null;
+        //根据UUID查询教室信息
+        ClassroomDO classroomDO = classroomDAO.getClassroomByUuid(uuid);
+        //如果教室信息为空，则抛出不存在的异常
+        if (classroomDO == null) {
+            throw new BusinessException("教室不存在", ErrorCode.NOT_EXIST);
+        }
+        //查找教室类型
+        ClassroomTypeDO classroomTypeDO = classroomTypeDAO.getTypeByUuid(classroomDO.getType());
+        //如果教室类型信息为空，则抛出内部服务器错误异常
+        if (classroomTypeDO == null) {
+            throw new BusinessException("意料之外的错误", ErrorCode.SERVER_INTERNAL_ERROR);
+        }
+        //将查询到的教室和类型信息封装到DTO中并返回
+        return new ClassroomAndTypeDTO()
+                .setClassroom(BeanUtil.toBean(classroomDO, ClassroomDTO.class))
+                .setClassroomType(BeanUtil.toBean(classroomTypeDO, ClassroomTypeDTO.class));
     }
 
 
