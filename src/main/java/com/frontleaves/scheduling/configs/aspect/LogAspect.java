@@ -28,14 +28,13 @@
 
 package com.frontleaves.scheduling.configs.aspect;
 
-import cn.hutool.core.util.URLUtil;
-import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.frontleaves.scheduling.annotations.IgnoreLog;
-import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.RequestLogDAO;
 import com.frontleaves.scheduling.models.entity.RequestLogDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.utils.RequestUtil;
 import com.xlf.utility.aspect.BusinessLogAspect;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -47,17 +46,12 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 日志切面
@@ -79,6 +73,7 @@ public class LogAspect extends BusinessLogAspect {
 
     private final RequestLogDAO requestLogDAO;
     private final UserService userService;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Before("execution(* com.frontleaves.scheduling.controllers..*.*(..))")
@@ -150,7 +145,7 @@ public class LogAspect extends BusinessLogAspect {
         // 设置请求基本信息 - 只获取路径，不要完整的URL
         requestLog.setRequestUrl(request.getRequestURI());
         requestLog.setRequestMethod(request.getMethod());
-        requestLog.setRequestIp(getClientIp(request));
+        requestLog.setRequestIp(RequestUtil.getClientIp(request));
         requestLog.setUserAgent(request.getHeader("User-Agent"));
 
         // 获取用户信息
@@ -162,17 +157,17 @@ public class LogAspect extends BusinessLogAspect {
         }
 
         // 记录请求参数
-        requestLog.setRequestParams(this.buildQueryParams(request));
+        requestLog.setRequestParams(RequestUtil.buildQueryParams(request));
         requestLog.setRequestBody(Arrays.toString(pjp.getArgs()));
 
-        Object result;
+        Object result = null;
         try {
             // 执行目标方法
             result = pjp.proceed();
-            requestLog.setResponseCode(this.extractStatusCode(result));
+            requestLog.setResponseCode(RequestUtil.extractStatusCode(result));
         } catch (Exception e) {
             // 记录异常信息
-            requestLog.setResponseCode(500);
+            requestLog.setResponseCode(RequestUtil.extractStatusCode(result));
             requestLog.setErrorMessage(e.getMessage());
             throw e;
         } finally {
@@ -187,80 +182,5 @@ public class LogAspect extends BusinessLogAspect {
         }
 
         return result;
-    }
-
-    /**
-     * 从响应结果中提取状态码
-     *
-     * @param result 响应结果
-     * @return 状态码
-     */
-    private int extractStatusCode(Object result) {
-        if (result == null) {
-            return 500;
-        }
-        try {
-            if (result instanceof ResponseEntity<?> responseEntity) {
-                log.info("[LOG] 提取响应状态码: {}", responseEntity.getStatusCode().value());
-                return responseEntity.getStatusCode().value();
-            }
-        } catch (Exception e) {
-            log.warn("[LOG] 提取响应状态码时发生异常: {}", e.getMessage());
-        }
-        return 200;
-    }
-
-    /**
-     * 构建查询参数字符串为JSON格式
-     *
-     * @param request HTTP请求
-     * @return 查询参数的JSON字符串
-     */
-    private String buildQueryParams(@NotNull HttpServletRequest request) {
-        try {
-            if (request.getQueryString() != null) {
-                // 使用Hutool解析查询字符串为Map
-                Map<String, String> queryMap = Arrays.stream(request.getQueryString().split("&"))
-                        .map(param -> param.split("="))
-                        .collect(Collectors.toMap(
-                                param -> URLUtil.decode(param[0]),
-                                param -> URLUtil.decode(param[1])
-                        ));
-                return JSONUtil.toJsonStr(queryMap);
-            }
-
-            // 如果没有查询字符串，从参数构建Map
-            Map<String, String> paramMap = new HashMap<>();
-            Collections.list(request.getParameterNames()).forEach(name ->
-                paramMap.put(name, request.getParameter(name))
-            );
-            return cn.hutool.json.JSONUtil.toJsonStr(paramMap);
-        } catch (Exception e) {
-            log.warn("[LOG] 构建查询参数时发生异常: {}", e.getMessage());
-            return "{}";
-        }
-    }
-
-    /**
-     * 获取客户端真实IP地址
-     */
-    private String getClientIp(@NotNull HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || StringConstant.Common.Hump.UNKNOWN.equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || StringConstant.Common.Hump.UNKNOWN.equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || StringConstant.Common.Hump.UNKNOWN.equalsIgnoreCase(ip)) {
-            ip = request.getHeader("HTTP_CLIENT_IP");
-        }
-        if (ip == null || ip.isEmpty() || StringConstant.Common.Hump.UNKNOWN.equalsIgnoreCase(ip)) {
-            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
-        }
-        if (ip == null || ip.isEmpty() || StringConstant.Common.Hump.UNKNOWN.equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
     }
 }
