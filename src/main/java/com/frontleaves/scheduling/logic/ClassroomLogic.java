@@ -49,7 +49,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 教室逻辑处理类，实现了 {@code ClassroomService} 接口。
@@ -409,18 +411,27 @@ public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomSe
         //根据UUID查询教室信息
         List<ClassroomDO> classroomDOList = classroomDAO.getClassroomByBuilding(buildingUuid);
         //如果教室信息为空，则抛出不存在的异常
-        if (classroomDOList.isEmpty()) {
+        if (classroomDOList != null && classroomDOList.isEmpty()) {
             throw new BusinessException("教室不存在", ErrorCode.NOT_EXIST);
         }
-        List<ClassroomAndTypeDTO>  classroomAndTypeDTOList= new ArrayList<>();
-        for (ClassroomDO classroomDO : classroomDOList) {
-            //将教室类型信息缓存到Map中
-            ClassroomAndTypeDTO classroomAndTypeDTO = new ClassroomAndTypeDTO();
-            ClassroomTypeDO classroomTypeDO = classroomTypeDAO.getTypeByUuid(classroomDO.getType());
-            classroomAndTypeDTO.setClassroom(BeanUtil.toBean(classroomDO, ClassroomDTO.class))
-                    .setClassroomType(BeanUtil.toBean(classroomTypeDO, ClassroomTypeDTO.class));
-            classroomAndTypeDTOList.add(classroomAndTypeDTO);
+        // 获取所有教室类型信息并缓存到Map中
+        Map<String, ClassroomTypeDO> classroomTypeDoMap = classroomTypeDAO.getTypes().stream()
+                .collect(Collectors.toMap(ClassroomTypeDO::getClassTypeUuid, type -> type));
+        List<ClassroomAndTypeDTO> classroomAndTypeDTOList = new ArrayList<>();
+        if (classroomDOList != null) {
+            for (ClassroomDO classroomDO : classroomDOList) {
+                // 从Map中获取对应的教室类型信息
+                ClassroomTypeDO classroomTypeDO = classroomTypeDoMap.get(classroomDO.getType());
+                if (classroomTypeDO == null) {
+                    throw new BusinessException("教室类型不存在", ErrorCode.NOT_EXIST);
+                }
+                ClassroomAndTypeDTO classroomAndTypeDTO = new ClassroomAndTypeDTO();
+                classroomAndTypeDTO.setClassroom(BeanUtil.toBean(classroomDO, ClassroomDTO.class))
+                        .setClassroomType(BeanUtil.toBean(classroomTypeDO, ClassroomTypeDTO.class));
+                classroomAndTypeDTOList.add(classroomAndTypeDTO);
+            }
         }
         return classroomAndTypeDTOList;
     }
+
 }

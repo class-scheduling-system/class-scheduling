@@ -253,6 +253,7 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> {
      * @param buildingUuid 建筑的唯一标识符
      * @return 返回教室列表，如果找不到则返回空列表
      */
+    @Nullable
     public List<ClassroomDO> getClassroomByBuilding(String buildingUuid) {
         // 从Redis中获取缓存的教室列表
         RList<ClassroomDO> rList = redisson.getList(StringConstant.Redis.CLASSROOM_BULIDING + buildingUuid);
@@ -266,7 +267,7 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> {
                 return classroomDOList;
             }
             // 如果查询结果为空，返回空列表
-            return list();
+            return null;
         }
         // 如果缓存存在，读取并返回缓存中的教室列表
         return rList.readAll();
