@@ -22,11 +22,12 @@ class CourseLibraryTest {
     void testGetListCourseLibraryByDepartmentAndSpecify() {
         //准备数据
         CourseLibraryDO courseLibraryDO = courseLibraryDAO.lambdaQuery().list().get(0);
+        List<String> courseLibraryUuids = List.of(courseLibraryDO.getCourseLibraryUuid());
         //执行
         log.debug("只获取这个部门的课程");
         List<CourseLibraryDO> courseLibraryDOS =
                 courseLibraryDAO.getListCourseLibraryByDepartmentAndSpecify(
-                        courseLibraryDO.getDepartment(), null);
+                        courseLibraryDO.getDepartment(), courseLibraryUuids);
         Assertions.assertFalse(courseLibraryDOS.isEmpty());
         log.debug("测试获取这一个课程");
         List<CourseLibraryDO> courseLibraryDOS1 = courseLibraryDAO.getListCourseLibraryByDepartmentAndSpecify(courseLibraryDO.getDepartment(),
