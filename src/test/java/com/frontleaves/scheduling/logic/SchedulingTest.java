@@ -5,6 +5,7 @@ import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.base.TokenDTO;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
+import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.SchedulingService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -74,7 +75,7 @@ class SchedulingTest {
                 .lambdaQuery().list();
         for (TeacherCourseQualificationDO teacherCourseQualificationDO : teacherCourseQualificationDOList) {
             CourseLibraryDO courseLibraryDO = courseLibraryDAO.lambdaQuery()
-                    .eq(CourseLibraryDO::getDepartment,setUpDepartment.getDepartmentUuid())
+                    .eq(CourseLibraryDO::getDepartment, setUpDepartment.getDepartmentUuid())
                     .eq(CourseLibraryDO::getCourseLibraryUuid, teacherCourseQualificationDO.getCourseUuid())
                     .one();
             if (courseLibraryDO != null) {
@@ -82,7 +83,6 @@ class SchedulingTest {
                 break;
             }
         }
-        //创建测试链表
         // 创建测试教室
         setUpClassroom = classroomDAO.lambdaQuery().list().get(0);
     }
@@ -126,9 +126,14 @@ class SchedulingTest {
                 true,
                 Collections.singletonList(preferredTimeSlot)
         );
+        List<SpecificCourseIdVO> list = Collections.singletonList(new SpecificCourseIdVO(
+                setUpCourseLibrary.getCourseLibraryUuid(),
+                null,
+                50
+        ));
         AutomaticClassSchedulingVO.ScopeSettings scopeSettings = new AutomaticClassSchedulingVO.ScopeSettings(
 
-                Collections.singletonList(setUpCourseLibrary.getCourseLibraryUuid()),
+                list,
                 Collections.singletonList(setUpClassroom.getBuildingUuid())
         );
         AutomaticClassSchedulingVO vo = new AutomaticClassSchedulingVO(
