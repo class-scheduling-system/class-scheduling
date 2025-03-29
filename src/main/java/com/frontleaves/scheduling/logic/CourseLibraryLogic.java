@@ -3,11 +3,9 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.AdministrativeClassDAO;
 import com.frontleaves.scheduling.daos.CourseLibraryDAO;
-import com.frontleaves.scheduling.models.dto.CourseLibraryAndTeacherCourseQualificationListDTO;
-import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
-import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndClassDTO;
+import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
 import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
@@ -155,7 +153,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
     @Override
     public List<CourseLibraryAndTeacherCourseQualificationListDTO> getCourseListAndClassDTO(
             @NotNull List<SpecificCourseIdVO> specificCourseIds) {
-        List<CourseLibraryAndTeacherCourseQualificationListDTO> listDTOS = new ArrayList<>();
+        List<CourseLibraryAndTeacherCourseQualificationListDTO> lists = new ArrayList<>();
 
         // 获取所有课程并构建映射
         Map<String, CourseLibraryDO> courseMap = courseLibraryDAO.getCourseList().stream()
@@ -178,8 +176,8 @@ public class CourseLibraryLogic implements CourseLibraryService {
                 libraryAndClassDTO.setNumber(specificCourseIdVO.getNumber());
                 calculateStudentCount(libraryAndClassDTO, classMap, specificCourseIdVO);
             }
-            listDTOS.add(libraryAndClassDTO);
+            lists.add(libraryAndClassDTO);
         }
-        return listDTOS;
+        return lists;
     }
 }
