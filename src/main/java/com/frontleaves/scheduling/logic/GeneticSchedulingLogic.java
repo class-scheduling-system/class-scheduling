@@ -25,6 +25,8 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
     private final Map<String, Integer> taskProgress = new HashMap<>();
     private final Map<String, String> taskStatus = new HashMap<>();
 
+
+
     @Override
     public ScheduleResultDTO executeGeneticAlgorithm(String taskId, AutomaticClassSchedulingBaseDTO baseDTO) {
         try {
@@ -898,7 +900,8 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
             if (capacity >= studentCount) {
                 // 容量足够，但不要过大
                 double utilizationRate = (double) studentCount / capacity;
-                if (utilizationRate >= 0.7) {  // 利用率达到70%以上
+                // 利用率达到70%以上
+                if (utilizationRate >= 0.7) {
                     fitness += 5.0;
                 }
             } else {

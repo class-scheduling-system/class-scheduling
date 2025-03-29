@@ -13,7 +13,16 @@ import java.util.List;
 @Data
 @Accessors(chain = true)
 public class CourseLibraryAndClassDTO {
+    /**
+     * 课程库
+     */
     private CourseLibraryDTO course;
+    /**
+     * 班级列表
+     */
     private List<AdministrativeClassDTO> classDTOList;
+    /**
+     * 班级人数
+     */
     private Integer number;
 }

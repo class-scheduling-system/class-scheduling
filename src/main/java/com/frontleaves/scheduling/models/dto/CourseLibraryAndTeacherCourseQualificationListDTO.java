@@ -17,7 +17,7 @@ import java.util.List;
 @Accessors(chain = true)
 public class CourseLibraryAndTeacherCourseQualificationListDTO {
     /**
-     * 课程库已经学生DTO
+     * 课程库和学生班级人数
      **/
     private CourseLibraryAndClassDTO libraryAndClass;
     /**
