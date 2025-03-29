@@ -76,6 +76,7 @@ public class StringConstant {
     public static final String UNIT_CATEGORY_NOT_FOUND = "未找到该单位类别";
     public static final String STUDENT_NOT_EXIST = "学生不存在";
     public static final String STUDENT_SAVE_FAILED = "学生信息保存失败";
+    public static final String REQUEST_LOG_CACHE = "request:log:cache";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -192,6 +193,7 @@ public class StringConstant {
             public static final String REFRESH_EXPIRE_TIME = "refreshExpireTime";
             public static final String CREATED_AT = "createdAt";
             public static final String UPDATED_AT = "updatedAt";
+            public static final String UNKNOWN = "unknown";
 
             private Hump() {
                 log.error("Hump 不能被实例化");
