@@ -2,10 +2,7 @@ package com.frontleaves.scheduling.logic;
 
 
 import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.dto.scheduling.ScheduleDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.ScheduleItemDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.TimeSlotDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.*;
 import com.frontleaves.scheduling.services.GeneticSchedulingService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -18,15 +15,47 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * 遗传算法排课逻辑实现类
+ * <p>
+ * 该类实现了基于遗传算法的自动排课功能，通过进化算法对课程、教师、教室等资源进行优化分配。
+ * 遗传算法主要包括初始化种群、选择、交叉、变异、评估等操作，通过多代进化寻找最优的课程安排方案。
+ * </p>
+ *
+ * @author frontleaves
+ * @version 1.0
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class GeneticSchedulingLogic implements GeneticSchedulingService {
+    /**
+     * 任务进度映射，记录每个排课任务的进度百分比
+     */
     private final Map<String, Integer> taskProgress = new HashMap<>();
+
+    /**
+     * 任务状态映射，记录每个排课任务的当前状态描述
+     */
     private final Map<String, String> taskStatus = new HashMap<>();
 
 
-
+    /**
+     * 执行遗传算法排课
+     * <p>
+     * 该方法是遗传算法排课的主入口，包括以下步骤：
+     * 1. 初始化种群
+     * 2. 评估初始种群适应度
+     * 3. 进行多代进化（选择、交叉、变异）
+     * 4. 记录最优解
+     * 5. 构建排课结果
+     * </p>
+     *
+     * @param taskId 排课任务ID，用于标识和跟踪排课进度
+     * @param baseDTO 排课基础数据，包含课程、教师、教室等信息
+     * @return 排课结果，包含课程安排、资源利用率、冲突信息等
+     * @throws BusinessException 排课过程中的业务异常
+     */
     @Override
     public ScheduleResultDTO executeGeneticAlgorithm(String taskId, AutomaticClassSchedulingBaseDTO baseDTO) {
         try {
@@ -107,6 +136,12 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         }
     }
 
+    /**
+     * 评估种群中所有个体的适应度
+     *
+     * @param population 待评估的种群
+     * @param baseDTO 排课基础数据
+     */
     private void evaluatePopulation(List<ScheduleDTO> population, AutomaticClassSchedulingBaseDTO baseDTO) {
         for (ScheduleDTO schedule : population) {
             double fitness = calculateFitness(schedule, baseDTO);
@@ -114,6 +149,20 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         }
     }
 
+    /**
+     * 计算单个课程表的适应度得分
+     * <p>
+     * 适应度计算考虑多个因素：
+     * 1. 冲突惩罚（教师、教室时间冲突）
+     * 2. 连续课程偏好
+     * 3. 时间槽偏好
+     * 4. 教室优化（容量、类型匹配）
+     * </p>
+     *
+     * @param schedule 待评估的课程表
+     * @param baseDTO 排课基础数据，包含约束条件
+     * @return 适应度得分，值越高表示排课方案越优
+     */
     private double calculateFitness(ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
         double fitness = 100.0;  // 基础分数
 
@@ -138,6 +187,14 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 计算冲突惩罚
+     * <p>
+     * 检查课程表中的冲突情况并计算惩罚值，包括：
+     * - 教师在同一时间段被安排多门课程的冲突
+     * - 教室在同一时间段被多门课程占用的冲突
+     * </p>
+     *
+     * @param schedule 待检查的课程表
+     * @return 冲突惩罚值，值越大表示冲突越严重
      */
     private double calculateConflictPenalty(ScheduleDTO schedule) {
         double penalty = 0.0;
@@ -176,6 +233,14 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 查找课程表中的冲突
+     * <p>
+     * 分析课程表中的冲突并生成详细的冲突信息，包括：
+     * - 教师在同一时间段被安排多门课程的冲突
+     * - 教室在同一时间段被多门课程占用的冲突
+     * </p>
+     *
+     * @param schedule 待分析的课程表
+     * @return 冲突列表，包含冲突类型和描述
      */
     private List<SchedulingConflictDTO> findConflicts(ScheduleDTO schedule) {
         List<SchedulingConflictDTO> conflicts = new ArrayList<>();
@@ -231,6 +296,16 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 计算资源利用率
+     * <p>
+     * 评估课程表中各种资源的利用情况，包括：
+     * - 教室利用率：衡量教室容量与实际使用情况的匹配度
+     * - 教师工作量：评估教师课程分配的均衡性
+     * - 时间槽使用率：评估时间资源的利用效率
+     * - 总体利用率：综合上述三项指标的平均值
+     * </p>
+     *
+     * @param schedule 待评估的课程表
+     * @return 资源利用率指标
      */
     private ScheduleResultDTO.ResourceUtilization calculateResourceUtilization(ScheduleDTO schedule) {
         // 教室利用率
@@ -295,6 +370,13 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 深拷贝课程表
+     * <p>
+     * 创建课程表对象的深拷贝，包括时间槽和排课项目的完整复制，
+     * 确保原对象和复制对象完全独立，避免引用共享导致的意外修改。
+     * </p>
+     *
+     * @param schedule 源课程表对象
+     * @return 深拷贝后的新课程表对象
      */
     private ScheduleDTO deepCopySchedule(ScheduleDTO schedule) {
         ScheduleDTO copy = new ScheduleDTO();
@@ -313,6 +395,13 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 选择操作
+     * <p>
+     * 基于轮盘赌算法进行个体选择，适应度越高的个体被选中的概率越大。
+     * 该方法是遗传算法中模拟自然选择的过程，使得优质个体有更多机会繁殖下一代。
+     * </p>
+     *
+     * @param population 当前种群
+     * @return 选择后的种群（通过深拷贝创建）
      */
     private List<ScheduleDTO> selection(List<ScheduleDTO> population) {
         List<ScheduleDTO> selected = new ArrayList<>();
@@ -338,6 +427,14 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 交叉操作
+     * <p>
+     * 对选择后的个体按照交叉率进行交叉操作，生成新的后代。
+     * 交叉操作是遗传算法中模拟基因重组的过程，通过将两个父代个体的部分特征组合，产生具有新特性的后代。
+     * </p>
+     *
+     * @param selected 经过选择的个体
+     * @param crossoverRate 交叉概率
+     * @return 交叉后产生的后代
      */
     private List<ScheduleDTO> crossover(List<ScheduleDTO> selected, double crossoverRate) {
         List<ScheduleDTO> offspring = new ArrayList<>();
@@ -368,6 +465,14 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 交叉两个课程表
+     * <p>
+     * 实现两个父代课程表之间的交叉操作，通过随机选择交叉点，
+     * 将两个父代的课程安排按照课程ID进行混合，生成两个新的子代课程表。
+     * </p>
+     *
+     * @param parent1 第一个父代课程表
+     * @param parent2 第二个父代课程表
+     * @return 交叉后生成的两个子代课程表
      */
     private List<ScheduleDTO> crossoverSchedules(ScheduleDTO parent1, ScheduleDTO parent2) {
         List<ScheduleDTO> children = new ArrayList<>();
@@ -425,6 +530,12 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         return children;
     }
 
+    /**
+     * 从父代复制课程安排到子代
+     *
+     * @param assignments 父代的课程安排列表
+     * @param target 目标子代的课程安排映射
+     */
     private void copyAssignmentsFromParent(
             List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> assignments,
             Map<TimeSlotDTO, ScheduleItemDTO> target
@@ -440,6 +551,15 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 变异操作
+     * <p>
+     * 按照变异率对个体进行变异，通过随机改变课程安排的某些属性，
+     * 增加种群的多样性，避免陷入局部最优解。
+     * 包括三种变异策略：时间槽变异、教室变异和教师变异。
+     * </p>
+     *
+     * @param population 当前种群
+     * @param mutationRate 变异概率
+     * @param baseDTO 排课基础数据
      */
     private void mutation(List<ScheduleDTO> population, double mutationRate, AutomaticClassSchedulingBaseDTO baseDTO) {
         Random random = new Random();
@@ -467,6 +587,16 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         }
     }
 
+    /**
+     * 时间槽变异
+     * <p>
+     * 随机选择一个课程安排，改变其时间槽，
+     * 包括尝试找到新的合适时间槽或与其他课程交换时间。
+     * </p>
+     *
+     * @param schedule 待变异的课程表
+     * @param baseDTO 排课基础数据
+     */
     private void timeSlotMutation(ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
         Random random = new Random();
         List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
@@ -500,6 +630,15 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         }
     }
 
+    /**
+     * 教室变异
+     * <p>
+     * 随机选择一个课程安排，尝试分配更合适的教室。
+     * </p>
+     *
+     * @param schedule 待变异的课程表
+     * @param baseDTO 排课基础数据
+     */
     private void classroomMutation(ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
         Random random = new Random();
         List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
@@ -524,6 +663,15 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         }
     }
 
+    /**
+     * 教师变异
+     * <p>
+     * 随机选择一个课程安排，尝试分配其他合格的教师。
+     * </p>
+     *
+     * @param schedule 待变异的课程表
+     * @param baseDTO 排课基础数据
+     */
     private void teacherMutation(@NotNull ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
         Random random = new Random();
         List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
@@ -553,6 +701,17 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         }
     }
 
+    /**
+     * 检查时间槽交换是否有效
+     * <p>
+     * 通过创建临时映射来模拟交换后的状态，检查是否会产生冲突。
+     * </p>
+     *
+     * @param entry1 第一个课程安排
+     * @param entry2 第二个课程安排
+     * @param schedule 当前课程表
+     * @return 交换是否有效（无冲突）
+     */
     private boolean isSwapValid(
             Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry1,
             Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry2,
@@ -569,6 +728,12 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         return !hasConflicts(tempAssignments);
     }
 
+    /**
+     * 检查课程安排是否存在冲突
+     *
+     * @param assignments 课程安排映射
+     * @return 是否存在冲突
+     */
     private boolean hasConflicts(Map<TimeSlotDTO, ScheduleItemDTO> assignments) {
         for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry1 : assignments.entrySet()) {
             for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry2 : assignments.entrySet()) {
@@ -600,6 +765,13 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         return false;
     }
 
+    /**
+     * 交换两个课程的时间槽
+     *
+     * @param schedule 课程表
+     * @param entry1 第一个课程安排
+     * @param entry2 第二个课程安排
+     */
     private void swapTimeSlots(
             ScheduleDTO schedule,
             Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry1,
@@ -614,6 +786,12 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 转换课程表为课程安排列表
+     * <p>
+     * 将内部使用的课程表模型转换为前端展示所需的课程安排格式。
+     * </p>
+     *
+     * @param schedule 内部课程表模型
+     * @return 课程安排列表
      */
     private List<ScheduleResultDTO.ClassAssignmentDTO> convertScheduleToAssignments(ScheduleDTO schedule) {
         List<ScheduleResultDTO.ClassAssignmentDTO> assignments = new ArrayList<>();
@@ -640,22 +818,47 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         return assignments;
     }
 
+    /**
+     * 获取排课任务的进度
+     *
+     * @param taskId 任务ID
+     * @return 排课进度（0-100的整数）
+     */
     @Override
     public int getSchedulingProgress(String taskId) {
         return taskProgress.getOrDefault(taskId, 0);
     }
 
+    /**
+     * 获取排课任务的状态
+     *
+     * @param taskId 任务ID
+     * @return 排课状态描述
+     */
     @Override
     public String getSchedulingStatus(String taskId) {
         return taskStatus.getOrDefault(taskId, "unknown");
     }
 
+    /**
+     * 更新排课任务的进度
+     *
+     * @param taskId 任务ID
+     * @param progress 进度值（0-100）
+     */
     private void updateProgress(String taskId, int progress) {
         taskProgress.put(taskId, progress);
     }
 
     /**
      * 生成初始种群
+     * <p>
+     * 根据排课基础数据生成初始种群，为每个课程分配合适的教师、教室和时间槽。
+     * 初始种群的质量会影响算法的收敛速度和最终结果。
+     * </p>
+     *
+     * @param baseDTO 排课基础数据
+     * @return 初始种群
      */
     private List<ScheduleDTO> generateInitialPopulation(AutomaticClassSchedulingBaseDTO baseDTO) {
         List<ScheduleDTO> population = new ArrayList<>();
@@ -696,6 +899,13 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 为课程选择合适的教师
+     * <p>
+     * 从符合课程学科要求的教师中随机选择一位。
+     * </p>
+     *
+     * @param course 课程信息
+     * @param teachers 候选教师列表
+     * @return 选择的教师，如果没有合适教师则返回null
      */
     private @Nullable TeacherCoursePreferencesDTO selectTeacherForCourse(
             CourseLibraryDTO course,
@@ -715,6 +925,13 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 为课程选择合适的教室
+     * <p>
+     * 从符合课程容量和类型要求的教室中随机选择一间。
+     * </p>
+     *
+     * @param course 课程信息
+     * @param classrooms 候选教室列表
+     * @return 选择的教室，如果没有合适教室则返回null
      */
     private @Nullable ClassroomAndTypeDTO selectClassroomForCourse(
             CourseLibraryDTO course,
@@ -736,6 +953,15 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 查找合适的时间槽
+     * <p>
+     * 从所有可能的时间槽中查找一个不会导致冲突的时间槽。
+     * </p>
+     *
+     * @param assignments 已有的课程安排
+     * @param teacher 教师信息
+     * @param classroom 教室信息
+     * @param baseDTO 排课基础数据
+     * @return 合适的时间槽，如果没有找到则返回null
      */
     private @Nullable TimeSlotDTO findSuitableTimeSlot(
             Map<TimeSlotDTO, ScheduleItemDTO> assignments,
@@ -758,6 +984,12 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 生成所有可能的时间槽
+     * <p>
+     * 基于排课周数、每周天数和每天课时数生成所有可能的时间槽。
+     * </p>
+     *
+     * @param baseDTO 排课基础数据
+     * @return 所有可能的时间槽列表
      */
     private @NotNull List<TimeSlotDTO> generateAllTimeSlots(AutomaticClassSchedulingBaseDTO baseDTO) {
         List<TimeSlotDTO> slots = new ArrayList<>();
@@ -775,6 +1007,15 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 检查时间槽是否合适
+     * <p>
+     * 检查给定时间槽是否已被占用，包括教师和教室的时间冲突检查。
+     * </p>
+     *
+     * @param slot 待检查的时间槽
+     * @param assignments 已有的课程安排
+     * @param teacher 教师信息
+     * @param classroom 教室信息
+     * @return 时间槽是否合适
      */
     private boolean isTimeSlotSuitable(
             TimeSlotDTO slot,
@@ -811,6 +1052,13 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 计算连续课程适应度
+     * <p>
+     * 评估课程表中连续安排的课程情况，并给予适当的奖励。
+     * 连续课程通常更有利于学生学习和教师工作安排。
+     * </p>
+     *
+     * @param schedule 待评估的课程表
+     * @return 连续课程适应度得分
      */
     private double calculateConsecutiveCoursesFitness(ScheduleDTO schedule) {
         double fitness = 0.0;
@@ -854,6 +1102,14 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 计算时间偏好适应度
+     * <p>
+     * 评估课程安排与设定的时间偏好的匹配程度，
+     * 包括偏好时间段和避免晚课等偏好。
+     * </p>
+     *
+     * @param schedule 待评估的课程表
+     * @param preferences 时间偏好设置
+     * @return 时间偏好适应度得分
      */
     private double calculateTimePreferenceFitness(
             ScheduleDTO schedule,
@@ -886,6 +1142,13 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
     /**
      * 计算教室优化适应度
+     * <p>
+     * 评估教室分配的合理性，包括容量匹配度和教室类型匹配度。
+     * 理想情况下，教室容量应略大于学生数量，教室类型应符合课程需求。
+     * </p>
+     *
+     * @param schedule 待评估的课程表
+     * @return 教室优化适应度得分
      */
     private double calculateRoomOptimizationFitness(ScheduleDTO schedule) {
         double fitness = 0.0;

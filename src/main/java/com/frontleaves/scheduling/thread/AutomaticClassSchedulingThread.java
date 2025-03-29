@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.thread;
 
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.AutomaticClassSchedulingBaseDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.services.GeneticSchedulingService;
@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class AutomaticClassSchedulingThread extends Thread {
     @Resource
     private RedissonClient redisson;
-    
+
     @Resource
     private GeneticSchedulingService geneticSchedulingService;
 
@@ -43,7 +43,7 @@ public class AutomaticClassSchedulingThread extends Thread {
             lock.lock();
             try {
                 // 从Redis获取排课基础数据
-                RBucket<AutomaticClassSchedulingBaseDTO> cacheData = 
+                RBucket<AutomaticClassSchedulingBaseDTO> cacheData =
                         redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
                 if (!cacheData.isExists()) {
                     throw new BusinessException("缓存数据不存在", ErrorCode.BODY_ERROR);
@@ -55,7 +55,7 @@ public class AutomaticClassSchedulingThread extends Thread {
                 ScheduleResultDTO result = geneticSchedulingService.executeGeneticAlgorithm(baseData);
 
                 // 保存排课结果到Redis
-                RBucket<ScheduleResultDTO> resultCache = 
+                RBucket<ScheduleResultDTO> resultCache =
                         redisson.getBucket(StringConstant.Redis.SCHEDULE_RESULT + user.getUserUuid());
                 resultCache.set(result);
 

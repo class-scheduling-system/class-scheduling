@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.thread;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.logic.SchedulingLogic;
 import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.services.*;

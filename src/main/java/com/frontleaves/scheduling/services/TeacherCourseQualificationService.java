@@ -1,6 +1,5 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.CourseLibraryAndClassDTO;
 import com.frontleaves.scheduling.models.dto.CourseLibraryAndTeacherCourseQualificationListDTO;
 
 import java.util.List;

@@ -3,7 +3,6 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.CourseLibraryDAO;
 import com.frontleaves.scheduling.daos.TeacherCourseQualificationDAO;
-import com.frontleaves.scheduling.models.dto.CourseLibraryAndClassDTO;
 import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
 import com.frontleaves.scheduling.models.entity.TeacherCourseQualificationDO;

@@ -3,7 +3,6 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.AdministrativeClassDAO;
 import com.frontleaves.scheduling.daos.CourseLibraryDAO;
-import com.frontleaves.scheduling.models.dto.CourseLibraryAndClassDTO;
 import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
@@ -69,7 +68,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
             AdministrativeClassDO administrativeClassDO = classMap.get(classId);
             if (administrativeClassDO != null) {
                 AdministrativeClassDTO classDTO = BeanUtil.toBean(administrativeClassDO, AdministrativeClassDTO.class);
-                courseLibraryAndClassDTO.getClassDTOList().add(classDTO);
+                courseLibraryAndClassDTO.getClassList().add(classDTO);
                 classMatched = true;
             }
         }
@@ -96,7 +95,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
                 // 将班级信息转换为DTO对象
                 AdministrativeClassDTO classDTO = BeanUtil.toBean(administrativeClassDO, AdministrativeClassDTO.class);
                 // 将转换后的班级DTO添加到课程库和班级信息DTO的班级DTO列表中
-                courseLibraryAndClassDTO.getClassDTOList().add(classDTO);
+                courseLibraryAndClassDTO.getClassList().add(classDTO);
                 // 累加当前班级的学生数到总学生数中
                 totalStudentCount += administrativeClassDO.getStudentCount();
             }
