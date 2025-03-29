@@ -1,0 +1,19 @@
+package com.frontleaves.scheduling.models.dto;
+
+import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
+import lombok.Data;
+import lombok.experimental.Accessors;
+
+import java.util.List;
+
+/**
+ * 课程库和班级DTO
+ * @author FLASHLACK
+ */
+@Data
+@Accessors(chain = true)
+public class CourseLibraryAndClassDTO {
+    private CourseLibraryDTO course;
+    private List<AdministrativeClassDTO> classDTOList;
+    private Integer number;
+}

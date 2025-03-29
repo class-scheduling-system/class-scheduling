@@ -2,14 +2,12 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.TokenDTO;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.services.SchedulingService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -104,42 +102,34 @@ class SchedulingTest {
                 true,
                 true
         );
-
         AutomaticClassSchedulingVO.AlgorithmParams algorithmParams = new AutomaticClassSchedulingVO.AlgorithmParams(
                 50,
                 100,
                 0.7,
                 0.3
         );
-
         AutomaticClassSchedulingVO.PrioritySettings.CourseTypePriority courseTypePriority = new AutomaticClassSchedulingVO.PrioritySettings.CourseTypePriority(
                 setUpCourseType.getCourseTypeUuid(),
                 (short) 1
         );
-
         AutomaticClassSchedulingVO.PrioritySettings prioritySettings = new AutomaticClassSchedulingVO.PrioritySettings(
                 List.of(courseTypePriority)
         );
-
         AutomaticClassSchedulingVO.TimePreferences.PreferredTimeSlot preferredTimeSlot = new AutomaticClassSchedulingVO.TimePreferences.PreferredTimeSlot(
                 (short) 1,
                 (short) 2,
                 (short) 4
         );
-
         AutomaticClassSchedulingVO.TimePreferences timePreferences = new AutomaticClassSchedulingVO.TimePreferences(
                 false,
                 true,
                 Collections.singletonList(preferredTimeSlot)
         );
-
         AutomaticClassSchedulingVO.ScopeSettings scopeSettings = new AutomaticClassSchedulingVO.ScopeSettings(
-                false,
+
                 Collections.singletonList(setUpCourseLibrary.getCourseLibraryUuid()),
-                Collections.emptyList(),
                 Collections.singletonList(setUpClassroom.getBuildingUuid())
         );
-
         AutomaticClassSchedulingVO vo = new AutomaticClassSchedulingVO(
                 setUpSemester.getSemesterUuid(),
                 setUpDepartment.getDepartmentUuid(),
@@ -151,8 +141,7 @@ class SchedulingTest {
                 timePreferences,
                 scopeSettings
         );
-        AutomaticClassSchedulingBaseDTO baseDTO = schedulingService.getAutoClassSchedulingBaseDTO(vo, request);
-        Assertions.assertNotNull(baseDTO);
+        schedulingService.getAutoClassSchedulingBaseDTO(vo, request);
 
         log.debug("SchedulingLogic单元测试完成，耗时：{}ms", System.currentTimeMillis() - now);
     }

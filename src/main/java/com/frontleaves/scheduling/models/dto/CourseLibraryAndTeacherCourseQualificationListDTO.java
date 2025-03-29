@@ -7,6 +7,9 @@ import java.util.List;
 
 /**
  * 课程库和教师课程资格列表DTO
+ * 内有课程库和班级DTO
+ * 内有教师课程资格列表
+ * 内有优先级
  *
  * @author FLASHLACK
  */
@@ -14,9 +17,9 @@ import java.util.List;
 @Accessors(chain = true)
 public class CourseLibraryAndTeacherCourseQualificationListDTO {
     /**
-     * 课程库DTO
+     * 课程库已经学生DTO
      **/
-    private CourseLibraryDTO courseLibraryDTO;
+    private CourseLibraryAndClassDTO libraryAndClass;
     /**
      * 教师课程资格列表
      */

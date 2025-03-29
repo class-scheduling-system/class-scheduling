@@ -3,6 +3,7 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.BackAutomaticClassSchedulingDTO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
+import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.SchedulingService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
@@ -49,16 +50,18 @@ public class SchedulingController {
         //检查晚间排课约束是否为空
         Optional.ofNullable(automaticClassSchedulingVO.getTimePreferences().getPreferredTimeSlots())
                 .orElseThrow(() -> new BusinessException("晚间排课约束为空数据", ErrorCode.BODY_ERROR));
-        if (Boolean.TRUE.equals(automaticClassSchedulingVO.getScopeSettings().getIncludeAllSemesterCourses())) {
-            // 检测列表是否为空
-            Optional.ofNullable(automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds())
-                    .filter(data -> !data.isEmpty())
-                    .orElseThrow(() -> new BusinessException("课程ID列表为空数据", ErrorCode.BODY_ERROR));
-        }
-        //检测排除课程列表是否为空
-        Optional.ofNullable(automaticClassSchedulingVO.getScopeSettings().getExcludeCourseIds())
+        //检查课程ID列表是否为空
+        Optional.ofNullable(automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds())
                 .filter(data -> !data.isEmpty())
-                .orElseThrow(() -> new BusinessException("排除课程ID列表为空数据", ErrorCode.BODY_ERROR));
+                .orElseThrow(() -> new BusinessException("课程ID列表不能为空", ErrorCode.BODY_ERROR));
+        // 检查 classID 和 number 是否同时为空
+        for (SpecificCourseIdVO course :
+                automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds()
+        ) {
+            if ((course.getClassId() != null && course.getClassId().isEmpty())  && course.getNumber() == null) {
+                throw new BusinessException("班级或者人数选择为空", ErrorCode.BODY_ERROR);
+            }
+        }
         //准备用户数据
         schedulingService.getAutoClassSchedulingBaseDTO(automaticClassSchedulingVO, request);
         return null;

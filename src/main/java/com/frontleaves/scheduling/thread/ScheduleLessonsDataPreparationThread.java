@@ -62,6 +62,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ScheduleLessonsDataPreparationThread extends Thread {
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition condition = lock.newCondition();
+    private final boolean running = true;
     @Resource
     private UserService userService;
     @Resource
@@ -80,10 +81,6 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     private DepartmentService departmentService;
     @Resource
     private RedissonClient redisson;
-
-
-    private final boolean running = true;
-
     private AutomaticClassSchedulingVO automaticClassSchedulingVO;
     private HttpServletRequest request;
 
@@ -138,23 +135,19 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                         courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
                     }
                 }
-                //获取课程库
-                List<CourseLibraryDTO> courseLibraryDTOList = courseLibraryService
-                        .listCourseLibraryByDepartmentAndSpecifyWithThrow(
-                                automaticClassSchedulingVO.getDepartmentId(),
-                                automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds(),
-                                automaticClassSchedulingVO.getScopeSettings().getExcludeCourseIds()
-                        );
-                assert courseLibraryDTOList != null;
+                //获取课程库和学生班级
+                List<CourseLibraryAndClassDTO> libraryAndClassDTOList = courseLibraryService.getCourseListAndClassDTO(
+                        automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds()
+                );
                 //获取老师所有数据
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList = teacherCourseQualificationService
                         .getCourseLibraryAndTeacherCourseQualificationList(
-                                courseLibraryDTOList, automaticClassSchedulingVO.getConstraints().getTeacherPreference()
+                                libraryAndClassDTOList, automaticClassSchedulingVO.getConstraints().getTeacherPreference()
                         );
                 assert courseQualificationList != null;
                 for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
                     //设置优先级
-                    CourseLibraryDTO courseLibraryDTO = dto.getCourseLibraryDTO();
+                    CourseLibraryDTO courseLibraryDTO = dto.getLibraryAndClass().getCourse();
                     assert courseLibraryDTO != null;
                     // 获取课程类型 UUID
                     String courseTypeUuid = courseLibraryDTO.getType();

@@ -37,27 +37,28 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
 
     /**
      * 获取课程库和教师课程资格列表
-     * @param courseLibraryDOList 课程库DTO列表，不能为空
+     *
+     * @param courseLibraryDOList  课程库DTO列表，不能为空
      * @param isTeacherPreferences 是否是教师偏好查询，用于决定是否加载教师偏好信息
      * @return 返回一个包含课程库和教师课程资格信息的DTO列表
      * @throws BusinessException 当课程没有分配教师或系统错误时抛出业务异常
      */
     @Override
     public List<CourseLibraryAndTeacherCourseQualificationListDTO>
-    getCourseLibraryAndTeacherCourseQualificationList(@NotNull List<CourseLibraryDTO> courseLibraryDOList
-    , Boolean isTeacherPreferences) {
+    getCourseLibraryAndTeacherCourseQualificationList(@NotNull List<CourseLibraryAndClassDTO> courseLibraryDOList
+            , Boolean isTeacherPreferences) {
         // 创建返回结果列表
         List<CourseLibraryAndTeacherCourseQualificationListDTO> courseLibraryAndTeacherCourseQualificationListDTO
                 = new ArrayList<>();
         // 遍历课程库列表，获取每个课程的教师资格信息
-        for (CourseLibraryDTO courseLibraryDTO : courseLibraryDOList) {
+        for (CourseLibraryAndClassDTO libraryAndClassDTO : courseLibraryDOList) {
             // 根据课程库UUID获取教师课程资格信息
             List<TeacherCourseQualificationDO> teacherCourseQualificationList =
                     teacherCourseQualificationDAO.getTeacherCourseQualificationStatusByCourseLibraryUuid(
-                            courseLibraryDTO.getCourseLibraryUuid());
+                            libraryAndClassDTO.getCourse().getCourseLibraryUuid());
             // 检查是否已分配教师，未分配则抛出异常
             if (teacherCourseQualificationList.isEmpty()) {
-                throw new BusinessException("此" + courseLibraryDTO.getName() + "课程没有分配老师教学",
+                throw new BusinessException("此" + libraryAndClassDTO.getCourse().getName() + "课程没有分配老师教学",
                         ErrorCode.BODY_ERROR);
             }
             // 创建返回数据的最终关联DTO对象
@@ -65,17 +66,17 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
                     new CourseLibraryAndTeacherCourseQualificationListDTO();
             // 创建教师课程资格DTO列表
             List<TeacherCoursePreferencesDTO> coursePreferencesDTOList = new ArrayList<>();
-            for (TeacherCourseQualificationDO courseQualificationDO : teacherCourseQualificationList){
+            for (TeacherCourseQualificationDO courseQualificationDO : teacherCourseQualificationList) {
                 TeacherCourseQualificationDTO courseQualificationDTO = BeanUtil.toBean(
                         courseQualificationDO, TeacherCourseQualificationDTO.class);
                 TeacherCoursePreferencesDTO coursePreferences = new TeacherCoursePreferencesDTO();
                 //获取老师的DTO
                 TeacherDO teacherDO = teacherDAO.getTeacherByUuid(courseQualificationDO.getTeacherUuid());
-                if (teacherDO == null){
-                    throw new BusinessException("系统错误，老师不存在",ErrorCode.SERVER_INTERNAL_ERROR);
+                if (teacherDO == null) {
+                    throw new BusinessException("系统错误，老师不存在", ErrorCode.SERVER_INTERNAL_ERROR);
                 }
                 // 根据isTeacherPreferences参数决定是否加载教师偏好信息
-                if (Boolean.TRUE.equals(isTeacherPreferences)){
+                if (Boolean.TRUE.equals(isTeacherPreferences)) {
                     TeacherPreferencesDTO teacherPreferencesDTO = BeanUtil.toBean(
                             teacherDO, TeacherPreferencesDTO.class);
                     coursePreferences.setTeacherPreferencesDTO(teacherPreferencesDTO);
@@ -86,9 +87,8 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
                 coursePreferencesDTOList.add(coursePreferences);
             }
             // 将数据转换为DTO
-            dto.setCourseLibraryDTO(BeanUtil.toBean(
-                    courseLibraryDTO, CourseLibraryDTO.class))
-                            .setTeacherCoursePreferencesDTOList(coursePreferencesDTOList);
+            dto.setLibraryAndClass(libraryAndClassDTO)
+                    .setTeacherCoursePreferencesDTOList(coursePreferencesDTOList);
             // 将关联DTO添加到返回结果列表中
             courseLibraryAndTeacherCourseQualificationListDTO
                     .add(dto);

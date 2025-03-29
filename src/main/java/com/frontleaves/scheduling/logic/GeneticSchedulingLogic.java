@@ -7,8 +7,12 @@ import com.frontleaves.scheduling.models.dto.scheduling.ScheduleItemDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.TimeSlotDTO;
 import com.frontleaves.scheduling.services.GeneticSchedulingService;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -83,7 +87,7 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
                 return new ScheduleResultDTO()
                         .setTaskId(taskId)
                         .setSemesterId(baseDTO.getSemester().getSemesterUuid())
-                        .setDepartmentId(baseDTO.getDepartment().getDepartmentId())
+                        .setDepartmentId(baseDTO.getDepartment().getDepartmentUuid())
                         .setStatus("completed")
                         .setProgress(100)
                         .setAssignments(assignments)
@@ -92,7 +96,7 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
                         .setFitness(bestFitness);
             }
 
-            throw new RuntimeException("未能生成有效的课程表");
+            throw new BusinessException("未能生成有效的课程表", ErrorCode.BODY_ERROR);
 
         } catch (Exception e) {
             log.error("排课过程发生错误", e);
@@ -153,12 +157,12 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
                         slot1.getPeriod() == slot2.getPeriod()) {
 
                     // 教师冲突
-                    if (item1.getTeacher().getTeacherUuid().equals(item2.getTeacher().getTeacherUuid())) {
+                    if (item1.getTeacher().getTeacher().getTeacherUuid().equals(item2.getTeacher().getTeacher().getTeacherUuid())) {
                         penalty += 100.0;
                     }
 
                     // 教室冲突
-                    if (item1.getClassroom().getClassroomUuid().equals(item2.getClassroom().getClassroomUuid())) {
+                    if (item1.getClassroom().getClassroom().getClassroomUuid().equals(item2.getClassroom().getClassroom().getClassroomUuid())) {
                         penalty += 100.0;
                     }
                 }
@@ -191,40 +195,29 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
                         slot1.getPeriod() == slot2.getPeriod()) {
 
                     // 教师冲突
-                    if (item1.getTeacher().getTeacherUuid().equals(item2.getTeacher().getTeacherUuid())) {
-                        conflicts.add(new ScheduleResultDTO.SchedulingConflictDTO()
-                                .setType("teacher")
+                    if (item1.getTeacher().getTeacher().getTeacherUuid()
+                            .equals(item2.getTeacher().getTeacher().getTeacherUuid())) {
+                        conflicts.add(new SchedulingConflictDTO()
+                                .setConflictType(1)
                                 .setDescription(String.format(
                                         "教师 %s 在第%d周星期%d第%d节课有重复安排",
-                                        item1.getTeacher().getTeacherName(),
+                                        item1.getTeacher().getTeacher().getName(),
                                         slot1.getWeek(),
                                         slot1.getDayOfWeek(),
                                         slot1.getPeriod()
-                                ))
-                                .setDetails(Map.of(
-                                        "teacherId", item1.getTeacher().getTeacher().getTeacherUuid(),
-                                        "week", String.valueOf(slot1.getWeek()),
-                                        "day", String.valueOf(slot1.getDayOfWeek()),
-                                        "period", String.valueOf(slot1.getPeriod())
                                 )));
                     }
-
                     // 教室冲突
-                    if (item1.getClassroom().getClassroomUuid().equals(item2.getClassroom().getClassroomUuid())) {
-                        conflicts.add(new ScheduleResultDTO.SchedulingConflictDTO()
-                                .setType("classroom")
+                    if (item1.getClassroom().getClassroom().getClassroomUuid()
+                            .equals(item2.getClassroom().getClassroom().getClassroomUuid())) {
+                        conflicts.add(new SchedulingConflictDTO()
+                                .setConflictType(2)
                                 .setDescription(String.format(
                                         "教室 %s 在第%d周星期%d第%d节课有重复安排",
-                                        item1.getClassroom().getClassroomName(),
+                                        item1.getClassroom().getClassroom().getName(),
                                         slot1.getWeek(),
                                         slot1.getDayOfWeek(),
                                         slot1.getPeriod()
-                                ))
-                                .setDetails(Map.of(
-                                        "classroomId", item1.getClassroom().getClassroomUuid(),
-                                        "week", String.valueOf(slot1.getWeek()),
-                                        "day", String.valueOf(slot1.getDayOfWeek()),
-                                        "period", String.valueOf(slot1.getPeriod())
                                 )));
                     }
                 }
@@ -255,12 +248,12 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
             ScheduleItemDTO item = entry.getValue();
 
             // 教室使用统计
-            String roomId = item.getClassroom().getClassroomUuid();
+            String roomId = item.getClassroom().getClassroom().getClassroomUuid();
             roomUsage.merge(roomId, 1, Integer::sum);
-            roomCapacity.putIfAbsent(roomId, item.getClassroom().getClassroomCapacity());
+            roomCapacity.putIfAbsent(roomId, item.getClassroom().getClassroom().getCapacity());
 
             // 教师工作量统计
-            String teacherId = item.getTeacher().getTeacherUuid();
+            String teacherId = item.getTeacher().getTeacher().getTeacherUuid();
             teacherWorkload.merge(teacherId, 1, Integer::sum);
 
             // 时间槽使用统计
@@ -391,12 +384,12 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
 
         // 按课程ID分组
         for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry : parent1.getAssignments().entrySet()) {
-            String courseId = entry.getValue().getCourse().getCourseUuid();
+            String courseId = entry.getValue().getCourse().getCourseLibraryUuid();
             courseAssignments1.computeIfAbsent(courseId, k -> new ArrayList<>()).add(entry);
         }
 
         for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry : parent2.getAssignments().entrySet()) {
-            String courseId = entry.getValue().getCourse().getCourseUuid();
+            String courseId = entry.getValue().getCourse().getCourseLibraryUuid();
             courseAssignments2.computeIfAbsent(courseId, k -> new ArrayList<>()).add(entry);
         }
 
@@ -516,7 +509,8 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
             // 尝试分配新教室
             ClassroomAndTypeDTO newClassroom = selectClassroomForCourse(course, baseDTO.getClassroomAndType());
 
-            if (newClassroom != null && !newClassroom.getClassroomUuid().equals(entry.getValue().getClassroom().getClassroomUuid())) {
+            if (newClassroom != null && !newClassroom.getClassroom().getClassroomUuid()
+                    .equals(entry.getValue().getClassroom().getClassroom().getClassroomUuid())) {
                 ScheduleItemDTO newItem = new ScheduleItemDTO(
                         course,
                         entry.getValue().getTeacher(),
@@ -528,7 +522,7 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         }
     }
 
-    private void teacherMutation(ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
+    private void teacherMutation(@NotNull ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
         Random random = new Random();
         List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
 
@@ -588,12 +582,14 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
                         slot1.getPeriod() == slot2.getPeriod()) {
 
                     // 检查教师冲突
-                    if (item1.getTeacher().getTeacherUuid().equals(item2.getTeacher().getTeacherUuid())) {
+                    if (item1.getTeacher().getTeacher().getTeacherUuid()
+                            .equals(item2.getTeacher().getTeacher().getTeacherUuid())) {
                         return true;
                     }
 
                     // 检查教室冲突
-                    if (item1.getClassroom().getClassroomUuid().equals(item2.getClassroom().getClassroomUuid())) {
+                    if (item1.getClassroom().getClassroom().getClassroomUuid()
+                            .equals(item2.getClassroom().getClassroom().getClassroomUuid())) {
                         return true;
                     }
                 }
@@ -699,7 +695,7 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
     /**
      * 为课程选择合适的教师
      */
-    private TeacherCoursePreferencesDTO selectTeacherForCourse(
+    private @Nullable TeacherCoursePreferencesDTO selectTeacherForCourse(
             CourseLibraryDTO course,
             List<TeacherCoursePreferencesDTO> teachers
     ) {
@@ -718,7 +714,7 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
     /**
      * 为课程选择合适的教室
      */
-    private ClassroomAndTypeDTO selectClassroomForCourse(
+    private @Nullable ClassroomAndTypeDTO selectClassroomForCourse(
             CourseLibraryDTO course,
             List<ClassroomAndTypeDTO> classrooms
     ) {
@@ -739,7 +735,7 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
     /**
      * 查找合适的时间槽
      */
-    private TimeSlotDTO findSuitableTimeSlot(
+    private @Nullable TimeSlotDTO findSuitableTimeSlot(
             Map<TimeSlotDTO, ScheduleItemDTO> assignments,
             TeacherCoursePreferencesDTO teacher,
             ClassroomAndTypeDTO classroom,
@@ -761,7 +757,7 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
     /**
      * 生成所有可能的时间槽
      */
-    private List<TimeSlotDTO> generateAllTimeSlots(AutomaticClassSchedulingBaseDTO baseDTO) {
+    private @NotNull List<TimeSlotDTO> generateAllTimeSlots(AutomaticClassSchedulingBaseDTO baseDTO) {
         List<TimeSlotDTO> slots = new ArrayList<>();
 
         for (int week = 1; week <= baseDTO.getEndWeek(); week++) {
@@ -795,12 +791,14 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
                     slot.getPeriod() == existingSlot.getPeriod()) {
 
                 // 检查教师是否已被安排
-                if (existingItem.getTeacher().getTeacherUuid().equals(teacher.getTeacherUuid())) {
+                if (existingItem.getTeacher().getTeacher().getTeacherUuid()
+                        .equals(teacher.getTeacher().getTeacherUuid())) {
                     return false;
                 }
 
                 // 检查教室是否已被安排
-                if (existingItem.getClassroom().getClassroomUuid().equals(classroom.getClassroomUuid())) {
+                if (existingItem.getClassroom().getClassroom().getClassroomUuid()
+                        .equals(classroom.getClassroom().getClassroomUuid())) {
                     return false;
                 }
             }
@@ -818,7 +816,7 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
         // 按课程分组
         Map<String, List<TimeSlotDTO>> courseSlots = new HashMap<>();
         schedule.getAssignments().forEach((slot, item) -> {
-            String courseId = item.getCourse().getCourseUuid();
+            String courseId = item.getCourse().getCourseLibraryUuid();
             courseSlots.computeIfAbsent(courseId, k -> new ArrayList<>()).add(slot);
         });
 
@@ -894,8 +892,8 @@ public class GeneticSchedulingLogic implements GeneticSchedulingService {
             ScheduleItemDTO item = entry.getValue();
 
             // 教室容量与学生数量的匹配度
-            int capacity = item.getClassroom().getClassroomCapacity();
-            int studentCount = item.getCourse().getStudentCount();
+            int capacity = item.getClassroom().getClassroom().getCapacity();
+            int studentCount = item.getCourse().getC();
 
             if (capacity >= studentCount) {
                 // 容量足够，但不要过大

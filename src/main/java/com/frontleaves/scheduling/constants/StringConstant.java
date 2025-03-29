@@ -165,6 +165,7 @@ public class StringConstant {
         public static final String COURSE_TYPE_LIST = "course:type:list";
         public static final String CLASSROOM_BUILDING = "classroom:building:";
         public static final String SCHEDULE_LESSONS = "schedule:lessons:";
+        public static final String COURSE_LIBRARY_LIST = "course:library:list";
 
         private Redis() {
             log.error("Redis 不能被实例化");

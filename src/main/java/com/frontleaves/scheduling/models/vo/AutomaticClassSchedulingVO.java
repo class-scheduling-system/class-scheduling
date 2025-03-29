@@ -209,21 +209,13 @@ public class AutomaticClassSchedulingVO {
     @AllArgsConstructor
     public static class ScopeSettings {
         /**
-         * 是否包含所有学期课程
-         */
-        @NotNull(message = "是否包含所有学期课程不能为空")
-        private Boolean includeAllSemesterCourses;
-        /**
          * 指定课程ID列表，当includeAllSemesterCourses为false时使用
          */
-        private List<String> specificCourseIds;
-        /**
-         * 排除的课程ID列表
-         */
-        private List<String> excludeCourseIds;
+        private List<SpecificCourseIdVO> specificCourseIds;
         /**
          * 允许的教学楼ID列表
          */
         private List<String> allowedBuildingIds;
+
     }
 }

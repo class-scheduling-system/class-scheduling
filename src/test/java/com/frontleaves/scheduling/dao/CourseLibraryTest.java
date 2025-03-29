@@ -26,18 +26,11 @@ class CourseLibraryTest {
         log.debug("只获取这个部门的课程");
         List<CourseLibraryDO> courseLibraryDOS =
                 courseLibraryDAO.getListCourseLibraryByDepartmentAndSpecify(
-                        courseLibraryDO.getDepartment(), null, null);
+                        courseLibraryDO.getDepartment(), null);
         Assertions.assertFalse(courseLibraryDOS.isEmpty());
         log.debug("测试获取这一个课程");
         List<CourseLibraryDO> courseLibraryDOS1 = courseLibraryDAO.getListCourseLibraryByDepartmentAndSpecify(courseLibraryDO.getDepartment(),
-                List.of(courseLibraryDO.getCourseLibraryUuid()), null);
+                List.of(courseLibraryDO.getCourseLibraryUuid()));
         Assertions.assertFalse(courseLibraryDOS1.isEmpty());
-        log.debug("测试排除这一个课程");
-        List<CourseLibraryDO> courseLibraryDOS2 = courseLibraryDAO
-                .getListCourseLibraryByDepartmentAndSpecify(courseLibraryDO.getDepartment(),
-                        null, List.of(courseLibraryDO.getCourseLibraryUuid()));
-        for (CourseLibraryDO courseLibraryDO1 : courseLibraryDOS2) {
-            Assertions.assertNotEquals(courseLibraryDO1.getCourseLibraryUuid(), courseLibraryDO.getCourseLibraryUuid());
-        }
     }
 }

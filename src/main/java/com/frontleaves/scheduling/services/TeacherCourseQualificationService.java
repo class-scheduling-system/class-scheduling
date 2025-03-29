@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.CourseLibraryAndClassDTO;
 import com.frontleaves.scheduling.models.dto.CourseLibraryAndTeacherCourseQualificationListDTO;
-import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
 
 import java.util.List;
 
@@ -24,7 +24,7 @@ public interface TeacherCourseQualificationService {
      */
     List<CourseLibraryAndTeacherCourseQualificationListDTO>
     getCourseLibraryAndTeacherCourseQualificationList(
-            List<CourseLibraryDTO> courseLibraryDOList,
+            List<CourseLibraryAndClassDTO> CourseLibraryAndClassDTOList,
             Boolean isTeacherPreferences
     );
 }

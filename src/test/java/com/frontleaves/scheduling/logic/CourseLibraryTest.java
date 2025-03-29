@@ -27,12 +27,12 @@ class CourseLibraryTest {
         // 调用方法
         Assertions.assertFalse(
                 courseLibraryService.listCourseLibraryByDepartmentAndSpecifyWithThrow(
-                        courseLibraryDO.getDepartment(), null, null).isEmpty());
+                        courseLibraryDO.getDepartment(), null).isEmpty());
         //报错
         String departmentUuid = UuidUtil.generateUuidNoDash();
         Assertions.assertThrows(BusinessException.class,() ->
             courseLibraryService.listCourseLibraryByDepartmentAndSpecifyWithThrow(
-                    departmentUuid , null, null)
+                    departmentUuid , null)
         );
     }
 }
