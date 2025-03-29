@@ -2,7 +2,7 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
-import com.frontleaves.scheduling.services.*;
+import com.frontleaves.scheduling.services.SchedulingService;
 import com.frontleaves.scheduling.thread.ScheduleLessonsDataPreparationThread;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -21,15 +21,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class SchedulingLogic implements SchedulingService {
-    private final UserService userService;
-    private final AcademicAffairsPermissionService academicAffairsPermissionService;
-    private final SemesterService semesterService;
-    private final CourseLibraryService courseLibraryService;
-    private final TeacherCourseQualificationService teacherCourseQualificationService;
-    private final CourseTypeService courseTypeService;
-    private final ClassroomService classroomService;
-    private final DepartmentService departmentService;
-    private final ScheduleLessonsDataPreparationThread scheduleLessonsDataPreparationThread;
 
     /**
      * 检查结束周是否超过学期周
@@ -58,6 +49,7 @@ public class SchedulingLogic implements SchedulingService {
             @NotNull AutomaticClassSchedulingVO automaticClassSchedulingVO,
             HttpServletRequest request
     ) {
+        ScheduleLessonsDataPreparationThread scheduleLessonsDataPreparationThread = new ScheduleLessonsDataPreparationThread();
         scheduleLessonsDataPreparationThread.startUp(automaticClassSchedulingVO, request);
     }
 }

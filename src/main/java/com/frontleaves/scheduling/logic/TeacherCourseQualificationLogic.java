@@ -3,6 +3,7 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.TeacherCourseQualificationDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
+import com.frontleaves.scheduling.daos.TeacherPreferencesDAO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCourseQualificationDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherDTO;
@@ -10,6 +11,7 @@ import com.frontleaves.scheduling.models.dto.base.TeacherPreferencesDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.entity.TeacherCourseQualificationDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
+import com.frontleaves.scheduling.models.entity.TeacherPreferencesDO;
 import com.frontleaves.scheduling.services.TeacherCourseQualificationService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -37,6 +39,7 @@ import java.util.List;
 public class TeacherCourseQualificationLogic implements TeacherCourseQualificationService {
     private final TeacherCourseQualificationDAO teacherCourseQualificationDAO;
     private final TeacherDAO teacherDAO;
+    private final TeacherPreferencesDAO teacherPreferencesDAO;
 
 
     /**
@@ -81,9 +84,11 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
                 }
                 // 根据isTeacherPreferences参数决定是否加载教师偏好信息
                 if (Boolean.TRUE.equals(isTeacherPreferences)) {
-                    TeacherPreferencesDTO teacherPreferencesDTO = BeanUtil.toBean(
-                            teacherDO, TeacherPreferencesDTO.class);
-                    coursePreferences.setPreferenceList(teacherPreferencesDTO);
+                    List<TeacherPreferencesDO> preferences = teacherPreferencesDAO.getTeacherPreferencesByTeacherUuid(courseQualificationDO.getTeacherUuid());
+                    if (preferences != null) {
+                        List<TeacherPreferencesDTO> teacherPreferences = BeanUtil.copyToList(preferences, TeacherPreferencesDTO.class);
+                        coursePreferences.setPreferenceList(teacherPreferences);
+                    }
                 }
                 TeacherDTO teacherDTO = BeanUtil.toBean(teacherDO, TeacherDTO.class);
                 coursePreferences.setQualification(courseQualificationDTO)

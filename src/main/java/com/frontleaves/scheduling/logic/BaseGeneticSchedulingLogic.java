@@ -39,20 +39,28 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.redisson.api.RBucket;
 import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
 
+import java.security.SecureRandom;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
 class BaseGeneticSchedulingLogic {
-
     /**
      * Redis客户端，用于缓存和分布式锁
      */
     final RedissonClient redisson;
+
+    /**
+     * 安全随机数生成器
+     * 使用 SecureRandom 而不是普通的 Random 来确保随机性的安全性和不可预测性
+     * 在遗传算法中，这种不可预测性对于确保种群多样性和避免陷入局部最优解是很重要的
+     */
+    private final SecureRandom random = new SecureRandom();
 
     /**
      * 获取任务进度对应的Redis键
@@ -80,7 +88,7 @@ class BaseGeneticSchedulingLogic {
      * @param population 待评估的种群
      * @param baseDTO    排课基础数据
      */
-    void evaluatePopulation(List<ScheduleDTO> population, AutomaticClassSchedulingBaseDTO baseDTO) {
+    void evaluatePopulation(@NotNull List<ScheduleDTO> population, AutomaticClassSchedulingBaseDTO baseDTO) {
         for (ScheduleDTO schedule : population) {
             double fitness = calculateFitness(schedule, baseDTO);
             schedule.setFitness(fitness);
@@ -101,14 +109,15 @@ class BaseGeneticSchedulingLogic {
      * @param baseDTO  排课基础数据，包含约束条件
      * @return 适应度得分，值越高表示排课方案越优
      */
-    double calculateFitness(ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
-        double fitness = 100.0;  // 基础分数
+    double calculateFitness(ScheduleDTO schedule, @NotNull AutomaticClassSchedulingBaseDTO baseDTO) {
+        // 基础分数
+        double fitness = 100.0;
 
         // 减去冲突惩罚
         fitness -= calculateConflictPenalty(schedule);
 
         // 连续课程适应度
-        if (baseDTO.getConstraints().getConsecutiveCoursesPreferred()) {
+        if (Boolean.TRUE.equals(baseDTO.getConstraints().getConsecutiveCoursesPreferred())) {
             fitness += calculateConsecutiveCoursesFitness(schedule);
         }
 
@@ -116,11 +125,12 @@ class BaseGeneticSchedulingLogic {
         fitness += calculateTimePreferenceFitness(schedule, baseDTO.getTimePreferences());
 
         // 教室优化适应度
-        if (baseDTO.getConstraints().getRoomOptimization()) {
+        if (Boolean.TRUE.equals(baseDTO.getConstraints().getRoomOptimization())) {
             fitness += calculateRoomOptimizationFitness(schedule);
         }
 
-        return Math.max(0.0, fitness);  // 确保适应度不为负
+        // 确保适应度不为负
+        return Math.max(0.0, fitness);
     }
 
     /**
@@ -134,39 +144,48 @@ class BaseGeneticSchedulingLogic {
      * @param schedule 待检查的课程表
      * @return 冲突惩罚值，值越大表示冲突越严重
      */
-    double calculateConflictPenalty(ScheduleDTO schedule) {
-        double penalty = 0.0;
+    double calculateConflictPenalty(@NotNull ScheduleDTO schedule) {
+        List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
 
-        // 检查所有时间槽的安排
-        for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry1 : schedule.getAssignments().entrySet()) {
-            TimeSlotDTO slot1 = entry1.getKey();
-            ScheduleItemDTO item1 = entry1.getValue();
+        // 使用流处理所有课程安排对
+        return entries.stream().mapToDouble(entry -> {
+                    TimeSlotDTO slot1 = entry.getKey();
+                    ScheduleItemDTO item1 = entry.getValue();
 
-            for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry2 : schedule.getAssignments().entrySet()) {
-                if (entry1 == entry2) continue;
+                    // 统计与当前课程安排冲突的其他安排产生的惩罚
+                    return entries.stream()
+                            .filter(entry2 -> entry != entry2) // 排除自身
+                            .filter(entry2 -> {
+                                // 检查是否在同一时间段
+                                TimeSlotDTO slot2 = entry2.getKey();
+                                return slot1.getWeek() == slot2.getWeek() &&
+                                        slot1.getDayOfWeek() == slot2.getDayOfWeek() &&
+                                        slot1.getPeriod() == slot2.getPeriod();
+                            })
+                            .mapToDouble(entry2 -> {
+                                ScheduleItemDTO item2 = entry2.getValue();
+                                double itemPenalty = 0.0;
 
-                TimeSlotDTO slot2 = entry2.getKey();
-                ScheduleItemDTO item2 = entry2.getValue();
+                                // 教师冲突检查
+                                String teacher1Uuid = item1.getTeacher().getTeacher().getTeacherUuid();
+                                String teacher2Uuid = item2.getTeacher().getTeacher().getTeacherUuid();
+                                if (teacher1Uuid.equals(teacher2Uuid)) {
+                                    itemPenalty += 100.0;
+                                }
 
-                // 同一时间段的冲突检查
-                if (slot1.getWeek() == slot2.getWeek() &&
-                        slot1.getDayOfWeek() == slot2.getDayOfWeek() &&
-                        slot1.getPeriod() == slot2.getPeriod()) {
+                                // 教室冲突检查
+                                String room1Uuid = item1.getClassroom().getClassroom().getClassroomUuid();
+                                String room2Uuid = item2.getClassroom().getClassroom().getClassroomUuid();
+                                if (room1Uuid.equals(room2Uuid)) {
+                                    itemPenalty += 100.0;
+                                }
 
-                    // 教师冲突
-                    if (item1.getTeacher().getTeacher().getTeacherUuid().equals(item2.getTeacher().getTeacher().getTeacherUuid())) {
-                        penalty += 100.0;
-                    }
-
-                    // 教室冲突
-                    if (item1.getClassroom().getClassroom().getClassroomUuid().equals(item2.getClassroom().getClassroom().getClassroomUuid())) {
-                        penalty += 100.0;
-                    }
-                }
-            }
-        }
-
-        return penalty;
+                                return itemPenalty;
+                            })
+                            .sum();
+                })
+                // 除以2是因为每个冲突会被计算两次
+                .sum() / 2;
     }
 
     /**
@@ -180,53 +199,69 @@ class BaseGeneticSchedulingLogic {
      * @param schedule 待分析的课程表
      * @return 冲突列表，包含冲突类型和描述
      */
-    List<SchedulingConflictDTO> findConflicts(ScheduleDTO schedule) {
+    List<SchedulingConflictDTO> findConflicts(@NotNull ScheduleDTO schedule) {
+        List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
         List<SchedulingConflictDTO> conflicts = new ArrayList<>();
 
-        // 检查所有时间槽的安排
-        for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry1 : schedule.getAssignments().entrySet()) {
+        // 使用流处理所有可能的课程安排对
+        for (int i = 0; i < entries.size(); i++) {
+            final int finalI = i;
+
+            // 当前课程安排
+            Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry1 = entries.get(i);
             TimeSlotDTO slot1 = entry1.getKey();
             ScheduleItemDTO item1 = entry1.getValue();
 
-            for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry2 : schedule.getAssignments().entrySet()) {
-                if (entry1 == entry2) continue;
+            // 查找与当前课程安排冲突的其他安排
+            entries.stream()
+                    // 避免重复检查
+                    .skip(finalI + 1L)
+                    .filter(entry2 -> {
+                        TimeSlotDTO slot2 = entry2.getKey();
 
-                TimeSlotDTO slot2 = entry2.getKey();
-                ScheduleItemDTO item2 = entry2.getValue();
+                        // 检查是否在同一时间段
+                        return slot1.getWeek() == slot2.getWeek() &&
+                                slot1.getDayOfWeek() == slot2.getDayOfWeek() &&
+                                slot1.getPeriod() == slot2.getPeriod();
+                    })
+                    .forEach(entry2 -> {
+                        TimeSlotDTO slot2 = entry2.getKey();
+                        ScheduleItemDTO item2 = entry2.getValue();
 
-                // 同一时间段的冲突检查
-                if (slot1.getWeek() == slot2.getWeek() &&
-                        slot1.getDayOfWeek() == slot2.getDayOfWeek() &&
-                        slot1.getPeriod() == slot2.getPeriod()) {
+                        // 检查教师冲突
+                        String teacher1Uuid = item1.getTeacher().getTeacher().getTeacherUuid();
+                        String teacher2Uuid = item2.getTeacher().getTeacher().getTeacherUuid();
 
-                    // 教师冲突
-                    if (item1.getTeacher().getTeacher().getTeacherUuid()
-                            .equals(item2.getTeacher().getTeacher().getTeacherUuid())) {
-                        conflicts.add(new SchedulingConflictDTO()
-                                .setConflictType(1)
-                                .setDescription(String.format(
-                                        "教师 %s 在第%d周星期%d第%d节课有重复安排",
-                                        item1.getTeacher().getTeacher().getName(),
-                                        slot1.getWeek(),
-                                        slot1.getDayOfWeek(),
-                                        slot1.getPeriod()
-                                )));
-                    }
-                    // 教室冲突
-                    if (item1.getClassroom().getClassroom().getClassroomUuid()
-                            .equals(item2.getClassroom().getClassroom().getClassroomUuid())) {
-                        conflicts.add(new SchedulingConflictDTO()
-                                .setConflictType(2)
-                                .setDescription(String.format(
-                                        "教室 %s 在第%d周星期%d第%d节课有重复安排",
-                                        item1.getClassroom().getClassroom().getName(),
-                                        slot1.getWeek(),
-                                        slot1.getDayOfWeek(),
-                                        slot1.getPeriod()
-                                )));
-                    }
-                }
-            }
+                        if (teacher1Uuid.equals(teacher2Uuid)) {
+                            // 添加教师冲突
+                            conflicts.add(new SchedulingConflictDTO()
+                                    .setConflictType(1)
+                                    .setDescription(String.format(
+                                            "教师 %s 在第%d周星期%d第%d节课有重复安排",
+                                            item1.getTeacher().getTeacher().getName(),
+                                            slot1.getWeek(),
+                                            slot1.getDayOfWeek(),
+                                            slot1.getPeriod()
+                                    )));
+                        }
+
+                        // 检查教室冲突
+                        String room1Uuid = item1.getClassroom().getClassroom().getClassroomUuid();
+                        String room2Uuid = item2.getClassroom().getClassroom().getClassroomUuid();
+
+                        if (room1Uuid.equals(room2Uuid)) {
+                            // 添加教室冲突
+                            conflicts.add(new SchedulingConflictDTO()
+                                    .setConflictType(2)
+                                    .setDescription(String.format(
+                                            "教室 %s 在第%d周星期%d第%d节课有重复安排",
+                                            item1.getClassroom().getClassroom().getName(),
+                                            slot1.getWeek(),
+                                            slot1.getDayOfWeek(),
+                                            slot1.getPeriod()
+                                    )));
+                        }
+                    });
         }
 
         return conflicts;
@@ -245,7 +280,7 @@ class BaseGeneticSchedulingLogic {
      * @param schedule 待评估的课程表
      * @return 资源利用率指标
      */
-    ScheduleResultDTO.ResourceUtilization calculateResourceUtilization(ScheduleDTO schedule) {
+    ScheduleResultDTO.ResourceUtilization calculateResourceUtilization(@NotNull ScheduleDTO schedule) {
         // 教室利用率
         Map<String, Integer> roomUsage = new HashMap<>();
         Map<String, Integer> roomCapacity = new HashMap<>();
@@ -316,12 +351,16 @@ class BaseGeneticSchedulingLogic {
      * @param schedule 源课程表对象
      * @return 深拷贝后的新课程表对象
      */
-    ScheduleDTO deepCopySchedule(ScheduleDTO schedule) {
+    ScheduleDTO deepCopySchedule(@NotNull ScheduleDTO schedule) {
         ScheduleDTO copy = new ScheduleDTO();
         Map<TimeSlotDTO, ScheduleItemDTO> assignments = new HashMap<>();
 
         for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
-            TimeSlotDTO slotCopy = new TimeSlotDTO(entry.getKey());
+            TimeSlotDTO slotCopy = new TimeSlotDTO(
+                    entry.getKey().getWeek(),
+                    entry.getKey().getDayOfWeek(),
+                    entry.getKey().getPeriod()
+            );
             ScheduleItemDTO itemCopy = new ScheduleItemDTO(entry.getValue());
             assignments.put(slotCopy, itemCopy);
         }
@@ -341,13 +380,12 @@ class BaseGeneticSchedulingLogic {
      * @param population 当前种群
      * @return 选择后的种群（通过深拷贝创建）
      */
-    List<ScheduleDTO> selection(List<ScheduleDTO> population) {
+    List<ScheduleDTO> selection(@NotNull List<ScheduleDTO> population) {
         List<ScheduleDTO> selected = new ArrayList<>();
         double totalFitness = population.stream()
                 .mapToDouble(ScheduleDTO::getFitness)
                 .sum();
 
-        Random random = new Random();
         while (selected.size() < population.size()) {
             double point = random.nextDouble() * totalFitness;
             double sum = 0;
@@ -374,9 +412,8 @@ class BaseGeneticSchedulingLogic {
      * @param crossoverRate 交叉概率
      * @return 交叉后产生的后代
      */
-    List<ScheduleDTO> crossover(List<ScheduleDTO> selected, double crossoverRate) {
+    List<ScheduleDTO> crossover(@NotNull List<ScheduleDTO> selected, double crossoverRate) {
         List<ScheduleDTO> offspring = new ArrayList<>();
-        Random random = new Random();
 
         for (int i = 0; i < selected.size() - 1; i += 2) {
             ScheduleDTO parent1 = selected.get(i);
@@ -412,9 +449,8 @@ class BaseGeneticSchedulingLogic {
      * @param parent2 第二个父代课程表
      * @return 交叉后生成的两个子代课程表
      */
-    List<ScheduleDTO> crossoverSchedules(ScheduleDTO parent1, ScheduleDTO parent2) {
+    List<ScheduleDTO> crossoverSchedules(@NotNull ScheduleDTO parent1, ScheduleDTO parent2) {
         List<ScheduleDTO> children = new ArrayList<>();
-        Random random = new Random();
 
         // 创建两个子代
         ScheduleDTO child1 = new ScheduleDTO();
@@ -480,7 +516,11 @@ class BaseGeneticSchedulingLogic {
     ) {
         if (assignments != null) {
             for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry : assignments) {
-                TimeSlotDTO slotCopy = new TimeSlotDTO(entry.getKey());
+                TimeSlotDTO slotCopy = new TimeSlotDTO(
+                        entry.getKey().getWeek(),
+                        entry.getKey().getDayOfWeek(),
+                        entry.getKey().getPeriod()
+                );
                 ScheduleItemDTO itemCopy = new ScheduleItemDTO(entry.getValue());
                 target.put(slotCopy, itemCopy);
             }
@@ -499,9 +539,7 @@ class BaseGeneticSchedulingLogic {
      * @param mutationRate 变异概率
      * @param baseDTO      排课基础数据
      */
-    void mutation(List<ScheduleDTO> population, double mutationRate, AutomaticClassSchedulingBaseDTO baseDTO) {
-        Random random = new Random();
-
+    void mutation(@NotNull List<ScheduleDTO> population, double mutationRate, AutomaticClassSchedulingBaseDTO baseDTO) {
         for (ScheduleDTO schedule : population) {
             if (random.nextDouble() < mutationRate) {
                 // 选择变异策略
@@ -520,6 +558,8 @@ class BaseGeneticSchedulingLogic {
                         // 教师变异
                         teacherMutation(schedule, baseDTO);
                         break;
+                    default:
+                        break;
                 }
             }
         }
@@ -535,8 +575,7 @@ class BaseGeneticSchedulingLogic {
      * @param schedule 待变异的课程表
      * @param baseDTO  排课基础数据
      */
-    void timeSlotMutation(ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
-        Random random = new Random();
+    void timeSlotMutation(@NotNull ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
         List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
 
         if (!entries.isEmpty()) {
@@ -577,8 +616,7 @@ class BaseGeneticSchedulingLogic {
      * @param schedule 待变异的课程表
      * @param baseDTO  排课基础数据
      */
-    void classroomMutation(ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
-        Random random = new Random();
+    void classroomMutation(@NotNull ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
         List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
 
         if (!entries.isEmpty()) {
@@ -611,7 +649,6 @@ class BaseGeneticSchedulingLogic {
      * @param baseDTO  排课基础数据
      */
     void teacherMutation(@NotNull ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
-        Random random = new Random();
         List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
 
         if (!entries.isEmpty()) {
@@ -620,14 +657,14 @@ class BaseGeneticSchedulingLogic {
 
             // 查找可以教授这门课程的教师列表
             List<TeacherCoursePreferencesDTO> suitableTeachers = baseDTO.getCourseList().stream()
-                    .filter(ct -> ct.getCourse().getCourseUuid().equals(course.getCourseUuid()))
+                    .filter(ct -> ct.getCourse().getCourseLibraryUuid().equals(course.getCourseLibraryUuid()))
                     .flatMap(ct -> ct.getTeacherList().stream())
-                    .collect(Collectors.toList());
+                    .toList();
 
             // 尝试分配新教师
             TeacherCoursePreferencesDTO newTeacher = selectTeacherForCourse(course, suitableTeachers);
 
-            if (newTeacher != null && !newTeacher.getTeacherUuid().equals(entry.getValue().getTeacher().getTeacherUuid())) {
+            if (newTeacher != null && !newTeacher.getTeacher().getTeacherUuid().equals(entry.getValue().getTeacher().getTeacher().getTeacherUuid())) {
                 ScheduleItemDTO newItem = new ScheduleItemDTO(
                         course,
                         newTeacher,
@@ -651,9 +688,9 @@ class BaseGeneticSchedulingLogic {
      * @return 交换是否有效（无冲突）
      */
     boolean isSwapValid(
-            Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry1,
-            Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry2,
-            ScheduleDTO schedule
+            Map.@NotNull Entry<TimeSlotDTO, ScheduleItemDTO> entry1,
+            Map.@NotNull Entry<TimeSlotDTO, ScheduleItemDTO> entry2,
+            @NotNull ScheduleDTO schedule
     ) {
         // 创建临时映射来测试交换
         Map<TimeSlotDTO, ScheduleItemDTO> tempAssignments = new HashMap<>(schedule.getAssignments());
@@ -672,35 +709,35 @@ class BaseGeneticSchedulingLogic {
      * @param assignments 课程安排映射
      * @return 是否存在冲突
      */
-    boolean hasConflicts(Map<TimeSlotDTO, ScheduleItemDTO> assignments) {
-        for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry1 : assignments.entrySet()) {
-            for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry2 : assignments.entrySet()) {
-                if (entry1 == entry2) continue;
+    boolean hasConflicts(@NotNull Map<TimeSlotDTO, ScheduleItemDTO> assignments) {
+        return assignments.entrySet().stream()
+                .anyMatch(entryFirst ->
+                        assignments.entrySet().stream()
+                                .filter(entrySecond -> entryFirst != entrySecond)
+                                .anyMatch(entrySecond -> {
+                                    TimeSlotDTO slotFirst = entryFirst.getKey();
+                                    TimeSlotDTO slotSecond = entrySecond.getKey();
+                                    ScheduleItemDTO item1 = entryFirst.getValue();
+                                    ScheduleItemDTO item2 = entrySecond.getValue();
 
-                TimeSlotDTO slot1 = entry1.getKey();
-                TimeSlotDTO slot2 = entry2.getKey();
-                ScheduleItemDTO item1 = entry1.getValue();
-                ScheduleItemDTO item2 = entry2.getValue();
+                                    // 如果不在同一时间段，则无冲突
+                                    if (slotFirst.getWeek() != slotSecond.getWeek() ||
+                                            slotFirst.getDayOfWeek() != slotSecond.getDayOfWeek() ||
+                                            slotFirst.getPeriod() != slotSecond.getPeriod()) {
+                                        return false;
+                                    }
 
-                if (slot1.getWeek() == slot2.getWeek() &&
-                        slot1.getDayOfWeek() == slot2.getDayOfWeek() &&
-                        slot1.getPeriod() == slot2.getPeriod()) {
+                                    // 检查教师冲突
+                                    boolean teacherConflict = item1.getTeacher().getTeacher().getTeacherUuid()
+                                            .equals(item2.getTeacher().getTeacher().getTeacherUuid());
 
-                    // 检查教师冲突
-                    if (item1.getTeacher().getTeacher().getTeacherUuid()
-                            .equals(item2.getTeacher().getTeacher().getTeacherUuid())) {
-                        return true;
-                    }
+                                    // 检查教室冲突
+                                    boolean roomConflict = item1.getClassroom().getClassroom().getClassroomUuid()
+                                            .equals(item2.getClassroom().getClassroom().getClassroomUuid());
 
-                    // 检查教室冲突
-                    if (item1.getClassroom().getClassroom().getClassroomUuid()
-                            .equals(item2.getClassroom().getClassroom().getClassroomUuid())) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
+                                    return teacherConflict || roomConflict;
+                                })
+                );
     }
 
     /**
@@ -711,9 +748,9 @@ class BaseGeneticSchedulingLogic {
      * @param entry2   第二个课程安排
      */
     void swapTimeSlots(
-            ScheduleDTO schedule,
-            Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry1,
-            Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry2
+            @NotNull ScheduleDTO schedule,
+            Map.@NotNull Entry<TimeSlotDTO, ScheduleItemDTO> entry1,
+            Map.@NotNull Entry<TimeSlotDTO, ScheduleItemDTO> entry2
     ) {
         ScheduleItemDTO item1 = entry1.getValue();
         ScheduleItemDTO item2 = entry2.getValue();
@@ -731,7 +768,7 @@ class BaseGeneticSchedulingLogic {
      * @param schedule 内部课程表模型
      * @return 课程安排列表
      */
-    List<ScheduleResultDTO.ClassAssignmentDTO> convertScheduleToAssignments(ScheduleDTO schedule) {
+    List<ScheduleResultDTO.ClassAssignmentDTO> convertScheduleToAssignments(@NotNull ScheduleDTO schedule) {
         List<ScheduleResultDTO.ClassAssignmentDTO> assignments = new ArrayList<>();
 
         for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
@@ -764,8 +801,8 @@ class BaseGeneticSchedulingLogic {
      */
     void updateProgress(String taskId, int progress) {
         String key = getProgressKey(taskId);
-        redisson.getBucket(key).set(progress);
-        redisson.getKeys().expire(key, 24 * 60 * 60);
+        RBucket<Integer> processList = redisson.getBucket(key);
+        processList.set(progress);
     }
 
     /**
@@ -790,7 +827,7 @@ class BaseGeneticSchedulingLogic {
      * @param baseData 排课基础数据
      * @return 初始种群
      */
-    List<ScheduleDTO> generateInitialPopulation(AutomaticClassSchedulingBaseDTO baseData) {
+    List<ScheduleDTO> generateInitialPopulation(@NotNull AutomaticClassSchedulingBaseDTO baseData) {
         List<ScheduleDTO> population = new ArrayList<>();
         int populationSize = baseData.getAlgorithmParams().getPopulationSize();
 
@@ -841,21 +878,15 @@ class BaseGeneticSchedulingLogic {
      */
     @Nullable TeacherCoursePreferencesDTO selectTeacherForCourse(
             CourseLibraryDTO course,
-            List<TeacherCoursePreferencesDTO> teachers
+            @NotNull List<TeacherCoursePreferencesDTO> teachers
     ) {
         // 筛选出能够教授该课程学科的教师列表
         List<TeacherCoursePreferencesDTO> suitableTeachers = teachers.stream()
-                .filter(teacher -> {
-                    // 通过教师的课程资格信息检查是否可以教授该课程
-                    // 由于直接使用 getSubjects 方法可能存在问题，这里改为通过课程ID匹配
-                    return teacher.getQualification() != null &&
-                           teacher.getQualification().getCourseUuid().equals(course.getCourseLibraryUuid());
-                })
+                .filter(teacher -> teacher.getQualification() != null && teacher.getQualification().getCourseUuid().equals(course.getCourseLibraryUuid()))
                 .toList();
 
         // 如果存在合适的教师，则随机选择一位
         if (!suitableTeachers.isEmpty()) {
-            Random random = new Random();
             return suitableTeachers.get(random.nextInt(suitableTeachers.size()));
         }
 
@@ -875,16 +906,27 @@ class BaseGeneticSchedulingLogic {
      */
     @Nullable ClassroomAndTypeDTO selectClassroomForCourse(
             CourseLibraryDTO course,
-            List<ClassroomAndTypeDTO> classrooms
+            @NotNull List<ClassroomAndTypeDTO> classrooms
     ) {
         List<ClassroomAndTypeDTO> suitableClassrooms = classrooms.stream()
-                .filter(classroom ->
-                        classroom.getClassroomCapacity() >= course.getStudentCount() &&
-                                classroom.getClassroomType().equals(course.getRequiredClassroomType()))
-                .collect(Collectors.toList());
+                .filter(classroom -> {
+                    // 检查教室容量是否足够
+                    // 使用教室的capacity属性代替不存在的getClassroomCapacity方法
+                    int capacity = classroom.getClassroom().getCapacity();
+
+                    // 获取课程所需学生数，如果StudentCount不存在，使用默认值或其他课程参数
+                    // 这里假设使用totalHours作为替代指标
+                    int studentCount = course.getTotalHours() != null ? course.getTotalHours().intValue() : 30;
+
+                    // 教室类型检查，如果没有RequiredClassroomType方法，使用type属性或默认类型
+                    String courseType = course.getType();
+                    String classroomType = classroom.getClassroomType().getName();
+
+                    return capacity >= studentCount && (courseType == null || classroomType.equals(courseType));
+                })
+                .toList();
 
         if (!suitableClassrooms.isEmpty()) {
-            Random random = new Random();
             return suitableClassrooms.get(random.nextInt(suitableClassrooms.size()));
         }
 
@@ -909,7 +951,6 @@ class BaseGeneticSchedulingLogic {
             ClassroomAndTypeDTO classroom,
             AutomaticClassSchedulingBaseDTO baseDTO
     ) {
-        Random random = new Random();
         List<TimeSlotDTO> allTimeSlots = generateAllTimeSlots(baseDTO);
         Collections.shuffle(allTimeSlots);
 
@@ -931,12 +972,14 @@ class BaseGeneticSchedulingLogic {
      * @param baseDTO 排课基础数据
      * @return 所有可能的时间槽列表
      */
-    @NotNull List<TimeSlotDTO> generateAllTimeSlots(AutomaticClassSchedulingBaseDTO baseDTO) {
+    @NotNull List<TimeSlotDTO> generateAllTimeSlots(@NotNull AutomaticClassSchedulingBaseDTO baseDTO) {
         List<TimeSlotDTO> slots = new ArrayList<>();
 
         for (int week = 1; week <= baseDTO.getEndWeek(); week++) {
-            for (int day = 1; day <= 5; day++) {  // 假设一周5天
-                for (int period = 1; period <= 8; period++) {  // 假设一天8节课
+            // 假设一周5天
+            for (int day = 1; day <= 5; day++) {
+                // 假设一天8节课
+                for (int period = 1; period <= 8; period++) {
                     slots.add(new TimeSlotDTO(week, day, period));
                 }
             }
@@ -959,7 +1002,7 @@ class BaseGeneticSchedulingLogic {
      */
     boolean isTimeSlotSuitable(
             TimeSlotDTO slot,
-            Map<TimeSlotDTO, ScheduleItemDTO> assignments,
+            @NotNull Map<TimeSlotDTO, ScheduleItemDTO> assignments,
             TeacherCoursePreferencesDTO teacher,
             ClassroomAndTypeDTO classroom
     ) {
@@ -1000,44 +1043,42 @@ class BaseGeneticSchedulingLogic {
      * @param schedule 待评估的课程表
      * @return 连续课程适应度得分
      */
-    double calculateConsecutiveCoursesFitness(ScheduleDTO schedule) {
-        double fitness = 0.0;
-
+    double calculateConsecutiveCoursesFitness(@NotNull ScheduleDTO schedule) {
         // 按课程分组
-        Map<String, List<TimeSlotDTO>> courseSlots = new HashMap<>();
-        schedule.getAssignments().forEach((slot, item) -> {
-            String courseId = item.getCourse().getCourseLibraryUuid();
-            courseSlots.computeIfAbsent(courseId, k -> new ArrayList<>()).add(slot);
-        });
+        Map<String, List<TimeSlotDTO>> courseSlots = schedule.getAssignments().entrySet().stream()
+                .collect(Collectors.groupingBy(
+                        entry -> entry.getValue().getCourse().getCourseLibraryUuid(),
+                        Collectors.mapping(Map.Entry::getKey, Collectors.toList())
+                ));
 
-        // 检查每个课程的连续性
-        for (List<TimeSlotDTO> slots : courseSlots.values()) {
-            // 按周和天分组
-            Map<Integer, Map<Integer, List<TimeSlotDTO>>> weekDaySlots = slots.stream()
-                    .collect(Collectors.groupingBy(
-                            TimeSlotDTO::getWeek,
-                            Collectors.groupingBy(TimeSlotDTO::getDayOfWeek)
-                    ));
+        // 使用流处理所有课程时间槽
+        return courseSlots.values().stream()
+                .flatMap(slots -> slots.stream()
+                        // 按周和天分组
+                        .collect(Collectors.groupingBy(
+                                TimeSlotDTO::getWeek,
+                                Collectors.groupingBy(TimeSlotDTO::getDayOfWeek)
+                        )).values().stream())
+                .flatMap(dayMap -> dayMap.values().stream())
+                // 只处理有多个时间槽的天
+                .filter(dailySlots -> dailySlots.size() > 1)
+                .mapToDouble(dailySlots -> {
+                    // 排序并计算连续课程数
+                    List<TimeSlotDTO> sortedSlots = dailySlots.stream()
+                            .sorted(Comparator.comparingInt(TimeSlotDTO::getPeriod))
+                            .toList();
 
-            // 检查每天的连续课程
-            for (Map<Integer, List<TimeSlotDTO>> daySlots : weekDaySlots.values()) {
-                for (List<TimeSlotDTO> dailySlots : daySlots.values()) {
-                    if (dailySlots.size() > 1) {
-                        // 排序时间槽
-                        dailySlots.sort(Comparator.comparingInt(TimeSlotDTO::getPeriod));
-
-                        // 检查连续性
-                        for (int i = 0; i < dailySlots.size() - 1; i++) {
-                            if (dailySlots.get(i + 1).getPeriod() - dailySlots.get(i).getPeriod() == 1) {
-                                fitness += 5.0;  // 连续课程奖励
-                            }
+                    // 计算连续课程的奖励
+                    double consecutiveReward = 0.0;
+                    for (int i = 0; i < sortedSlots.size() - 1; i++) {
+                        if (sortedSlots.get(i + 1).getPeriod() - sortedSlots.get(i).getPeriod() == 1) {
+                            // 连续课程奖励
+                            consecutiveReward += 5.0;
                         }
                     }
-                }
-            }
-        }
-
-        return fitness;
+                    return consecutiveReward;
+                })
+                .sum();
     }
 
     /**
@@ -1052,7 +1093,7 @@ class BaseGeneticSchedulingLogic {
      * @return 时间偏好适应度得分
      */
     double calculateTimePreferenceFitness(
-            ScheduleDTO schedule,
+            @NotNull ScheduleDTO schedule,
             AutomaticClassSchedulingBaseDTO.TimePreferences preferences
     ) {
         double fitness = 0.0;
@@ -1072,7 +1113,7 @@ class BaseGeneticSchedulingLogic {
             }
 
             // 如果不喜欢晚课但安排在晚上
-            if (preferences.getEveningCourses() && slot.getPeriod() >= 5) {
+            if (Boolean.TRUE.equals(preferences.getEveningCourses()) && slot.getPeriod() >= 5) {
                 fitness -= 5.0;
             }
         }
@@ -1090,7 +1131,7 @@ class BaseGeneticSchedulingLogic {
      * @param schedule 待评估的课程表
      * @return 教室优化适应度得分
      */
-    double calculateRoomOptimizationFitness(ScheduleDTO schedule) {
+    double calculateRoomOptimizationFitness(@NotNull ScheduleDTO schedule) {
         double fitness = 0.0;
 
         for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
@@ -1098,7 +1139,10 @@ class BaseGeneticSchedulingLogic {
 
             // 教室容量与学生数量的匹配度
             int capacity = item.getClassroom().getClassroom().getCapacity();
-            int studentCount = item.getCourse().getC();
+
+            // 获取课程所需学生数，使用totalHours作为替代指标
+            int studentCount = item.getCourse().getTotalHours() != null ?
+                    item.getCourse().getTotalHours().intValue() : 30;
 
             if (capacity >= studentCount) {
                 // 容量足够，但不要过大
@@ -1113,7 +1157,11 @@ class BaseGeneticSchedulingLogic {
             }
 
             // 教室类型匹配
-            if (item.getClassroom().getClassroomType().equals(item.getCourse().getRequiredClassroomType())) {
+            // 使用课程类型与教室类型的比较
+            String courseType = item.getCourse().getType();
+            String classroomType = item.getClassroom().getClassroomType().getName();
+
+            if (classroomType != null && classroomType.equals(courseType)) {
                 fitness += 10.0;
             }
         }

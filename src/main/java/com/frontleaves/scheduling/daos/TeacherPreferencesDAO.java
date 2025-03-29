@@ -194,4 +194,34 @@ public class TeacherPreferencesDAO extends ServiceImpl<TeacherPreferencesMapper,
         }
         return false;
     }
+
+    /**
+     * 获取教师的所有课程偏好
+     * <p>
+     * 该方法用于获取特定教师的所有课程偏好设置。结果会按照星期和时间段排序。
+     * 如果缓存中存在数据，则直接返回缓存数据；否则从数据库查询并缓存结果。
+     * </p>
+     *
+     * @param teacherUuid 教师UUID
+     * @return 返回教师课程偏好列表 {@code List<TeacherPreferencesDO>}
+     */
+    @Nullable
+    public List<TeacherPreferencesDO> getTeacherPreferencesByTeacherUuid(String teacherUuid) {
+        RList<TeacherPreferencesDO> cacheList = redisson.getList(StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherUuid);
+        if (!cacheList.isExists()) {
+            List<TeacherPreferencesDO> preferences = this.lambdaQuery()
+                    .eq(TeacherPreferencesDO::getTeacherUuid, teacherUuid)
+                    .orderByAsc(TeacherPreferencesDO::getDayOfWeek)
+                    .orderByAsc(TeacherPreferencesDO::getTimeSlot)
+                    .list();
+            if (!preferences.isEmpty()) {
+                cacheList.addAll(preferences);
+                cacheList.expire(Duration.ofSeconds(3600));
+                return preferences;
+            }
+        } else {
+            return cacheList;
+        }
+        return null;
+    }
 }

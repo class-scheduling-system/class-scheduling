@@ -50,9 +50,12 @@ public class AutomaticClassSchedulingThread extends Thread {
                 }
                 AutomaticClassSchedulingBaseDTO baseData = cacheData.get();
 
+                // 生成任务ID
+                String taskId = user.getUserUuid() + "_" + System.currentTimeMillis();
+
                 // 执行遗传算法排课
-                log.info("开始执行遗传算法排课...");
-                ScheduleResultDTO result = geneticSchedulingService.executeGeneticAlgorithm(baseData);
+                log.info("开始执行遗传算法排课，任务ID：{}", taskId);
+                ScheduleResultDTO result = geneticSchedulingService.executeGeneticAlgorithm(taskId, baseData);
 
                 // 保存排课结果到Redis
                 RBucket<ScheduleResultDTO> resultCache =
