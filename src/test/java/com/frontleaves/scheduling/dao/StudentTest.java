@@ -238,7 +238,6 @@ class StudentTest {
         // 获取有效用户数据
         List<UserDO> userList = userDAO.lambdaQuery().list();
         Assertions.assertFalse(userList.isEmpty(), "用户列表不能为空");
-        UserDO userDO = userList.get(1);
 
         String studentUuid = UuidUtil.generateUuidNoDash();
         String studentId = "233336";
@@ -254,8 +253,7 @@ class StudentTest {
                 .setGender(false)
                 .setGradeUuid(classMapping.getGradeUuid())
                 .setDepartment(classMapping.getDepartmentUuid())
-                .setMajor(classMapping.getMajorUuid())
-                .setUserUuid(userDO.getUserUuid());
+                .setMajor(classMapping.getMajorUuid());
         boolean saveResult = studentDAO.save(testStudent);
         Assertions.assertTrue(saveResult, "学生数据保存失败");
         Assertions.assertNotNull(studentDAO.getById(studentUuid), "学生数据未成功插入");
@@ -285,6 +283,7 @@ class StudentTest {
         );
         Assertions.assertNotNull(allStudentPage, "listStudents返回值不应为null");
         Assertions.assertFalse(allStudentPage.getRecords().isEmpty(), "全空查询应至少返回1条记录");
+        studentDAO.deleteStudent(testStudent);
     }
 
     /**
