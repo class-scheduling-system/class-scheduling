@@ -159,10 +159,10 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     // 在 Map 中查找对应的优先级信息
                     CourseTypePriorityDTO courseTypePriorityDTO = courseTypePriorityMap.get(courseTypeUuid);
                     if (courseTypePriorityDTO == null) {
-                        dto.setCourseTypes((short) 5);
+                        dto.setPriority((short) 5);
                     } else {
                         // 匹配成功，设置优先级
-                        dto.setCourseTypes(courseTypePriorityDTO.getPriority());
+                        dto.setPriority(courseTypePriorityDTO.getPriority());
                     }
                 }
                 //获取教室数据
@@ -183,8 +183,8 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                         .setDepartment(departmentDTO)
                         .setStrategy(automaticClassSchedulingVO.getStrategy())
                         .setEndWeek(automaticClassSchedulingVO.getEndWeek())
-                        .setCourseAndTeacherList(courseQualificationList)
-                        .setClassroomAndType(classroomAndTypeDTOList);
+                        .setCourseList(courseQualificationList)
+                        .setClassroomList(classroomAndTypeDTOList);
                 //设置约束
                 AutomaticClassSchedulingBaseDTO.Constraints constraints =
                         new AutomaticClassSchedulingBaseDTO.Constraints();
@@ -215,7 +215,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     timePreferences.setPreferredTimeSlots(new ArrayList<>());
                     timePreferences.getPreferredTimeSlots().add(preferredTimeSlotDTO);
                 }
-                timePreferences.setAvoidEveningCourses(automaticClassSchedulingVO.getTimePreferences().getAvoidEveningCourses())
+                timePreferences.setEveningCourses(automaticClassSchedulingVO.getTimePreferences().getAvoidEveningCourses())
                         .setBalanceWeekdayCourses(automaticClassSchedulingVO.getTimePreferences().getBalanceWeekdayCourses());
                 automaticClassSchedulingBaseDTO.setTimePreferences(timePreferences);
 

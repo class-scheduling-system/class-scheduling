@@ -166,6 +166,9 @@ public class StringConstant {
         public static final String CLASSROOM_BUILDING = "classroom:building:";
         public static final String SCHEDULE_LESSONS = "schedule:lessons:";
         public static final String COURSE_LIBRARY_LIST = "course:library:list";
+        public static final String SCHEDULE_RESULT = "schedule:result:";
+        public static final String SCHEDULE_EXECUTE_STATUS = "schedule:execute:status:";
+        public static final String SCHEDULE_EXECUTE_PROGRESS = "schedule:execute:progress:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

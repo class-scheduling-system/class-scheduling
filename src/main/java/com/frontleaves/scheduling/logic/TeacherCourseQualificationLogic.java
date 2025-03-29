@@ -83,10 +83,10 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
                 if (Boolean.TRUE.equals(isTeacherPreferences)) {
                     TeacherPreferencesDTO teacherPreferencesDTO = BeanUtil.toBean(
                             teacherDO, TeacherPreferencesDTO.class);
-                    coursePreferences.setTeacherPreferencesDTO(teacherPreferencesDTO);
+                    coursePreferences.setPreferenceList(teacherPreferencesDTO);
                 }
                 TeacherDTO teacherDTO = BeanUtil.toBean(teacherDO, TeacherDTO.class);
-                coursePreferences.setCourseQualification(courseQualificationDTO)
+                coursePreferences.setQualification(courseQualificationDTO)
                         .setTeacher(teacherDTO);
                 coursePreferencesDTOList.add(coursePreferences);
             }

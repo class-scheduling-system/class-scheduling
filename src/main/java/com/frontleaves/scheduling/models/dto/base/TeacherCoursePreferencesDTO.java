@@ -31,6 +31,8 @@ package com.frontleaves.scheduling.models.dto.base;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.util.List;
+
 /**
  * 教师课程偏好DTO
  *
@@ -46,9 +48,9 @@ public class TeacherCoursePreferencesDTO {
     /**
      * 教师课程资格
      */
-    private TeacherCourseQualificationDTO courseQualification;
+    private TeacherCourseQualificationDTO qualification;
     /**
-     * 教师课程资格列表
+     * 教师课程偏好数据
      */
-    private TeacherPreferencesDTO teacherPreferencesDTO;
+    private List<TeacherPreferencesDTO> preferenceList   ;
 }

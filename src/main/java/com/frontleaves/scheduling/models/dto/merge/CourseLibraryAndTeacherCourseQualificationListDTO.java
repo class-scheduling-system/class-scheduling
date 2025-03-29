@@ -53,11 +53,11 @@ public class CourseLibraryAndTeacherCourseQualificationListDTO {
      */
     private CourseLibraryDTO course;
     /**
-     * 班级列表
+     * 行政班级列表（可为空）
      */
     private List<AdministrativeClassDTO> classList;
     /**
-     * 班级人数
+     * 需排课人数
      */
     private Integer number;
     /**
@@ -67,5 +67,5 @@ public class CourseLibraryAndTeacherCourseQualificationListDTO {
     /**
      * 课程优先级
      */
-    private Short courseTypes;
+    private Short priority;
 }

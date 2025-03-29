@@ -28,10 +28,10 @@
 
 package com.frontleaves.scheduling.models.dto.scheduling;
 
-import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
-import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.base.DepartmentDTO;
 import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -102,13 +102,13 @@ public class AutomaticClassSchedulingBaseDTO {
      * 注意：一门课程可以由多个教师授课(但是一门课只能由一门老师教，只是有一个或多个老师有资格教)，
      * 在教室资格表中会有相应的教师DTO和教师时间偏好DTO。
      */
-    private List<CourseLibraryAndTeacherCourseQualificationListDTO> courseAndTeacherList;
+    private List<CourseLibraryAndTeacherCourseQualificationListDTO> courseList;
 
     /**
      * 教室和教室类型列表DTO
      * 包含教室及其类型的详细信息，用于辅助排课决策。
      */
-    private List<ClassroomAndTypeDTO> classroomAndType;
+    private List<ClassroomAndTypeDTO> classroomList;
 
     @Data
     @Accessors(chain = true)
@@ -179,7 +179,7 @@ public class AutomaticClassSchedulingBaseDTO {
          * 是否避免晚间课程安排
          * 如果设置为true，则会尽量减少晚上时段的课程数量。
          */
-        private Boolean avoidEveningCourses;
+        private Boolean eveningCourses;
 
         /**
          * 是否平衡周内课程分布
