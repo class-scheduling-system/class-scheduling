@@ -23,7 +23,7 @@ public interface TeacherCourseQualificationService {
      */
     List<CourseLibraryAndTeacherCourseQualificationListDTO>
     getCourseLibraryAndTeacherCourseQualificationList(
-            List<CourseLibraryAndClassDTO> CourseLibraryAndClassDTOList,
+            List<CourseLibraryAndTeacherCourseQualificationListDTO> CourseLibraryAndClassDTOList,
             Boolean isTeacherPreferences
     );
 }

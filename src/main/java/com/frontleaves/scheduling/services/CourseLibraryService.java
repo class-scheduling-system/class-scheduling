@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import jakarta.validation.constraints.NotBlank;
@@ -30,6 +31,6 @@ public interface CourseLibraryService {
      * @param specificCourseIds 指定课程ID列表
      * @return 课程库和班级DTO列表
      */
-    List<CourseLibraryAndClassDTO> getCourseListAndClassDTO(
+    List<CourseLibraryAndTeacherCourseQualificationListDTO> getCourseListAndClassDTO(
             List<SpecificCourseIdVO> specificCourseIds);
 }

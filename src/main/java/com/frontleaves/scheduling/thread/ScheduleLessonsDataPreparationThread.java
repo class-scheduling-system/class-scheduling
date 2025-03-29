@@ -137,7 +137,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     }
                 }
                 //获取课程库和学生班级
-                List<CourseLibraryAndClassDTO> libraryAndClassDTOList = courseLibraryService.getCourseListAndClassDTO(
+                List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList = courseLibraryService.getCourseListAndClassDTO(
                         automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds()
                 );
                 //获取老师所有数据
@@ -148,7 +148,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 assert courseQualificationList != null;
                 for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
                     //设置优先级
-                    CourseLibraryDTO courseLibraryDTO = dto.getLibraryAndClass().getCourse();
+                    CourseLibraryDTO courseLibraryDTO = dto.getCourse();
                     assert courseLibraryDTO != null;
                     // 获取课程类型 UUID
                     String courseTypeUuid = courseLibraryDTO.getType();

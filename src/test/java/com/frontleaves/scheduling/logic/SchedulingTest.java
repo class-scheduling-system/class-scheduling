@@ -82,6 +82,7 @@ class SchedulingTest {
                 break;
             }
         }
+        //创建测试链表
         // 创建测试教室
         setUpClassroom = classroomDAO.lambdaQuery().list().get(0);
     }

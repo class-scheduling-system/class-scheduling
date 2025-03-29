@@ -45,13 +45,13 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
      */
     @Override
     public List<CourseLibraryAndTeacherCourseQualificationListDTO>
-    getCourseLibraryAndTeacherCourseQualificationList(@NotNull List<CourseLibraryAndClassDTO> courseLibraryDOList
+    getCourseLibraryAndTeacherCourseQualificationList(@NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> courseLibraryDOList
             , Boolean isTeacherPreferences) {
         // 创建返回结果列表
         List<CourseLibraryAndTeacherCourseQualificationListDTO> courseLibraryAndTeacherCourseQualificationListDTO
                 = new ArrayList<>();
         // 遍历课程库列表，获取每个课程的教师资格信息
-        for (CourseLibraryAndClassDTO libraryAndClassDTO : courseLibraryDOList) {
+        for (CourseLibraryAndTeacherCourseQualificationListDTO libraryAndClassDTO : courseLibraryDOList) {
             // 根据课程库UUID获取教师课程资格信息
             List<TeacherCourseQualificationDO> teacherCourseQualificationList =
                     teacherCourseQualificationDAO.getTeacherCourseQualificationStatusByCourseLibraryUuid(
@@ -87,8 +87,10 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
                 coursePreferencesDTOList.add(coursePreferences);
             }
             // 将数据转换为DTO
-            dto.setLibraryAndClass(libraryAndClassDTO)
-                    .setTeacherCoursePreferencesDTOList(coursePreferencesDTOList);
+            dto.setCourse(libraryAndClassDTO.getCourse())
+                    .setClassList(libraryAndClassDTO.getClassList())
+                    .setNumber(libraryAndClassDTO.getNumber())
+                    .setTeacherList(coursePreferencesDTOList);
             // 将关联DTO添加到返回结果列表中
             courseLibraryAndTeacherCourseQualificationListDTO
                     .add(dto);
