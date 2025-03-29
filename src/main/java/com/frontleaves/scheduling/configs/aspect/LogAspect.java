@@ -28,7 +28,6 @@
 
 package com.frontleaves.scheduling.configs.aspect;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.frontleaves.scheduling.annotations.IgnoreLog;
 import com.frontleaves.scheduling.daos.RequestLogDAO;
 import com.frontleaves.scheduling.models.entity.RequestLogDO;
@@ -73,7 +72,6 @@ public class LogAspect extends BusinessLogAspect {
 
     private final RequestLogDAO requestLogDAO;
     private final UserService userService;
-    private final ObjectMapper objectMapper;
 
     @Override
     @Before("execution(* com.frontleaves.scheduling.controllers..*.*(..))")
@@ -151,9 +149,14 @@ public class LogAspect extends BusinessLogAspect {
         // 获取用户信息
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer")) {
-            UserDO getUser = userService.getUserByRequest(request);
-            assert getUser != null;
-            requestLog.setUserUuid(getUser.getUserUuid());
+            try {
+                UserDO getUser = userService.getUserByRequest(request);
+                if (getUser != null) {
+                    requestLog.setUserUuid(getUser.getUserUuid());
+                }
+            } catch (Exception ignored) {
+                log.error("用户信息不存在");
+            }
         }
 
         // 记录请求参数
