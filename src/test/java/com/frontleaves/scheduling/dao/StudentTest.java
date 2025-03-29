@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.StudentVO;
+import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
+import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.ConvertUtil;
@@ -14,10 +16,7 @@ import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -239,7 +238,6 @@ class StudentTest {
         // 获取有效用户数据
         List<UserDO> userList = userDAO.lambdaQuery().list();
         Assertions.assertFalse(userList.isEmpty(), "用户列表不能为空");
-        UserDO userDO = userList.get(1);
 
         String studentUuid = UuidUtil.generateUuidNoDash();
         String studentId = "233336";
@@ -255,8 +253,7 @@ class StudentTest {
                 .setGender(false)
                 .setGradeUuid(classMapping.getGradeUuid())
                 .setDepartment(classMapping.getDepartmentUuid())
-                .setMajor(classMapping.getMajorUuid())
-                .setUserUuid(userDO.getUserUuid());
+                .setMajor(classMapping.getMajorUuid());
         boolean saveResult = studentDAO.save(testStudent);
         Assertions.assertTrue(saveResult, "学生数据保存失败");
         Assertions.assertNotNull(studentDAO.getById(studentUuid), "学生数据未成功插入");
@@ -286,8 +283,7 @@ class StudentTest {
         );
         Assertions.assertNotNull(allStudentPage, "listStudents返回值不应为null");
         Assertions.assertFalse(allStudentPage.getRecords().isEmpty(), "全空查询应至少返回1条记录");
-
-        studentDAO.lambdaUpdate().eq(StudentDO::getId, studentId).remove();
+        studentDAO.deleteStudent(testStudent);
     }
 
     /**
@@ -365,8 +361,6 @@ class StudentTest {
         Assertions.assertTrue(studentCache.isExists(), "学生缓存应存在");
         String cachedName = studentCache.get("name");
         Assertions.assertEquals(editStudent.getName(), cachedName, "缓存中的姓名应该被更新");
-
-        studentDAO.lambdaUpdate().eq(StudentDO::getId, studentId).remove();
     }
 
     @Test
@@ -391,6 +385,16 @@ class StudentTest {
     @Test
     void testSaveStudentBackErrorWithError (){
         StudentDO studentDO =new StudentDO();
+        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
+                .setId("1381273812738")
+                .setName("ZhangSan1314")
+                .setGender(true)
+                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
+                .setDepartment(getDepartmentByName().getDepartmentUuid())
+                .setMajor(getMajorByName().getMajorUuid())
+                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
+                .setGraduated(false);
+        Assertions.assertThrows(BusinessException.class,()->studentDAO.saveStudentBackError(studentDO,1));
         studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("123456789")
                 .setName(null)
