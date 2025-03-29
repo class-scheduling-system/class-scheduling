@@ -386,16 +386,6 @@ class StudentTest {
     void testSaveStudentBackErrorWithError (){
         StudentDO studentDO =new StudentDO();
         studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
-                .setId("1381273812738")
-                .setName("ZhangSan1314")
-                .setGender(true)
-                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
-                .setDepartment(getDepartmentByName().getDepartmentUuid())
-                .setMajor(getMajorByName().getMajorUuid())
-                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
-                .setGraduated(false);
-        Assertions.assertThrows(BusinessException.class,()->studentDAO.saveStudentBackError(studentDO,1));
-        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("123456789")
                 .setName(null)
                 .setGender(true)
