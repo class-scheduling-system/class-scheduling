@@ -28,7 +28,13 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.dto.base.ClassroomDTO;
+import com.frontleaves.scheduling.models.dto.base.ClassroomTagDTO;
+import com.frontleaves.scheduling.models.dto.base.ClassroomTypeDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomLiteDTO;
 import com.frontleaves.scheduling.models.vo.ClassroomVO;
 import jakarta.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;

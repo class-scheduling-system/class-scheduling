@@ -2,8 +2,8 @@ package com.frontleaves.scheduling.logic;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.daos.MajorDAO;
-import com.frontleaves.scheduling.models.dto.MajorDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.MajorDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.entity.MajorDO;
 import com.frontleaves.scheduling.services.MajorService;
 import com.xlf.utility.ErrorCode;

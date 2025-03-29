@@ -30,7 +30,7 @@ package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.TablesChairsTypeDAO;
-import com.frontleaves.scheduling.models.dto.TablesChairsTypeDTO;
+import com.frontleaves.scheduling.models.dto.base.TablesChairsTypeDTO;
 import com.frontleaves.scheduling.models.entity.TablesChairsTypeDO;
 import com.frontleaves.scheduling.services.TablesChairsTypeService;
 import jakarta.annotation.Nullable;

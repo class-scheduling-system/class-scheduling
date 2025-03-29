@@ -28,7 +28,7 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.TablesChairsTypeDTO;
+import com.frontleaves.scheduling.models.dto.base.TablesChairsTypeDTO;
 
 /**
  * 桌椅类型服务接口

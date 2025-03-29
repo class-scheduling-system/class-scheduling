@@ -1,6 +1,6 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.SemesterDTO;
+import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
 
 /**
  * 学期服务

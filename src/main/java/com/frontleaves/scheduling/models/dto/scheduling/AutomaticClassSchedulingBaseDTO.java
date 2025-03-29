@@ -28,10 +28,10 @@
 
 package com.frontleaves.scheduling.models.dto.scheduling;
 
-import com.frontleaves.scheduling.models.dto.ClassroomAndTypeDTO;
-import com.frontleaves.scheduling.models.dto.CourseLibraryAndTeacherCourseQualificationListDTO;
-import com.frontleaves.scheduling.models.dto.DepartmentDTO;
-import com.frontleaves.scheduling.models.dto.SemesterDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
+import com.frontleaves.scheduling.models.dto.base.DepartmentDTO;
+import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
 import lombok.Data;
 import lombok.experimental.Accessors;
 

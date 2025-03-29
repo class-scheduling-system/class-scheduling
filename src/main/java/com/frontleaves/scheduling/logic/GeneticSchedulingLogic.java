@@ -1,7 +1,11 @@
 package com.frontleaves.scheduling.logic;
 
 
-import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.*;
 import com.frontleaves.scheduling.services.GeneticSchedulingService;
 import com.xlf.utility.ErrorCode;

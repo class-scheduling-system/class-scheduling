@@ -29,8 +29,8 @@
 package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.daos.RoleDAO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.RoleDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.RoleDTO;
 import com.frontleaves.scheduling.models.entity.RoleDO;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;

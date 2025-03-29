@@ -32,7 +32,7 @@ import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.RoleDTO;
+import com.frontleaves.scheduling.models.dto.base.RoleDTO;
 import com.frontleaves.scheduling.models.dto.SystemInitCheckDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.InitVO;

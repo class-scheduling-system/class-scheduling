@@ -2,7 +2,7 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.TokenDTO;
+import com.frontleaves.scheduling.models.dto.base.TokenDTO;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.services.SchedulingService;

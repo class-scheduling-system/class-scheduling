@@ -29,8 +29,8 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.UnitCategoryDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.UnitCategoryDTO;
 import com.frontleaves.scheduling.models.dto.UnitCategoryLiteDTO;
 import com.frontleaves.scheduling.models.entity.UnitCategoryDO;
 import com.frontleaves.scheduling.models.vo.UnitCategoryVO;

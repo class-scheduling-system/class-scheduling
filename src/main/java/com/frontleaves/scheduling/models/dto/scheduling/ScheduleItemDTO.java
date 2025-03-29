@@ -1,8 +1,8 @@
 package com.frontleaves.scheduling.models.dto.scheduling;
 
-import com.frontleaves.scheduling.models.dto.ClassroomAndTypeDTO;
-import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.dto.TeacherCoursePreferencesDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
 import lombok.Data;
 import lombok.experimental.Accessors;
 

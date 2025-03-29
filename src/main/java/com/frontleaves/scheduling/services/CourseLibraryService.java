@@ -2,6 +2,7 @@ package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import jakarta.validation.constraints.NotBlank;
 

@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.daos.CourseTypeDAO;
-import com.frontleaves.scheduling.models.dto.CourseTypeDTO;
+import com.frontleaves.scheduling.models.dto.base.CourseTypeDTO;
 import com.frontleaves.scheduling.models.entity.CourseTypeDO;
 import com.frontleaves.scheduling.services.CourseTypeService;
 import com.xlf.utility.exception.BusinessException;

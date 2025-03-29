@@ -1,6 +1,6 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.AcademicAffairsPermissionDTO;
+import com.frontleaves.scheduling.models.dto.base.AcademicAffairsPermissionDTO;
 
 /**
  * 教务权限服务

@@ -28,9 +28,9 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.UserAddInfoDTO;
-import com.frontleaves.scheduling.models.dto.UserInfoDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.merge.UserAddInfoDTO;
+import com.frontleaves.scheduling.models.dto.merge.UserInfoDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserEditVO;
