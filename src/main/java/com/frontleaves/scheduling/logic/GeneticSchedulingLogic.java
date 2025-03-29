@@ -43,12 +43,13 @@ public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implement
      * 执行遗传算法排课
      * <p>
      * 该方法是遗传算法排课的主入口，包括以下步骤：
-     * 1. 初始化种群
-     * 2. 评估初始种群适应度
-     * 3. 进行多代进化（选择、交叉、变异）
-     * 4. 记录最优解
-     * 5. 构建排课结果
-     * </p>
+     * <ul>
+     *  <ol>1. 初始化种群</ol>
+     *  <ol>2. 评估初始种群适应度</ol>
+     *  <ol>3. 进行多代进化（选择、交叉、变异）</ol>
+     *  <ol>4. 记录最优解</ol>
+     *  <ol>5. 构建排课结果</ol>
+     * </ul>
      *
      * @param taskId 排课任务ID，用于标识和跟踪排课进度
      * @param baseDTO 排课基础数据，包含课程、教师、教室等信息
