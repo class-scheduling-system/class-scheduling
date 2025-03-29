@@ -256,7 +256,7 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> {
     @Nullable
     public List<ClassroomDO> getClassroomByBuilding(String buildingUuid) {
         // 从Redis中获取缓存的教室列表
-        RList<ClassroomDO> rList = redisson.getList(StringConstant.Redis.CLASSROOM_BULIDING + buildingUuid);
+        RList<ClassroomDO> rList = redisson.getList(StringConstant.Redis.CLASSROOM_BUILDING + buildingUuid);
         if (!rList.isExists()){
             // 如果缓存不存在，从数据库中查询教室列表
             List<ClassroomDO> classroomDOList = this.lambdaQuery().eq(ClassroomDO::getBuildingUuid, buildingUuid).list();

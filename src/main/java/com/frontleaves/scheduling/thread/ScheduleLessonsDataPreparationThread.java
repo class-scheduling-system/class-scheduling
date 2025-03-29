@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.thread;
 
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.logic.SchedulingLogic;
 import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.UserDO;
@@ -35,11 +36,12 @@ import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.services.*;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.stereotype.Component;
+import org.redisson.api.RBucket;
+import org.redisson.api.RedissonClient;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,21 +59,30 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author FLASHLACK
  */
 @Slf4j
-@Component
-@RequiredArgsConstructor
 public class ScheduleLessonsDataPreparationThread extends Thread {
-    private final UserService userService;
-    private final AcademicAffairsPermissionService academicAffairsPermissionService;
-    private final SemesterService semesterService;
-    private final CourseLibraryService courseLibraryService;
-    private final TeacherCourseQualificationService teacherCourseQualificationService;
-    private final CourseTypeService courseTypeService;
-    private final ClassroomService classroomService;
-    private final DepartmentService departmentService;
-
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition condition = lock.newCondition();
-    private volatile boolean running = true;
+    @Resource
+    private UserService userService;
+    @Resource
+    private AcademicAffairsPermissionService academicAffairsPermissionService;
+    @Resource
+    private SemesterService semesterService;
+    @Resource
+    private CourseLibraryService courseLibraryService;
+    @Resource
+    private TeacherCourseQualificationService teacherCourseQualificationService;
+    @Resource
+    private CourseTypeService courseTypeService;
+    @Resource
+    private ClassroomService classroomService;
+    @Resource
+    private DepartmentService departmentService;
+    @Resource
+    private RedissonClient redisson;
+
+
+    private final boolean running = true;
 
     private AutomaticClassSchedulingVO automaticClassSchedulingVO;
     private HttpServletRequest request;
@@ -211,6 +222,11 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                         .setBalanceWeekdayCourses(automaticClassSchedulingVO.getTimePreferences().getBalanceWeekdayCourses());
                 automaticClassSchedulingBaseDTO.setTimePreferences(timePreferences);
 
+                RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
+                cacheBaseData.set(automaticClassSchedulingBaseDTO);
+
+                AutomaticClassSchedulingThread automaticThread = new AutomaticClassSchedulingThread();
+                automaticThread.startUp(userDO);
 
             } catch (Exception e) {
                 Thread.currentThread().interrupt();
