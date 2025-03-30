@@ -121,6 +121,11 @@ public class StringConstant {
         public static final String CAMPUS_PAGE_OF_LIST = "campus:page:";
         public static final String DEPARTMENT_UUID = "department:uuid:";
         public static final String DEPARTMENT_LIST = "department:list";
+        public static final String COURSE_LIBRARY_UUID = "course:library:uuid";
+        public static final String COURSE_CATEGORY_UUID = "course:category:uuid:";
+        public static final String COURSE_NATURE_UUID = "course:nature:uuid:";
+        public static final String COURSE_PROPERTY_UUID = "course:property:uuid:";
+        public static final String COURSE_TYPE_UUID = "course:type:uuid:";
         public static final String UNIT_CATEGORY_UUID = "unit:cate:uuid:";
         public static final String UNIT_CATEGORY_NAME = "unit:cate:name:";
         public static final String UNIT_TYPE_UUID = "unit:type:uuid:";
