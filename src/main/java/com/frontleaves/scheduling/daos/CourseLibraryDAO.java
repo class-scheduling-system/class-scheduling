@@ -18,6 +18,7 @@ import org.redisson.api.TransactionOptions;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.List;
 
 @Slf4j
 @Repository
@@ -124,76 +125,11 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
         // 执行分页查询，并返回结果
         return query.page(new Page<>(page, size));
     }
-}
-/*
-    @Override
-    public List<CourseLiteDTO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid) {
-        // 构建缓存键
-        String cacheKey = StringConstant.Redis.COURSE_LIBRARY_LITE_LIST +
-                (courseCategoryUuid != null ? courseCategoryUuid : "all") + ":" +
-                (coursePropertyUuid != null ? coursePropertyUuid : "all") + ":" +
-                (courseTypeUuid != null ? courseTypeUuid : "all") + ":" +
-                (courseNatureUuid != null ? courseNatureUuid : "all") + ":" +
-                (courseDepartmentUuid != null ? courseDepartmentUuid : "all");
 
-        // 尝试从缓存获取数据
-        RList<CourseLiteDTO> cacheList = redisson.getList(cacheKey);
-        if (!cacheList.isExists()) {
-            // 查询课程库列表
-            List<CourseLibraryDO> courseLibraryList = courseLibraryDAO.getCourseLibraryList(courseCategoryUuid, coursePropertyUuid, courseTypeUuid, courseNatureUuid, courseDepartmentUuid);
-            if (courseLibraryList.isEmpty()) {
-                return List.of();
-            }
-
-            // 转换为 CourseLiteDTO
-            List<CourseLiteDTO> liteDTOList = courseLibraryList.stream().map(courseLibrary -> {
-                CourseLiteDTO liteDTO = new CourseLiteDTO()
-                        .setCourseUuid(courseLibrary.getCourseUuid())
-                        .setCourseName(courseLibrary.getCourseName());
-
-                // 获取课程类别信息
-                CourseCategoryDO courseCategory = courseCategoryDAO.getCourseCategoryByUuid(courseLibrary.getCategory());
-                if (courseCategory != null) {
-                    liteDTO.setCategoryName(courseCategory.getCategoryName());
-                }
-
-                // 获取课程属性信息
-                CoursePropertyDO courseProperty = coursePropertyDAO.getCoursePropertyByUuid(courseLibrary.getProperty());
-                if (courseProperty != null) {
-                    liteDTO.setPropertyName(courseProperty.getPropertyName());
-                }
-
-                // 获取课程类型信息
-                CourseTypeDO courseType = courseTypeDAO.getCourseTypeByUuid(courseLibrary.getType());
-                if (courseType != null) {
-                    liteDTO.setTypeName(courseType.getTypeName());
-                }
-
-                // 获取课程性质信息
-                CourseNatureDO courseNature = courseNatureDAO.getCourseNatureByUuid(courseLibrary.getNature());
-                if (courseNature != null) {
-                    liteDTO.setNatureName(courseNature.getNatureName());
-                }
-
-                // 获取部门信息
-                DepartmentDO department = departmentDAO.getDepartmentByUuid(courseLibrary.getDepartment());
-                if (department != null) {
-                    liteDTO.setDepartmentName(department.getDepartmentName());
-                }
-
-                return liteDTO;
-            }).toList();
-
-            // 将结果缓存
-            if (!liteDTOList.isEmpty()) {
-                cacheList.addAll(liteDTOList);
-                cacheList.expire(Duration.ofHours(1));
-            }
-
-            return liteDTOList;
-        } else {
-            return cacheList.readAll();
-        }
+    public List<CourseLibraryDO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid) {
+        return null;
     }
 }
-*/
+
+
+
