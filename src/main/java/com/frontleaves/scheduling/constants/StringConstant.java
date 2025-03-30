@@ -76,6 +76,8 @@ public class StringConstant {
     public static final String UNIT_CATEGORY_NOT_FOUND = "未找到该单位类别";
     public static final String STUDENT_NOT_EXIST = "学生不存在";
     public static final String STUDENT_SAVE_FAILED = "学生信息保存失败";
+    public static final String COURSE_UUID_FORMAT_ERROR = " 课程UUID格式不正确";
+
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
