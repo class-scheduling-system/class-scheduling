@@ -67,7 +67,7 @@ import java.util.stream.Collectors;
  * @since v1.0.0
  */
 @Service
-public class ClassroomLogic extends ClassroomLogicOperate implements ClassroomService {
+public class ClassroomLogic extends BaseClassroomLogic implements ClassroomService {
 
     /**
      * 教室逻辑处理构造函数

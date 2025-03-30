@@ -49,9 +49,4 @@ public class AdministrativeClassLogic implements AdministrativeClassService {
                 .setMajorUuid(administrativeClassDO.getMajorUuid());
     }
 
-
-
-
-
-
 }

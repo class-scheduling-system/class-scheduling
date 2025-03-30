@@ -51,7 +51,7 @@ import java.util.Map;
  * @since v1.0.0
  */
 @RequiredArgsConstructor
-public class ClassroomLogicOperate {
+class BaseClassroomLogic {
     protected final ClassroomTagDAO classroomTagDAO;
     protected final ClassroomTypeDAO classroomTypeDAO;
     protected final ClassroomDAO classroomDAO;
