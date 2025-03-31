@@ -61,10 +61,10 @@ public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implement
         try {
             this.updateProgress(taskId, 0);
             this.updateStatus(taskId, "正在初始化种群...");
-
+            log.debug("基础数据: {}", baseDTO);
             // 生成初始种群
             List<ScheduleDTO> population = this.generateInitialPopulation(baseDTO);
-
+            log.debug("初始化种群为,{}", population);
             // 评估初始种群
             this.evaluatePopulation(population, baseDTO);
 
@@ -76,7 +76,6 @@ public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implement
             while (generation < maxGenerations) {
                 // 选择
                 List<ScheduleDTO> selected = selection(population);
-
                 // 交叉
                 List<ScheduleDTO> offspring = crossover(selected, baseDTO.getAlgorithmParams().getCrossoverRate());
 
@@ -108,12 +107,14 @@ public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implement
 
             // 构建结果
             if (bestSchedule != null) {
+                log.debug("最有排课方案: {}", bestSchedule);
                 List<SchedulingConflictDTO> conflicts = findConflicts(bestSchedule);
                 ScheduleResultDTO.ResourceUtilization utilization = calculateResourceUtilization(bestSchedule);
                 List<ScheduleResultDTO.ClassAssignmentDTO> assignments = convertScheduleToAssignments(bestSchedule);
 
                 updateProgress(taskId, 100);
                 updateStatus(taskId, "排课完成");
+
 
                 return new ScheduleResultDTO()
                         .setTaskId(taskId)

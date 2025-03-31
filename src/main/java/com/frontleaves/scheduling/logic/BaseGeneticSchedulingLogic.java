@@ -225,7 +225,6 @@ class BaseGeneticSchedulingLogic {
                                 slot1.getPeriod() == slot2.getPeriod();
                     })
                     .forEach(entry2 -> {
-                        TimeSlotDTO slot2 = entry2.getKey();
                         ScheduleItemDTO item2 = entry2.getValue();
 
                         // 检查教师冲突
@@ -479,7 +478,7 @@ class BaseGeneticSchedulingLogic {
         allCourses.addAll(courseAssignments2.keySet());
 
         // 随机选择交叉点
-        int crossoverPoint = random.nextInt(allCourses.size());
+        int crossoverPoint = random.nextInt(!allCourses.isEmpty() ? allCourses.size() : 1);
 
         int count = 0;
         for (String courseId : allCourses) {
@@ -834,16 +833,14 @@ class BaseGeneticSchedulingLogic {
         for (int i = 0; i < populationSize; i++) {
             ScheduleDTO schedule = new ScheduleDTO();
             Map<TimeSlotDTO, ScheduleItemDTO> assignments = new HashMap<>();
-
+            log.debug("生成第 {} 个个体", i + 1);
             // 为每个课程分配时间槽
             for (CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers : baseData.getCourseList()) {
                 CourseLibraryDTO course = courseAndTeachers.getCourse();
                 TeacherCoursePreferencesDTO teacher = this.selectTeacherForCourse(course, courseAndTeachers.getTeacherList());
                 ClassroomAndTypeDTO classroom = this.selectClassroomForCourse(course, baseData.getClassroomList());
-
                 if (teacher != null && classroom != null) {
                     TimeSlotDTO timeSlot = findSuitableTimeSlot(assignments, teacher, classroom, baseData);
-
                     if (timeSlot != null) {
                         ScheduleItemDTO item = new ScheduleItemDTO(
                                 course,
@@ -851,16 +848,18 @@ class BaseGeneticSchedulingLogic {
                                 classroom,
                                 courseAndTeachers.getPriority()
                         );
-
                         assignments.put(timeSlot, item);
+                        log.debug("为课程 {} 分配了时间槽 {}", course.getName(), timeSlot.getPeriod());
+                    } else {
+                        log.warn("无法为课程 {} 找到合适的时间槽", course.getName());
                     }
                 }
             }
-
             schedule.setAssignments(assignments);
             population.add(schedule);
         }
 
+        log.debug("生成初始种群完成，种群大小: {}", population.size());
         return population;
     }
 
@@ -881,15 +880,19 @@ class BaseGeneticSchedulingLogic {
             @NotNull List<TeacherCoursePreferencesDTO> teachers
     ) {
         // 筛选出能够教授该课程学科的教师列表
-        List<TeacherCoursePreferencesDTO> suitableTeachers = teachers.stream()
-                .filter(teacher -> teacher.getQualification() != null && teacher.getQualification().getCourseUuid().equals(course.getCourseLibraryUuid()))
-                .toList();
-
+        List<TeacherCoursePreferencesDTO> suitableTeachers = new ArrayList<>(teachers.stream()
+                .filter(teacher -> teacher.getQualification() != null
+                        && teacher.getQualification().getCourseUuid().equals(course.getCourseLibraryUuid()))
+                .toList());
+        log.debug("是否存在,{}",suitableTeachers);
+        // 如果存在合适的教师，则随机选择一位
         // 如果存在合适的教师，则随机选择一位
         if (!suitableTeachers.isEmpty()) {
-            return suitableTeachers.get(random.nextInt(suitableTeachers.size()));
+            Collections.shuffle(suitableTeachers, random);
+            TeacherCoursePreferencesDTO selectedTeacher = suitableTeachers.get(0);
+            log.debug("随机选择的教师: {}", selectedTeacher);
+            return selectedTeacher;
         }
-
         // 如果没有找到合适的教师，返回null
         return null;
     }
@@ -908,32 +911,34 @@ class BaseGeneticSchedulingLogic {
             CourseLibraryDTO course,
             @NotNull List<ClassroomAndTypeDTO> classrooms
     ) {
-        List<ClassroomAndTypeDTO> suitableClassrooms = classrooms.stream()
+        List<ClassroomAndTypeDTO> suitableClassrooms = new ArrayList<>(classrooms.stream()
                 .filter(classroom -> {
                     // 检查教室容量是否足够
-                    // 使用教室的capacity属性代替不存在的getClassroomCapacity方法
                     int capacity = classroom.getClassroom().getCapacity();
-
-                    // 获取课程所需学生数，如果StudentCount不存在，使用默认值或其他课程参数
-                    // 这里假设使用totalHours作为替代指标
+                    log.debug("教室 {} 容量: {}", classroom.getClassroom().getName(), capacity);
+                    // 获取课程所需学生数
                     int studentCount = course.getTotalHours() != null ? course.getTotalHours().intValue() : 30;
-
-                    // 教室类型检查，如果没有RequiredClassroomType方法，使用type属性或默认类型
+                    log.debug("课程 {} 所需学生数: {}", course.getName(), studentCount);
+                    //TODO:教室类型检查
                     String courseType = course.getType();
                     String classroomType = classroom.getClassroomType().getName();
-
-                    return capacity >= studentCount && (courseType == null || classroomType.equals(courseType));
+                    boolean typeMatch = courseType == null || classroomType.equals(courseType);
+                    log.debug("课程 {} 类型: {}, 教室 {} 类型: {}, 类型匹配: {}", course.getName(), courseType, classroom.getClassroom().getName(), classroomType, typeMatch);
+                    return capacity >= studentCount;
                 })
-                .toList();
+                .toList());
 
         if (!suitableClassrooms.isEmpty()) {
-            return suitableClassrooms.get(random.nextInt(suitableClassrooms.size()));
+            Collections.shuffle(suitableClassrooms, random);
+            ClassroomAndTypeDTO selectedClassroom = suitableClassrooms.get(0);
+            log.debug("随机选择的教室: {}", selectedClassroom.getClassroom().getName());
+            return selectedClassroom;
         }
-
+        log.warn("没有找到合适的教室来教授课程: {}", course.getName());
         return null;
     }
 
-    /**
+/**
      * 查找合适的时间槽
      * <p>
      * 从所有可能的时间槽中查找一个不会导致冲突的时间槽。

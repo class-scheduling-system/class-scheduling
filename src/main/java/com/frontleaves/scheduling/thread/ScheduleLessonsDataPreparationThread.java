@@ -260,7 +260,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
 
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
                 cacheBaseData.set(automaticClassSchedulingBaseDTO);
-
+                log.debug("排课基础数据{}",automaticClassSchedulingBaseDTO);
                 automaticThread.startUp(userDO);
 
                 hasTask = false;

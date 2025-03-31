@@ -1,23 +1,32 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
+import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.constants.SystemConstant;
+import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.models.dto.scheduling.ScheduleDTO;
+import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.SchedulingService;
+import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.redisson.api.RBucket;
+import org.redisson.api.RedissonClient;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -30,8 +39,57 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/scheduling")
 public class SchedulingController {
+    @Resource
+    private SchedulingService schedulingService;
+    @Resource
+    private SemesterDAO semesterDAO;
+    @Resource
+    private DepartmentDAO departmentDAO;
+    @Resource
+    private UserDAO userDAO;
+    @Resource
+    private CourseTypeDAO courseTypeDAO;
+    @Resource
+    private CourseLibraryDAO courseLibraryDAO;
+    @Resource
+    private ClassroomDAO classroomDAO;
+    @Resource
+    private AcademicAffairsPermissionDAO academicAffairsPermissionDAO;
+    @Resource
+    private TokenDAO tokenDAO;
+    @Resource
+    private TeacherCourseQualificationDAO teacherCourseQualificationDAO;
 
-    private final SchedulingService schedulingService;
+    private final RedissonClient redisson;
+    private final UserService userService;
+
+    @GetMapping("/base-data")
+    @RequestRole("教务")
+    public ResponseEntity<BaseResponse<List<CourseLibraryDO>>> getBaseDate(){
+        log.debug("SchedulingLogic单元测试初始化");
+        // 创建测试用户
+        UserDO setUpUser = userDAO.lambdaQuery().eq(UserDO::getRoleUuid, SystemConstant.getRoleAcademic()).one();
+        // 创建教务权限
+        AcademicAffairsPermissionDO setUpPermission = academicAffairsPermissionDAO.lambdaQuery()
+                .eq(AcademicAffairsPermissionDO::getAuthorizedUser, setUpUser.getUserUuid()).one();
+        //创建测试部门
+        DepartmentDO setUpDepartment = departmentDAO.lambdaQuery()
+                .eq(DepartmentDO::getDepartmentUuid, setUpPermission.getDepartment()).one();
+        //获取有老师分配的课程库
+        List<TeacherCourseQualificationDO> teacherCourseQualificationDOList = teacherCourseQualificationDAO
+                .lambdaQuery().list();
+        List<CourseLibraryDO> setUpCourseLibraries = new ArrayList<>();
+        for (TeacherCourseQualificationDO teacherCourseQualificationDO : teacherCourseQualificationDOList) {
+            CourseLibraryDO courseLibraryDO = courseLibraryDAO.lambdaQuery()
+                    .eq(CourseLibraryDO::getDepartment, setUpDepartment.getDepartmentUuid())
+                    .eq(CourseLibraryDO::getCourseLibraryUuid, teacherCourseQualificationDO.getCourseUuid())
+                    .one();
+            if (courseLibraryDO != null) {
+                setUpCourseLibraries.add(courseLibraryDO);
+            }
+        }
+        return ResultUtil.success("基础数据",setUpCourseLibraries);
+    }
 
     /**
      * 自动排课
@@ -70,5 +128,14 @@ public class SchedulingController {
         schedulingService.getAutoClassSchedulingBaseDTO(automaticClassSchedulingVO, request);
 
         return ResultUtil.success("开始排课");
+    }
+
+    @GetMapping("/debug")
+    public ResponseEntity<BaseResponse<Object>> debugData(
+            @NotNull HttpServletRequest request
+    ) {
+        UserDO getUser = userService.getUserByRequest(request);
+        RBucket<ScheduleDTO> data = redisson.getBucket(StringConstant.Redis.SCHEDULE_RESULT + getUser.getUserUuid());
+        return ResultUtil.success("Debug data", data.get());
     }
 }
