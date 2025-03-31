@@ -4,17 +4,18 @@ import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.CourseLiteDTO;
 import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.vo.CourseLibraryVO;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 public interface CourseLibraryService {
-    void addCourseLibrary(CourseLibraryVO courseLibraryVO);
+    void addCourseLibrary(CourseLibraryVO courseLibraryVO, HttpServletRequest request);
 
-    void updateCourseLibrary(String getUuid, CourseLibraryVO courseLibraryVO);
+    void updateCourseLibrary(String courseUuid, CourseLibraryVO courseLibraryVO);
 
-    void deleteCourseLibrary(String getUuid);
+    void deleteCourseLibrary(String courseUuid);
 
     PageDTO<CourseLibraryDTO> getCourseLibrary(Integer page, Integer size, String name);
 

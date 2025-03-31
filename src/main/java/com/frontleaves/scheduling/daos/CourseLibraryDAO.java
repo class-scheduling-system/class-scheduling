@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -11,13 +12,11 @@ import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RMap;
-import org.redisson.api.RTransaction;
-import org.redisson.api.RedissonClient;
-import org.redisson.api.TransactionOptions;
+import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -127,7 +126,48 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
     }
 
     public List<CourseLibraryDO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid) {
-        return null;
+        // 构建缓存键
+        String cacheKey = StringConstant.Redis.COURSE_LIBRARY_LITE_LIST +
+                (courseCategoryUuid != null && !courseCategoryUuid.isEmpty() ? courseCategoryUuid : "all") + ":" +
+                (coursePropertyUuid != null && !coursePropertyUuid.isEmpty() ? coursePropertyUuid : "all") + ":" +
+                (courseTypeUuid != null && !courseTypeUuid.isEmpty() ? courseTypeUuid : "all") + ":" +
+                (courseNatureUuid != null && !courseNatureUuid.isEmpty() ? courseNatureUuid : "all") + ":" +
+                (courseDepartmentUuid != null && !courseDepartmentUuid.isEmpty() ? courseDepartmentUuid : "all");
+
+        // 尝试从缓存获取数据
+        RList<CourseLibraryDO> cacheList = redisson.getList(cacheKey);
+        if (!cacheList.isExists()) {
+            LambdaQueryWrapper<CourseLibraryDO> queryWrapper = new LambdaQueryWrapper<>();
+            if (courseCategoryUuid != null && !courseCategoryUuid.isEmpty()) {
+                queryWrapper.eq(CourseLibraryDO::getCategory, courseCategoryUuid);
+            }
+            if (coursePropertyUuid != null && !coursePropertyUuid.isEmpty()) {
+                queryWrapper.eq(CourseLibraryDO::getProperty, coursePropertyUuid);
+            }
+            if (courseTypeUuid != null && !courseTypeUuid.isEmpty()) {
+                queryWrapper.eq(CourseLibraryDO::getType, courseTypeUuid);
+            }
+            if (courseNatureUuid != null && !courseNatureUuid.isEmpty()) {
+                queryWrapper.eq(CourseLibraryDO::getNature, courseNatureUuid);
+            }
+            if (courseDepartmentUuid != null && !courseDepartmentUuid.isEmpty()) {
+                queryWrapper.eq(CourseLibraryDO::getDepartment, courseDepartmentUuid);
+            }
+            queryWrapper.orderByAsc(CourseLibraryDO::getName);
+
+            List<CourseLibraryDO> courseLibraryList = this.list(queryWrapper);
+            if (!courseLibraryList.isEmpty()) {
+                // 将查询结果存入缓存
+                cacheList.addAll(courseLibraryList);
+                // 设置缓存过期时间
+                cacheList.expire(Duration.ofSeconds(86400));
+                return courseLibraryList;
+            }
+            return new ArrayList<>();
+        }else {
+            // 如果缓存存在，则直接返回缓存中的数据
+            return cacheList.readAll();
+        }
     }
 }
 

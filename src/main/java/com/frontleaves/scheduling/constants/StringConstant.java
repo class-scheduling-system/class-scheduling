@@ -132,6 +132,7 @@ public class StringConstant {
         public static final String UNIT_CATEGORY_NAME = "unit:cate:name:";
         public static final String UNIT_TYPE_UUID = "unit:type:uuid:";
         public static final String CLASSROOM_TAG_LIST = "classroom:tag:list";
+        public static final String COURSE_LIBRARY_LITE_LIST = "course:library:lite:list";
         public static final String CLASSROOM_TAG_UUID = "classroom:tag:uuid:";
         public static final String CLASSROOM_TYPE_LIST = "classroom:type:list";
         public static final String CLASSROOM_TYPE_UUID = "classroom:type:uuid:";
@@ -164,6 +165,10 @@ public class StringConstant {
         public static final String UNIT_TYPE_PAGE_OF_LIST = "unit:type:page:";
         public static final String UNIT_CATEGORY_LIST = "unit:cate:list";
         public static final String UNIT_CATEGORY_PAGE = "unit:cate:page:";
+        public static final String COURSE_CATEGORY_LIST = "course:category:list";
+        public static final String COURSE_PROPERTY_LIST = "course:property:list";
+        public static final String COURSE_TYPE_LIST = "course:type:list";
+        public static final String COURSE_NATURE_LIST = "course:nature:list";
 
         private Redis() {
             log.error("Redis 不能被实例化");

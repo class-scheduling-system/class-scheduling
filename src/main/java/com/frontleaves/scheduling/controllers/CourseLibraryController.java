@@ -1,5 +1,7 @@
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestLogin;
+import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.CourseLiteDTO;
@@ -10,14 +12,28 @@ import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+
+/**
+ * 课程库控制器
+ * <p>
+ * 该控制器处理与课程库相关的请求，包括添加、更新、删除课程库信息，
+ * 以及获取课程库列表和简洁列表等功能。
+ * </p>
+ *
+ * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
+ */
 
 @Slf4j
 @RestController
@@ -34,23 +50,27 @@ public class CourseLibraryController {
      * @param courseLibraryVO 课程库添加请求对象，包含需要验证的课程库信息
      * @return 返回包含成功消息的响应实体
      */
+    @RequestRole({"教务", "管理员"})
     @RequestMapping("")
     public ResponseEntity<BaseResponse<Void>> addCourseLibrary(
-            @RequestBody @Validated CourseLibraryVO courseLibraryVO
+            @RequestBody @Validated CourseLibraryVO courseLibraryVO,
+            @NotNull HttpServletRequest request
     ) {
-        courseLibraryService.addCourseLibrary(courseLibraryVO);
+        courseLibraryService.addCourseLibrary(courseLibraryVO, request);
         return ResultUtil.success("课程添加成功");
     }
 
     /**
-     * 根据课程UUID获取课程库信息
+     * 更新课程库
      *
-     * @param courseUuid 课程的唯一标识符（UUID）
-     * @return 返回包含课程库信息的响应实体
+     * @param courseUuid    课程的唯一标识符（UUID）
+     * @param courseLibraryVO 课程库更新请求对象，包含需要验证的课程库信息
+     * @return 返回包含成功消息的响应实体
      * <p>
      * 此方法首先会检查传入的课程UUID是否为空或空白，如果为空或空白，则抛出业务异常，
      * 如果格式不正确，则抛出参数错误异常
      */
+    @RequestRole({"教务", "管理员"})
     @PutMapping("/{course_uuid}")
     public ResponseEntity<BaseResponse<Void>> updateCourseLibrary(
             @PathVariable("course_uuid") String courseUuid,
@@ -73,6 +93,7 @@ public class CourseLibraryController {
      * 此方法首先会检查传入的课程UUID是否为空或空白，如果为空或空白，则抛出业务异常，
      * 如果格式不正确，则抛出参数错误异常
      */
+    @RequestRole({"教务", "管理员"})
     @DeleteMapping("/{course_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteCourseLibrary(
             @PathVariable("course_uuid") String courseUuid
@@ -93,6 +114,7 @@ public class CourseLibraryController {
      * @param name 搜索关键字（课程名称），可选参数
      * @return 返回包含课程库分页信息的响应实体
      */
+    @RequestLogin
     @GetMapping("")
     public ResponseEntity<BaseResponse<PageDTO<CourseLibraryDTO>>> getCourseLibrary(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
@@ -103,6 +125,17 @@ public class CourseLibraryController {
         return ResultUtil.success("课程库获取成功", courseLibraryPage);
     }
 
+    /**
+     * 获取课程库简洁列表
+     *
+     * @param courseCategoryUuid    课程类别UUID
+     * @param coursePropertyUuid    课程属性UUID
+     * @param courseTypeUuid        课程类型UUID
+     * @param courseNatureUuid      课程性质UUID
+     * @param courseDepartmentUuid  课程部门UUID
+     * @return 返回包含课程库简洁列表的响应实体
+     */
+    @RequestLogin
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<List<CourseLiteDTO>>> getCourseLibraryList(
             @RequestParam(value = "course_category_uuid", required = false) String courseCategoryUuid,

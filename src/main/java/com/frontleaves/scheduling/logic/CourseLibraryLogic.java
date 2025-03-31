@@ -37,14 +37,17 @@ import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.CourseLibraryVO;
 import com.frontleaves.scheduling.services.CourseLibraryService;
+import com.frontleaves.scheduling.services.UserService;
 import com.frontleaves.scheduling.utils.ProjectOption;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -70,6 +73,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
     private final CourseTypeDAO courseTypeDAO;
     private final CourseNatureDAO courseNatureDAO;
     private final DepartmentDAO departmentDAO;
+    private final UserService userService;
 
     /**
      * 添加课程库
@@ -80,7 +84,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
      * @param courseLibraryVO 课程库的视图对象，包含课程库的相关信息，不能为空
      */
     @Override
-    public void addCourseLibrary(@NotNull CourseLibraryVO courseLibraryVO) {
+    public void addCourseLibrary(@NotNull CourseLibraryVO courseLibraryVO, HttpServletRequest request) {
         // 根据UUID获取课程类别对象，验证课程类别是否存在
         CourseCategoryDO courseCategoryDO = courseCategoryDAO.getCourseCategoryByUuid(courseLibraryVO.getCategory());
         if (courseCategoryDO == null) {
@@ -111,10 +115,12 @@ public class CourseLibraryLogic implements CourseLibraryService {
             throw new BusinessException("部门不存在", ErrorCode.NOT_EXIST);
         }
 
+        UserDO getUser = userService.getUserByRequest(request);
+
         // 创建一个新的课程库对象，并从视图对象中复制属性
         CourseLibraryDO courseLibraryDO = new CourseLibraryDO();
         BeanUtil.copyProperties(courseLibraryVO, courseLibraryDO, ProjectOption.stringBlankToNull());
-
+        courseLibraryDO.setEditUser(getUser.getUserUuid());
         // 保存课程库对象到数据库
         courseLibraryDAO.save(courseLibraryDO);
     }
@@ -228,47 +234,45 @@ public class CourseLibraryLogic implements CourseLibraryService {
     public List<CourseLiteDTO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid) {
         List<CourseLibraryDO> courseLibraryList = courseLibraryDAO.getCourseLibraryList(courseCategoryUuid, coursePropertyUuid, courseTypeUuid, courseNatureUuid, courseDepartmentUuid);
         if (courseLibraryList.isEmpty()) {
-            return List.of();
+            return new ArrayList<>();
         }
 
+        List<CourseCategoryDO> getCourseCategoryList = courseCategoryDAO.getCourseCategoryList();
+        List<CoursePropertyDO> getCoursePropertyList = coursePropertyDAO.getCoursePropertyList();
+        List<CourseTypeDO> getCourseTypeList = courseTypeDAO.getCourseTypeList();
+        List<CourseNatureDO> getCourseNatureList = courseNatureDAO.getCourseNatureList();
+        List<DepartmentDO> getDepartmentList = departmentDAO.getDepartmentList();
+
         // 转换为 CourseLiteDTO
-        return courseLibraryList.stream().map(courseLibrary -> {
-            CourseLiteDTO liteDTO = new CourseLiteDTO()
+        return courseLibraryList.stream().map(courseLibrary -> new CourseLiteDTO()
                     .setCourseLibraryUuid(courseLibrary.getCourseLibraryUuid())
-                    .setName(courseLibrary.getName());
-
-            // 获取课程类别信息
-            CourseCategoryDO courseCategory = courseCategoryDAO.getCourseCategoryByUuid(courseLibrary.getCategory());
-            if (courseCategory != null) {
-                liteDTO.setCategory(courseCategory.getName());
-            }
-
-            // 获取课程属性信息
-            CoursePropertyDO courseProperty = coursePropertyDAO.getCoursePropertyByUuid(courseLibrary.getProperty());
-            if (courseProperty != null) {
-                liteDTO.setProperty(courseProperty.getName());
-            }
-
-            // 获取课程类型信息
-            CourseTypeDO courseType = courseTypeDAO.getCourseTypeByUuid(courseLibrary.getType());
-            if (courseType != null) {
-                liteDTO.setType(courseType.getName());
-            }
-
-            // 获取课程性质信息
-            CourseNatureDO courseNature = courseNatureDAO.getCourseNatureByUuid(courseLibrary.getNature());
-            if (courseNature != null) {
-                liteDTO.setNature(courseNature.getName());
-            }
-
-            // 获取部门信息
-            DepartmentDO department = departmentDAO.getDepartmentByUuid(courseLibrary.getDepartment());
-            if (department != null) {
-                liteDTO.setDepartment(department.getDepartmentName());
-            }
-
-            return liteDTO;
-        }).toList();
+                    .setName(courseLibrary.getName())
+                    .setCategory(getCourseCategoryList.stream()
+                            .filter(courseCategory -> courseCategory.getCourseCategoryUuid().equals(courseLibrary.getCategory()))
+                            .findFirst()
+                            .map(CourseCategoryDO::getName)
+                            .orElse(null))
+                    .setProperty(getCoursePropertyList.stream()
+                            .filter(courseProperty -> courseProperty.getCoursePropertyUuid().equals(courseLibrary.getProperty()))
+                            .findFirst()
+                            .map(CoursePropertyDO::getName)
+                            .orElse(null))
+                    .setType(getCourseTypeList.stream()
+                            .filter(courseType -> courseType.getCourseTypeUuid().equals(courseLibrary.getType()))
+                            .findFirst()
+                            .map(CourseTypeDO::getName)
+                            .orElse(null))
+                    .setNature(getCourseNatureList.stream()
+                            .filter(courseNature -> courseNature.getCourseNatureUuid().equals(courseLibrary.getNature()))
+                            .findFirst()
+                            .map(CourseNatureDO::getName)
+                            .orElse(null))
+                    .setDepartment(getDepartmentList.stream()
+                            .filter(department -> department.getDepartmentUuid().equals(courseLibrary.getDepartment()))
+                            .findFirst()
+                            .map(DepartmentDO::getDepartmentName)
+                            .orElse(null))
+        ).toList();
     }
 
 }

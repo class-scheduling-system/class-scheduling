@@ -36,11 +36,13 @@ import com.frontleaves.scheduling.models.entity.CourseTypeDO;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 课程类型数据访问对象
@@ -95,5 +97,28 @@ public class CourseTypeDAO extends ServiceImpl<CourseTypeMapper, CourseTypeDO> {
         }
         // 如果Redis和数据库中均未找到课程类型信息，则返回null
         return null;
+    }
+
+    /**
+     * 获取课程类型列表
+     * <p>
+     * 该方法首先尝试从Redis缓存中获取课程类型列表，如果不存在，则从数据库中获取，
+     * 并将查询结果缓存到Redis中以提高后续查询效率。缓存过期时间为24小时。
+     * </p>
+     * 
+     * @return 课程类型列表
+     */
+    public List<CourseTypeDO> getCourseTypeList() {
+        // 构建缓存键
+        String cacheKey = StringConstant.Redis.COURSE_TYPE_LIST;
+        // 尝试从缓存获取数据
+        RList<CourseTypeDO> cacheList = redisson.getList(cacheKey);
+        if (!cacheList.isExists()) {
+            List<CourseTypeDO> courseTypeList = this.list();
+            cacheList.addAll(courseTypeList);
+            cacheList.expire(Duration.ofSeconds(86400));
+            return courseTypeList;
+        }
+        return cacheList.readAll();
     }
 }
