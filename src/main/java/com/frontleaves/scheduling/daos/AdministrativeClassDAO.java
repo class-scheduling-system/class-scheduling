@@ -185,4 +185,34 @@ public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMappe
             return BeanUtil.toBean(rMap, AdministrativeClassDO.class);
         }
     }
+
+    /**
+     * 根据部门UUID获取行政班级列表
+     * @param departmentUuid 部门的唯一标识符
+     * @return 行政班级列表，如果找不到则返回空列表
+     */
+    public List<AdministrativeClassDO>  getAdministrativeClassListByDepartment(String departmentUuid) {
+        // 尝试从Redis中获取缓存的行政班级列表
+        RList<AdministrativeClassDO> rList = redisson.getList(
+                StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT + departmentUuid);
+        // 检查缓存是否存在
+        if (!rList.isExists()){
+            // 从数据库中查询行政班级列表（添加悲观锁）
+            List<AdministrativeClassDO> administrativeClassDOList =
+                    this.lambdaQuery()
+                            .eq(AdministrativeClassDO::getDepartmentUuid, departmentUuid)
+                            .list();
+            // 如果查询结果不为空，则将其添加到Redis缓存中，并设置过期时间
+            if (!administrativeClassDOList.isEmpty()){
+                rList.addAll(administrativeClassDOList);
+                rList.expire(Duration.ofSeconds(86400));
+                return administrativeClassDOList;
+            }
+        }else {
+            // 如果缓存存在，则直接读取并返回缓存中的列表
+            return rList.readAll();
+        }
+        // 如果没有找到任何行政班级，则返回空列表
+        return Collections.emptyList();
+    }
 }

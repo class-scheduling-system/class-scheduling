@@ -41,10 +41,13 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
         return List.of();
     }
 
-    public List<CourseLibraryDO> getCourseList() {
+    public List<CourseLibraryDO> getCourseListByDepart(String departmentUuid) {
         RList<CourseLibraryDO> rList = redisson.getList(StringConstant.Redis.COURSE_LIBRARY_LIST);
         if (!rList.isExists()) {
-            List<CourseLibraryDO> courseLibraryList = this.list();
+            List<CourseLibraryDO> courseLibraryList = this
+                    .lambdaQuery()
+                    .eq(CourseLibraryDO::getDepartment,departmentUuid)
+                    .list();
             if (!courseLibraryList.isEmpty()) {
                 rList.addAll(courseLibraryList);
                 rList.expire(Duration.ofHours(24));

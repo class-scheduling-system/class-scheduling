@@ -152,17 +152,15 @@ public class CourseLibraryLogic implements CourseLibraryService {
      */
     @Override
     public List<CourseLibraryAndTeacherCourseQualificationListDTO> getCourseListAndClassDTO(
-            @NotNull List<SpecificCourseIdVO> specificCourseIds) {
+            @NotNull List<SpecificCourseIdVO> specificCourseIds, String departmentUuid) {
         List<CourseLibraryAndTeacherCourseQualificationListDTO> lists = new ArrayList<>();
-
         // 获取所有课程并构建映射
-        Map<String, CourseLibraryDO> courseMap = courseLibraryDAO.getCourseList().stream()
+        Map<String, CourseLibraryDO> courseMap = courseLibraryDAO.getCourseListByDepart(departmentUuid).stream()
                 .collect(Collectors.toMap(CourseLibraryDO::getCourseLibraryUuid, course -> course));
-
         // 获取所有班级并构建映射
-        Map<String, AdministrativeClassDO> classMap = administrativeClassDAO.getAdministrativeClassList().stream()
+        Map<String, AdministrativeClassDO> classMap = administrativeClassDAO.getAdministrativeClassListByDepartment(departmentUuid)
+                .stream()
                 .collect(Collectors.toMap(AdministrativeClassDO::getAdministrativeClassUuid, clazz -> clazz));
-
         // 遍历特定课程ID列表，为每个课程构建课程库和班级信息DTO
         for (SpecificCourseIdVO specificCourseIdVO : specificCourseIds) {
             CourseLibraryAndTeacherCourseQualificationListDTO libraryAndClassDTO =

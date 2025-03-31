@@ -150,8 +150,10 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 }
                 log.debug("获取课程库和学生班级");
                 //获取课程库和学生班级
-                List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList = courseLibraryService.getCourseListAndClassDTO(
-                        automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds()
+                List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList =
+                        courseLibraryService.getCourseListAndClassDTO(
+                                automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds(),
+                                automaticClassSchedulingVO.getDepartmentUuid()
                 );
                 //获取老师所有数据
                 log.debug("获取老师所有数据");

@@ -32,5 +32,7 @@ public interface CourseLibraryService {
      * @return 课程库和班级DTO列表
      */
     List<CourseLibraryAndTeacherCourseQualificationListDTO> getCourseListAndClassDTO(
-            List<SpecificCourseIdVO> specificCourseIds);
+            List<SpecificCourseIdVO> specificCourseIds,
+            String departmentUuid
+    );
 }
