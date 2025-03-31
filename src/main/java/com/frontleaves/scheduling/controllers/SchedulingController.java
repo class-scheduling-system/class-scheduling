@@ -1,12 +1,12 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
-import com.frontleaves.scheduling.models.dto.BackAutomaticClassSchedulingDTO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.SchedulingService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
+import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Optional;
 
 /**
- * 调度控制器
+ * 排课控制器
  *
  * @author FLASHLACK
  */
@@ -36,13 +36,10 @@ public class SchedulingController {
 
     @RequestRole("教务")
     @PostMapping("/auto")
-    public ResponseEntity<BaseResponse<BackAutomaticClassSchedulingDTO>> automaticClassScheduling(
+    public ResponseEntity<BaseResponse<Void>> automaticClassScheduling(
             @RequestBody @Valid AutomaticClassSchedulingVO automaticClassSchedulingVO,
-            HttpServletRequest request) {
-        //检查排课策略是否符合预期
-        if (!automaticClassSchedulingVO.getStrategy().matches("^(optimal|balanced|quick)$")) {
-            throw new BusinessException("排课策略必须是 optimal、balanced 或 quick 之一", ErrorCode.BODY_ERROR);
-        }
+            HttpServletRequest request
+    ) {
         //检查结束周是否大于等于1
         if (automaticClassSchedulingVO.getEndWeek() < 1) {
             throw new BusinessException("排课结束周必须大于等于1", ErrorCode.BODY_ERROR);
@@ -62,8 +59,9 @@ public class SchedulingController {
                 throw new BusinessException("班级或者人数选择为空", ErrorCode.BODY_ERROR);
             }
         }
-        //准备用户数据
+        // 准备数据并排课
         schedulingService.getAutoClassSchedulingBaseDTO(automaticClassSchedulingVO, request);
-        return null;
+
+        return ResultUtil.success("开始排课");
     }
 }

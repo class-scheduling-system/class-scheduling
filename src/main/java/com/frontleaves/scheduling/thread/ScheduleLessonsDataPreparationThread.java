@@ -104,12 +104,12 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 AcademicAffairsPermissionDTO academicAffairsPermissionDTO =
                         academicAffairsPermissionService.getAcademicAffairsPermission(userDO.getUserUuid());
                 assert academicAffairsPermissionDTO != null;
-                if (!academicAffairsPermissionDTO.getDepartment().equals(automaticClassSchedulingVO.getDepartmentId())) {
+                if (!academicAffairsPermissionDTO.getDepartment().equals(automaticClassSchedulingVO.getDepartmentUuid())) {
                     throw new BusinessException("用户所属部门与所填写部门不一致", ErrorCode.BODY_ERROR);
                 }
                 //检查学期是否存在并且是否启用
                 SemesterDTO semesterDTO =
-                        semesterService.getSemesterByUuidCheckEnabled(automaticClassSchedulingVO.getSemesterId());
+                        semesterService.getSemesterByUuidCheckEnabled(automaticClassSchedulingVO.getSemesterUuid());
                 assert semesterDTO != null;
                 //检查结束周是否超过学期周
                 SchedulingLogic.checkEndWeekExceedSemesterWeeks(automaticClassSchedulingVO.getEndWeek(), semesterDTO);
@@ -172,7 +172,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 }
                 //获取部门DTO
                 DepartmentDTO departmentDTO = departmentService.
-                        getDepartmentByUuid(automaticClassSchedulingVO.getDepartmentId());
+                        getDepartmentByUuid(automaticClassSchedulingVO.getDepartmentUuid());
                 if (departmentDTO == null) {
                     throw new BusinessException("部门不存在", ErrorCode.BODY_ERROR);
                 }

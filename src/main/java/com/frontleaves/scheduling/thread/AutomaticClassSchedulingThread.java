@@ -10,6 +10,7 @@ import com.xlf.utility.exception.BusinessException;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBucket;
+import org.redisson.api.RKeys;
 import org.redisson.api.RedissonClient;
 
 import java.util.concurrent.locks.Condition;
@@ -58,9 +59,14 @@ public class AutomaticClassSchedulingThread extends Thread {
                 ScheduleResultDTO result = geneticSchedulingService.executeGeneticAlgorithm(taskId, baseData);
 
                 // 保存排课结果到Redis
-                RBucket<ScheduleResultDTO> resultCache =
-                        redisson.getBucket(StringConstant.Redis.SCHEDULE_RESULT + user.getUserUuid());
+                RBucket<ScheduleResultDTO> resultCache = redisson.getBucket(StringConstant.Redis.SCHEDULE_RESULT + user.getUserUuid());
                 resultCache.set(result);
+
+                // 删除任务有关的缓存数据
+                RKeys rKeys = redisson.getKeys();
+                rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
+                rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_EXECUTE_STATUS + user.getUserUuid());
+                rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_EXECUTE_PROGRESS + user.getUserUuid());
 
                 log.info("排课完成，适应度：{}", result.getFitness());
                 running = false;

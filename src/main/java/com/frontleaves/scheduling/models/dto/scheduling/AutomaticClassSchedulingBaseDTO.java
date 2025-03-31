@@ -32,6 +32,7 @@ import com.frontleaves.scheduling.models.dto.base.DepartmentDTO;
 import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
+import enums.StrategyEnum;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -65,7 +66,7 @@ public class AutomaticClassSchedulingBaseDTO {
      * - balanced(平衡): 在满足基本约束的前提下，尽量使课程安排均匀分布。
      * - quick(快速): 快速生成一个初步的课程安排方案。
      */
-    private String strategy;
+    private StrategyEnum strategy;
 
     /**
      * 结束周

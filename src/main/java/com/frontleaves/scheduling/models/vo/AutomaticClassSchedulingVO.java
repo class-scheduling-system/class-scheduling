@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.models.vo;
 
+import enums.StrategyEnum;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,18 +23,18 @@ public class AutomaticClassSchedulingVO {
     /**
      * 学期UUID，对应cs_semester表的semester_uuid
      **/
-    @NotBlank(message = "学期ID不能为空")
-    private String semesterId;
+    @NotBlank(message = "学期主键不能为空")
+    private String semesterUuid;
     /**
      * 院系UUID，对应cs_department表的department_uuid，限定排课范围
      */
-    @NotBlank(message = "部门ID不能为空")
-    private String departmentId;
+    @NotBlank(message = "部门主键不能为空")
+    private String departmentUuid;
     /**
      * 排课策略，可选: optimal(最优), balanced(平衡), quick(快速)
      */
     @NotBlank(message = "排课策略不能为空")
-    private String strategy;
+    private StrategyEnum strategy;
     /**
      * 结束周
      */
