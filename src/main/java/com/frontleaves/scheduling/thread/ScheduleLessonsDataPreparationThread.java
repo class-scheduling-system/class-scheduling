@@ -194,13 +194,24 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                         .setConsecutiveCoursesPreferred(automaticClassSchedulingVO.getConstraints().getConsecutiveCoursesPreferred())
                         .setSpecializationRoomMatching(automaticClassSchedulingVO.getConstraints().getSpecializationRoomMatching());
                 automaticClassSchedulingBaseDTO.setConstraints(constraints);
-                //设置算法参数
-                AutomaticClassSchedulingBaseDTO.AlgorithmParams algorithmParams =
-                        new AutomaticClassSchedulingBaseDTO.AlgorithmParams();
-                algorithmParams.setPopulationSize(automaticClassSchedulingVO.getAlgorithmParams().getPopulationSize())
-                        .setMaxIterations(automaticClassSchedulingVO.getAlgorithmParams().getMaxIterations())
-                        .setCrossoverRate(automaticClassSchedulingVO.getAlgorithmParams().getCrossoverRate())
-                        .setMutationRate(automaticClassSchedulingVO.getAlgorithmParams().getMutationRate());
+                //根据策略生成算法参数
+                AutomaticClassSchedulingBaseDTO.AlgorithmParams algorithmParams = switch (automaticClassSchedulingVO.getStrategy()) {
+                    case OPTIMAL -> new AutomaticClassSchedulingBaseDTO.AlgorithmParams()
+                            .setPopulationSize(200)
+                            .setMaxIterations(1000)
+                            .setCrossoverRate(0.8)
+                            .setMutationRate(0.1);
+                    case BALANCED -> new AutomaticClassSchedulingBaseDTO.AlgorithmParams()
+                            .setPopulationSize(100)
+                            .setMaxIterations(500)
+                            .setCrossoverRate(0.7)
+                            .setMutationRate(0.2);
+                    case QUICK -> new AutomaticClassSchedulingBaseDTO.AlgorithmParams()
+                            .setPopulationSize(50)
+                            .setMaxIterations(200)
+                            .setCrossoverRate(0.6)
+                            .setMutationRate(0.3);
+                };
                 automaticClassSchedulingBaseDTO.setAlgorithmParams(algorithmParams);
                 //设置时间偏好
                 AutomaticClassSchedulingBaseDTO.TimePreferences timePreferences =

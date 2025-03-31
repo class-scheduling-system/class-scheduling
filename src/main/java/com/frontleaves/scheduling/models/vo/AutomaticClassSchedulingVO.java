@@ -1,7 +1,38 @@
+/*
+ * --------------------------------------------------------------------------------
+ * Copyright (c) 2022-NOW(至今) 锋楪技术团队
+ * Author: 锋楪技术团队 (https://www.frontleaves.com)
+ *
+ * 本文件包含锋楪技术团队项目的源代码，项目的所有源代码均遵循 MIT 开源许可证协议。
+ * --------------------------------------------------------------------------------
+ * 许可证声明：
+ *
+ * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
+ *
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
+ * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
+ * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
+ *
+ * 使用本软件即表示您了解此声明并同意其条款。
+ *
+ * 有关 MIT 许可证的更多信息，请查看项目根目录下的 LICENSE 文件或访问：
+ * https://opensource.org/licenses/MIT
+ * --------------------------------------------------------------------------------
+ * 免责声明：
+ *
+ * 使用本软件的风险由用户自担。作者或版权持有人在法律允许的最大范围内，
+ * 对因使用本软件内容而导致的任何直接或间接的损失不承担任何责任。
+ * --------------------------------------------------------------------------------
+ */
+
 package com.frontleaves.scheduling.models.vo;
 
 import enums.StrategyEnum;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -32,8 +63,9 @@ public class AutomaticClassSchedulingVO {
     private String departmentUuid;
     /**
      * 排课策略，可选: optimal(最优), balanced(平衡), quick(快速)
+     * 将根据策略自动设置算法参数
      */
-    @NotBlank(message = "排课策略不能为空")
+    @NotNull(message = "排课策略不能为空")
     private StrategyEnum strategy;
     /**
      * 结束周
@@ -46,11 +78,6 @@ public class AutomaticClassSchedulingVO {
      */
     @NotNull(message = "排课约束不能为空")
     private Constraints constraints;
-    /**
-     * 算法参数
-     */
-    @NotNull(message = "算法参数不能为空")
-    private AlgorithmParams algorithmParams;
     /**
      * 优先级设置
      */
@@ -101,43 +128,10 @@ public class AutomaticClassSchedulingVO {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class AlgorithmParams {
-        /**
-         * 种群大小
-         */
-        @NotNull(message = "种群大小不能为空")
-        @Min(value = 1, message = "种群大小必须大于 0")
-        private Integer populationSize;
-        /**
-         * 最大迭代次数
-         */
-        @NotNull(message = "最大迭代次数不能为空")
-        @Min(value = 1, message = "最大迭代次数必须大于 0")
-        private Integer maxIterations;
-        /**
-         * 交叉率
-         */
-        @NotNull(message = "交叉率不能为空")
-        @DecimalMin(value = "0.00", message = "交叉率必须大于等于 0")
-        @DecimalMax(value = "1.00", message = "交叉率必须小于等于 1")
-        private Double crossoverRate;
-        /**
-         * 变异率
-         */
-        @NotNull(message = "变异率不能为空")
-        @DecimalMin(value = "0.00", message = "变异率必须大于等于 0")
-        @DecimalMax(value = "1.00", message = "变异率必须小于等于 1")
-        private Double mutationRate;
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class PrioritySettings {
         /**
          * 课程类型优先级设置
          */
-
         private List<CourseTypePriority> courseTypes;
 
         @Data
@@ -175,7 +169,6 @@ public class AutomaticClassSchedulingVO {
         /**
          * 优先时间段
          */
-
         private List<PreferredTimeSlot> preferredTimeSlots;
 
         @Data
@@ -217,6 +210,5 @@ public class AutomaticClassSchedulingVO {
          * 允许的教学楼ID列表
          */
         private List<String> allowedBuildingIds;
-
     }
 }
