@@ -212,8 +212,8 @@ public class StringConstant {
         public static final String USER_NAME_REGULAR_EXPRESSION ="^[0-9A-Za-z_-]{4,32}$";
         public static final String PASSWORD_REGULAR_EXPRESSION = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$";
         public static final String PASSWORD_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$)";
-        public static final String UUID_NO_DASH_REGULAR_EXPRESSION = "^[a-f0-9]{32}$";
-        public static final String UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^[a-f0-9]{32}$)";
+        public static final String UUID_NO_DASH_REGULAR_EXPRESSION = "^[0-9a-f]{32}$";
+        public static final String UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY = "(|^[0-9a-f]{32}$)";
         public static final String UUID_REGULAR_EXPRESSION = "^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$";
         public static final String EMAIL_REGULAR_EXPRESSION_ABLE_EMPTY ="^(|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6})$";
         public static final String USER_NAME_REGULAR_EXPRESSION_ABLE_EMPTY ="(|^[0-9A-Za-z_-]{4,32}$)";
@@ -248,5 +248,17 @@ public class StringConstant {
         private Major() {
             log.error("不能被实例化");
         }
+    }
+
+    /**
+     * 错误消息相关常量
+     */
+    public static class ErrorMessage {
+        public static final String SEMESTER_UUID_FORMAT_ERROR = "学期UUID格式错误";
+        public static final String CLASS_ASSIGNMENT_UUID_FORMAT_ERROR = "排课分配UUID格式错误";
+        public static final String CLASS_ASSIGNMENT_NOT_FOUND = "排课分配不存在";
+        public static final String COURSE_UUID_FORMAT_ERROR = "课程UUID格式错误";
+        public static final String TEACHER_UUID_FORMAT_ERROR = "教师UUID格式错误";
+        public static final String PAGE_SIZE_TOO_LARGE = "单页查询不允许超过 200";
     }
 }

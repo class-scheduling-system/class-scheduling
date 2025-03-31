@@ -77,7 +77,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         // 验证排课分配是否存在
         ClassAssignmentDO entity = classAssignmentDAO.getClassAssignmentByUuid(classAssignmentUuid);
         if (entity == null) {
-            throw new BusinessException("排课分配不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
 
         // 删除排课分配
@@ -89,7 +89,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         // 验证排课分配是否存在
         ClassAssignmentDO existingEntity = classAssignmentDAO.getClassAssignmentByUuid(classAssignmentUuid);
         if (existingEntity == null) {
-            throw new BusinessException("排课分配不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
 
         // 验证学期是否存在
@@ -126,7 +126,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         // 验证排课分配是否存在
         ClassAssignmentDO entity = classAssignmentDAO.getClassAssignmentByUuid(classAssignmentUuid);
         if (entity == null) {
-            throw new BusinessException("排课分配不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
 
         // 转换为 DTO 并返回
@@ -138,21 +138,21 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         // 验证 UUID 格式（如果提供）
         if (semesterUuid != null && !semesterUuid.isBlank() &&
             !semesterUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException("学期UUID格式错误", ErrorCode.PARAMETER_ERROR);
+            throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
         if (courseUuid != null && !courseUuid.isBlank() &&
             !courseUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException("课程UUID格式错误", ErrorCode.PARAMETER_ERROR);
+            throw new BusinessException(StringConstant.ErrorMessage.COURSE_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
         if (teacherUuid != null && !teacherUuid.isBlank() &&
             !teacherUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException("教师UUID格式错误", ErrorCode.PARAMETER_ERROR);
+            throw new BusinessException(StringConstant.ErrorMessage.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
 
         // 获取分页数据
         Page<ClassAssignmentDO> pageResult = classAssignmentDAO.getClassAssignmentPage(page, size, semesterUuid, courseUuid, teacherUuid);
         if (pageResult == null || !pageResult.hasNext()) {
-            throw new BusinessException("排课分配不存在", ErrorCode.NOT_EXIST);
+            throw new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
 
         // 转换为 DTO
@@ -164,15 +164,15 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         // 验证 UUID 格式（如果提供）
         if (semesterUuid != null && !semesterUuid.isBlank() &&
             !semesterUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException("学期UUID格式错误", ErrorCode.PARAMETER_ERROR);
+            throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
         if (courseUuid != null && !courseUuid.isBlank() &&
             !courseUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException("课程UUID格式错误", ErrorCode.PARAMETER_ERROR);
+            throw new BusinessException(StringConstant.ErrorMessage.COURSE_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
         if (teacherUuid != null && !teacherUuid.isBlank() &&
             !teacherUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException("教师UUID格式错误", ErrorCode.PARAMETER_ERROR);
+            throw new BusinessException(StringConstant.ErrorMessage.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
 
         // 获取列表数据

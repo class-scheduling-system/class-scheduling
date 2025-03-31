@@ -14,6 +14,17 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 
+/**
+ * 课程库数据访问对象
+ * <p>
+ * 该类实现了对课程库数据的增删改查操作，并提供了通过课程UUID获取课程信息的方法。
+ * 同时，利用Redis进行数据缓存，以提高查询效率。
+ * </p>
+ *
+ * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
+ */
 @Repository
 @RequiredArgsConstructor
 public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLibraryDO> {

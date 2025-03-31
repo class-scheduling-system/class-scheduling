@@ -138,7 +138,7 @@ public class StudentController {
         StudentDisableDTO studentDisableDTO = studentService.disableStudent(studentUuid, disable);
 
         // 根据disable值动态返回不同的信息
-        String message = disable ? "停用学生成功" : "启用学生成功";
+        String message = Boolean.TRUE.equals(disable) ? "停用学生成功" : "启用学生成功";
         return ResultUtil.success(message, studentDisableDTO);
     }
 

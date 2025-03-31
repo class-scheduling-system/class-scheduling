@@ -66,7 +66,7 @@ public class ClassAssignmentController {
         String getUuid = Optional.ofNullable(classAssignmentUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException("排课分配UUID格式错误", ErrorCode.PARAMETER_ERROR));
+                .orElseThrow(() -> new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         ClassAssignmentDTO dto = classAssignmentService.getById(getUuid);
         return ResultUtil.success("查询成功", dto);
     }
@@ -92,7 +92,7 @@ public class ClassAssignmentController {
             @RequestParam(value = "teacher_uuid", required = false) String teacherUuid
     ) {
         if (size > 200) {
-            throw new BusinessException("单页查询不允许超过 200", ErrorCode.PARAMETER_INVALID);
+            throw new BusinessException(StringConstant.ErrorMessage.PAGE_SIZE_TOO_LARGE, ErrorCode.PARAMETER_INVALID);
         }
 
         // 验证UUID格式（如果提供）
@@ -100,7 +100,7 @@ public class ClassAssignmentController {
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
                     if (!uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-                        throw new BusinessException("学期UUID格式错误", ErrorCode.PARAMETER_ERROR);
+                        throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
                     }
                     return uuid;
                 })
@@ -110,7 +110,7 @@ public class ClassAssignmentController {
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
                     if (!uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-                        throw new BusinessException("课程UUID格式错误", ErrorCode.PARAMETER_ERROR);
+                        throw new BusinessException(StringConstant.ErrorMessage.COURSE_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
                     }
                     return uuid;
                 })
@@ -120,7 +120,7 @@ public class ClassAssignmentController {
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
                     if (!uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-                        throw new BusinessException("教师UUID格式错误", ErrorCode.PARAMETER_ERROR);
+                        throw new BusinessException(StringConstant.ErrorMessage.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
                     }
                     return uuid;
                 })
@@ -144,7 +144,7 @@ public class ClassAssignmentController {
         String getUuid = Optional.ofNullable(classAssignmentUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException("排课分配UUID格式错误", ErrorCode.PARAMETER_ERROR));
+                .orElseThrow(() -> new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         classAssignmentService.delete(getUuid);
         return ResultUtil.success("排课分配记录已删除");
     }
@@ -165,7 +165,7 @@ public class ClassAssignmentController {
         String getUuid = Optional.ofNullable(classAssignmentUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException("排课分配UUID格式错误", ErrorCode.PARAMETER_ERROR));
+                .orElseThrow(() -> new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         classAssignmentService.update(getUuid, vo);
         return ResultUtil.success("排课分配信息已更新");
     }
@@ -191,7 +191,7 @@ public class ClassAssignmentController {
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
                     if (!uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-                        throw new BusinessException("学期UUID格式错误", ErrorCode.PARAMETER_ERROR);
+                        throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
                     }
                     return uuid;
                 })
@@ -201,7 +201,7 @@ public class ClassAssignmentController {
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
                     if (!uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-                        throw new BusinessException("课程UUID格式错误", ErrorCode.PARAMETER_ERROR);
+                        throw new BusinessException(StringConstant.ErrorMessage.COURSE_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
                     }
                     return uuid;
                 })
@@ -211,7 +211,7 @@ public class ClassAssignmentController {
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
                     if (!uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-                        throw new BusinessException("教师UUID格式错误", ErrorCode.PARAMETER_ERROR);
+                        throw new BusinessException(StringConstant.ErrorMessage.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
                     }
                     return uuid;
                 })

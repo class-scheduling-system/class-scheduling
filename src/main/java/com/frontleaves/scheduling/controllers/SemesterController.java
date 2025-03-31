@@ -66,7 +66,7 @@ public class SemesterController {
         String getUuid = Optional.ofNullable(semesterUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException("学期UUID格式错误", ErrorCode.PARAMETER_ERROR));
+                .orElseThrow(() -> new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         semesterService.delete(getUuid);
         return ResultUtil.success("学期删除成功");
     }
@@ -87,7 +87,7 @@ public class SemesterController {
         String getUuid = Optional.ofNullable(semesterUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException("学期UUID格式错误", ErrorCode.PARAMETER_ERROR));
+                .orElseThrow(() -> new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         semesterService.update(getUuid, vo);
         return ResultUtil.success("学期更新成功");
     }
@@ -106,7 +106,7 @@ public class SemesterController {
         String getUuid = Optional.ofNullable(semesterUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException("学期UUID格式错误", ErrorCode.PARAMETER_ERROR));
+                .orElseThrow(() -> new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         return ResultUtil.success("查询成功", semesterService.getById(getUuid));
     }
 
@@ -128,7 +128,7 @@ public class SemesterController {
             @RequestParam(required = false) String keyword
     ) {
         if (size > 200) {
-            throw new BusinessException("单页查询不允许超过 200", ErrorCode.PARAMETER_INVALID);
+            throw new BusinessException(StringConstant.ErrorMessage.PAGE_SIZE_TOO_LARGE, ErrorCode.PARAMETER_INVALID);
         }
         return ResultUtil.success("查询学期列表成功", semesterService.page(page, size, isDesc, keyword));
     }
