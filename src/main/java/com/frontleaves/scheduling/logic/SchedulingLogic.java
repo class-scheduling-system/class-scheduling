@@ -50,6 +50,10 @@ public class SchedulingLogic implements SchedulingService {
             @NotNull AutomaticClassSchedulingVO automaticClassSchedulingVO,
             HttpServletRequest request
     ) {
-        scheduleLessonsDataPreparationThread.startUp(automaticClassSchedulingVO, request);
+        try {
+            scheduleLessonsDataPreparationThread.startUp(automaticClassSchedulingVO, request);
+        } catch (Exception e) {
+            throw new BusinessException("排课失败", ErrorCode.BODY_ERROR, e);
+        }
     }
 }

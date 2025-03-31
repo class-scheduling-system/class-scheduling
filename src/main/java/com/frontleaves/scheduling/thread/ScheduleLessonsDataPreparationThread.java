@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.thread;
 
+import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.logic.SchedulingLogic;
 import com.frontleaves.scheduling.models.dto.base.*;
@@ -46,7 +47,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -64,11 +64,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author FLASHLACK
  */
 @Slf4j
-@Component
 public class ScheduleLessonsDataPreparationThread extends Thread {
-    private final ReentrantLock lock = new ReentrantLock();
-    private final Condition condition = lock.newCondition();
-    private final boolean running = true;
+
     @Resource
     private UserService userService;
     @Resource
@@ -87,46 +84,57 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     private DepartmentService departmentService;
     @Resource
     private RedissonClient redisson;
-    private AutomaticClassSchedulingVO automaticClassSchedulingVO;
+    private final ReentrantLock lock = new ReentrantLock();
     private HttpServletRequest request;
+    private final Condition condition = lock.newCondition();
+    private AutomaticClassSchedulingVO classSchedulingVO;
+    private boolean hasTask = false;
 
+    public ScheduleLessonsDataPreparationThread (String name) {
+        super(name);
+    }
 
     @Override
     public void run() {
-        log.info("线程启动，等待任务...");
+        log.info(LogConstant.THREAD + "线程启动，等待任务...");
 
-        while (running) {
+        while (true) {
             lock.lock();
             try {
-                log.debug("线程已获取锁，准备执行任务");
-                log.debug("获取到的自动排课请求数据: {}", automaticClassSchedulingVO);
-                log.debug("获取用户信息: {}", request);
+                while (!hasTask) {
+                    log.info(LogConstant.THREAD + "线程进入等待状态");
+                    condition.await();
+                }
+
+                log.debug(LogConstant.THREAD + "线程已获取锁，准备执行任务");
+                log.debug(LogConstant.THREAD + "获取到的自动排课请求数据: {}", classSchedulingVO);
+                log.debug(LogConstant.THREAD + "获取用户信息: {}", request);
                 // 根据请求获取用户信息
                 UserDO userDO = userService.getUserByRequest(request);
                 assert userDO != null;
                 // 检查用户所属部门与所填写部门是否一致
-                log.debug("检查用户所属部门与所填写部门是否一致");
+                log.debug(LogConstant.THREAD + "检查用户所属部门与所填写部门是否一致");
                 AcademicAffairsPermissionDTO academicAffairsPermissionDTO =
                         academicAffairsPermissionService.getAcademicAffairsPermission(userDO.getUserUuid());
                 assert academicAffairsPermissionDTO != null;
-                if (!academicAffairsPermissionDTO.getDepartment().equals(automaticClassSchedulingVO.getDepartmentUuid())) {
+                if (!academicAffairsPermissionDTO.getDepartment().equals(classSchedulingVO.getDepartmentUuid())) {
                     throw new BusinessException("用户所属部门与所填写部门不一致", ErrorCode.BODY_ERROR);
                 }
                 //检查学期是否存在并且是否启用
-                log.debug("检查学期是否存在并且是否启用");
+                log.debug(LogConstant.THREAD + "检查学期是否存在并且是否启用");
                 SemesterDTO semesterDTO =
-                        semesterService.getSemesterByUuidCheckEnabled(automaticClassSchedulingVO.getSemesterUuid());
+                        semesterService.getSemesterByUuidCheckEnabled(classSchedulingVO.getSemesterUuid());
                 assert semesterDTO != null;
                 //检查结束周是否超过学期周
-                log.debug("检查结束周是否超过学期周");
-                SchedulingLogic.checkEndWeekExceedSemesterWeeks(automaticClassSchedulingVO.getEndWeek(), semesterDTO);
+                log.debug(LogConstant.THREAD + "检查结束周是否超过学期周");
+                SchedulingLogic.checkEndWeekExceedSemesterWeeks(classSchedulingVO.getEndWeek(), semesterDTO);
                 // 使用 Map 存储课程类型优先级，以 courseTypeUuid 为键
-                log.debug("使用 Map 存储课程类型优先级，以 courseTypeUuid 为键");
+                log.debug(LogConstant.THREAD + "使用 Map 存储课程类型优先级，以 courseTypeUuid 为键");
                 Map<String, CourseTypePriorityDTO> courseTypePriorityMap = new HashMap<>();
                 // 获取优先级并填充到 Map 中
                 //检查优先级是否存在
-                log.debug("检查优先级是否存在");
-                if (automaticClassSchedulingVO.getPrioritySettings().getCourseTypes().isEmpty()) {
+                log.debug(LogConstant.THREAD + "检查优先级是否存在");
+                if (classSchedulingVO.getPrioritySettings().getCourseTypes().isEmpty()) {
                     //全部设为5
                     for (CourseTypeDTO courseTypeDTO : courseTypeService.listCourseType()) {
                         CourseTypePriorityDTO courseTypePriorityDTO = new CourseTypePriorityDTO();
@@ -135,7 +143,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     }
                 } else {
                     for (AutomaticClassSchedulingVO.PrioritySettings.CourseTypePriority courseTypePriority
-                            : automaticClassSchedulingVO.getPrioritySettings().getCourseTypes()) {
+                            : classSchedulingVO.getPrioritySettings().getCourseTypes()) {
                         // 根据 typeId 获取 CourseTypeDTO
                         CourseTypeDTO courseTypeDTO = courseTypeService
                                 .getCourseTypeByUuidWithError(courseTypePriority.getTypeId());
@@ -148,21 +156,21 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                         courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
                     }
                 }
-                log.debug("获取课程库和学生班级");
+                log.debug(LogConstant.THREAD + "获取课程库和学生班级");
                 //获取课程库和学生班级
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList =
                         courseLibraryService.getCourseListAndClassDTO(
-                                automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds(),
-                                automaticClassSchedulingVO.getDepartmentUuid()
+                                classSchedulingVO.getScopeSettings().getSpecificCourseIds(),
+                                classSchedulingVO.getDepartmentUuid()
                 );
                 //获取老师所有数据
-                log.debug("获取老师所有数据");
+                log.debug(LogConstant.THREAD + "获取老师所有数据");
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList = teacherCourseQualificationService
                         .getCourseLibraryAndTeacherCourseQualificationList(
-                                libraryAndClassDTOList, automaticClassSchedulingVO.getConstraints().getTeacherPreference()
+                                libraryAndClassDTOList, classSchedulingVO.getConstraints().getTeacherPreference()
                         );
                 assert courseQualificationList != null;
-                log.debug("设置课程优先级");
+                log.debug(LogConstant.THREAD + "设置课程优先级");
                 for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
                     //设置优先级
                     CourseLibraryDTO courseLibraryDTO = dto.getCourse();
@@ -180,39 +188,39 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     }
                 }
                 //获取教室数据
-                log.debug("获取教室数据");
+                log.debug(LogConstant.THREAD + "获取教室数据");
                 List<ClassroomAndTypeDTO> classroomAndTypeDTOList = new ArrayList<>();
-                for (String buildingUuid : automaticClassSchedulingVO.getScopeSettings().getAllowedBuildingIds()) {
+                for (String buildingUuid : classSchedulingVO.getScopeSettings().getAllowedBuildingIds()) {
                     classroomAndTypeDTOList.addAll(classroomService.getClassroomAndTypeByUuidWihError(buildingUuid));
                 }
                 //获取部门DTO
-                log.debug("获取部门DTO");
+                log.debug(LogConstant.THREAD + "获取部门DTO");
                 DepartmentDTO departmentDTO = departmentService.
-                        getDepartmentByUuid(automaticClassSchedulingVO.getDepartmentUuid());
+                        getDepartmentByUuid(classSchedulingVO.getDepartmentUuid());
                 if (departmentDTO == null) {
                     throw new BusinessException("部门不存在", ErrorCode.BODY_ERROR);
                 }
                 //创建返回结果
-                log.debug("创建返回结果");
+                log.debug(LogConstant.THREAD + "创建返回结果");
                 AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO = new AutomaticClassSchedulingBaseDTO();
                 //设置学期、部门、策略、结束周、课程和教师列表、教室和类型
                 automaticClassSchedulingBaseDTO.setSemester(semesterDTO)
                         .setDepartment(departmentDTO)
-                        .setStrategy(automaticClassSchedulingVO.getStrategy())
-                        .setEndWeek(automaticClassSchedulingVO.getEndWeek())
+                        .setStrategy(classSchedulingVO.getStrategy())
+                        .setEndWeek(classSchedulingVO.getEndWeek())
                         .setCourseList(courseQualificationList)
                         .setClassroomList(classroomAndTypeDTOList);
                 //设置约束
                 AutomaticClassSchedulingBaseDTO.Constraints constraints =
                         new AutomaticClassSchedulingBaseDTO.Constraints();
-                constraints.setTeacherPreference(automaticClassSchedulingVO.getConstraints().getTeacherPreference())
-                        .setRoomOptimization(automaticClassSchedulingVO.getConstraints().getRoomOptimization())
-                        .setStudentConflictAvoidance(automaticClassSchedulingVO.getConstraints().getStudentConflictAvoidance())
-                        .setConsecutiveCoursesPreferred(automaticClassSchedulingVO.getConstraints().getConsecutiveCoursesPreferred())
-                        .setSpecializationRoomMatching(automaticClassSchedulingVO.getConstraints().getSpecializationRoomMatching());
+                constraints.setTeacherPreference(classSchedulingVO.getConstraints().getTeacherPreference())
+                        .setRoomOptimization(classSchedulingVO.getConstraints().getRoomOptimization())
+                        .setStudentConflictAvoidance(classSchedulingVO.getConstraints().getStudentConflictAvoidance())
+                        .setConsecutiveCoursesPreferred(classSchedulingVO.getConstraints().getConsecutiveCoursesPreferred())
+                        .setSpecializationRoomMatching(classSchedulingVO.getConstraints().getSpecializationRoomMatching());
                 automaticClassSchedulingBaseDTO.setConstraints(constraints);
                 //根据策略生成算法参数
-                AutomaticClassSchedulingBaseDTO.AlgorithmParams algorithmParams = switch (automaticClassSchedulingVO.getStrategy()) {
+                AutomaticClassSchedulingBaseDTO.AlgorithmParams algorithmParams = switch (classSchedulingVO.getStrategy()) {
                     case OPTIMAL -> new AutomaticClassSchedulingBaseDTO.AlgorithmParams()
                             .setPopulationSize(200)
                             .setMaxIterations(1000)
@@ -234,7 +242,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 AutomaticClassSchedulingBaseDTO.TimePreferences timePreferences =
                         new AutomaticClassSchedulingBaseDTO.TimePreferences();
                 for (AutomaticClassSchedulingVO.TimePreferences.PreferredTimeSlot preferredTimeSlot
-                        : automaticClassSchedulingVO.getTimePreferences().getPreferredTimeSlots()) {
+                        : classSchedulingVO.getTimePreferences().getPreferredTimeSlots()) {
                     AutomaticClassSchedulingBaseDTO.TimePreferences.PreferredTimeSlot preferredTimeSlotDTO =
                             new AutomaticClassSchedulingBaseDTO.TimePreferences.PreferredTimeSlot();
                     preferredTimeSlotDTO.setDay(preferredTimeSlot.getDay())
@@ -243,8 +251,8 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     timePreferences.setPreferredTimeSlots(new ArrayList<>());
                     timePreferences.getPreferredTimeSlots().add(preferredTimeSlotDTO);
                 }
-                timePreferences.setEveningCourses(automaticClassSchedulingVO.getTimePreferences().getAvoidEveningCourses())
-                        .setBalanceWeekdayCourses(automaticClassSchedulingVO.getTimePreferences().getBalanceWeekdayCourses());
+                timePreferences.setEveningCourses(classSchedulingVO.getTimePreferences().getAvoidEveningCourses())
+                        .setBalanceWeekdayCourses(classSchedulingVO.getTimePreferences().getBalanceWeekdayCourses());
                 automaticClassSchedulingBaseDTO.setTimePreferences(timePreferences);
 
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
@@ -255,13 +263,14 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
 
             } catch (Exception e) {
                 Thread.currentThread().interrupt();
+                log.error("{}获取报错信息：{}", LogConstant.THREAD, e.getMessage(), e);
                 break;
             } finally {
                 lock.unlock();
             }
         }
 
-        log.info("线程结束运行");
+        log.debug(LogConstant.THREAD + "线程结束运行");
     }
 
 
@@ -272,11 +281,13 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
             @NotNull AutomaticClassSchedulingVO automaticClassSchedulingVO,
             HttpServletRequest request
     ) {
-        this.automaticClassSchedulingVO = automaticClassSchedulingVO;
-        this.request = request;
+        lock.lock();
         try {
+            this.classSchedulingVO = automaticClassSchedulingVO;
+            this.request = request;
+            hasTask = true;
             condition.signal();
-            log.info("已通知线程执行任务");
+            log.info(LogConstant.THREAD + "已通知线程执行任务");
         } finally {
             lock.unlock();
         }
