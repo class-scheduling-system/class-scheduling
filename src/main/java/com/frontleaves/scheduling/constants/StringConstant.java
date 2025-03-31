@@ -77,6 +77,7 @@ public class StringConstant {
     public static final String STUDENT_NOT_EXIST = "学生不存在";
     public static final String STUDENT_SAVE_FAILED = "学生信息保存失败";
     public static final String REQUEST_LOG_CACHE = "request:log:cache";
+    public static final String OPERATE_SUCCESS = "操作成功";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
