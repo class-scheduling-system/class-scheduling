@@ -46,6 +46,7 @@ import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -226,13 +227,14 @@ public class TeacherPreferencesController {
     @RequestRole({"教师"})
     @PutMapping("/{preference_uuid}")
     public ResponseEntity<BaseResponse<TeacherPreferencesDTO>> editTeacherPreferences(
-            @PathVariable("preference_uuid") String preferenceUuid,
-            @RequestBody @Validated TeacherPreferencesVO teacherPreferencesVO
+            @NotNull @PathVariable("preference_uuid") String preferenceUuid,
+            @NotNull @RequestBody @Validated TeacherPreferencesVO teacherPreferencesVO,
+            @NotNull HttpServletRequest request
     ) {
         if (!preferenceUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException(StringConstant.TEACHER_PREFERENCES_UUID_ILLEGAL, ErrorCode.PARAMETER_INVALID);
         }
-        TeacherPreferencesDTO preferencesDTO = teacherPreferencesService.editTeacherPreferences(preferenceUuid, teacherPreferencesVO);
+        TeacherPreferencesDTO preferencesDTO = teacherPreferencesService.editTeacherPreferences(preferenceUuid, teacherPreferencesVO, request);
         return ResultUtil.success(StringConstant.OPERATE_SUCCESS, preferencesDTO);
     }
 
@@ -249,12 +251,13 @@ public class TeacherPreferencesController {
     @RequestRole({"教师"})
     @DeleteMapping("/{preference_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteTeacherPreferences(
-            @PathVariable("preference_uuid") String preferenceUuid
+            @NotNull @PathVariable("preference_uuid") String preferenceUuid,
+            @NotNull HttpServletRequest request
     ) {
         if (!preferenceUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException(StringConstant.TEACHER_PREFERENCES_UUID_ILLEGAL, ErrorCode.PARAMETER_INVALID);
         }
-        teacherPreferencesService.deleteTeacherPreferences(preferenceUuid);
+        teacherPreferencesService.deleteTeacherPreferences(preferenceUuid, request);
         return ResultUtil.success(StringConstant.OPERATE_SUCCESS);
     }
 }

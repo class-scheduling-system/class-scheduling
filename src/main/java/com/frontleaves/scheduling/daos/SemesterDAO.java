@@ -93,9 +93,7 @@ public class SemesterDAO extends ServiceImpl<SemesterMapper, SemesterDO> {
             // 构建查询条件
             LambdaQueryChainWrapper<SemesterDO> wrapper = this.lambdaQuery();
             if (keyword != null && !keyword.isBlank()) {
-                wrapper.like(SemesterDO::getName, keyword)
-                        .or()
-                        .like(SemesterDO::getCode, keyword);
+                wrapper.like(SemesterDO::getName, keyword);
             }
             wrapper.orderBy(true, isDesc, SemesterDO::getCreatedAt);
 

@@ -26,9 +26,9 @@ public class SemesterDTO {
     private String name;
 
     /**
-     * 学期编码
+     * 学期描述
      */
-    private String code;
+    private String description;
 
     /**
      * 开始日期
@@ -54,4 +54,4 @@ public class SemesterDTO {
      * 更新时间
      */
     private Timestamp updatedAt;
-} 
+}

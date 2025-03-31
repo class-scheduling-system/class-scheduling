@@ -109,7 +109,7 @@ public class StringConstant {
         public static final String TEACHER_UUID = "tea:uuid:";
         public static final String TEACHER_USER_UUID = "tea:user:uuid:";
         public static final String TEACHER_PREFERENCES_UUID = "tea:pref:uuid:";
-        public static final String TEACHER_PREFERENCES_LIST = "tea:pref:list";
+        public static final String TEACHER_PREFERENCES_LIST = "tea:pref:list:";
         public static final String TEACHER_PREFERENCES_PAGE = "tea:pref:page:";
         public static final String TEACHER_PREFERENCES_TEACHER = "tea:pref:teacher:";
         public static final String TEACHER_PREFERENCES_SEMESTER = "tea:pref:semester:";

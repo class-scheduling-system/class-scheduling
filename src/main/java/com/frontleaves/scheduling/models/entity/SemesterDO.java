@@ -29,8 +29,8 @@ public class SemesterDO {
     @TableField("name")
     private String name;
 
-    @TableField("code")
-    private String code;
+    @TableField("description")
+    private String description;
 
     @TableField("start_date")
     private Timestamp startDate;
