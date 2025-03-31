@@ -31,10 +31,9 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.dto.CourseLiteDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.vo.BatchAddCourseVO;
 import com.frontleaves.scheduling.models.vo.CourseLibraryVO;
 import com.frontleaves.scheduling.services.CourseLibraryService;
 import com.frontleaves.scheduling.services.UserService;
@@ -273,6 +272,31 @@ public class CourseLibraryLogic implements CourseLibraryService {
                             .map(DepartmentDO::getDepartmentName)
                             .orElse(null))
         ).toList();
+    }
+
+    @Override
+    public PrepareCourseDTO prepareCourseData() {
+        return null;
+    }
+
+    @Override
+    public byte[] getCourseImportTemplate(PrepareCourseDTO prepareCourseExampleDTO) {
+        return new byte[0];
+    }
+
+    @Override
+    public byte[] verifyCourseBatchAndBackFile(BatchAddCourseVO batchAddCourseVO) {
+        return new byte[0];
+    }
+
+    @Override
+    public BackAddCourseDTO batchImportIgnoreError(byte[] file) {
+        return null;
+    }
+
+    @Override
+    public BackAddCourseDTO batchImportNoIgnoreError(byte[] file) {
+        return null;
     }
 
 }

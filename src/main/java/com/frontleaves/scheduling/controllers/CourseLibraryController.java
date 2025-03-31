@@ -3,9 +3,8 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.dto.CourseLiteDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.vo.BatchAddCourseVO;
 import com.frontleaves.scheduling.models.vo.CourseLibraryVO;
 import com.frontleaves.scheduling.services.CourseLibraryService;
 import com.xlf.utility.BaseResponse;
@@ -16,10 +15,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -168,5 +172,65 @@ public class CourseLibraryController {
                 courseDepartmentUuid
         );
         return ResultUtil.success("课程库列表获取成功", courseLibraryList);
+    }
+
+    /**
+     * 获取课程导入模板
+     *
+     * @return 返回包含课程导入模板的响应实体
+     * <p>
+     * 此方法用于获取课程导入模板，返回一个包含模板文件的字节数组和HTTP响应头的响应实体。
+     * </p>
+     */
+    @GetMapping("/get-template")
+    public ResponseEntity<byte[]> getCourseImportTemplate() {
+        // 准备课程库示例数据，用于生成导入模板
+        PrepareCourseDTO prepareCourseExampleDTO = courseLibraryService.prepareCourseData();
+        // 获取课程库导入模板的字节数组
+        byte[] bytes = courseLibraryService.getCourseImportTemplate(prepareCourseExampleDTO);
+        // 初始化HTTP响应头，用于设置模板文件的下载信息
+        HttpHeaders headers = Optional.of(new HttpHeaders())
+                .map(header -> {
+                    // 设置内容类型为二进制流
+                    header.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                    // 设置内容长度
+                    header.setContentLength(bytes.length);
+                    // 对文件名进行URL编码，确保文件名在不同浏览器中正确显示
+                    String fileName = URLEncoder.encode("课程库导入模板.xlsx", StandardCharsets.UTF_8)
+                            .replace("+", "%20");
+                    // 设置内容处置，以附件形式下载文件，并处理文件名的UTF-8编码
+                    header.add(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + fileName + "\"; filename*=UTF-8''" + fileName);
+                    return header;
+                })
+                // 如果生成响应头失败，则抛出业务异常
+                .orElseThrow(() -> new BusinessException("获取响应头失败", ErrorCode.SERVER_INTERNAL_ERROR));
+        // 返回包含模板文件的响应实体，状态码为HTTP 200 OK
+        return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+    }
+
+    /**
+     * 处理批量导入课程的请求
+     *
+     * @param batchAddCourseVO 包含批量导入课程信息的请求体
+     * @return 返回包含导入结果的响应实体
+     */
+    @PostMapping("/batch-import")
+    public ResponseEntity<BaseResponse<BackAddCourseDTO>> batchImportCourses(
+            @RequestBody @Validated BatchAddCourseVO batchAddCourseVO
+    ) {
+        // 验证课程批处理文件并获取处理后的文件
+        byte[] file = courseLibraryService.verifyCourseBatchAndBackFile(batchAddCourseVO);
+        // 根据是否忽略错误来选择不同的处理策略
+        BackAddCourseDTO backAddCourseDTO = Optional.ofNullable(batchAddCourseVO.getIgnoreError())
+                .filter(Boolean.TRUE::equals)
+                .map(ignoreError -> courseLibraryService.batchImportIgnoreError(file))
+                .orElseGet(() -> courseLibraryService.batchImportNoIgnoreError(file));
+        // 如果有课程添加失败，则返回成功但提示存在添加失败的课程库
+        if (backAddCourseDTO.getFailedCount() > 0) {
+            return ResultUtil.success("存在添加失败的课程库", backAddCourseDTO);
+        }
+        // 所有课程添加成功，返回成功响应
+        return ResultUtil.success("批量添加课程库成功", backAddCourseDTO);
     }
 }
