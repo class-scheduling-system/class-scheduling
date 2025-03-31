@@ -8,7 +8,6 @@ import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.StudentDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
-import com.frontleaves.scheduling.services.BuildingService;
 import com.frontleaves.scheduling.services.StudentService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
@@ -45,7 +44,6 @@ import java.util.regex.Pattern;
 public class StudentController {
 
     private final StudentService studentService;
-    private final BuildingService buildingService;
 
     /**
      * 查看学生
@@ -142,7 +140,7 @@ public class StudentController {
         StudentDisableDTO studentDisableDTO = studentService.disableStudent(studentUuid, disable);
 
         // 根据disable值动态返回不同的信息
-        String message = disable ? "停用学生成功" : "启用学生成功";
+        String message = Boolean.TRUE.equals(disable) ? "停用学生成功" : "启用学生成功";
         return ResultUtil.success(message, studentDisableDTO);
     }
 

@@ -165,7 +165,7 @@ public class TeacherPreferencesController {
             throw new BusinessException("教师UUID和学期UUID不能为空", ErrorCode.PARAMETER_INVALID);
         }
         List<TeacherPreferencesDTO> preferencesList = teacherPreferencesService.getTeacherPreferencesList(teacherUuid, semesterUuid);
-        return ResultUtil.success("获取教师课程偏好列表成功", preferencesList);
+        return ResultUtil.success(StringConstant.OPERATE_SUCCESS, preferencesList);
     }
 
     /**
@@ -189,7 +189,7 @@ public class TeacherPreferencesController {
         }
         TeacherPreferencesDTO preferencesDTO = Optional.ofNullable(teacherPreferencesService.getTeacherPreferencesByUuid(preferenceUuid))
                 .orElseThrow(() -> new BusinessException(StringConstant.TEACHER_PREFERENCES_NOT_EXIST, ErrorCode.NOT_EXIST));
-        return ResultUtil.success("获取教师课程偏好信息成功", preferencesDTO);
+        return ResultUtil.success(StringConstant.OPERATE_SUCCESS, preferencesDTO);
     }
 
     /**
@@ -209,7 +209,7 @@ public class TeacherPreferencesController {
             @RequestBody @Validated TeacherPreferencesVO teacherPreferencesVO
     ) {
         TeacherPreferencesDTO preferencesDTO = teacherPreferencesService.addTeacherPreferences(teacherPreferencesVO);
-        return ResultUtil.success(StringConstant.TEACHER_PREFERENCES_SAVE_FAILED, preferencesDTO);
+        return ResultUtil.success(StringConstant.OPERATE_SUCCESS, preferencesDTO);
     }
 
     /**
@@ -233,7 +233,7 @@ public class TeacherPreferencesController {
             throw new BusinessException(StringConstant.TEACHER_PREFERENCES_UUID_ILLEGAL, ErrorCode.PARAMETER_INVALID);
         }
         TeacherPreferencesDTO preferencesDTO = teacherPreferencesService.editTeacherPreferences(preferenceUuid, teacherPreferencesVO);
-        return ResultUtil.success(StringConstant.TEACHER_PREFERENCES_UPDATE_FAILED, preferencesDTO);
+        return ResultUtil.success(StringConstant.OPERATE_SUCCESS, preferencesDTO);
     }
 
     /**
@@ -255,6 +255,6 @@ public class TeacherPreferencesController {
             throw new BusinessException(StringConstant.TEACHER_PREFERENCES_UUID_ILLEGAL, ErrorCode.PARAMETER_INVALID);
         }
         teacherPreferencesService.deleteTeacherPreferences(preferenceUuid);
-        return ResultUtil.success(StringConstant.TEACHER_PREFERENCES_DELETE_FAILED);
+        return ResultUtil.success(StringConstant.OPERATE_SUCCESS);
     }
 }
