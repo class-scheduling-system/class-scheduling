@@ -1,6 +1,9 @@
 package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
+import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+
+import java.util.List;
 
 /**
  * @author fanfan187
@@ -16,4 +19,11 @@ public interface AdministrativeClassService {
      * @return 班级映射 DTO 对象
      */
     ClassMappingDTO getClassMappingByClazz(String clazz);
+
+    /**
+     * 获取行政班级列表，用于下拉框显示
+     *
+     * @return 行政班级列表
+     */
+    List<AdministrativeClassDO> getAdministrativeClassList();
 }

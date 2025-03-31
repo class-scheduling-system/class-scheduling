@@ -10,6 +10,7 @@ import com.frontleaves.scheduling.models.dto.base.StudentDTO;
 import com.frontleaves.scheduling.models.dto.StudentDisableDTO;
 import com.frontleaves.scheduling.models.entity.StudentDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.multiple.UserAndStudentDO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
@@ -70,6 +71,9 @@ public class StudentLogic implements StudentService {
 
     /**
      * 根据 studentUuid 获取学生信息
+     *
+     * @param studentUuid 学生的唯一标识符，用于在数据库中精确查找学生信息
+     * @return 返回一个 StudentDTO 对象，包含了学生的基本信息
      */
     @Override
     public StudentDTO getStudentByUuid(String studentUuid) {
@@ -77,7 +81,20 @@ public class StudentLogic implements StudentService {
         if (studentDO == null) {
             throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
         }
-        return BeanUtil.toBean(studentDO, StudentDTO.class);
+        StudentDTO studentDTO = BeanUtil.toBean(studentDO, StudentDTO.class);
+
+        // 根据 userUuid 判断学生状态
+        if (studentDTO.getUserUuid() == null || studentDTO.getUserUuid().isBlank()) {
+            studentDTO.setStatus((byte) 0);
+        } else {
+            Byte studentStatus = studentDAO.getUserStatusByUuid(studentDTO.getUserUuid());
+            if (studentStatus != null && studentStatus == 1) {
+                studentDTO.setStatus((byte) 1);
+            } else {
+                studentDTO.setStatus((byte) 2);
+            }
+        }
+        return studentDTO;
     }
 
     /**
@@ -90,15 +107,37 @@ public class StudentLogic implements StudentService {
      * @param isGraduated 可选参数,是否毕业
      * @param name        可选参数,学生姓名
      * @param id          可选参数,学生ID
+     * @param status      可选参数,学生状态
      * @return 返回一个包含学生信息的PageDTO对象
      */
     @Override
     public PageDTO<StudentDTO> getStudentList(int page, int size, Boolean isDesc,
-                                              @Nullable String clazz, @Nullable Boolean isGraduated,
-                                              @Nullable String name, @Nullable String id
-    ) {
+                                              @Nullable String clazz, @Nullable Boolean isGraduated, @Nullable String name, @Nullable String id, @Nullable String status) {
         // 调用DAO层方法获取分页学生数据
-        Page<StudentDO> resultPage = studentDAO.listStudents(page, size, isDesc, clazz, isGraduated, name, id);
+        Page<StudentDO> resultPage;
+
+        if (status == null || status.isBlank()) {
+            resultPage = studentDAO.listStudents(page, size, isDesc, clazz, isGraduated, name, id, null);
+        } else {
+            resultPage = switch (status) {
+                case "0" -> {
+                    List<StudentDO> list = studentDAO.getStudentNoRegisterUserList(page, size, isDesc, clazz, isGraduated, name, id, (byte) 0);
+                    Page<StudentDO> pageObj = new Page<>(page, size, list.size());
+                    pageObj.setRecords(list);
+                    yield pageObj;
+                }
+                case "1", "2" -> {
+                    Byte studentStatus = "1".equals(status) ? (byte) 1 : (byte) 2;
+                    List<UserAndStudentDO> list = studentDAO.getStudentListWithUser(page, size, isDesc, clazz, isGraduated, name, id, String.valueOf(studentStatus));
+                    List<StudentDO> studentList = list.stream().map(UserAndStudentDO::getStudent).toList();
+
+                    Page<StudentDO> pageObj = new Page<>(page, size, list.size());
+                    pageObj.setRecords(studentList);
+                    yield pageObj;
+                }
+                default -> throw new BusinessException("学生状态参数错误", ErrorCode.PARAMETER_ERROR);
+            };
+        }
 
         // 判空处理
         if (resultPage == null || resultPage.getRecords() == null) {
@@ -106,7 +145,20 @@ public class StudentLogic implements StudentService {
         }
 
         // 使用ProjectUtil 中的 convertPageToPageDTO 方法进行抓换
-        return ProjectUtil.convertPageToPageDTO(resultPage, StudentDTO.class);
+        PageDTO<StudentDTO> pageDTO = ProjectUtil.convertPageToPageDTO(resultPage, StudentDTO.class);
+        pageDTO.getRecords().forEach(dto -> {
+            if (dto.getUserUuid() == null) {
+                dto.setStatus((byte) 0);
+            } else {
+                Byte studentStatus = studentDAO.getUserStatusByUuid(dto.getUserUuid());
+                if (studentStatus != null && studentStatus == 1) {
+                    dto.setStatus((byte) 1);
+                } else {
+                    dto.setStatus((byte) 2);
+                }
+            }
+        });
+        return pageDTO;
     }
 
     /**
@@ -130,6 +182,8 @@ public class StudentLogic implements StudentService {
         studentDTO.setGradeUuid(classMapping.getGradeUuid());
         studentDTO.setDepartment(classMapping.getDepartmentUuid());
         studentDTO.setMajor(classMapping.getMajorUuid());
+        studentDTO.setGraduated(false);
+        studentDTO.setStatus((byte) 0);
 
         // DTO -> DO
         StudentDO studentDO = BeanUtil.toBean(studentDTO, StudentDO.class);
@@ -149,9 +203,7 @@ public class StudentLogic implements StudentService {
         }
 
         // DO -> DTO
-        StudentDTO resultDTO = BeanUtil.toBean(studentDO, StudentDTO.class);
-        resultDTO.setStatus(resultDTO.getUserUuid() != null && !resultDTO.getUserUuid().isBlank());
-        return resultDTO;
+        return BeanUtil.toBean(saveStudentDO, StudentDTO.class);
     }
 
     /**

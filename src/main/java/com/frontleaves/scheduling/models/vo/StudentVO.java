@@ -40,4 +40,7 @@ public class StudentVO {
 
     @NotNull(message = "毕业状态不能为空")
     private Boolean graduated;
+
+    @NotNull(message = "学生状态不能为空")
+    private Byte status;
 }
