@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.frontleaves.scheduling.mappers.StudentMapper">
+
+    <!-- 结果映射：关联 student 与 user -->
+    <resultMap id="userAndStudentResultMap" type="com.frontleaves.scheduling.models.entity.multiple.UserAndStudentDO">
+        <!-- User 映射 -->
+        <association property="user" javaType="com.frontleaves.scheduling.models.entity.UserDO">
+            <id property="userUuid" column="user_uuid"/>
+            <result property="name" column="user_name"/>
+            <result property="password" column="password"/>
+            <result property="email" column="user_email"/>
+            <result property="phone" column="user_phone"/>
+            <result property="status" column="status"/>
+            <result property="ban" column="ban"/>
+            <result property="roleUuid" column="role_uuid"/>
+            <result property="permission" column="permission"/>
+            <result property="createdAt" column="user_created_at"/>
+            <result property="updatedAt" column="user_updated_at"/>
+        </association>
+        <!-- Student 映射 -->
+        <association property="student" javaType="com.frontleaves.scheduling.models.entity.StudentDO">
+            <id property="studentUuid" column="student_uuid"/>
+            <result property="id" column="student_id"/>
+            <result property="name" column="student_name"/>
+            <result property="gender" column="gender"/>
+            <result property="gradeUuid" column="grade_uuid"/>
+            <result property="department" column="department"/>
+            <result property="major" column="major"/>
+            <!-- 数据库中班级字段名为 class，此处映射到 StudentDO 的 clazz 属性 -->
+            <result property="clazz" column="clazz"/>
+            <result property="userUuid" column="student_user_uuid"/>
+            <result property="graduated" column="graduated"/>
+            <result property="createdAt" column="student_created_at"/>
+            <result property="updatedAt" column="student_updated_at"/>
+        </association>
+    </resultMap>
+
+    <!-- SQL片段：复用 student 和 user 字段 -->
+    <sql id="studentUserColumns">
+        s.student_uuid,
+        s.id AS student_id,
+        s.name AS student_name,
+        s.gender,
+        s.grade_uuid,
+        s.department,
+        s.major,
+        s.class AS clazz,
+        s.user_uuid AS student_user_uuid,
+        s.is_graduated AS graduated,
+        s.created_at AS student_created_at,
+        s.updated_at AS student_updated_at,
+
+        u.user_uuid,
+        u.name AS user_name,
+        u.password,
+        u.email AS user_email,
+        u.phone AS user_phone,
+        u.status,
+        u.ban,
+        u.role_uuid,
+        u.permission,
+        u.created_at AS user_created_at,
+        u.updated_at AS user_updated_at
+    </sql>
+
+    <!-- 条件查询SQL片段 -->
+    <sql id="whereConditions">
+        <where>
+            <if test="clazz != null and clazz != ''">
+                s.class = #{clazz}
+            </if>
+            <if test="isGraduated != null">
+                AND s.is_graduated = #{isGraduated}
+            </if>
+            <if test="name != null and name != ''">
+                AND s.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="id != null and id != ''">
+                AND s.id LIKE CONCAT('%', #{id}, '%')
+            </if>
+            <if test="status != null">
+                AND u.status = #{status}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 降序查询已注册学生（联表查询）：user_uuid 非空 -->
+    <select id="getStudentAndUserQueryDesc" resultMap="userAndStudentResultMap">
+        SELECT
+        <include refid="studentUserColumns"/>
+        FROM cs_student s
+        LEFT JOIN cs_user u ON s.user_uuid = u.user_uuid
+        <include refid="whereConditions"/>
+        ORDER BY s.student_uuid DESC
+        LIMIT #{page}, #{size}
+    </select>
+
+    <!-- 升序查询已注册学生（联表查询）：user_uuid 非空 -->
+    <select id="getStudentAndUserQueryAsc" resultMap="userAndStudentResultMap">
+        SELECT
+        <include refid="studentUserColumns"/>
+        FROM cs_student s
+        LEFT JOIN cs_user u ON s.user_uuid = u.user_uuid
+        <include refid="whereConditions"/>
+        ORDER BY s.student_uuid
+        LIMIT #{page}, #{size}
+    </select>
+
+    <!-- 查询未注册学生（user_uuid 为 null）降序 -->
+    <select id="getStudentNoRegisterUserQueryDesc" resultType="com.frontleaves.scheduling.models.entity.StudentDO">
+        SELECT
+        s.*,
+        0 AS status
+        FROM cs_student s
+        <where>
+            user_uuid IS NULL
+            <if test="clazz != null and clazz != ''">
+                AND s.class = #{clazz}
+            </if>
+            <if test="isGraduated != null">
+                AND s.is_graduated = #{isGraduated}
+            </if>
+            <if test="name != null and name != ''">
+                AND s.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="id != null and id != ''">
+                AND s.id LIKE CONCAT('%', #{id}, '%')
+            </if>
+        </where>
+        ORDER BY s.student_uuid DESC
+        LIMIT #{page}, #{size}
+    </select>
+
+    <!-- 查询未注册学生（user_uuid 为 null）升序 -->
+    <select id="getStudentNoRegisterUserQueryAsc" resultType="com.frontleaves.scheduling.models.entity.StudentDO">
+        SELECT
+        s.*,
+        0 AS status
+        FROM cs_student s
+        <where>
+            user_uuid IS NULL
+            <if test="clazz != null and clazz != ''">
+                AND s.class = #{clazz}
+            </if>
+            <if test="isGraduated != null">
+                AND s.is_graduated = #{isGraduated}
+            </if>
+            <if test="name != null and name != ''">
+                AND s.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="id != null and id != ''">
+                AND s.id LIKE CONCAT('%', #{id}, '%')
+            </if>
+        </where>
+        ORDER BY s.student_uuid ASC
+        LIMIT #{page}, #{size}
+    </select>
+
+    <!-- 通过 user_uuid 查询用户状态 -->
+    <select id="getUserStatusByUuid" resultType="java.lang.Byte">
+        SELECT status
+        FROM cs_user
+        WHERE user_uuid = #{userUuid}
+        LIMIT 1
+    </select>
+
+</mapper>

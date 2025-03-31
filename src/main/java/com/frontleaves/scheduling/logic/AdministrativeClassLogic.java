@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * @author fanfan187
  * @version v1.0.0
@@ -49,4 +51,24 @@ public class AdministrativeClassLogic implements AdministrativeClassService {
                 .setMajorUuid(administrativeClassDO.getMajorUuid());
     }
 
+    /**
+     * 获取行政班级列表
+     * <p>
+     * 本方法通过调用DAO层的行政班级列表获取方法来获取所有行政班级的信息，并进行非空校验
+     * 如果列表为空，则抛出业务异常，指示行政班级信息不存在
+     * </p>
+     *
+     * @return 行政班级列表，包含所有行政班级的信息
+     * @throws BusinessException 如果行政班级信息不存在，则抛出此异常
+     */
+    @Override
+    public List<AdministrativeClassDO> getAdministrativeClassList() {
+        // 从DAO层获取行政班数据
+        List<AdministrativeClassDO> classList = administrativeClassDAO.getAdministrativeClassList();
+        // 判断对应班级信息是否存在
+        if (classList == null) {
+            throw new BusinessException("行政班级信息不存在", ErrorCode.NOT_EXIST);
+        }
+        return classList;
+    }
 }
