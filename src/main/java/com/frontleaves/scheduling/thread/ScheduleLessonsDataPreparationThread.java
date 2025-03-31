@@ -84,6 +84,9 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     private DepartmentService departmentService;
     @Resource
     private RedissonClient redisson;
+    @Resource
+    AutomaticClassSchedulingThread automaticThread;
+
     private final ReentrantLock lock = new ReentrantLock();
     private HttpServletRequest request;
     private final Condition condition = lock.newCondition();
@@ -258,8 +261,9 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
                 cacheBaseData.set(automaticClassSchedulingBaseDTO);
 
-                AutomaticClassSchedulingThread automaticThread = new AutomaticClassSchedulingThread();
                 automaticThread.startUp(userDO);
+
+                hasTask = false;
 
             } catch (Exception e) {
                 Thread.currentThread().interrupt();

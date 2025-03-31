@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.thread;
 
+import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
@@ -32,17 +33,26 @@ public class AutomaticClassSchedulingThread extends Thread {
 
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition condition = lock.newCondition();
-    private boolean running = false;
+    private boolean hasTask = false;
 
     private UserDO user;
+
+    public AutomaticClassSchedulingThread(String name) {
+        super(name);
+    }
 
     @Override
     public void run() {
         log.info("自动排课线程启动，等待任务...");
 
-        while (running) {
+        while (true) {
             lock.lock();
             try {
+                while (!hasTask) {
+                    log.info(LogConstant.THREAD + "线程进入等待状态");
+                    condition.await();
+                }
+
                 // 从Redis获取排课基础数据
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheData =
                         redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
@@ -69,7 +79,7 @@ public class AutomaticClassSchedulingThread extends Thread {
                 rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_EXECUTE_PROGRESS + user.getUserUuid());
 
                 log.info("排课完成，适应度：{}", result.getFitness());
-                running = false;
+                hasTask = false;
 
             } catch (Exception e) {
                 log.error("排课过程发生错误：", e);
@@ -87,10 +97,11 @@ public class AutomaticClassSchedulingThread extends Thread {
      * 启动排课任务
      */
     public void startUp(UserDO user) {
-        this.user = user;
+        lock.lock();
         try {
+            this.user = user;
             condition.signal();
-            running = true;
+            hasTask = true;
             log.info("已通知线程执行排课任务");
         } finally {
             lock.unlock();

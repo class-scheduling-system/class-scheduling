@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.configs.threads;
 
+import com.frontleaves.scheduling.thread.AutomaticClassSchedulingThread;
 import com.frontleaves.scheduling.thread.ScheduleLessonsDataPreparationThread;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,6 +54,13 @@ public class ExecutionThreadConfig {
     @Bean
     public ScheduleLessonsDataPreparationThread scheduleLessonsDataPreparationThread() {
         ScheduleLessonsDataPreparationThread thread = new ScheduleLessonsDataPreparationThread("自动排课数据准备");
+        thread.start();
+        return thread;
+    }
+
+    @Bean
+    public AutomaticClassSchedulingThread automaticClassSchedulingThread() {
+        AutomaticClassSchedulingThread thread = new AutomaticClassSchedulingThread("自动排课线程");
         thread.start();
         return thread;
     }
