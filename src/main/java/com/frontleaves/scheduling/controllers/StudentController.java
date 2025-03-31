@@ -6,7 +6,6 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
-import com.frontleaves.scheduling.services.BuildingService;
 import com.frontleaves.scheduling.services.StudentService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
@@ -43,7 +42,6 @@ import java.util.regex.Pattern;
 public class StudentController {
 
     private final StudentService studentService;
-    private final BuildingService buildingService;
 
     /**
      * 查看学生
