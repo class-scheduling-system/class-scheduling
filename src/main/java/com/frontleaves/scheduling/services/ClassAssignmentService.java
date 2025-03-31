@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
 import org.springframework.stereotype.Service;
 

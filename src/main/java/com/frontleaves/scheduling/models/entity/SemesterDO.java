@@ -1,6 +1,5 @@
 package com.frontleaves.scheduling.models.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -29,6 +28,12 @@ public class SemesterDO {
      */
     @TableId(value = "semester_uuid", type = IdType.ASSIGN_UUID)
     private String semesterUuid;
+
+    /**
+     * 学期名称
+     */
+    @TableField("name")
+    private String name;
 
     /**
      * 学期描述

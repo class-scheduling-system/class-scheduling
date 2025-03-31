@@ -31,13 +31,15 @@ package com.frontleaves.scheduling.models.dto.base;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.sql.Date;
 import java.sql.Timestamp;
-
+import java.util.Date;
 
 /**
- * 学期DTO
- * @author FLASHLACK
+ * 学期数据传输对象
+ *
+ * @author xiaolfeng
+ * @version v1.0.0
+ * @since v1.0.0
  */
 @Data
 @Accessors(chain = true)
@@ -80,13 +82,10 @@ public class SemesterDTO {
     /**
      * 创建时间
      */
-
     private Timestamp createdAt;
 
     /**
      * 更新时间
      */
-
     private Timestamp updatedAt;
-
 }
