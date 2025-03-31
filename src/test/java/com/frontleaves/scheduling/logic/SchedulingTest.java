@@ -104,12 +104,7 @@ class SchedulingTest {
                 true,
                 true
         );
-        AutomaticClassSchedulingVO.AlgorithmParams algorithmParams = new AutomaticClassSchedulingVO.AlgorithmParams(
-                50,
-                100,
-                0.7,
-                0.3
-        );
+
         AutomaticClassSchedulingVO.PrioritySettings.CourseTypePriority courseTypePriority = new AutomaticClassSchedulingVO.PrioritySettings.CourseTypePriority(
                 setUpCourseType.getCourseTypeUuid(),
                 (short) 1
@@ -143,7 +138,6 @@ class SchedulingTest {
                 StrategyEnum.OPTIMAL,
                 16,
                 constraints,
-                algorithmParams,
                 prioritySettings,
                 timePreferences,
                 scopeSettings

@@ -65,7 +65,6 @@ public class AutomaticClassSchedulingVO {
      * 排课策略，可选: optimal(最优), balanced(平衡), quick(快速)
      * 将根据策略自动设置算法参数
      */
-    @NotNull(message = "排课策略不能为空")
     private StrategyEnum strategy;
     /**
      * 结束周

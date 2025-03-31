@@ -61,7 +61,8 @@ public class SchedulingController {
         for (SpecificCourseIdVO course :
                 automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds()
         ) {
-            if ((course.getClassId() != null && course.getClassId().isEmpty())  && course.getNumber() == null) {
+            if ((course.getClassId() == null && course.getNumber() == null) || (
+                    course.getClassId() != null && course.getClassId().isEmpty() && course.getNumber() == null)) {
                 throw new BusinessException("班级或者人数选择为空", ErrorCode.BODY_ERROR);
             }
         }

@@ -46,6 +46,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,6 +64,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author FLASHLACK
  */
 @Slf4j
+@Component
 public class ScheduleLessonsDataPreparationThread extends Thread {
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition condition = lock.newCondition();
@@ -96,11 +98,14 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         while (running) {
             lock.lock();
             try {
-
+                log.debug("线程已获取锁，准备执行任务");
+                log.debug("获取到的自动排课请求数据: {}", automaticClassSchedulingVO);
+                log.debug("获取用户信息: {}", request);
                 // 根据请求获取用户信息
                 UserDO userDO = userService.getUserByRequest(request);
                 assert userDO != null;
                 // 检查用户所属部门与所填写部门是否一致
+                log.debug("检查用户所属部门与所填写部门是否一致");
                 AcademicAffairsPermissionDTO academicAffairsPermissionDTO =
                         academicAffairsPermissionService.getAcademicAffairsPermission(userDO.getUserUuid());
                 assert academicAffairsPermissionDTO != null;
@@ -108,15 +113,19 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     throw new BusinessException("用户所属部门与所填写部门不一致", ErrorCode.BODY_ERROR);
                 }
                 //检查学期是否存在并且是否启用
+                log.debug("检查学期是否存在并且是否启用");
                 SemesterDTO semesterDTO =
                         semesterService.getSemesterByUuidCheckEnabled(automaticClassSchedulingVO.getSemesterUuid());
                 assert semesterDTO != null;
                 //检查结束周是否超过学期周
+                log.debug("检查结束周是否超过学期周");
                 SchedulingLogic.checkEndWeekExceedSemesterWeeks(automaticClassSchedulingVO.getEndWeek(), semesterDTO);
                 // 使用 Map 存储课程类型优先级，以 courseTypeUuid 为键
+                log.debug("使用 Map 存储课程类型优先级，以 courseTypeUuid 为键");
                 Map<String, CourseTypePriorityDTO> courseTypePriorityMap = new HashMap<>();
                 // 获取优先级并填充到 Map 中
                 //检查优先级是否存在
+                log.debug("检查优先级是否存在");
                 if (automaticClassSchedulingVO.getPrioritySettings().getCourseTypes().isEmpty()) {
                     //全部设为5
                     for (CourseTypeDTO courseTypeDTO : courseTypeService.listCourseType()) {
@@ -139,16 +148,19 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                         courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
                     }
                 }
+                log.debug("获取课程库和学生班级");
                 //获取课程库和学生班级
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList = courseLibraryService.getCourseListAndClassDTO(
                         automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds()
                 );
                 //获取老师所有数据
+                log.debug("获取老师所有数据");
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList = teacherCourseQualificationService
                         .getCourseLibraryAndTeacherCourseQualificationList(
                                 libraryAndClassDTOList, automaticClassSchedulingVO.getConstraints().getTeacherPreference()
                         );
                 assert courseQualificationList != null;
+                log.debug("设置课程优先级");
                 for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
                     //设置优先级
                     CourseLibraryDTO courseLibraryDTO = dto.getCourse();
@@ -166,17 +178,20 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     }
                 }
                 //获取教室数据
+                log.debug("获取教室数据");
                 List<ClassroomAndTypeDTO> classroomAndTypeDTOList = new ArrayList<>();
                 for (String buildingUuid : automaticClassSchedulingVO.getScopeSettings().getAllowedBuildingIds()) {
                     classroomAndTypeDTOList.addAll(classroomService.getClassroomAndTypeByUuidWihError(buildingUuid));
                 }
                 //获取部门DTO
+                log.debug("获取部门DTO");
                 DepartmentDTO departmentDTO = departmentService.
                         getDepartmentByUuid(automaticClassSchedulingVO.getDepartmentUuid());
                 if (departmentDTO == null) {
                     throw new BusinessException("部门不存在", ErrorCode.BODY_ERROR);
                 }
                 //创建返回结果
+                log.debug("创建返回结果");
                 AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO = new AutomaticClassSchedulingBaseDTO();
                 //设置学期、部门、策略、结束周、课程和教师列表、教室和类型
                 automaticClassSchedulingBaseDTO.setSemester(semesterDTO)

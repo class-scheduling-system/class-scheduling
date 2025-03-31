@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class SchedulingLogic implements SchedulingService {
+    private final ScheduleLessonsDataPreparationThread scheduleLessonsDataPreparationThread;
 
     /**
      * 检查结束周是否超过学期周
@@ -49,7 +50,6 @@ public class SchedulingLogic implements SchedulingService {
             @NotNull AutomaticClassSchedulingVO automaticClassSchedulingVO,
             HttpServletRequest request
     ) {
-        ScheduleLessonsDataPreparationThread scheduleLessonsDataPreparationThread = new ScheduleLessonsDataPreparationThread();
         scheduleLessonsDataPreparationThread.startUp(automaticClassSchedulingVO, request);
     }
 }
