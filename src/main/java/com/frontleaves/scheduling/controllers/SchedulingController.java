@@ -33,6 +33,12 @@ public class SchedulingController {
 
     private final SchedulingService schedulingService;
 
+    /**
+     * 自动排课
+     * @param automaticClassSchedulingVO 自动排课请求对象，包含排课所需的各种设置和参数
+     * @param request HTTP请求对象，用于获取当前用户信息
+     * @return ResponseEntity<BaseResponse<Void>> 返回排课结果
+     */
 
     @RequestRole("教务")
     @PostMapping("/auto")

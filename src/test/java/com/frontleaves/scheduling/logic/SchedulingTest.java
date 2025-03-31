@@ -7,6 +7,7 @@ import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.SchedulingService;
+import enums.StrategyEnum;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -139,7 +140,7 @@ class SchedulingTest {
         AutomaticClassSchedulingVO vo = new AutomaticClassSchedulingVO(
                 setUpSemester.getSemesterUuid(),
                 setUpDepartment.getDepartmentUuid(),
-                "optimal",
+                StrategyEnum.OPTIMAL,
                 16,
                 constraints,
                 algorithmParams,
