@@ -159,6 +159,14 @@ public class StringConstant {
         public static final String UNIT_TYPE_PAGE_OF_LIST = "unit:type:page:";
         public static final String UNIT_CATEGORY_LIST = "unit:cate:list";
         public static final String UNIT_CATEGORY_PAGE = "unit:cate:page:";
+        public static final String CLASS_ASSIGNMENT_UUID = "class:assignment:uuid:";
+        public static final String CLASS_ASSIGNMENT_LIST = "class:assignment:list:";
+        public static final String CLASS_ASSIGNMENT_PAGE = "class:assignment:page:";
+        public static final String SEMESTER_UUID = "semester:uuid:";
+        public static final String SEMESTER_ENABLED = "semester:enabled:";
+        public static final String COURSE_LIBRARY_UUID = "course:library:uuid:";
+        public static final String SEMESTER_LIST = "semester:list";
+        public static final String SEMESTER_PAGE = "semester:page:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
