@@ -11,6 +11,7 @@ import java.sql.Timestamp;
 
 /**
  * 课程库表的 DO 对象
+ * @author qiyu
  */
 @Data
 @TableName("cs_course_library")

@@ -148,15 +148,12 @@ public class LogAspect extends BusinessLogAspect {
 
         // 获取用户信息
         String token = request.getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer")) {
+        if (token != null && token.startsWith("Bearer ")) {
             try {
                 UserDO getUser = userService.getUserByRequest(request);
-                if (getUser != null) {
-                    requestLog.setUserUuid(getUser.getUserUuid());
-                }
-            } catch (Exception ignored) {
-                log.error("用户信息不存在");
-            }
+                assert getUser != null;
+                requestLog.setUserUuid(getUser.getUserUuid());
+            } catch (Exception ignored) {}
         }
 
         // 记录请求参数

@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -26,34 +26,35 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.mappers;
+package com.frontleaves.scheduling.models.dto;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.StudentDO;
-import com.frontleaves.scheduling.models.entity.multiple.UserAndStudentDO;
-import org.apache.ibatis.annotations.Mapper;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Data;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 /**
- * 学生Mapper
- * @author FLASHLACK
+ * 桌椅类型简化版数据传输对象
+ *
+ * @author xiao_lfeng
+ * @version v1.0.0
  */
-@Mapper
-public interface StudentMapper extends BaseMapper<StudentDO> {
+@Data
+public class TablesChairsTypeLiteDTO {
 
-    // 连表查询:查询已注册学生并根据cs_user.status筛选,降序排序
-    List<UserAndStudentDO> getStudentAndUserQueryDesc(String clazz, Byte status, String name, Integer page, Integer size, Boolean isGraduated, String id);
+    /**
+     * 桌椅类型UUID
+     */
+    private String uuid;
 
-    // 升序排序
-    List<UserAndStudentDO> getStudentAndUserQueryAsc(String clazz, Byte status, String name, Integer page, Integer size, Boolean isGraduated, String id);
+    /**
+     * 桌椅类型名称
+     */
+    private String name;
 
-    // 查询未注册学生,降序排序
-    List<StudentDO> getStudentNoRegisterUserQueryDesc(String clazz, Byte status, String name, Integer page, Integer size, Boolean isGraduated, String id);
-
-    // 升序排序
-    List<StudentDO> getStudentNoRegisterUserQueryAsc(String clazz, Byte status, String name, Integer page, Integer size, Boolean isGraduated, String id);
-
-    // 根据 user_uuid 查询对应用户状态
-    Byte getUserStatusByUuid(String userUuid);
+    /**
+     * 创建时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createdAt;
 }

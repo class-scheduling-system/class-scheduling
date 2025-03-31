@@ -46,6 +46,7 @@ import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -165,7 +166,7 @@ public class TeacherPreferencesController {
             throw new BusinessException("教师UUID和学期UUID不能为空", ErrorCode.PARAMETER_INVALID);
         }
         List<TeacherPreferencesDTO> preferencesList = teacherPreferencesService.getTeacherPreferencesList(teacherUuid, semesterUuid);
-        return ResultUtil.success("获取教师课程偏好列表成功", preferencesList);
+        return ResultUtil.success(StringConstant.OPERATE_SUCCESS, preferencesList);
     }
 
     /**
@@ -189,7 +190,7 @@ public class TeacherPreferencesController {
         }
         TeacherPreferencesDTO preferencesDTO = Optional.ofNullable(teacherPreferencesService.getTeacherPreferencesByUuid(preferenceUuid))
                 .orElseThrow(() -> new BusinessException(StringConstant.TEACHER_PREFERENCES_NOT_EXIST, ErrorCode.NOT_EXIST));
-        return ResultUtil.success("获取教师课程偏好信息成功", preferencesDTO);
+        return ResultUtil.success(StringConstant.OPERATE_SUCCESS, preferencesDTO);
     }
 
     /**
@@ -209,7 +210,7 @@ public class TeacherPreferencesController {
             @RequestBody @Validated TeacherPreferencesVO teacherPreferencesVO
     ) {
         TeacherPreferencesDTO preferencesDTO = teacherPreferencesService.addTeacherPreferences(teacherPreferencesVO);
-        return ResultUtil.success(StringConstant.TEACHER_PREFERENCES_SAVE_FAILED, preferencesDTO);
+        return ResultUtil.success(StringConstant.OPERATE_SUCCESS, preferencesDTO);
     }
 
     /**
@@ -226,14 +227,15 @@ public class TeacherPreferencesController {
     @RequestRole({"教师"})
     @PutMapping("/{preference_uuid}")
     public ResponseEntity<BaseResponse<TeacherPreferencesDTO>> editTeacherPreferences(
-            @PathVariable("preference_uuid") String preferenceUuid,
-            @RequestBody @Validated TeacherPreferencesVO teacherPreferencesVO
+            @NotNull @PathVariable("preference_uuid") String preferenceUuid,
+            @NotNull @RequestBody @Validated TeacherPreferencesVO teacherPreferencesVO,
+            @NotNull HttpServletRequest request
     ) {
         if (!preferenceUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException(StringConstant.TEACHER_PREFERENCES_UUID_ILLEGAL, ErrorCode.PARAMETER_INVALID);
         }
-        TeacherPreferencesDTO preferencesDTO = teacherPreferencesService.editTeacherPreferences(preferenceUuid, teacherPreferencesVO);
-        return ResultUtil.success(StringConstant.TEACHER_PREFERENCES_UPDATE_FAILED, preferencesDTO);
+        TeacherPreferencesDTO preferencesDTO = teacherPreferencesService.editTeacherPreferences(preferenceUuid, teacherPreferencesVO, request);
+        return ResultUtil.success(StringConstant.OPERATE_SUCCESS, preferencesDTO);
     }
 
     /**
@@ -249,12 +251,13 @@ public class TeacherPreferencesController {
     @RequestRole({"教师"})
     @DeleteMapping("/{preference_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteTeacherPreferences(
-            @PathVariable("preference_uuid") String preferenceUuid
+            @NotNull @PathVariable("preference_uuid") String preferenceUuid,
+            @NotNull HttpServletRequest request
     ) {
         if (!preferenceUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException(StringConstant.TEACHER_PREFERENCES_UUID_ILLEGAL, ErrorCode.PARAMETER_INVALID);
         }
-        teacherPreferencesService.deleteTeacherPreferences(preferenceUuid);
-        return ResultUtil.success(StringConstant.TEACHER_PREFERENCES_DELETE_FAILED);
+        teacherPreferencesService.deleteTeacherPreferences(preferenceUuid, request);
+        return ResultUtil.success(StringConstant.OPERATE_SUCCESS);
     }
 }
