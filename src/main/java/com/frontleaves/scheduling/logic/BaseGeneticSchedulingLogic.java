@@ -994,7 +994,6 @@ class BaseGeneticSchedulingLogic {
     Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> selectClassroomsForCourse(
             @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList,
             @Nonnull List<ClassroomAndTypeDTO> classrooms) {
-
         CourseLibraryDTO course = courseQualificationList.getCourse();
         List<AdministrativeClassDTO> classList = courseQualificationList.getClassList();
         String courseType = getCourseType(course);
@@ -1008,7 +1007,6 @@ class BaseGeneticSchedulingLogic {
         } else {
             allocateClassesByMajor(classList, remainingClassrooms, allocationMap, courseType);
         }
-
         return allocationMap;
     }
     /**
