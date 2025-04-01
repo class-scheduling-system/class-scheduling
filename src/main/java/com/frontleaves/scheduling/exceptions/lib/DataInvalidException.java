@@ -72,7 +72,8 @@ public class DataInvalidException extends RuntimeException {
     public enum TypeEnum {
         GENDER_ERROR("Gender", "性别填写错误"),
         NAME_EMPTY_ERROR("Name", "姓名不能为空"),
-        STUDENT_ID_EMPTY_ERROR("Student", "学号不能为空");
+        STUDENT_ID_EMPTY_ERROR("Student", "学号不能为空"),
+        TEACHER_ID_EMPTY_ERROR("Teacher", "工号不能为空");
 
         private final String type;
         private final String reason;
