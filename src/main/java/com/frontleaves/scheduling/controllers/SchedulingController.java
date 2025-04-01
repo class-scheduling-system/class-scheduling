@@ -42,21 +42,13 @@ public class SchedulingController {
     @Resource
     private SchedulingService schedulingService;
     @Resource
-    private SemesterDAO semesterDAO;
-    @Resource
     private DepartmentDAO departmentDAO;
     @Resource
     private UserDAO userDAO;
     @Resource
-    private CourseTypeDAO courseTypeDAO;
-    @Resource
     private CourseLibraryDAO courseLibraryDAO;
     @Resource
-    private ClassroomDAO classroomDAO;
-    @Resource
     private AcademicAffairsPermissionDAO academicAffairsPermissionDAO;
-    @Resource
-    private TokenDAO tokenDAO;
     @Resource
     private TeacherCourseQualificationDAO teacherCourseQualificationDAO;
 
@@ -104,17 +96,27 @@ public class SchedulingController {
             @RequestBody @Valid AutomaticClassSchedulingVO automaticClassSchedulingVO,
             HttpServletRequest request
     ) {
-        //检查结束周是否大于等于1
-        if (automaticClassSchedulingVO.getEndWeek() < 1) {
-            throw new BusinessException("排课结束周必须大于等于1", ErrorCode.BODY_ERROR);
-        }
-        //检查晚间排课约束是否为空
-        Optional.ofNullable(automaticClassSchedulingVO.getTimePreferences().getPreferredTimeSlots())
-                .orElseThrow(() -> new BusinessException("晚间排课约束为空数据", ErrorCode.BODY_ERROR));
+        Optional.ofNullable(automaticClassSchedulingVO)
+                .map(AutomaticClassSchedulingVO::getTimePreferences)
+                .map(AutomaticClassSchedulingVO.TimePreferences::getPreferredTimeSlots)
+                .filter(slots -> !slots.isEmpty())
+                .orElseThrow(() -> new BusinessException("晚间排课约束不能为空", ErrorCode.BODY_ERROR))
+                .stream()
+                .filter(slot -> slot.getPeriodStart() > slot.getPeriodEnd())
+                .findFirst()
+                .ifPresent(badSlot -> {
+                    throw new BusinessException(
+                            String.format("时段校验失败：第%d天 %d-%d节 结束节次应大于开始节次",
+                                    badSlot.getDay(),
+                                    badSlot.getPeriodStart(),
+                                    badSlot.getPeriodEnd()),
+                            ErrorCode.BODY_ERROR
+                    );
+                });
         //检查课程ID列表是否为空
         Optional.ofNullable(automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds())
                 .filter(data -> !data.isEmpty())
-                .orElseThrow(() -> new BusinessException("课程ID列表不能为空", ErrorCode.BODY_ERROR));
+                .orElseThrow(() -> new BusinessException("课程ID列表为空", ErrorCode.BODY_ERROR));
         // 检查 classID 和 number 是否同时为空
         for (SpecificCourseIdVO course :
                 automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds()
@@ -123,6 +125,17 @@ public class SchedulingController {
                     course.getClassId() != null && course.getClassId().isEmpty() && course.getNumber() == null)) {
                 throw new BusinessException("班级或者人数选择为空", ErrorCode.BODY_ERROR);
             }
+            // 检查课程周数是否在范围内
+            Optional.ofNullable(course.getWeeklyHours())
+                    .filter(h -> h == 1.5 && course.getIsOddWeek() == null)
+                    .ifPresent(h -> {
+                        throw new BusinessException("每周1.5节课未指定是否为单双周", ErrorCode.BODY_ERROR);
+                    });
+            Optional.ofNullable(course.getWeeklyHours())
+                    .filter(h -> h == 0.5 && course.getIsFirstHalf() == null)
+                    .ifPresent(h -> {
+                        throw new BusinessException("每周0.5节课未指定是否为双周一节课还是一周单节课", ErrorCode.BODY_ERROR);
+                    });
         }
         // 准备数据并排课
         schedulingService.getAutoClassSchedulingBaseDTO(automaticClassSchedulingVO, request);

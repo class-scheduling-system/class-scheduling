@@ -67,12 +67,6 @@ public class AutomaticClassSchedulingVO {
      */
     private StrategyEnum strategy;
     /**
-     * 结束周
-     */
-    @NotNull(message = "排课结束周不能为空")
-    @Min(value = 1, message = "排课结束周必须大于等于 1")
-    private Integer endWeek;
-    /**
      * 排课约束
      */
     @NotNull(message = "排课约束不能为空")
@@ -178,8 +172,6 @@ public class AutomaticClassSchedulingVO {
              * 星期几（1-7，1表示周一）
              */
             @NotNull(message = "星期几不能为空")
-            @Min(value = 1, message = "星期几必须大于等于 1")
-            @Max(value = 7, message = "星期几必须小于等于 7")
             private Short day;
             /**
              * 开始节次

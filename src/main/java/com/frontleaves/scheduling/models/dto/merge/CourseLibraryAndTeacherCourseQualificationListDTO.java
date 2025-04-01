@@ -31,9 +31,11 @@ package com.frontleaves.scheduling.models.dto.merge;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
+import enums.CourseEnuType;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -47,7 +49,6 @@ import java.util.List;
 @Data
 @Accessors(chain = true)
 public class CourseLibraryAndTeacherCourseQualificationListDTO {
-
     /**
      * 课程库
      */
@@ -64,6 +65,34 @@ public class CourseLibraryAndTeacherCourseQualificationListDTO {
      * 对应教师课程资格
      */
     private List<TeacherCoursePreferencesDTO> teacherList;
+    /**
+     * 课程周数,最大为4.00，最低为0.50
+     */
+    private Double weeklyHours;
+    /**
+     * 课程枚举类型
+     */
+    private CourseEnuType courseEnuType;
+    /**
+     * true=单周上课，false=双周上课 (仅当weeklyHours为1.5时生效)
+     */
+    private Boolean isOddWeek;
+    /**
+     * true=上半节，false=下半节（仅当weeklyHours为0.5时生效）
+     */
+    private Boolean isFirstHalf;
+    /**
+     * 课程开始周
+     */
+    private Integer startWeek;
+    /**
+     * 课程结束周
+     */
+    private Integer endWeek;
+    /**
+     * 课程课时(预期课时)
+     */
+    private BigDecimal expectedTotalHours;
     /**
      * 课程优先级
      */

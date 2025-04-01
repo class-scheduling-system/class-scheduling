@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
+import java.util.Calendar;
+
 /**
  * 调度逻辑
  *
@@ -31,11 +33,17 @@ public class SchedulingLogic implements SchedulingService {
      * @throws BusinessException 当结束周超过学期周时抛出异常
      */
     public static void checkEndWeekExceedSemesterWeeks(Integer endWeek, @NotNull SemesterDTO semesterDTO) {
+        if (semesterDTO.getEndDate() == null) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(semesterDTO.getStartDate());
+            calendar.add(Calendar.WEEK_OF_YEAR, 31);
+            semesterDTO.setEndDate(calendar.getTime());
+        }
         // 计算学期总周数
         long totalWeeks = (semesterDTO.getEndDate().getTime() - semesterDTO.getStartDate().getTime())
                 / (7 * 24 * 60 * 60 * 1000) + 1;
         if (endWeek > totalWeeks) {
-            throw new BusinessException("结束周超过学期总周数", ErrorCode.BODY_ERROR);
+            throw new BusinessException("开始周或者结束周超过学期总周数", ErrorCode.BODY_ERROR);
         }
     }
 

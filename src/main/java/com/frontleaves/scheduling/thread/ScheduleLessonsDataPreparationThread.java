@@ -49,6 +49,7 @@ import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -111,9 +112,6 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 log.debug(LogConstant.THREAD + "线程已获取锁，准备执行任务");
                 log.debug(LogConstant.THREAD + "获取到的自动排课请求数据: {}", classSchedulingVO);
                 log.debug(LogConstant.THREAD + "获取用户信息: {}", request);
-                for (SpecificCourseIdVO courseIdVO : classSchedulingVO.getScopeSettings().getSpecificCourseIds()) {
-                    log.debug("指定课程人数: {}", courseIdVO.getNumber());
-                }
                 // 根据请求获取用户信息
                 UserDO userDO = userService.getUserByRequest(request);
                 assert userDO != null;
@@ -132,11 +130,13 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 assert semesterDTO != null;
                 //检查结束周是否超过学期周
                 log.debug(LogConstant.THREAD + "检查结束周是否超过学期周");
-                SchedulingLogic.checkEndWeekExceedSemesterWeeks(classSchedulingVO.getEndWeek(), semesterDTO);
+                for (SpecificCourseIdVO specificCourseIdVO : classSchedulingVO.getScopeSettings().getSpecificCourseIds()) {
+                    SchedulingLogic.checkEndWeekExceedSemesterWeeks(specificCourseIdVO.getStartWeek(), semesterDTO);
+                    SchedulingLogic.checkEndWeekExceedSemesterWeeks(specificCourseIdVO.getEndWeek(), semesterDTO);
+                }
                 // 使用 Map 存储课程类型优先级，以 courseTypeUuid 为键
                 log.debug(LogConstant.THREAD + "使用 Map 存储课程类型优先级，以 courseTypeUuid 为键");
                 Map<String, CourseTypePriorityDTO> courseTypePriorityMap = new HashMap<>();
-                // 获取优先级并填充到 Map 中
                 //检查优先级是否存在
                 log.debug(LogConstant.THREAD + "检查优先级是否存在");
                 if (classSchedulingVO.getPrioritySettings().getCourseTypes().isEmpty()) {
@@ -168,9 +168,42 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                                 classSchedulingVO.getScopeSettings().getSpecificCourseIds(),
                                 classSchedulingVO.getDepartmentUuid()
                         );
-                // 遍历并打印日志
-                for (CourseLibraryAndTeacherCourseQualificationListDTO dto : libraryAndClassDTOList) {
-                    log.debug("人数,{}", dto.getNumber());
+                //检查课程学分是否能够修满
+                for (SpecificCourseIdVO specificCourseIdVO
+                        : classSchedulingVO.getScopeSettings().getSpecificCourseIds()) {
+                    CourseLibraryAndTeacherCourseQualificationListDTO qualificationList =
+                            libraryAndClassDTOList.stream()
+                                    .filter(dto -> dto.getCourse().getCourseLibraryUuid()
+                                            .equals(specificCourseIdVO.getCourseId()))
+                                    .findFirst()
+                                    .orElseThrow(() -> new BusinessException("课程不存在", ErrorCode.BODY_ERROR));
+                    CourseLibraryDTO courseLibraryDTO = qualificationList.getCourse();
+                    // 根据课程类型选择对应的学分
+                    BigDecimal selectedCredit = switch (specificCourseIdVO.getCourseEnuType()) {
+                        case THEORY -> courseLibraryDTO.getTheoryHours();
+                        case PRACTICE -> courseLibraryDTO.getPracticeHours();
+                        case COMPUTER -> courseLibraryDTO.getComputerHours();
+                        case MIXED -> courseLibraryDTO.getCredit();
+                        case OTHER -> courseLibraryDTO.getOtherHours();
+                    };
+                    // 计算课程的持续周数
+                    int durationWeeks = specificCourseIdVO.getEndWeek() - specificCourseIdVO.getStartWeek() + 1;
+                    // 计算课程的总课时（课程周数 * 每周课时）
+                    BigDecimal expectedTotalHours = BigDecimal.valueOf(durationWeeks)
+                            .multiply(BigDecimal.valueOf(specificCourseIdVO.getWeeklyHours()));
+                    // 课程学分不足时抛出异常
+                    if (expectedTotalHours.compareTo(selectedCredit) > 0) {
+                        throw new BusinessException("课程类型 [" + specificCourseIdVO.getCourseEnuType().getChineseName() +
+                                "] 课时超出限制: 计划课时 " + expectedTotalHours + " > 限制课时 " + selectedCredit,
+                                ErrorCode.BODY_ERROR);
+                    }
+                    // 存入课程库,一些必要信息
+                    qualificationList.setCourseEnuType(specificCourseIdVO.getCourseEnuType())
+                            .setWeeklyHours(specificCourseIdVO.getWeeklyHours())
+                            .setIsOddWeek(specificCourseIdVO.getIsOddWeek())
+                            .setIsFirstHalf(specificCourseIdVO.getIsFirstHalf())
+                            .setStartWeek(specificCourseIdVO.getStartWeek())
+                            .setEndWeek(specificCourseIdVO.getEndWeek());
                 }
                 //获取老师所有数据
                 log.debug(LogConstant.THREAD + "获取老师所有数据");
@@ -216,7 +249,6 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 automaticClassSchedulingBaseDTO.setSemester(semesterDTO)
                         .setDepartment(departmentDTO)
                         .setStrategy(classSchedulingVO.getStrategy())
-                        .setEndWeek(classSchedulingVO.getEndWeek())
                         .setCourseList(courseQualificationList)
                         .setClassroomList(classroomAndTypeDTOList);
                 //设置约束

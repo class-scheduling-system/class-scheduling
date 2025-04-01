@@ -30,6 +30,10 @@ public enum CourseEnuType {
      */
     COMPUTER("computer", "上机课"),
     /**
+     * 混排课程（理论+实践混合）
+     */
+    MIXED("mixed", "混排课程"),
+    /**
      * 其他类型课程
      */
     OTHER("other", "其他类型");

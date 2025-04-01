@@ -1,6 +1,9 @@
 package com.frontleaves.scheduling.models.vo;
 
 import enums.CourseEnuType;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -35,6 +38,8 @@ public class SpecificCourseIdVO {
     /**
      * 课程周数,最大为4.00，最低为0.50
      */
+    @DecimalMin(value = "0.50", message = "每周课时最小为0.5")
+    @DecimalMax(value = "4.00", message = "每周课时最大为4.0")
     private Double weeklyHours;
     /**
      * 课程枚举类型
@@ -51,9 +56,11 @@ public class SpecificCourseIdVO {
     /**
      * 课程开始周
      */
+    @Min(value = 1, message = "开始周最小为1")
     private Integer startWeek;
     /**
      * 课程结束周
      */
+    @Min(value = 1, message = "开始周最小为1")
     private Integer endWeek;
 }
