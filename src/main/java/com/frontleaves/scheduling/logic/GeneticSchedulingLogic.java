@@ -107,7 +107,7 @@ public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implement
 
             // 构建结果
             if (bestSchedule != null) {
-                log.debug("最有排课方案: {}", bestSchedule);
+                log.debug("最终排课方案: {}", bestSchedule);
                 List<SchedulingConflictDTO> conflicts = findConflicts(bestSchedule);
                 ScheduleResultDTO.ResourceUtilization utilization = calculateResourceUtilization(bestSchedule);
                 List<ScheduleResultDTO.ClassAssignmentDTO> assignments = convertScheduleToAssignments(bestSchedule);

@@ -130,6 +130,25 @@ public class CourseLibraryDTO {
      * 学分
      */
     private BigDecimal credit;
+    /**
+     * 理论课教室类型
+     */
+    private String theoryClassroomType;
+
+    /**
+     * 实验课教室类型
+     */
+    private String experimentClassroomType;
+
+    /**
+     * 实践课教室类型
+     */
+    private String practiceClassroomType;
+
+    /**
+     * 上机课教室类型
+     */
+    private String computerClassroomType;
 
     /**
      * 课程描述
