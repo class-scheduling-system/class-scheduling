@@ -59,27 +59,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
         courseLibraryAndTeacherCourseQualificationListDTO.setCourse(BeanUtil.toBean(courseLibraryDO, CourseLibraryDTO.class));
     }
 
-    /**
-     * 设置班级信息到CourseLibraryAndClassDTO对象中
-     *
-     * @param courseLibraryAndClassDTO 课程库和班级DTO对象，用于存储班级信息
-     * @param classMap                 包含班级ID和班级对象的映射，用于查找特定班级
-     * @param specificCourseIdVO       包含特定课程ID的VO对象，用于指定需要查找的班级
-     */
-    private void setClasses(CourseLibraryAndTeacherCourseQualificationListDTO courseLibraryAndClassDTO, Map<String, AdministrativeClassDO> classMap, @NotNull SpecificCourseIdVO specificCourseIdVO) {
-        boolean classMatched = false;
-        for (String classId : specificCourseIdVO.getClassId()) {
-            AdministrativeClassDO administrativeClassDO = classMap.get(classId);
-            if (administrativeClassDO != null) {
-                AdministrativeClassDTO classDTO = BeanUtil.toBean(administrativeClassDO, AdministrativeClassDTO.class);
-                courseLibraryAndClassDTO.getClassList().add(classDTO);
-                classMatched = true;
-            }
-        }
-        if (!classMatched) {
-            throw new BusinessException("未找到 classId 的匹配类：" + String.join(", ", specificCourseIdVO.getClassId()), ErrorCode.BODY_ERROR);
-        }
-    }
+
 
     /**
      * 计算选课学生的总人数
@@ -167,13 +147,15 @@ public class CourseLibraryLogic implements CourseLibraryService {
                     new CourseLibraryAndTeacherCourseQualificationListDTO();
             // 设置课程
             setCourse(libraryAndClassDTO, courseMap, specificCourseIdVO);
-            // 设置班级或人数
-            if (specificCourseIdVO.getNumber() == null) {
-                setClasses(libraryAndClassDTO, classMap, specificCourseIdVO);
-            } else {
+            log.debug("设置人数:{}",specificCourseIdVO.getNumber());
+            // 计算学生人数（如果外部没有提供）
+            if (specificCourseIdVO.getNumber() != null) {
                 libraryAndClassDTO.setNumber(specificCourseIdVO.getNumber());
+            } else {
+                // 计算学生数，同时添加班级信息
                 calculateStudentCount(libraryAndClassDTO, classMap, specificCourseIdVO);
             }
+            log.debug("设置后人数为:{}", libraryAndClassDTO.getNumber());
             lists.add(libraryAndClassDTO);
         }
         return lists;

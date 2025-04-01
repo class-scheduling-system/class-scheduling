@@ -631,6 +631,23 @@ class BaseGeneticSchedulingLogic {
     }
 
     /**
+     * 根据课程ID在 基础排课数据 中查找老师资格表
+     *
+     * @param courseUuid 课程ID
+     * @param courseList 课程列表
+     * @return 匹配的课程，若找不到则返回null
+     */
+    private CourseLibraryAndTeacherCourseQualificationListDTO findCourseById(String courseUuid, List<CourseLibraryAndTeacherCourseQualificationListDTO> courseList) {
+        for (CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeacher : courseList) {
+            if (courseAndTeacher.getCourse().getCourseLibraryUuid().equals(courseUuid)) {
+                return courseAndTeacher;
+            }
+        }
+        return null;
+    }
+
+
+    /**
      * 教室变异
      * <p>
      * 随机选择一个课程安排，尝试分配更合适的教室。
@@ -645,19 +662,34 @@ class BaseGeneticSchedulingLogic {
         if (!entries.isEmpty()) {
             Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry = entries.get(random.nextInt(entries.size()));
             CourseLibraryDTO course = entry.getValue().getCourse();
-
+            // 查找可以教授这门课程的教室列表
+            CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeacher = this.findCourseById(
+                    course.getCourseLibraryUuid(),
+                    baseDTO.getCourseList()
+            );
             // 尝试分配新教室
-            ClassroomAndTypeDTO newClassroom = selectClassroomForCourse(course, baseDTO.getClassroomList());
+            Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> classroomList =
+                    null;
+            if (courseAndTeacher != null) {
+                classroomList = this.selectClassroomsForCourse(courseAndTeacher, baseDTO.getClassroomList());
+            }
 
-            if (newClassroom != null && !newClassroom.getClassroom().getClassroomUuid()
-                    .equals(entry.getValue().getClassroom().getClassroom().getClassroomUuid())) {
-                ScheduleItemDTO newItem = new ScheduleItemDTO(
-                        course,
-                        entry.getValue().getTeacher(),
-                        newClassroom,
-                        entry.getValue().getPriority()
-                );
-                schedule.getAssignments().put(entry.getKey(), newItem);
+            // 遍历所有教室并进行更新
+            if (classroomList != null) {
+                for (ClassroomAndTypeDTO newClassroom : classroomList.values()) {
+                    // 确保教室不同于当前分配的教室
+                    if (newClassroom != null && !newClassroom.getClassroom().getClassroomUuid()
+                            .equals(entry.getValue().getClassroom().getClassroom().getClassroomUuid())) {
+                        // 创建新的排课项并更新
+                        ScheduleItemDTO newItem = new ScheduleItemDTO(
+                                course,
+                                entry.getValue().getTeacher(),
+                                newClassroom,
+                                entry.getValue().getPriority()
+                        );
+                        schedule.getAssignments().put(entry.getKey(), newItem);
+                    }
+                }
             }
         }
     }
@@ -853,7 +885,6 @@ class BaseGeneticSchedulingLogic {
     List<ScheduleDTO> generateInitialPopulation(@NotNull AutomaticClassSchedulingBaseDTO baseData) {
         List<ScheduleDTO> population = new ArrayList<>();
         int populationSize = baseData.getAlgorithmParams().getPopulationSize();
-
         for (int i = 0; i < populationSize; i++) {
             ScheduleDTO schedule = new ScheduleDTO();
             Map<TimeSlotDTO, ScheduleItemDTO> assignments = new HashMap<>();
@@ -861,24 +892,49 @@ class BaseGeneticSchedulingLogic {
             // 为每个课程分配时间槽
             for (CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers : baseData.getCourseList()) {
                 CourseLibraryDTO course = courseAndTeachers.getCourse();
-                TeacherCoursePreferencesDTO teacher = this.selectTeacherForCourse(course, courseAndTeachers.getTeacherList());
-                List<ClassroomAndTypeDTO> classroom = this.selectClassroomForCourse(courseAndTeachers, baseData.getClassroomList());
-                if (teacher != null && classroom != null) {
-                    TimeSlotDTO timeSlot = findSuitableTimeSlot(assignments, teacher, classroom, baseData);
+                // 按照课程和班级进行教师选择
+                Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> teacherAssignments = new HashMap<>();
+                Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> classroomAssignments =
+                        this.selectClassroomsForCourse(courseAndTeachers, baseData.getClassroomList());
+                // 为每个班级选择合适的教师
+                if (classroomAssignments != null) {
+                    log.debug("教室map,{}",classroomAssignments);
+                    for (Map.Entry<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> entry : classroomAssignments.entrySet()) {
+                        List<AdministrativeClassDTO> classGroup = entry.getKey();
+                        TeacherCoursePreferencesDTO teacher = this.selectTeacherForCourse(
+                                course, courseAndTeachers.getTeacherList());
+                        // 记录教师分配
+                        if (teacher != null) {
+                            teacherAssignments.put(classGroup, teacher);
+                        }
+                    }
+                }
+                // 为每个班级分配时间槽
+                for (Map.Entry<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> entry : teacherAssignments.entrySet()) {
+                    List<AdministrativeClassDTO> classGroup = entry.getKey();
+                    TeacherCoursePreferencesDTO assignedTeacher = entry.getValue();
+                    ClassroomAndTypeDTO assignedClassroom = classroomAssignments.get(classGroup);
+                    // 寻找合适的时间槽
+                    TimeSlotDTO timeSlot = findSuitableTimeSlot(assignments, assignedTeacher, assignedClassroom, baseData);
                     if (timeSlot != null) {
                         ScheduleItemDTO item = new ScheduleItemDTO(
                                 course,
-                                teacher,
-                                classroom,
+                                assignedTeacher,
+                                assignedClassroom,
                                 courseAndTeachers.getPriority()
                         );
                         assignments.put(timeSlot, item);
-                        log.debug("为课程 {} 分配了时间槽 {}", course.getName(), timeSlot.getPeriod());
+                        log.debug("为课程 {} 的班级 {} 分配了时间槽 {}，教师: {}",
+                                course.getName(),
+                                classGroup.stream().map(AdministrativeClassDTO::getClassName).toList(),
+                                timeSlot.getPeriod(),
+                                assignedTeacher.getTeacher().getName());
                     } else {
                         log.warn("无法为课程 {} 找到合适的时间槽", course.getName());
                     }
                 }
             }
+
             schedule.setAssignments(assignments);
             population.add(schedule);
         }
@@ -891,15 +947,15 @@ class BaseGeneticSchedulingLogic {
      * 为课程选择合适的教师
      * <p>
      * 本方法根据课程的学科要求，从候选教师列表中选择一名合适的教师进行课程教学。
-     * 选择过程考虑教师对课程学科的适应性，确保教师具备教授该课程的资格和能力。
-     * 当多名教师满足条件时，采用随机选择策略，以实现教师资源的均衡分配。
+     * 选择过程仅考虑教师对课程学科的适应性，确保教师具备教授该课程的资格。
      * </p>
      *
      * @param course   课程信息对象，包含课程学科、课程类型等基本属性
      * @param teachers 候选教师列表，包含所有可能分配给该课程的教师
      * @return 选择的教师对象；如果没有合适的教师，则返回null
      */
-    @Nullable TeacherCoursePreferencesDTO selectTeacherForCourse(
+    @Nullable
+    TeacherCoursePreferencesDTO selectTeacherForCourse(
             CourseLibraryDTO course,
             @NotNull List<TeacherCoursePreferencesDTO> teachers
     ) {
@@ -908,106 +964,219 @@ class BaseGeneticSchedulingLogic {
                 .filter(teacher -> teacher.getQualification() != null
                         && teacher.getQualification().getCourseUuid().equals(course.getCourseLibraryUuid()))
                 .toList());
-        log.debug("是否存在,{}", suitableTeachers);
-        // 如果存在合适的教师，则随机选择一位
-        // 如果存在合适的教师，则随机选择一位
-        if (!suitableTeachers.isEmpty()) {
-            Collections.shuffle(suitableTeachers, random);
-            TeacherCoursePreferencesDTO selectedTeacher = suitableTeachers.get(0);
-            log.debug("随机选择的教师: {}", selectedTeacher);
-            return selectedTeacher;
+        log.debug("是否存在合适的教师: {}", suitableTeachers);
+
+        // 如果没有找到符合条件的教师，返回null
+        if (suitableTeachers.isEmpty()) {
+            log.warn("没有找到合适的教师来教授课程: {}", course.getName());
+            return null;
         }
-        // 如果没有找到合适的教师，返回null
-        return null;
+
+        // 随机选择一个符合条件的教师
+        Collections.shuffle(suitableTeachers, random);
+        TeacherCoursePreferencesDTO selectedTeacher = suitableTeachers.get(0);
+        log.debug("为课程 {} 随机选择的教师: {}", course.getName(), selectedTeacher);
+
+        return selectedTeacher;
     }
+
 
     /**
      * 为课程选择合适的教室
-     * <p>
-     * 从符合课程容量和类型要求的教室中随机选择一间。
-     * </p>
-     *
-     * @param courseQualificationList 课程库以及教师课程资格列表
-     * @param classrooms              候选教室列表
-     * @return 选择的教室，如果没有合适教室则返回null
+     * 根据课程资格列表和可用教室列表，为每个班级分配最合适的教室
+     * 如果无法为所有班级找到合适的教室，则返回null
+     * @param courseQualificationList 课程资格列表，包含课程信息和班级列表
+     * @param classrooms              可用的教室列表
+     * @return 分配结果，以班级列表为键，分配的教室为值如果无法为所有班级找到合适的教室，则返回null
      */
-    @Nullable
-    List<ClassroomAndTypeDTO> selectClassroomsForCourse(
+    Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> selectClassroomsForCourse(
             @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList,
             @Nonnull List<ClassroomAndTypeDTO> classrooms) {
+
         CourseLibraryDTO course = courseQualificationList.getCourse();
-        List<AdministrativeClassDTO> classDTOS = courseQualificationList.getClassList();
+        List<AdministrativeClassDTO> classList = courseQualificationList.getClassList();
         String courseType = getCourseType(course);
         log.debug("课程 {} 类型: {}", course.getName(), courseType);
-        List<ClassroomAndTypeDTO> selectedClassrooms = new ArrayList<>();
-        // 按专业分组，并计算总学生人数
-        Map<String, Integer> studentCountByMajor = new HashMap<>();
-        Map<String, List<AdministrativeClassDTO>> classesByMajor = new HashMap<>();
-        for (AdministrativeClassDTO adminClass : classDTOS) {
-            String majorUuid = adminClass.getMajorUuid();
-            classesByMajor.computeIfAbsent(majorUuid, k -> new ArrayList<>()).add(adminClass);
-            studentCountByMajor.put(majorUuid, studentCountByMajor.getOrDefault(majorUuid, 0) + adminClass.getStudentCount());
+        Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap = new HashMap<>();
+        List<ClassroomAndTypeDTO> remainingClassrooms = new ArrayList<>(classrooms);
+        log.debug("课程人数,{}",courseQualificationList.getNumber());
+        if (classList == null || classList.isEmpty()) {
+            log.debug("只限定了人数");
+            allocateVirtualClasses(course, courseQualificationList.getNumber(), remainingClassrooms, allocationMap, courseType);
+        } else {
+            allocateClassesByMajor(classList, remainingClassrooms, allocationMap, courseType);
         }
-        // 遍历每个专业，分配教室
-        for (Map.Entry<String, Integer> entry : studentCountByMajor.entrySet()) {
-            String majorUuid = entry.getKey();
-            int totalStudentCount = entry.getValue();
-            log.debug("专业 {} 总学生数: {}", majorUuid, totalStudentCount);
-            List<ClassroomAndTypeDTO> remainingClassrooms = new ArrayList<>(classrooms);
-            while (totalStudentCount > 0 && !remainingClassrooms.isEmpty()) {
-                // 查找符合要求的教室
-                ClassroomAndTypeDTO selectedClassroom = findBestClassroom(remainingClassrooms, totalStudentCount, courseType);
-                if (selectedClassroom == null) {
-                    log.warn("没有找到合适的教室来教授专业: {}", majorUuid);
-                    return null;
-                }
-                selectedClassrooms.add(selectedClassroom);
-                // 更新剩余学生人数
-                int capacity = selectedClassroom.getClassroom().getCapacity();
-                totalStudentCount -= capacity;
-                // 移除已使用的教室
-                remainingClassrooms.remove(selectedClassroom);
+
+        return allocationMap;
+    }
+    /**
+     * 为课程分配虚拟班级和教室
+     * 此方法根据剩余教室的容量和课程类型，为一定数量的学生分配虚拟班级和合适的教室
+     * @param course 课程库DTO，包含课程信息
+     * @param number 需要分配虚拟班级的学生人数
+     * @param remainingClassrooms 剩余可用的教室和类型列表
+     * @param allocationMap 分配结果映射，键为虚拟班级列表，值为分配的教室
+     * @param courseType 课程类型，用于筛选合适的教室
+     */
+    private void allocateVirtualClasses(CourseLibraryDTO course, int number,
+                                        List<ClassroomAndTypeDTO> remainingClassrooms,
+                                        Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap,
+                                        String courseType) {
+        // 初始化学生计数器和虚拟班级索引
+        int studentCounter = 0;
+        int virtualClassIndex = 1;
+        log.debug("进行循环前");
+        // 循环直到所有学生都被分配到虚拟班级
+        while (studentCounter < number) {
+            log.debug("计算为分配的学生人数");
+            // 计算剩余未分配的学生人数
+            int remainingStudents = number - studentCounter;
+            // 寻找最适合当前剩余学生数的教室
+            ClassroomAndTypeDTO selectedClassroom = findBestClassroom(remainingClassrooms, remainingStudents, courseType);
+            // 如果没有合适的教室，则记录日志并退出分配过程
+            if (selectedClassroom == null) {
+                log.debug("没有足够的教室容纳剩余的 {} 名学生", remainingStudents);
+                return;
             }
-            if (totalStudentCount > 0) {
-                log.warn("仍有 {} 名学生未能安排到教室", totalStudentCount);
-                return null;
-            }
+            log.debug("有足够多的教室");
+            // 根据选定的教室容量和剩余学生数，确定本次分配的学生人数
+            int assignedStudents = Math.min(selectedClassroom.getClassroom().getCapacity(), remainingStudents);
+            // 生成虚拟班级的唯一标识
+            String classKey = course.getCourseLibraryUuid() + "-" + virtualClassIndex;
+            // 创建并初始化虚拟班级DTO
+            AdministrativeClassDTO classDTO = new AdministrativeClassDTO();
+            classDTO.setAdministrativeClassUuid(classKey);
+            // 将虚拟班级DTO封装为列表，作为映射的键
+            List<AdministrativeClassDTO> virtualClass = List.of(classDTO);
+            // 将虚拟班级和选定的教室添加到分配结果映射中
+            allocationMap.put(virtualClass, selectedClassroom);
+            // 记录分配结果的日志信息
+            log.debug("虚拟班级 {} ({} 人) 分配到教室 {}", classKey, assignedStudents, selectedClassroom.getClassroom().getName());
+            // 更新学生计数器和虚拟班级索引
+            studentCounter += assignedStudents;
+            virtualClassIndex++;
+            // 从剩余教室列表中移除已分配的教室
+            remainingClassrooms.remove(selectedClassroom);
         }
-        return selectedClassrooms;
     }
 
     /**
-     * 选择最适合的教室
+     * 根据专业分配班级到教室
+     * 该方法旨在根据班级的学生人数和课程类型，尽可能高效地利用剩余教室资源进行班级分配
+     * @param classList 待分配的行政班列表，不能为空
+     * @param remainingClassrooms 剩余可用的教室及其类型列表
+     * @param allocationMap 班级到教室的分配映射
+     * @param courseType 课程类型，用于辅助教室分配决策
      */
-    private @Nullable ClassroomAndTypeDTO findBestClassroom(List<ClassroomAndTypeDTO> classrooms, int studentCount, String courseType) {
-        List<ClassroomAndTypeDTO> suitableClassrooms = classrooms.stream()
-                .filter(classroom -> {
-                    int capacity = classroom.getClassroom().getCapacity();
-                    String classroomType = classroom.getClassroomType().getClassTypeUuid();
-                    boolean typeMatch = (courseType == null && classroomType == null) ||
-                            (classroomType != null && classroomType.equals(courseType));
-                    return capacity >= studentCount && typeMatch;
-                })
-                .toList();
-
-        if (!suitableClassrooms.isEmpty()) {
-            Collections.shuffle(suitableClassrooms, random);
-            return suitableClassrooms.get(0);
+    private void allocateClassesByMajor(@NotNull List<AdministrativeClassDTO> classList,
+                                        List<ClassroomAndTypeDTO> remainingClassrooms,
+                                        Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap,
+                                        String courseType) {
+        // 按专业分组班级，以便后续处理
+        Map<String, List<AdministrativeClassDTO>> classesByMajor = classList.stream()
+                .collect(Collectors.groupingBy(AdministrativeClassDTO::getMajorUuid));
+        // 遍历每个专业的班级
+        for (List<AdministrativeClassDTO> majorClasses : classesByMajor.values()) {
+            List<AdministrativeClassDTO> pendingClasses = new ArrayList<>();
+            // 遍历当前专业的所有班级，尝试分配教室
+            for (AdministrativeClassDTO adminClass : majorClasses) {
+                pendingClasses.add(adminClass);
+                int totalStudents = pendingClasses.stream().mapToInt(AdministrativeClassDTO::getStudentCount).sum();
+                // 先尝试分配教室，不立即清空 pendingClasses
+                ClassroomAndTypeDTO selectedClassroom = findBestClassroom(remainingClassrooms, totalStudents, courseType);
+                if (selectedClassroom != null) {
+                    int remainingCapacity = selectedClassroom.getClassroom().getCapacity() - totalStudents;
+                    // **如果教室还有多余容量，尝试添加更多班级**
+                    while (!remainingClassrooms.isEmpty() && remainingCapacity > 0) {
+                        AdministrativeClassDTO nextClass = findNextClass(majorClasses, pendingClasses);
+                        if (nextClass == null) {
+                            break;
+                        }
+                        int nextClassSize = nextClass.getStudentCount();
+                        if (remainingCapacity >= nextClassSize) {
+                            pendingClasses.add(nextClass);
+                            remainingCapacity -= nextClassSize;
+                        } else {
+                            break;
+                        }
+                    }
+                    // **最终确认分配**
+                    allocationMap.put(new ArrayList<>(pendingClasses), selectedClassroom);
+                    log.debug("班级 {} 共享教室 {}", pendingClasses
+                            .stream()
+                            .map(AdministrativeClassDTO::getClassName).toList(), selectedClassroom.getClassroom().getName());
+                    remainingClassrooms.remove(selectedClassroom);
+                    pendingClasses.clear();
+                }
+            }
+            // **仍然有未分配的班级，尝试随机分配**
+            if (!pendingClasses.isEmpty()) {
+                allocateUnassignedClasses(pendingClasses, remainingClassrooms, allocationMap);
+            }
         }
-
-        // 若找不到符合类型的教室，尝试普通教室
-        List<ClassroomAndTypeDTO> generalClassrooms = classrooms.stream()
-                .filter(classroom -> classroom.getClassroom().getCapacity() >= studentCount &&
-                        classroom.getClassroomType().getClassTypeUuid() == null)
-                .toList();
-
-        if (!generalClassrooms.isEmpty()) {
-            Collections.shuffle(generalClassrooms, random);
-            return generalClassrooms.get(0);
-        }
-
-        return null;
     }
+    /**
+     * 寻找下一个未处理的行政班级
+     * 该方法用于在给定的专业班级列表中，找到下一个不在待处理列表中的班级
+     * 主要用于班级处理流程中，确定下一个需要处理的班级
+     * @param majorClasses    专业班级列表，不能为空
+     * @param pendingClasses  待处理班级列表，可能为空
+     * @return 如果找到下一个未处理的班级，则返回该班级；否则返回null
+     */
+    private @Nullable AdministrativeClassDTO findNextClass(@NotNull List<AdministrativeClassDTO> majorClasses,
+                                                           List<AdministrativeClassDTO> pendingClasses) {
+        // 使用流处理，过滤出下一个未处理的班级
+        return majorClasses.stream()
+                .filter(cls -> !pendingClasses.contains(cls))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * 将未分配的班级随机分配到剩余的教室
+     * 当没有找到完全匹配的教室时，此方法旨在确保所有班级都能被分配一个教室，以避免空班情况
+     *
+     * @param pendingClasses 待分配的班级列表
+     * @param remainingClassrooms 剩余可用的教室列表
+     * @param allocationMap 班级到教室的分配映射
+     */
+    private void allocateUnassignedClasses(@NotNull List<AdministrativeClassDTO> pendingClasses,
+                                           List<ClassroomAndTypeDTO> remainingClassrooms,
+                                           Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap) {
+        // 当没有找到合适的教室来教授班级时，记录待分配的班级名称
+        log.debug("没有找到合适的教室来教授班级: {}", pendingClasses.stream().map(AdministrativeClassDTO::getClassName).toList());
+
+        // 从剩余的教室中随机选择一个教室
+        ClassroomAndTypeDTO randomClassroom = selectRandomClassroom(remainingClassrooms);
+
+        // 如果随机选中的教室不为空，则将所有待分配的班级都分配到这个教室，并记录分配信息
+        if (randomClassroom != null) {
+            allocationMap.put(new ArrayList<>(pendingClasses), randomClassroom);
+            log.debug("为班级 {} 随机分配了教室 {}", pendingClasses.stream().map(AdministrativeClassDTO::getClassName).toList(), randomClassroom.getClassroom().getName());
+        }
+    }
+    private @Nullable ClassroomAndTypeDTO findBestClassroom(@NotNull List<ClassroomAndTypeDTO> classrooms,
+                                                            int studentCount, String courseType) {
+        return classrooms.stream()
+                .filter(c -> c.getClassroom().getCapacity() >= studentCount &&
+                        (courseType == null || courseType.equals(c.getClassroomType().getClassTypeUuid())))
+                .min(Comparator.comparingInt(c -> c.getClassroom().getCapacity()))
+                .or(() -> classrooms.stream()
+                        .filter(c -> c.getClassroom().getCapacity() >= studentCount && c.getClassroomType().getClassTypeUuid() == null)
+                        .min(Comparator.comparingInt(c -> c.getClassroom().getCapacity())))
+                .orElse(null);
+    }
+
+    /**
+     * 随机选择一个教室
+     * 从给定的教室列表中随机选择一个教室如果列表为空，则返回null
+     * @param classrooms 一个包含教室信息的列表，不能为null
+     * @return 随机选中的教室信息，如果列表为空则返回null
+     */
+    private @Nullable ClassroomAndTypeDTO selectRandomClassroom(@NotNull List<ClassroomAndTypeDTO> classrooms) {
+        return classrooms.isEmpty() ? null : classrooms.get(new Random().nextInt(classrooms.size()));
+    }
+
 
 
     /**

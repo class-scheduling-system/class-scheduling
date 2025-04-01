@@ -38,6 +38,7 @@ import com.frontleaves.scheduling.models.dto.merge.CourseTypePriorityDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
+import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.*;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -66,6 +67,10 @@ import java.util.concurrent.locks.ReentrantLock;
 @Slf4j
 public class ScheduleLessonsDataPreparationThread extends Thread {
 
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition condition = lock.newCondition();
+    @Resource
+    AutomaticClassSchedulingThread automaticThread;
     @Resource
     private UserService userService;
     @Resource
@@ -84,16 +89,11 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     private DepartmentService departmentService;
     @Resource
     private RedissonClient redisson;
-    @Resource
-    AutomaticClassSchedulingThread automaticThread;
-
-    private final ReentrantLock lock = new ReentrantLock();
     private HttpServletRequest request;
-    private final Condition condition = lock.newCondition();
     private AutomaticClassSchedulingVO classSchedulingVO;
     private boolean hasTask = false;
 
-    public ScheduleLessonsDataPreparationThread (String name) {
+    public ScheduleLessonsDataPreparationThread(String name) {
         super(name);
     }
 
@@ -108,10 +108,12 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     log.info(LogConstant.THREAD + "线程进入等待状态");
                     condition.await();
                 }
-
                 log.debug(LogConstant.THREAD + "线程已获取锁，准备执行任务");
                 log.debug(LogConstant.THREAD + "获取到的自动排课请求数据: {}", classSchedulingVO);
                 log.debug(LogConstant.THREAD + "获取用户信息: {}", request);
+                for (SpecificCourseIdVO courseIdVO : classSchedulingVO.getScopeSettings().getSpecificCourseIds()) {
+                    log.debug("指定课程人数: {}", courseIdVO.getNumber());
+                }
                 // 根据请求获取用户信息
                 UserDO userDO = userService.getUserByRequest(request);
                 assert userDO != null;
@@ -165,7 +167,11 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                         courseLibraryService.getCourseListAndClassDTO(
                                 classSchedulingVO.getScopeSettings().getSpecificCourseIds(),
                                 classSchedulingVO.getDepartmentUuid()
-                );
+                        );
+                // 遍历并打印日志
+                for (CourseLibraryAndTeacherCourseQualificationListDTO dto : libraryAndClassDTOList) {
+                    log.debug("人数,{}", dto.getNumber());
+                }
                 //获取老师所有数据
                 log.debug(LogConstant.THREAD + "获取老师所有数据");
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList = teacherCourseQualificationService
@@ -257,14 +263,11 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 timePreferences.setEveningCourses(classSchedulingVO.getTimePreferences().getAvoidEveningCourses())
                         .setBalanceWeekdayCourses(classSchedulingVO.getTimePreferences().getBalanceWeekdayCourses());
                 automaticClassSchedulingBaseDTO.setTimePreferences(timePreferences);
-
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
                 cacheBaseData.set(automaticClassSchedulingBaseDTO);
-                log.debug("排课基础数据{}",automaticClassSchedulingBaseDTO);
+                log.debug("排课基础数据{}", automaticClassSchedulingBaseDTO);
                 automaticThread.startUp(userDO);
-
                 hasTask = false;
-
             } catch (Exception e) {
                 Thread.currentThread().interrupt();
                 log.error("{}获取报错信息：{}", LogConstant.THREAD, e.getMessage(), e);

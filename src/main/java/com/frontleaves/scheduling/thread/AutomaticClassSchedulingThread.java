@@ -52,7 +52,6 @@ public class AutomaticClassSchedulingThread extends Thread {
                     log.info(LogConstant.THREAD + "线程进入等待状态");
                     condition.await();
                 }
-
                 // 从Redis获取排课基础数据
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheData =
                         redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
@@ -60,10 +59,8 @@ public class AutomaticClassSchedulingThread extends Thread {
                     throw new BusinessException("缓存数据不存在", ErrorCode.BODY_ERROR);
                 }
                 AutomaticClassSchedulingBaseDTO baseData = cacheData.get();
-
                 // 生成任务ID
                 String taskId = user.getUserUuid() + "_" + System.currentTimeMillis();
-
                 // 执行遗传算法排课
                 log.info("开始执行遗传算法排课，任务ID：{}", taskId);
                 ScheduleResultDTO result = geneticSchedulingService.executeGeneticAlgorithm(taskId, baseData);
@@ -80,7 +77,6 @@ public class AutomaticClassSchedulingThread extends Thread {
 
                 log.info("排课完成，适应度：{}", result.getFitness());
                 hasTask = false;
-
             } catch (Exception e) {
                 log.error("排课过程发生错误：", e);
                 Thread.currentThread().interrupt();
