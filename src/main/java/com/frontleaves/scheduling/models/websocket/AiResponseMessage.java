@@ -26,33 +26,75 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.services;
+package com.frontleaves.scheduling.models.websocket;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.constraints.NotBlank;
-import org.jetbrains.annotations.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
- * AI 服务接口
+ * AI 响应消息
  * <p>
- * 该接口用于定义与 AI 相关的服务方法。
+ * 该类用于封装 AI 响应的消息，通过 WebSocket 发送给客户端。
  * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
-public interface AiService {
-
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AiResponseMessage {
+    
     /**
-     * 发送路由跳转
+     * 消息类型
      * <p>
-     * 该方法用于处理路由跳转请求。
+     * 可能的值:
+     * - "content": 内容片段
+     * - "completed": 完成标记
+     * - "error": 错误信息
      * </p>
-     *
-     * @param userInput 用户输入的路由路径
-     * @param html      HTML 内容
-     * @param request   HTTP 请求对象
      */
-    void sendRouteJump(@NotBlank String userInput, String html, @NotNull HttpServletRequest request);
+    private String type;
+    
+    /**
+     * 消息内容
+     */
+    private String content;
+    
+    /**
+     * 是否是流式响应的结束
+     */
+    private boolean isEnd;
+    
+    /**
+     * 创建内容消息
+     *
+     * @param content 响应内容
+     * @param isEnd   是否是流式响应的结束
+     * @return 返回 AI 响应消息对象
+     */
+    public static AiResponseMessage content(String content, boolean isEnd) {
+        return new AiResponseMessage("content", content, isEnd);
+    }
+    
+    /**
+     * 创建完成消息
+     *
+     * @return 返回 AI 响应完成消息对象
+     */
+    public static AiResponseMessage completed() {
+        return new AiResponseMessage("completed", "AI 响应已完成", true);
+    }
+    
+    /**
+     * 创建错误消息
+     *
+     * @param errorMessage 错误信息
+     * @return 返回 AI 响应错误消息对象
+     */
+    public static AiResponseMessage error(String errorMessage) {
+        return new AiResponseMessage("error", errorMessage, true);
+    }
 }

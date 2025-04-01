@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -33,20 +33,23 @@ import cn.hutool.http.HtmlUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONUtil;
-import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.models.dto.RoleDTO;
 import com.frontleaves.scheduling.services.AiService;
 import com.frontleaves.scheduling.services.RoleService;
 import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.ws.WebSocketSessionManager;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * AI 逻辑处理类
@@ -60,16 +63,14 @@ import java.util.Optional;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AiLogic implements AiService {
-    private final SystemDAO systemDAO;
     private final UserService userService;
     private final RoleService roleService;
+    private final WebSocketSessionManager webSocketSessionManager;
 
-    public AiLogic(SystemDAO systemDAO, UserService userService, RoleService roleService) {
-        this.systemDAO = systemDAO;
-        this.userService = userService;
-        this.roleService = roleService;
-    }
+    // 创建线程池处理 AI 流式响应
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
     /**
      * 发送路由跳转
@@ -79,6 +80,7 @@ public class AiLogic implements AiService {
      *
      * @param userInput 用户输入的路由路径
      * @param html      HTML 内容
+     * @param request   HTTP 请求对象
      */
     @Override
     public void sendRouteJump(String userInput, String html, @NotNull HttpServletRequest request) {

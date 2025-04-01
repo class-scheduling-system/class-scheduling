@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -65,16 +65,18 @@ public class AiController {
     private final AiService aiService;
 
     /**
-     * 路由跳转
+     * 路由跳转（HTTP 请求方式）
      * <p>
-     * 该方法用于处理路由跳转请求。
+     * 该方法用于处理路由跳转请求，使用传统的 HTTP 请求方式。
+     * 调用后会将结果以 HTTP 响应方式返回。
      * </p>
      *
      * @param routeJump 路由跳转信息
+     * @param request   HTTP 请求对象
      * @return 路由跳转结果
      */
-    @RequestLogin
     @PostMapping
+    @RequestLogin
     public ResponseEntity<BaseResponse<Void>> routeJump(
             @Validated @RequestBody AiRouteJumpVO routeJump,
             @NotNull HttpServletRequest request
