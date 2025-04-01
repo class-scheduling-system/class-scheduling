@@ -42,6 +42,7 @@ import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.*;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import enums.CourseEnuType;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -201,7 +202,6 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     qualificationList.setCourseEnuType(specificCourseIdVO.getCourseEnuType())
                             .setWeeklyHours(specificCourseIdVO.getWeeklyHours())
                             .setIsOddWeek(specificCourseIdVO.getIsOddWeek())
-                            .setIsFirstHalf(specificCourseIdVO.getIsFirstHalf())
                             .setStartWeek(specificCourseIdVO.getStartWeek())
                             .setEndWeek(specificCourseIdVO.getEndWeek());
                 }
@@ -227,6 +227,19 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     } else {
                         // 匹配成功，设置优先级
                         dto.setPriority(courseTypePriorityDTO.getPriority());
+                    }
+                }
+                //把混排课程的分为课程的几类
+                log.debug(LogConstant.THREAD + "把混排课程的分为课程的类");
+                for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
+                    if (dto.getCourseEnuType() == null) {
+                        throw new BusinessException("课程类型不能为空", ErrorCode.BODY_ERROR);
+                    }
+                    if (dto.getCourseEnuType() == CourseEnuType.MIXED) {
+                        //计算各课程的课时
+                        BigDecimal totalHours = dto.getExpectedTotalHours();
+                        //仔细划分个周课时
+                        int weeks = dto.getEndWeek() - dto.getStartWeek() + 1;
                     }
                 }
                 //获取教室数据

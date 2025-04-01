@@ -66,21 +66,17 @@ public class CourseLibraryAndTeacherCourseQualificationListDTO {
      */
     private List<TeacherCoursePreferencesDTO> teacherList;
     /**
-     * 课程周数,最大为4.00，最低为0.50
+     * 课程周数,最大为84，最低为1
      */
-    private Double weeklyHours;
+    private Integer weeklyHours;
     /**
      * 课程枚举类型
      */
     private CourseEnuType courseEnuType;
     /**
-     * true=单周上课，false=双周上课 (仅当weeklyHours为1.5时生效)
+     * true=单周上课，false=双周上课 (仅当weeklyHours为奇数时时生效)
      */
     private Boolean isOddWeek;
-    /**
-     * true=上半节，false=下半节（仅当weeklyHours为0.5时生效）
-     */
-    private Boolean isFirstHalf;
     /**
      * 课程开始周
      */

@@ -96,7 +96,10 @@ public class SchedulingController {
             @RequestBody @Valid AutomaticClassSchedulingVO automaticClassSchedulingVO,
             HttpServletRequest request
     ) {
-        Optional.ofNullable(automaticClassSchedulingVO)
+        if (automaticClassSchedulingVO == null){
+            throw new BusinessException("请求体不能为空", ErrorCode.BODY_ERROR);
+        }
+        Optional.of(automaticClassSchedulingVO)
                 .map(AutomaticClassSchedulingVO::getTimePreferences)
                 .map(AutomaticClassSchedulingVO.TimePreferences::getPreferredTimeSlots)
                 .filter(slots -> !slots.isEmpty())
@@ -114,7 +117,9 @@ public class SchedulingController {
                     );
                 });
         //检查课程ID列表是否为空
-        Optional.ofNullable(automaticClassSchedulingVO.getScopeSettings().getSpecificCourseIds())
+        Optional.of(automaticClassSchedulingVO)
+                .map(AutomaticClassSchedulingVO::getScopeSettings)
+                .map(AutomaticClassSchedulingVO.ScopeSettings::getSpecificCourseIds)
                 .filter(data -> !data.isEmpty())
                 .orElseThrow(() -> new BusinessException("课程ID列表为空", ErrorCode.BODY_ERROR));
         // 检查 classID 和 number 是否同时为空
@@ -127,14 +132,9 @@ public class SchedulingController {
             }
             // 检查课程周数是否在范围内
             Optional.ofNullable(course.getWeeklyHours())
-                    .filter(h -> h == 1.5 && course.getIsOddWeek() == null)
+                    .filter(h -> h % 2 > 0  && course.getIsOddWeek() == null)
                     .ifPresent(h -> {
-                        throw new BusinessException("每周1.5节课未指定是否为单双周", ErrorCode.BODY_ERROR);
-                    });
-            Optional.ofNullable(course.getWeeklyHours())
-                    .filter(h -> h == 0.5 && course.getIsFirstHalf() == null)
-                    .ifPresent(h -> {
-                        throw new BusinessException("每周0.5节课未指定是否为双周一节课还是一周单节课", ErrorCode.BODY_ERROR);
+                        throw new BusinessException("每周双周节课未指定是否为单双周", ErrorCode.BODY_ERROR);
                     });
         }
         // 准备数据并排课

@@ -886,6 +886,7 @@ class BaseGeneticSchedulingLogic {
     List<ScheduleDTO> generateInitialPopulation(@NotNull AutomaticClassSchedulingBaseDTO baseData) {
         List<ScheduleDTO> population = new ArrayList<>();
         int populationSize = baseData.getAlgorithmParams().getPopulationSize();
+
         for (int i = 0; i < populationSize; i++) {
             ScheduleDTO schedule = new ScheduleDTO();
             Map<TimeSlotDTO, ScheduleItemDTO> assignments = new HashMap<>();
