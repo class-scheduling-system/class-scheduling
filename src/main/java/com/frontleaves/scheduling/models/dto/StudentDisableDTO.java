@@ -13,6 +13,13 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Accessors(chain = true)
 public class StudentDisableDTO {
+    /**
+     * 学生主键
+     */
     private String studentUuid;
+
+    /**
+     * 学生状态 0: 禁用 1: 启用
+     */
     private Boolean status;
 }

@@ -30,7 +30,10 @@ package com.frontleaves.scheduling.mappers;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.frontleaves.scheduling.models.entity.StudentDO;
+import com.frontleaves.scheduling.models.entity.multiple.UserAndStudentDO;
 import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
 
 /**
  * 学生Mapper
@@ -38,4 +41,19 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface StudentMapper extends BaseMapper<StudentDO> {
+
+    // 连表查询:查询已注册学生并根据cs_user.status筛选,降序排序
+    List<UserAndStudentDO> getStudentAndUserQueryDesc(String clazz, Byte status, String name, Integer page, Integer size, Boolean isGraduated, String id);
+
+    // 升序排序
+    List<UserAndStudentDO> getStudentAndUserQueryAsc(String clazz, Byte status, String name, Integer page, Integer size, Boolean isGraduated, String id);
+
+    // 查询未注册学生,降序排序
+    List<StudentDO> getStudentNoRegisterUserQueryDesc(String clazz, Byte status, String name, Integer page, Integer size, Boolean isGraduated, String id);
+
+    // 升序排序
+    List<StudentDO> getStudentNoRegisterUserQueryAsc(String clazz, Byte status, String name, Integer page, Integer size, Boolean isGraduated, String id);
+
+    // 根据 user_uuid 查询对应用户状态
+    Byte getUserStatusByUuid(String userUuid);
 }

@@ -1,0 +1,113 @@
+/*
+ * --------------------------------------------------------------------------------
+ * Copyright (c) 2022-NOW(至今) 锋楪技术团队
+ * Author: 锋楪技术团队 (https://www.frontleaves.com)
+ *
+ * 本文件包含锋楪技术团队项目的源代码，项目的所有源代码均遵循 MIT 开源许可证协议。
+ * --------------------------------------------------------------------------------
+ * 许可证声明：
+ *
+ * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
+ *
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
+ * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
+ * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
+ *
+ * 使用本软件即表示您了解此声明并同意其条款。
+ *
+ * 有关 MIT 许可证的更多信息，请查看项目根目录下的 LICENSE 文件或访问：
+ * https://opensource.org/licenses/MIT
+ * --------------------------------------------------------------------------------
+ * 免责声明：
+ *
+ * 使用本软件的风险由用户自担。作者或版权持有人在法律允许的最大范围内，
+ * 对因使用本软件内容而导致的任何直接或间接的损失不承担任何责任。
+ * --------------------------------------------------------------------------------
+ */
+
+package com.frontleaves.scheduling.ws;
+
+import com.frontleaves.scheduling.constants.LogConstant;
+import jakarta.websocket.OnClose;
+import jakarta.websocket.OnOpen;
+import jakarta.websocket.Session;
+import jakarta.websocket.server.PathParam;
+import jakarta.websocket.server.ServerEndpoint;
+import lombok.EqualsAndHashCode;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+
+/**
+ * WebSocket 会话管理器
+ * <p>
+ * 该类用于管理 WebSocket 会话，保存用户ID和会话ID的映射关系。
+ * </p>
+ *
+ * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
+ */
+@Slf4j
+@Component
+@EqualsAndHashCode
+@ServerEndpoint("/ws/test/{user_uuid}")
+public class WebSocketSessionManager {
+
+    /**
+     * concurrent包的线程安全Set，用来存放每个客户端对应的MyWebSocket对象。
+     * 虽然@Component默认是单例模式的，但springboot还是会为每个websocket连接初始化一个bean，所以可以用一个静态set保存起来。
+     */
+    private static final CopyOnWriteArraySet<WebSocketSessionManager> SESSION_MANAGER = new CopyOnWriteArraySet<>();
+    /**
+     * 用来存在线连接用户信息
+     */
+    private static final ConcurrentHashMap<String, Session> SESSION_POOL = new ConcurrentHashMap<>();
+
+    /**
+     * 与某个客户端的连接会话，需要通过它来给客户端发送数据
+     */
+    private Session session;
+    /**
+     * 用户ID
+     */
+    private String userUuid;
+
+    @OnOpen
+    public void onOpen(Session session, @PathParam(value = "user_uuid") String userUuid) {
+        this.session = session;
+        this.userUuid = userUuid;
+        SESSION_MANAGER.add(this);
+        SESSION_POOL.put(userUuid, session);
+        log.debug("{}建立与UserID：{}的消息提醒计数连接", LogConstant.WS, userUuid);
+    }
+
+    /**
+     * 链接关闭调用的方法
+     */
+    @OnClose
+    public void onClose() {
+        try (Session remove = SESSION_POOL.remove(this.userUuid)) {
+            SESSION_MANAGER.remove(this);
+        } catch (Exception e) {
+            log.warn("{}关闭 Session 出现错误: {}", LogConstant.WS, e.getMessage());
+        }
+    }
+
+    /**
+     * 单人单播消息
+     *
+     * @param userUuid
+     * @param message
+     */
+    public void sendOneMessage(String userUuid, String message) {
+        Session session = SESSION_POOL.get(userUuid);
+        if (session != null && session.isOpen()) {
+            session.getAsyncRemote().sendText(message);
+        }
+    }
+
+}

@@ -6,7 +6,6 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
-import com.frontleaves.scheduling.services.BuildingService;
 import com.frontleaves.scheduling.services.StudentService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
@@ -39,11 +38,10 @@ import java.util.regex.Pattern;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/students")
+@RequestMapping("/api/v1/students")
 public class StudentController {
 
     private final StudentService studentService;
-    private final BuildingService buildingService;
 
     /**
      * 查看学生
@@ -80,9 +78,10 @@ public class StudentController {
      * @param isGraduated 是否毕业
      * @param name        学生姓名
      * @param id          学生学号
+     * @param status      学生状态(0:未注册, 1:已注册, 2:已停用)
      * @return 返回包含学生信息列表的响应实体
      */
-    @GetMapping("/list")
+    @GetMapping("/page")
     public @NotNull ResponseEntity<BaseResponse<PageDTO<StudentDTO>>> getStudentList(
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "20") int size,
@@ -90,9 +89,10 @@ public class StudentController {
             @RequestParam(value = "class", required = false) String clazz,
             @RequestParam(value = "is_graduated", required = false, defaultValue = "false") Boolean isGraduated,
             @RequestParam(value = "name", required = false) String name,
-            @RequestParam(value = "id", required = false) String id
+            @RequestParam(value = "id", required = false) String id,
+            @RequestParam(value = "status", required = false) String status
     ) {
-        PageDTO<StudentDTO> result = studentService.getStudentList(page, size, isDesc, clazz, isGraduated, name, id);
+        PageDTO<StudentDTO> result = studentService.getStudentList(page, size, isDesc, clazz, isGraduated, name, id, status);
         return ResultUtil.success("查询成功", result);
     }
 
@@ -138,7 +138,7 @@ public class StudentController {
         StudentDisableDTO studentDisableDTO = studentService.disableStudent(studentUuid, disable);
 
         // 根据disable值动态返回不同的信息
-        String message = disable ? "停用学生成功" : "启用学生成功";
+        String message = Boolean.TRUE.equals(disable) ? "停用学生成功" : "启用学生成功";
         return ResultUtil.success(message, studentDisableDTO);
     }
 

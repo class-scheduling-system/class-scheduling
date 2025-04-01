@@ -1,3 +1,4 @@
 **/
 *.xml
 !copyright/*.xml
+!runConfigurations/*.xml
