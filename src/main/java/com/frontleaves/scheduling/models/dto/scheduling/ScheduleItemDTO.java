@@ -1,10 +1,13 @@
 package com.frontleaves.scheduling.models.dto.scheduling;
 
+import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
 import lombok.Data;
 import lombok.experimental.Accessors;
+
+import java.util.List;
 
 /**
  * 课程安排项数据传输对象
@@ -49,6 +52,14 @@ public class ScheduleItemDTO {
      * </p>
      */
     private final ClassroomAndTypeDTO classroom;
+    /**
+     * 班级分组信息
+     * <p>
+     * 包含班级分组的基本信息，如班级名称、班级人数等。
+     * 班级分组信息用于在排课过程中进行班级资源的合理分配。
+     * </p>
+     */
+    private List<AdministrativeClassDTO> classGroup;
 
     /**
      * 课程优先级
@@ -71,10 +82,11 @@ public class ScheduleItemDTO {
      * @param priority  课程优先级
      */
     public ScheduleItemDTO(CourseLibraryDTO course, TeacherCoursePreferencesDTO teacher,
-                          ClassroomAndTypeDTO classroom, Short priority) {
+                          ClassroomAndTypeDTO classroom,List<AdministrativeClassDTO> classGroup, Short priority) {
         this.course = course;
         this.teacher = teacher;
         this.classroom = classroom;
+        this.classGroup = classGroup;
         this.priority = priority;
     }
 
@@ -92,5 +104,6 @@ public class ScheduleItemDTO {
         this.teacher = other.teacher;
         this.classroom = other.classroom;
         this.priority = other.priority;
+        this.classGroup = other.classGroup;
     }
 }

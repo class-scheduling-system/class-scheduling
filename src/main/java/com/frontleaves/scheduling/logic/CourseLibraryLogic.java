@@ -160,4 +160,22 @@ public class CourseLibraryLogic implements CourseLibraryService {
         }
         return lists;
     }
+
+    /**
+     * 根据课程UUID获取课程信息
+     * 此方法用于通过课程的唯一标识符（UUID）来检索课程信息它首先调用课程库DAO中的方法来获取课程对象如果未找到对应的课程，
+     * 则抛出一个商业异常，指示课程不存在这样做的目的是确保当请求特定课程时，能够提供明确的错误信息而不是返回null，
+     * 从而提高系统的健壮性和用户体验
+     * @param courseUuid 课程的唯一标识符（UUID）
+     * @return 返回找到的CourseLibraryDO对象
+     * @throws BusinessException 如果课程不存在，则抛出此异常
+     */
+    @Override
+    public @NotNull CourseLibraryDO getCourseByUuid(String courseUuid) {
+        CourseLibraryDO courseLibraryDO = courseLibraryDAO.getCourseByUuid(courseUuid);
+        if (courseLibraryDO == null) {
+            throw new BusinessException("课程不存在", ErrorCode.NOT_EXIST);
+        }
+        return courseLibraryDO;
+    }
 }

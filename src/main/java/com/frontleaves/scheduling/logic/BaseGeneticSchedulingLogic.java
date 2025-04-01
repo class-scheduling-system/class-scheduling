@@ -658,7 +658,6 @@ class BaseGeneticSchedulingLogic {
      */
     void classroomMutation(@NotNull ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
         List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
-
         if (!entries.isEmpty()) {
             Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry = entries.get(random.nextInt(entries.size()));
             CourseLibraryDTO course = entry.getValue().getCourse();
@@ -673,10 +672,10 @@ class BaseGeneticSchedulingLogic {
             if (courseAndTeacher != null) {
                 classroomList = this.selectClassroomsForCourse(courseAndTeacher, baseDTO.getClassroomList());
             }
-
             // 遍历所有教室并进行更新
             if (classroomList != null) {
-                for (ClassroomAndTypeDTO newClassroom : classroomList.values()) {
+                for (Map.Entry<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> classroomEntry : classroomList.entrySet()) {
+                    ClassroomAndTypeDTO newClassroom = classroomEntry.getValue();
                     // 确保教室不同于当前分配的教室
                     if (newClassroom != null && !newClassroom.getClassroom().getClassroomUuid()
                             .equals(entry.getValue().getClassroom().getClassroom().getClassroomUuid())) {
@@ -685,9 +684,12 @@ class BaseGeneticSchedulingLogic {
                                 course,
                                 entry.getValue().getTeacher(),
                                 newClassroom,
+                                // 使用 classroomList 的键
+                                classroomEntry.getKey(),
                                 entry.getValue().getPriority()
                         );
                         schedule.getAssignments().put(entry.getKey(), newItem);
+                        break; // 假设只需要更新一次
                     }
                 }
             }
@@ -709,21 +711,19 @@ class BaseGeneticSchedulingLogic {
         if (!entries.isEmpty()) {
             Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry = entries.get(random.nextInt(entries.size()));
             CourseLibraryDTO course = entry.getValue().getCourse();
-
             // 查找可以教授这门课程的教师列表
             List<TeacherCoursePreferencesDTO> suitableTeachers = baseDTO.getCourseList().stream()
                     .filter(ct -> ct.getCourse().getCourseLibraryUuid().equals(course.getCourseLibraryUuid()))
                     .flatMap(ct -> ct.getTeacherList().stream())
                     .toList();
-
             // 尝试分配新教师
             TeacherCoursePreferencesDTO newTeacher = selectTeacherForCourse(course, suitableTeachers);
-
             if (newTeacher != null && !newTeacher.getTeacher().getTeacherUuid().equals(entry.getValue().getTeacher().getTeacher().getTeacherUuid())) {
                 ScheduleItemDTO newItem = new ScheduleItemDTO(
                         course,
                         newTeacher,
                         entry.getValue().getClassroom(),
+                        entry.getValue().getClassGroup(),
                         entry.getValue().getPriority()
                 );
                 schedule.getAssignments().put(entry.getKey(), newItem);
@@ -839,6 +839,7 @@ class BaseGeneticSchedulingLogic {
                     .setCourse(item.getCourse())
                     .setTeacher(item.getTeacher())
                     .setClassroom(item.getClassroom())
+                    .setClassGroup(item.getClassGroup())
                     .setTimeSlot(timeSlot)
                     .setPriority(item.getPriority());
 
@@ -921,6 +922,7 @@ class BaseGeneticSchedulingLogic {
                                 course,
                                 assignedTeacher,
                                 assignedClassroom,
+                                classGroup,
                                 courseAndTeachers.getPriority()
                         );
                         assignments.put(timeSlot, item);

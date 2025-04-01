@@ -2,6 +2,7 @@ package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
 import org.springframework.stereotype.Service;
 
@@ -35,7 +36,7 @@ public interface ClassAssignmentService {
      * 更新排课分配
      *
      * @param classAssignmentUuid 排课分配主键
-     * @param vo 排课分配请求对象
+     * @param vo                  排课分配请求对象
      */
     void update(String classAssignmentUuid, ClassAssignmentVO vo);
 
@@ -50,11 +51,11 @@ public interface ClassAssignmentService {
     /**
      * 分页查询排课分配
      *
-     * @param page 页码
-     * @param size 每页大小
+     * @param page         页码
+     * @param size         每页大小
      * @param semesterUuid 学期主键（可选）
-     * @param courseUuid 课程主键（可选）
-     * @param teacherUuid 教师主键（可选）
+     * @param courseUuid   课程主键（可选）
+     * @param teacherUuid  教师主键（可选）
      * @return 分页结果
      */
     PageDTO<ClassAssignmentDTO> page(Integer page, Integer size, String semesterUuid, String courseUuid, String teacherUuid);
@@ -63,9 +64,16 @@ public interface ClassAssignmentService {
      * 查询排课分配列表
      *
      * @param semesterUuid 学期主键（可选）
-     * @param courseUuid 课程主键（可选）
-     * @param teacherUuid 教师主键（可选）
+     * @param courseUuid   课程主键（可选）
+     * @param teacherUuid  教师主键（可选）
      * @return 排课分配列表
      */
     List<ClassAssignmentDTO> list(String semesterUuid, String courseUuid, String teacherUuid);
+
+    /**
+     * 保存排课分配
+     *
+     * @param result 排课结果数据传输对象
+     */
+    void saveClassAssignment(ScheduleResultDTO result);
 }

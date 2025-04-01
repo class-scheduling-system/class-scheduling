@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.ClassAssignmentDAO;
@@ -9,11 +10,13 @@ import com.frontleaves.scheduling.daos.SemesterDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.entity.ClassAssignmentDO;
 import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
 import com.frontleaves.scheduling.models.entity.SemesterDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
+import com.frontleaves.scheduling.services.AdministrativeClassService;
 import com.frontleaves.scheduling.services.ClassAssignmentService;
 import com.frontleaves.scheduling.utils.ProjectOption;
 import com.frontleaves.scheduling.utils.ProjectUtil;
@@ -21,6 +24,7 @@ import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -45,6 +49,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     private final SemesterDAO semesterDAO;
     private final CourseLibraryDAO courseLibraryDAO;
     private final TeacherDAO teacherDAO;
+    private final AdministrativeClassService administrativeClassService;
 
     @Override
     public void add(ClassAssignmentVO vo) {
@@ -137,15 +142,15 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     public PageDTO<ClassAssignmentDTO> page(Integer page, Integer size, String semesterUuid, String courseUuid, String teacherUuid) {
         // 验证 UUID 格式（如果提供）
         if (semesterUuid != null && !semesterUuid.isBlank() &&
-            !semesterUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+                !semesterUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
         if (courseUuid != null && !courseUuid.isBlank() &&
-            !courseUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+                !courseUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException(StringConstant.ErrorMessage.COURSE_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
         if (teacherUuid != null && !teacherUuid.isBlank() &&
-            !teacherUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+                !teacherUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException(StringConstant.ErrorMessage.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
 
@@ -163,15 +168,15 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     public List<ClassAssignmentDTO> list(String semesterUuid, String courseUuid, String teacherUuid) {
         // 验证 UUID 格式（如果提供）
         if (semesterUuid != null && !semesterUuid.isBlank() &&
-            !semesterUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+                !semesterUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
         if (courseUuid != null && !courseUuid.isBlank() &&
-            !courseUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+                !courseUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException(StringConstant.ErrorMessage.COURSE_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
         if (teacherUuid != null && !teacherUuid.isBlank() &&
-            !teacherUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
+                !teacherUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException(StringConstant.ErrorMessage.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
 
@@ -181,5 +186,28 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
                         .map(entity -> BeanUtil.toBean(entity, ClassAssignmentDTO.class))
                         .toList())
                 .orElse(List.of());
+    }
+
+    @Override
+    public void saveClassAssignment(@NotNull ScheduleResultDTO result) {
+        // 获取排课结果
+        List<ScheduleResultDTO.ClassAssignmentDTO> classAssignments = result.getAssignments();
+        if (classAssignments == null || classAssignments.isEmpty()) {
+            throw new BusinessException("排课结果为空", ErrorCode.PARAMETER_ERROR);
+        }
+
+        // 遍历排课结果，保存到数据库
+        for (ScheduleResultDTO.ClassAssignmentDTO assignment : classAssignments) {
+            ClassAssignmentDO assignmentDO = new ClassAssignmentDO();
+            // 查询班级（如果为Uuid格式则需查询为名字）
+            List<String> className = administrativeClassService.getClassNameByGroup(assignment.getClassGroup());
+            //交换数据
+            assignmentDO.setSemesterUuid(result.getSemesterId())
+                    .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
+                    .setTeacherUuid(assignment.getTeacher().getTeacher().getTeacherUuid())
+                    .setClassroomUuid(assignment.getClassroom().getClassroom().getClassroomUuid())
+                    .setTeachingClassComposition(JSONUtil.toJsonStr(className));
+        }
+
     }
 }

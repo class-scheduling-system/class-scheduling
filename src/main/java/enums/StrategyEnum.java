@@ -28,6 +28,7 @@
 
 package enums;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +42,7 @@ import org.jetbrains.annotations.NotNull;
  * @author xiao_lfeng
  * @version v1.0.0
  */
+@Getter
 @RequiredArgsConstructor
 public enum StrategyEnum {
     /**
@@ -51,6 +53,12 @@ public enum StrategyEnum {
     BALANCED("balanced"),
     QUICK("quick");
 
+    /**
+     * -- GETTER --
+     *  获取策略值
+     *
+     * @return 策略值
+     */
     private final String value;
 
     /**
@@ -59,7 +67,7 @@ public enum StrategyEnum {
      * @param value 策略值
      * @return 策略枚举
      */
-    public static StrategyEnum fromValue(String value) {
+    public static @NotNull StrategyEnum fromValue(String value) {
         for (StrategyEnum strategy : StrategyEnum.values()) {
             if (strategy.getValue().equalsIgnoreCase(value)) {
                 return strategy;
@@ -94,15 +102,6 @@ public enum StrategyEnum {
 
     public static String getDefaultValue(String value) {
         return fromValue(value).getValue();
-    }
-
-    /**
-     * 获取策略值
-     *
-     * @return 策略值
-     */
-    public String getValue() {
-        return value;
     }
 
 }

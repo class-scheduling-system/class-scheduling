@@ -67,7 +67,6 @@ public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implement
             log.debug("初始化种群为,{}", population);
             // 评估初始种群
             this.evaluatePopulation(population, baseDTO);
-
             int generation = 0;
             int maxGenerations = baseDTO.getAlgorithmParams().getMaxIterations();
             double bestFitness = 0.0;

@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.models.vo;
 
+import enums.CourseEnuType;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,7 +12,7 @@ import java.util.List;
 /**
  * 特定课程ID视图对象
  *
- * @author 26473
+ * @author FLASHLACK
  */
 @Getter
 @Accessors(chain = true)
@@ -28,7 +29,31 @@ public class SpecificCourseIdVO {
      */
     private List<String> classId;
     /**
-     * 课程人数可以选择
+     * 课程人数若班级列表空，则使用课程人数
      */
     private Integer number;
+    /**
+     * 课程周数,最大为4.00，最低为0.50
+     */
+    private Double weeklyHours;
+    /**
+     * 课程枚举类型
+     */
+    private CourseEnuType courseEnuType;
+    /**
+     * true=单周上课，false=双周上课 (仅当weeklyHours为1.5时生效)
+     */
+    private Boolean isOddWeek;
+    /**
+     * true=上半节，false=下半节（仅当weeklyHours为0.5时生效）
+     */
+    private Boolean isFirstHalf;
+    /**
+     * 课程开始周
+     */
+    private Integer startWeek;
+    /**
+     * 课程结束周
+     */
+    private Integer endWeek;
 }
