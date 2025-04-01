@@ -29,12 +29,14 @@
 package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.*;
+import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -61,6 +63,28 @@ class BaseGeneticSchedulingLogic {
      * 在遗传算法中，这种不可预测性对于确保种群多样性和避免陷入局部最优解是很重要的
      */
     private final SecureRandom random = new SecureRandom();
+
+    /**
+     * 获取课程表中的所有所需教室ID
+     *
+     * @param course 课程表
+     * @return 所需教室ID列表
+     */
+    private String getCourseType(CourseLibraryDTO course) {
+        String theoryType = course.getTheoryClassroomType();
+        if (theoryType != null) {
+            return theoryType;
+        }
+        String experimentType = course.getExperimentClassroomType();
+        if (experimentType != null) {
+            return experimentType;
+        }
+        String practiceType = course.getPracticeClassroomType();
+        if (practiceType != null) {
+            return practiceType;
+        }
+        return course.getComputerClassroomType();
+    }
 
     /**
      * 获取任务进度对应的Redis键
@@ -838,7 +862,7 @@ class BaseGeneticSchedulingLogic {
             for (CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers : baseData.getCourseList()) {
                 CourseLibraryDTO course = courseAndTeachers.getCourse();
                 TeacherCoursePreferencesDTO teacher = this.selectTeacherForCourse(course, courseAndTeachers.getTeacherList());
-                ClassroomAndTypeDTO classroom = this.selectClassroomForCourse(course, baseData.getClassroomList());
+                List<ClassroomAndTypeDTO> classroom = this.selectClassroomForCourse(courseAndTeachers, baseData.getClassroomList());
                 if (teacher != null && classroom != null) {
                     TimeSlotDTO timeSlot = findSuitableTimeSlot(assignments, teacher, classroom, baseData);
                     if (timeSlot != null) {
@@ -884,7 +908,7 @@ class BaseGeneticSchedulingLogic {
                 .filter(teacher -> teacher.getQualification() != null
                         && teacher.getQualification().getCourseUuid().equals(course.getCourseLibraryUuid()))
                 .toList());
-        log.debug("是否存在,{}",suitableTeachers);
+        log.debug("是否存在,{}", suitableTeachers);
         // 如果存在合适的教师，则随机选择一位
         // 如果存在合适的教师，则随机选择一位
         if (!suitableTeachers.isEmpty()) {
@@ -903,42 +927,90 @@ class BaseGeneticSchedulingLogic {
      * 从符合课程容量和类型要求的教室中随机选择一间。
      * </p>
      *
-     * @param course     课程信息
-     * @param classrooms 候选教室列表
+     * @param courseQualificationList 课程库以及教师课程资格列表
+     * @param classrooms              候选教室列表
      * @return 选择的教室，如果没有合适教室则返回null
      */
-    @Nullable ClassroomAndTypeDTO selectClassroomForCourse(
-            CourseLibraryDTO course,
-            @NotNull List<ClassroomAndTypeDTO> classrooms
-    ) {
-        List<ClassroomAndTypeDTO> suitableClassrooms = new ArrayList<>(classrooms.stream()
+    @Nullable
+    List<ClassroomAndTypeDTO> selectClassroomsForCourse(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList,
+            @Nonnull List<ClassroomAndTypeDTO> classrooms) {
+        CourseLibraryDTO course = courseQualificationList.getCourse();
+        List<AdministrativeClassDTO> classDTOS = courseQualificationList.getClassList();
+        String courseType = getCourseType(course);
+        log.debug("课程 {} 类型: {}", course.getName(), courseType);
+        List<ClassroomAndTypeDTO> selectedClassrooms = new ArrayList<>();
+        // 按专业分组，并计算总学生人数
+        Map<String, Integer> studentCountByMajor = new HashMap<>();
+        Map<String, List<AdministrativeClassDTO>> classesByMajor = new HashMap<>();
+        for (AdministrativeClassDTO adminClass : classDTOS) {
+            String majorUuid = adminClass.getMajorUuid();
+            classesByMajor.computeIfAbsent(majorUuid, k -> new ArrayList<>()).add(adminClass);
+            studentCountByMajor.put(majorUuid, studentCountByMajor.getOrDefault(majorUuid, 0) + adminClass.getStudentCount());
+        }
+        // 遍历每个专业，分配教室
+        for (Map.Entry<String, Integer> entry : studentCountByMajor.entrySet()) {
+            String majorUuid = entry.getKey();
+            int totalStudentCount = entry.getValue();
+            log.debug("专业 {} 总学生数: {}", majorUuid, totalStudentCount);
+            List<ClassroomAndTypeDTO> remainingClassrooms = new ArrayList<>(classrooms);
+            while (totalStudentCount > 0 && !remainingClassrooms.isEmpty()) {
+                // 查找符合要求的教室
+                ClassroomAndTypeDTO selectedClassroom = findBestClassroom(remainingClassrooms, totalStudentCount, courseType);
+                if (selectedClassroom == null) {
+                    log.warn("没有找到合适的教室来教授专业: {}", majorUuid);
+                    return null;
+                }
+                selectedClassrooms.add(selectedClassroom);
+                // 更新剩余学生人数
+                int capacity = selectedClassroom.getClassroom().getCapacity();
+                totalStudentCount -= capacity;
+                // 移除已使用的教室
+                remainingClassrooms.remove(selectedClassroom);
+            }
+            if (totalStudentCount > 0) {
+                log.warn("仍有 {} 名学生未能安排到教室", totalStudentCount);
+                return null;
+            }
+        }
+        return selectedClassrooms;
+    }
+
+    /**
+     * 选择最适合的教室
+     */
+    private @Nullable ClassroomAndTypeDTO findBestClassroom(List<ClassroomAndTypeDTO> classrooms, int studentCount, String courseType) {
+        List<ClassroomAndTypeDTO> suitableClassrooms = classrooms.stream()
                 .filter(classroom -> {
-                    // 检查教室容量是否足够
                     int capacity = classroom.getClassroom().getCapacity();
-                    log.debug("教室 {} 容量: {}", classroom.getClassroom().getName(), capacity);
-                    // 获取课程所需学生数
-                    int studentCount = course.getTotalHours() != null ? course.getTotalHours().intValue() : 30;
-                    log.debug("课程 {} 所需学生数: {}", course.getName(), studentCount);
-                    //TODO:教室类型检查
-                    String courseType = course.getType();
-                    String classroomType = classroom.getClassroomType().getName();
-                    boolean typeMatch = courseType == null || classroomType.equals(courseType);
-                    log.debug("课程 {} 类型: {}, 教室 {} 类型: {}, 类型匹配: {}", course.getName(), courseType, classroom.getClassroom().getName(), classroomType, typeMatch);
-                    return capacity >= studentCount;
+                    String classroomType = classroom.getClassroomType().getClassTypeUuid();
+                    boolean typeMatch = (courseType == null && classroomType == null) ||
+                            (classroomType != null && classroomType.equals(courseType));
+                    return capacity >= studentCount && typeMatch;
                 })
-                .toList());
+                .toList();
 
         if (!suitableClassrooms.isEmpty()) {
             Collections.shuffle(suitableClassrooms, random);
-            ClassroomAndTypeDTO selectedClassroom = suitableClassrooms.get(0);
-            log.debug("随机选择的教室: {}", selectedClassroom.getClassroom().getName());
-            return selectedClassroom;
+            return suitableClassrooms.get(0);
         }
-        log.warn("没有找到合适的教室来教授课程: {}", course.getName());
+
+        // 若找不到符合类型的教室，尝试普通教室
+        List<ClassroomAndTypeDTO> generalClassrooms = classrooms.stream()
+                .filter(classroom -> classroom.getClassroom().getCapacity() >= studentCount &&
+                        classroom.getClassroomType().getClassTypeUuid() == null)
+                .toList();
+
+        if (!generalClassrooms.isEmpty()) {
+            Collections.shuffle(generalClassrooms, random);
+            return generalClassrooms.get(0);
+        }
+
         return null;
     }
 
-/**
+
+    /**
      * 查找合适的时间槽
      * <p>
      * 从所有可能的时间槽中查找一个不会导致冲突的时间槽。
