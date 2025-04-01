@@ -26,39 +26,49 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling;
+package com.frontleaves.scheduling.configs.apps;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
+import com.frontleaves.scheduling.daos.TokenDAO;
+import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.ws.AiFrontWebSocketComponent;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+
+import java.util.Optional;
 
 /**
- * 项目启动类
+ * WebSocket 初始化配置类
  * <p>
- * 通过 {@link SpringApplication} 注解标注该类为 SpringBoot 项目启动类
+ * 该类用于初始化 WebSocket 组件，设置用户服务和令牌数据访问对象。
+ * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
-@EnableAsync
-@EnableScheduling
-@SpringBootConfiguration
-@EnableAutoConfiguration
-@ComponentScan(basePackageClasses = {
-        com.xlf.utility.UtilProperties.class,
-        com.xlf.utility.exception.PublicExceptionHandlerAbstract.class,
-        com.xlf.utility.config.app.MybatisPlusConfiguration.class
-}, value = "com.frontleaves.scheduling")
-@EnableTransactionManagement
-public class ClassSchedulingApplication {
-
-    public static void main(String[] args) {
-        SpringApplication.run(ClassSchedulingApplication.class, args);
+@Slf4j
+@Configuration
+@EnableWebSocket
+@RequiredArgsConstructor
+@Order(Ordered.HIGHEST_PRECEDENCE + 2)
+public class WebSocketInitConfig {
+    private final UserService userService;
+    private final TokenDAO tokenDAO;
+    @Bean
+    public AiFrontWebSocketComponent webSocketComponent() {
+        return Optional.of(new AiFrontWebSocketComponent())
+                .map(component -> {
+                    component.setUserService(userService);
+                    component.setTokenDAO(tokenDAO);
+                    return component;
+                })
+                .orElseThrow(() -> new BusinessException("WebSocket 组件初始化失败", ErrorCode.SERVER_INTERNAL_ERROR));
     }
-
 }

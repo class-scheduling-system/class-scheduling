@@ -28,16 +28,26 @@
 
 package com.frontleaves.scheduling.ws;
 
+import cn.hutool.json.JSONUtil;
+import com.frontleaves.scheduling.configs.apps.WebSocketConfig;
 import com.frontleaves.scheduling.constants.LogConstant;
+import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.daos.TokenDAO;
+import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.services.UserService;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
-import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -54,14 +64,18 @@ import java.util.concurrent.CopyOnWriteArraySet;
 @Slf4j
 @Component
 @EqualsAndHashCode
-@ServerEndpoint("/ws/test/{user_uuid}")
-public class WebSocketSessionManager {
-
+@NoArgsConstructor
+@ServerEndpoint(value = "/ws/ai/response/front", configurator = WebSocketConfig.class)
+public class AiFrontWebSocketComponent {
     /**
      * concurrent包的线程安全Set，用来存放每个客户端对应的MyWebSocket对象。
      * 虽然@Component默认是单例模式的，但springboot还是会为每个websocket连接初始化一个bean，所以可以用一个静态set保存起来。
      */
-    private static final CopyOnWriteArraySet<WebSocketSessionManager> SESSION_MANAGER = new CopyOnWriteArraySet<>();
+    private static final CopyOnWriteArraySet<AiFrontWebSocketComponent> SESSION_MANAGER = new CopyOnWriteArraySet<>();
+    @Setter
+    private UserService userService;
+    @Setter
+    private TokenDAO tokenDAO;
     /**
      * 用来存在线连接用户信息
      */
@@ -76,13 +90,45 @@ public class WebSocketSessionManager {
      */
     private String userUuid;
 
+    /**
+     * 链接建立成功调用的方法
+     *
+     * @param session  WebSocket 会话
+     */
     @OnOpen
-    public void onOpen(Session session, @PathParam(value = "user_uuid") String userUuid) {
-        this.session = session;
-        this.userUuid = userUuid;
-        SESSION_MANAGER.add(this);
-        SESSION_POOL.put(userUuid, session);
-        log.debug("{}建立与UserID：{}的消息提醒计数连接", LogConstant.WS, userUuid);
+    public void onOpen(@NotNull Session session) {
+        String getAuthorizationToken = (String) session.getUserProperties().get("authorization");
+        log.debug("{}获取到的 Authorization Token: {}", LogConstant.WS, getAuthorizationToken);
+        String getReturnData = JSONUtil.toJsonStr(Map.of("success", false, "message", "用户未登录"));
+        try {
+            if (getAuthorizationToken == null || getAuthorizationToken.isEmpty()) {
+                session.getAsyncRemote().sendText(getReturnData);
+                session.close();
+                return;
+            }
+            String getToken = getAuthorizationToken.replace("Bearer ", "");
+            if (!getToken.matches(StringConstant.Regular.UUID_REGULAR_EXPRESSION)) {
+                session.getAsyncRemote().sendText(getReturnData);
+                session.close();
+                return;
+            }
+            // token 与用户进行匹配
+            UserDO getUser = tokenDAO.getTokenUser(getToken);
+            if (getUser.getUserUuid() == null || getUser.getUserUuid().isEmpty()) {
+                session.getAsyncRemote().sendText(getReturnData);
+                session.close();
+                return;
+            }
+
+            this.session = session;
+            this.userUuid = getUser.getUserUuid();
+            SESSION_MANAGER.add(this);
+            SESSION_POOL.put(userUuid, session);
+
+            log.debug("{}建立与[{}]的消息提醒计数连接", LogConstant.WS, userUuid);
+        } catch (IOException e) {
+            log.error("{}建立连接时发生错误: {}", LogConstant.WS, e.getMessage());
+        }
     }
 
     /**

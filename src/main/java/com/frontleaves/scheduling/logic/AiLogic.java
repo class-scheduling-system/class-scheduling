@@ -37,7 +37,7 @@ import com.frontleaves.scheduling.models.dto.RoleDTO;
 import com.frontleaves.scheduling.services.AiService;
 import com.frontleaves.scheduling.services.RoleService;
 import com.frontleaves.scheduling.services.UserService;
-import com.frontleaves.scheduling.ws.WebSocketSessionManager;
+import com.frontleaves.scheduling.ws.AiFrontWebSocketComponent;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,8 +48,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * AI 逻辑处理类
@@ -67,10 +65,7 @@ import java.util.concurrent.Executors;
 public class AiLogic implements AiService {
     private final UserService userService;
     private final RoleService roleService;
-    private final WebSocketSessionManager webSocketSessionManager;
-
-    // 创建线程池处理 AI 流式响应
-    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
+    private final AiFrontWebSocketComponent aiFrontWebSocketComponent;
 
     /**
      * 发送路由跳转

@@ -28,18 +28,21 @@
 
 package com.frontleaves.scheduling.configs.apps;
 
+import jakarta.websocket.HandshakeResponse;
+import jakarta.websocket.server.HandshakeRequest;
+import jakarta.websocket.server.ServerEndpointConfig;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.messaging.simp.config.ChannelRegistration;
-import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
-import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
-import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
-import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import org.springframework.web.socket.server.standard.ServerEndpointExporter;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * WebSocket 配置类
@@ -53,70 +56,10 @@ import org.springframework.web.socket.server.standard.ServerEndpointExporter;
  */
 @Slf4j
 @Configuration
-@EnableWebSocketMessageBroker
 @EnableWebSocket
-@Order(Ordered.HIGHEST_PRECEDENCE + 99)
-public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-
-    /**
-     * 配置消息代理
-     * <p>
-     * 配置消息代理，用于转发消息
-     * </p>
-     *
-     * @param registry 消息代理注册表
-     */
-    @Override
-    public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // 设置消息代理的前缀，客户端订阅消息的前缀
-        registry.enableSimpleBroker("/topic", "/queue", "/user");
-        // 设置应用程序的前缀，客户端发送消息的前缀
-        registry.setApplicationDestinationPrefixes("/app");
-        // 设置用户目标前缀，客户端发送消息给特定用户的前缀
-        registry.setUserDestinationPrefix("/user");
-    }
-
-    /**
-     * 注册 STOMP 端点
-     * <p>
-     * 注册 STOMP 端点，用于客户端连接
-     * </p>
-     *
-     * @param registry STOMP 端点注册表
-     */
-    @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // 注册 STOMP 端点，允许使用 SockJS
-        registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
-                .withSockJS();
-    }
-
-    /**
-     * 配置客户端入站通道
-     * <p>
-     * 配置客户端入站通道，用于消息处理
-     * </p>
-     *
-     * @param registration 通道注册表
-     */
-    @Override
-    public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.taskExecutor().corePoolSize(4).maxPoolSize(10);
-    }
-
-    /**
-     * 配置客户端出站通道
-     * <p>
-     * 配置客户端出站通道，用于消息处理
-     * </p>
-     *
-     * @param registration 通道注册表
-     */
-    @Override
-    public void configureClientOutboundChannel(ChannelRegistration registration) {
-        registration.taskExecutor().corePoolSize(4).maxPoolSize(10);
-    }
+@RequiredArgsConstructor
+@Order(Ordered.HIGHEST_PRECEDENCE + 1)
+public class WebSocketConfig extends ServerEndpointConfig.Configurator {
 
     /**
      * 注册 ServerEndpointExporter bean
@@ -129,5 +72,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     public ServerEndpointExporter serverEndpointExporter() {
         return new ServerEndpointExporter();
+    }
+
+    /**
+     * 建立握手时，连接前的操作
+     */
+    @Override
+    public void modifyHandshake(@NotNull ServerEndpointConfig sec, @NotNull HandshakeRequest request, HandshakeResponse response) {
+        final Map<String, Object> userProperties = sec.getUserProperties();
+        Map<String, List<String>> headers = request.getHeaders();
+        headers.forEach((data, list) -> userProperties.put(data, list.get(0)));
     }
 }
