@@ -68,11 +68,6 @@ public class AutomaticClassSchedulingBaseDTO {
      */
     private StrategyEnum strategy;
 
-    /**
-     * 结束周
-     * 指定课程安排的结束周数。
-     */
-    private Integer endWeek;
 
     /**
      * 排课约束

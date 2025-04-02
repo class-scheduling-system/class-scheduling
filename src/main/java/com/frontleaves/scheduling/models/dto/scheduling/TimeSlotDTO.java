@@ -7,6 +7,7 @@ import java.util.Objects;
 
 /**
  * 时间槽 DTO
+ * @author FLASHLACK
  */
 @Data
 @Accessors(chain = true)
@@ -14,17 +15,21 @@ public class TimeSlotDTO {
     private final int week;
     private final int dayOfWeek;
     private final int period;
-    
+
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         TimeSlotDTO timeSlot = (TimeSlotDTO) o;
         return week == timeSlot.week &&
                 dayOfWeek == timeSlot.dayOfWeek &&
                 period == timeSlot.period;
     }
-    
+
     @Override
     public int hashCode() {
         return Objects.hash(week, dayOfWeek, period);
