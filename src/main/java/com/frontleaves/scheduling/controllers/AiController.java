@@ -28,20 +28,9 @@
 
 package com.frontleaves.scheduling.controllers;
 
-import com.frontleaves.scheduling.annotations.RequestLogin;
-import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.vo.AiRouteJumpVO;
 import com.frontleaves.scheduling.services.AiService;
-import com.xlf.utility.BaseResponse;
-import com.xlf.utility.ResultUtil;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -63,25 +52,4 @@ import org.springframework.web.bind.annotation.RestController;
 public class AiController {
 
     private final AiService aiService;
-
-    /**
-     * 路由跳转（HTTP 请求方式）
-     * <p>
-     * 该方法用于处理路由跳转请求，使用传统的 HTTP 请求方式。
-     * 调用后会将结果以 HTTP 响应方式返回。
-     * </p>
-     *
-     * @param routeJump 路由跳转信息
-     * @param request   HTTP 请求对象
-     * @return 路由跳转结果
-     */
-    @PostMapping
-    @RequestLogin
-    public ResponseEntity<BaseResponse<Void>> routeJump(
-            @Validated @RequestBody AiRouteJumpVO routeJump,
-            @NotNull HttpServletRequest request
-    ) {
-        aiService.sendRouteJump(routeJump.getUserInput(), routeJump.getHtml(), request);
-        return ResultUtil.success(StringConstant.OPERATE_SUCCESS);
-    }
 }

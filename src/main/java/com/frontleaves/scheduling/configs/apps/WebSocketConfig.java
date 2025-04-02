@@ -36,7 +36,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.server.standard.ServerEndpointExporter;
@@ -55,10 +54,10 @@ import java.util.Map;
  * @since v1.0.0
  */
 @Slf4j
+@Order(1)
 @Configuration
 @EnableWebSocket
 @RequiredArgsConstructor
-@Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class WebSocketConfig extends ServerEndpointConfig.Configurator {
 
     /**

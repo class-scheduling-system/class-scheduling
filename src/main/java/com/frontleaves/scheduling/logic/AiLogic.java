@@ -32,22 +32,28 @@ import cn.hutool.core.net.url.UrlBuilder;
 import cn.hutool.http.HtmlUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.frontleaves.scheduling.daos.SystemDAO;
 import com.frontleaves.scheduling.models.dto.RoleDTO;
+import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.services.AiService;
 import com.frontleaves.scheduling.services.RoleService;
-import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.utils.WsResponseUtil;
 import com.frontleaves.scheduling.ws.AiFrontWebSocketComponent;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Scanner;
 
 /**
  * AI 逻辑处理类
@@ -63,7 +69,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class AiLogic implements AiService {
-    private final UserService userService;
+    private final SystemDAO systemDAO;
     private final RoleService roleService;
     private final AiFrontWebSocketComponent aiFrontWebSocketComponent;
 
@@ -75,13 +81,18 @@ public class AiLogic implements AiService {
      *
      * @param userInput 用户输入的路由路径
      * @param html      HTML 内容
-     * @param request   HTTP 请求对象
+     * @param user      用户对象
+     * @param userAgent 用户代理信息
      */
     @Override
-    public void sendRouteJump(String userInput, String html, @NotNull HttpServletRequest request) {
-        String aiFrontApiKey = /* systemDAO.getSystemInfo("ai_front_api_key"); */ "app-PI6ZLJbaYnwDQBllEI50cP8c";
+    public void sendRouteJump(
+            @NotNull String userInput,
+            @Nullable String html,
+            @NotNull UserDO user,
+            @NotNull String userAgent) {
+        String aiFrontApiKey = systemDAO.getSystemInfo("ai_front_api_key");
 
-        RoleDTO getRole = Optional.ofNullable(userService.getUserByRequest(request))
+        RoleDTO getRole = Optional.of(user)
                 .map(data -> roleService.getRole(data.getRoleUuid()))
                 .orElseThrow(() -> new BusinessException("用户信息不存在", ErrorCode.NOT_EXIST));
 
@@ -97,25 +108,81 @@ public class AiLogic implements AiService {
                 .addHeaders(Map.of(
                         "Authorization", "Bearer " + aiFrontApiKey,
                         "Content-Type", "application/json",
-                        "Accept", "application/json",
+                        "Accept", "text/event-stream",
                         "Accept-Charset", "utf-8",
-                        "User-Agent", request.getHeader("User-Agent")
-                ))
+                        "User-Agent", userAgent))
+                .setReadTimeout(30000)
                 .body(JSONUtil.toJsonStr(Map.of(
                         "inputs", Map.of(
                                 "user_input", userInput,
                                 "html", html != null ? HtmlUtil.escape(html) : "",
-                                "role", getRole.getRoleName()
-                        ),
+                                "role", getRole.getRoleName()),
                         "response_mode", "streaming",
-                        "user", "uuid_" + userService.getUserByRequest(request).getUserUuid() + "_" + System.currentTimeMillis()
-                )))
-                .execute();
+                        "user",
+                        "uuid_" + user.getUserUuid() + "_" + System.currentTimeMillis())))
+                .executeAsync();
+
         if (response.getStatus() != 200) {
             response.close();
-            throw new BusinessException("请求出现不正确返回", ErrorCode.OPERATION_FAILED, JSONUtil.parse(response.body()));
+            throw new BusinessException("请求出现不正确返回", ErrorCode.OPERATION_FAILED,
+                    JSONUtil.parse(response.body()));
         }
 
-        response.close();
+        try {
+            // 使用 Scanner 处理 SSE 数据流
+            try (InputStream inputStream = response.bodyStream();
+                 Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8)) {
+
+                // 设置分隔符为换行符
+                scanner.useDelimiter("\n\n");
+
+                while (scanner.hasNext()) {
+                    String line = scanner.next().trim();
+
+                    // 处理 SSE 数据
+                    if (line.startsWith("data:")) {
+                        String data = line.substring(5).trim();
+                        // 数据解析为 JSON 对象
+                        JSONObject getData = JSONUtil.parseObj(data);
+                        switch (getData.getStr("event")) {
+                            case "node_started":
+                                String getStep = getData.getByPath("data.title").toString();
+                                aiFrontWebSocketComponent.sendMessage(
+                                        user.getUserUuid(),
+                                        WsResponseUtil.success("Success", "event", Map.of(
+                                                "type", "node_started",
+                                                "step", getStep
+                                        )));
+                                break;
+                            case "workflow_finished":
+                                String getResult = getData.getByPath("data.outputs.output").toString();
+                                aiFrontWebSocketComponent.sendMessage(
+                                        user.getUserUuid(),
+                                        WsResponseUtil.success("Success", "event", Map.of(
+                                                "type", "workflow_finished",
+                                                "result", getResult
+                                        )));
+                                break;
+                            default:
+                                break;
+                        }
+                    } else if (line.startsWith("event:")) {
+                        // 处理事件类型
+                        String event = line.substring(6).trim();
+                        log.debug("收到 SSE 事件: {}", event);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("处理 SSE 流时发生错误", e);
+            aiFrontWebSocketComponent.sendMessage(
+                    user.getUserUuid(),
+                    WsResponseUtil.error("Failed", "流式内容读取失败", Map.of(
+                            "message", e.getMessage()
+                    )));
+        } finally {
+            // 确保响应被关闭
+            response.close();
+        }
     }
 }

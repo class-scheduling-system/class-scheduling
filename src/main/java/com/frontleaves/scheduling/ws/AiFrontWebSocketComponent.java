@@ -28,14 +28,16 @@
 
 package com.frontleaves.scheduling.ws;
 
-import cn.hutool.json.JSONUtil;
+import cn.hutool.json.JSONObject;
 import com.frontleaves.scheduling.configs.apps.WebSocketConfig;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.TokenDAO;
 import com.frontleaves.scheduling.models.entity.UserDO;
-import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.services.AiService;
+import com.frontleaves.scheduling.utils.WsResponseUtil;
 import jakarta.websocket.OnClose;
+import jakarta.websocket.OnMessage;
 import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import jakarta.websocket.server.ServerEndpoint;
@@ -67,15 +69,16 @@ import java.util.concurrent.CopyOnWriteArraySet;
 @NoArgsConstructor
 @ServerEndpoint(value = "/ws/ai/response/front", configurator = WebSocketConfig.class)
 public class AiFrontWebSocketComponent {
+    @Setter
+    private static TokenDAO tokenDAO;
+    @Setter
+    private static AiService aiService;
+
     /**
      * concurrent包的线程安全Set，用来存放每个客户端对应的MyWebSocket对象。
      * 虽然@Component默认是单例模式的，但springboot还是会为每个websocket连接初始化一个bean，所以可以用一个静态set保存起来。
      */
     private static final CopyOnWriteArraySet<AiFrontWebSocketComponent> SESSION_MANAGER = new CopyOnWriteArraySet<>();
-    @Setter
-    private UserService userService;
-    @Setter
-    private TokenDAO tokenDAO;
     /**
      * 用来存在线连接用户信息
      */
@@ -90,45 +93,58 @@ public class AiFrontWebSocketComponent {
      */
     private String userUuid;
 
+    private UserDO user;
+
     /**
      * 链接建立成功调用的方法
      *
-     * @param session  WebSocket 会话
+     * @param session WebSocket 会话
      */
     @OnOpen
     public void onOpen(@NotNull Session session) {
         String getAuthorizationToken = (String) session.getUserProperties().get("authorization");
-        log.debug("{}获取到的 Authorization Token: {}", LogConstant.WS, getAuthorizationToken);
-        String getReturnData = JSONUtil.toJsonStr(Map.of("success", false, "message", "用户未登录"));
+        log.info("{}建立连接 [{}]", LogConstant.WS, session.getRequestURI().toString());
         try {
             if (getAuthorizationToken == null || getAuthorizationToken.isEmpty()) {
-                session.getAsyncRemote().sendText(getReturnData);
+                session.getAsyncRemote().sendText(WsResponseUtil.error("Failed", "用户未登录", Map.of()));
+                log.info("{}关闭连接: [{}]", LogConstant.WS, "用户令牌为空");
                 session.close();
                 return;
             }
             String getToken = getAuthorizationToken.replace("Bearer ", "");
             if (!getToken.matches(StringConstant.Regular.UUID_REGULAR_EXPRESSION)) {
-                session.getAsyncRemote().sendText(getReturnData);
+                session.getAsyncRemote().sendText(WsResponseUtil.error("Failed", "正则表达式不匹配", Map.of()));
+                log.info("{}关闭连接: [{}]", LogConstant.WS, "正则表达式不匹配");
                 session.close();
                 return;
             }
             // token 与用户进行匹配
-            UserDO getUser = tokenDAO.getTokenUser(getToken);
-            if (getUser.getUserUuid() == null || getUser.getUserUuid().isEmpty()) {
-                session.getAsyncRemote().sendText(getReturnData);
+            if (tokenDAO == null) {
+                session.getAsyncRemote().sendText(WsResponseUtil.error("Failed", "服务器内部错误", Map.of()));
+                log.info("{}关闭连接: [{}]", LogConstant.WS, "服务器内部错误");
                 session.close();
                 return;
             }
-
-            this.session = session;
-            this.userUuid = getUser.getUserUuid();
-            SESSION_MANAGER.add(this);
-            SESSION_POOL.put(userUuid, session);
-
-            log.debug("{}建立与[{}]的消息提醒计数连接", LogConstant.WS, userUuid);
+            UserDO getUser = tokenDAO.getTokenUser(getToken);
+            if (getUser == null || getUser.getUserUuid() == null || getUser.getUserUuid().isEmpty()) {
+                session.getAsyncRemote().sendText(WsResponseUtil.error("Failed", "用户不存在", Map.of()));
+                log.info("{}关闭连接: [{}]", LogConstant.WS, "用户不存在");
+                session.close();
+                return;
+            }
+            this.user = getUser;
         } catch (IOException e) {
             log.error("{}建立连接时发生错误: {}", LogConstant.WS, e.getMessage());
         }
+
+        this.session = session;
+        this.userUuid = user.getUserUuid();
+        SESSION_MANAGER.add(this);
+        SESSION_POOL.put(userUuid, session);
+
+        // 发送连接成功消息
+        session.getAsyncRemote().sendText(WsResponseUtil.success("Success", "连接成功", Map.of()));
+        log.debug("{}建立与[{}]的消息提醒计数连接", LogConstant.WS, user.getName());
     }
 
     /**
@@ -136,24 +152,47 @@ public class AiFrontWebSocketComponent {
      */
     @OnClose
     public void onClose() {
-        try (Session remove = SESSION_POOL.remove(this.userUuid)) {
-            SESSION_MANAGER.remove(this);
+        if (this.userUuid != null) {
+            try {
+                Session remove = SESSION_POOL.remove(this.userUuid);
+                SESSION_MANAGER.remove(this);
+                log.info("{}关闭与{}连接: [{}]", LogConstant.WS, this.userUuid, "常规关闭");
+                this.userUuid = null;
+                this.session = null;
+
+                remove.close();
+            } catch (Exception e) {
+                log.warn("{}关闭 Session 出现错误: {}", LogConstant.WS, e.getMessage());
+            }
+        }
+    }
+
+    @OnMessage
+    public void onMessage(String message) {
+        String userAgent = SESSION_POOL.get(userUuid).getUserProperties().get("user-agent").toString();
+        try {
+            log.debug("{}接收到消息: [{}]", LogConstant.WS, message);
+            JSONObject getJson = new JSONObject(message);
+            log.debug("{}接收到消息: [{}]", LogConstant.WS, getJson);
+            aiService.sendRouteJump(getJson.getStr("user_input"), getJson.getStr("html"), user, userAgent);
         } catch (Exception e) {
-            log.warn("{}关闭 Session 出现错误: {}", LogConstant.WS, e.getMessage());
+            this.sendMessage(userUuid, WsResponseUtil.error("Failed", "消息处理失败", Map.of(
+                "message", e.getMessage()
+            )));
+            log.error("{}处理消息时发生错误: {}", LogConstant.WS, e.getMessage());
         }
     }
 
     /**
      * 单人单播消息
      *
-     * @param userUuid
-     * @param message
+     * @param userUuid 用户UUID
+     * @param message  消息内容
      */
-    public void sendOneMessage(String userUuid, String message) {
+    public void sendMessage(String userUuid, String message) {
         Session session = SESSION_POOL.get(userUuid);
         if (session != null && session.isOpen()) {
             session.getAsyncRemote().sendText(message);
         }
     }
-
 }

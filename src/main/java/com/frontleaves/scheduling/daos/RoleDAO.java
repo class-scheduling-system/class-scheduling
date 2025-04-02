@@ -33,6 +33,7 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.annotations.IgnoreLog;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.RoleMapper;
@@ -82,6 +83,7 @@ public class RoleDAO extends ServiceImpl<RoleMapper, RoleDO> {
      * @return 返回角色信息，如果未找到则返回 null
      * @throws ServerInternalErrorException 如果数据库操作失败
      */
+    @IgnoreLog
     public RoleDTO getRoleByUuid(String roleUuid) throws ServerInternalErrorException {
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.ROLE_UUID + roleUuid);
         if (!map.isExists()) {

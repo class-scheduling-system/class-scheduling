@@ -29,19 +29,14 @@
 package com.frontleaves.scheduling.configs.apps;
 
 import com.frontleaves.scheduling.daos.TokenDAO;
-import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.services.AiService;
 import com.frontleaves.scheduling.ws.AiFrontWebSocketComponent;
-import com.xlf.utility.ErrorCode;
-import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
-
-import java.util.Optional;
 
 /**
  * WebSocket 初始化配置类
@@ -54,21 +49,27 @@ import java.util.Optional;
  * @since v1.0.0
  */
 @Slf4j
+@Order(2)
 @Configuration
 @EnableWebSocket
 @RequiredArgsConstructor
-@Order(Ordered.HIGHEST_PRECEDENCE + 2)
 public class WebSocketInitConfig {
-    private final UserService userService;
     private final TokenDAO tokenDAO;
+    private final AiService aiService;
+
+    /**
+     * 创建 WebSocket 组件
+     * <p>
+     * 创建一个新的 {@link AiFrontWebSocketComponent} 实例，并设置用户服务和令牌数据访问对象。
+     * </p>
+     *
+     * @return {@link AiFrontWebSocketComponent} 实例
+     */
     @Bean
     public AiFrontWebSocketComponent webSocketComponent() {
-        return Optional.of(new AiFrontWebSocketComponent())
-                .map(component -> {
-                    component.setUserService(userService);
-                    component.setTokenDAO(tokenDAO);
-                    return component;
-                })
-                .orElseThrow(() -> new BusinessException("WebSocket 组件初始化失败", ErrorCode.SERVER_INTERNAL_ERROR));
+        AiFrontWebSocketComponent webSocket = new AiFrontWebSocketComponent();
+        AiFrontWebSocketComponent.setTokenDAO(tokenDAO);
+        AiFrontWebSocketComponent.setAiService(aiService);
+        return webSocket;
     }
 }

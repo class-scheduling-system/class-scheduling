@@ -191,6 +191,9 @@ public class Initialize {
         init.checkSystemTable("web_launch_date", "2025-01-01");
         init.checkSystemTable("web_technology_stack", "Spring Boot, React, MySQL, Redis");
 
+        // APIKEY
+        init.checkSystemTable("ai_front_api_key", "app-PI6ZLJbaYnwDQBllEI50cP8c");
+
         log.info("[INIT] 系统数据表检查完成");
     }
 
