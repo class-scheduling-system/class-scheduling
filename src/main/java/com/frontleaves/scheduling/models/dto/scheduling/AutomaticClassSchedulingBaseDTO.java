@@ -196,17 +196,17 @@ public class AutomaticClassSchedulingBaseDTO {
              * 星期几（1-7，1表示周一）
              * 表示时间段所在的星期几。
              */
-            private Short day;
+            private Integer day;
             /**
              * 开始节次
              * 表示时间段的开始节次。
              */
-            private Short periodStart;
+            private Integer periodStart;
             /**
              * 结束节次
              * 表示时间段的结束节次。
              */
-            private Short periodEnd;
+            private Integer periodEnd;
         }
     }
 }

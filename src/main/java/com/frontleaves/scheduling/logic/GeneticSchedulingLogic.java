@@ -61,29 +61,30 @@ public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implement
         try {
             this.updateProgress(taskId, 0);
             this.updateStatus(taskId, "正在初始化种群...");
-            log.debug("基础数据: {}", baseDTO);
             // 生成初始种群
-            List<ScheduleDTO> population = this.generateInitialPopulation(baseDTO);
-            log.debug("初始化种群为,{}", population);
+            List<ScheduleDTO> allPopulation = this.generateInitialPopulation(baseDTO);
+            log.debug("初始种群生成完成，种群大小: {}", allPopulation.size());
+            log.debug("获取第一个种群: {}", allPopulation.get(0));
             // 评估初始种群
-            this.evaluatePopulation(population, baseDTO);
+            log.debug("开始评估初始种群...");
+            this.evaluatePopulation(allPopulation, baseDTO);
             int generation = 0;
             int maxGenerations = baseDTO.getAlgorithmParams().getMaxIterations();
             double bestFitness = 0.0;
             ScheduleDTO bestSchedule = null;
             while (generation < maxGenerations) {
                 // 选择
-                List<ScheduleDTO> selected = selection(population);
+                List<ScheduleDTO> selected = selection(allPopulation);
                 // 交叉
-                List<ScheduleDTO> offspring = crossover(selected, baseDTO.getAlgorithmParams().getCrossoverRate());
+                List<ScheduleDTO> offspring = crossover(selected, baseDTO.getAlgorithmParams().getCrossoverRate(), baseDTO);
                 // 变异
                 mutation(offspring, baseDTO.getAlgorithmParams().getMutationRate(), baseDTO);
                 // 评估新一代
                 evaluatePopulation(offspring, baseDTO);
                 // 更新种群
-                population = offspring;
+                allPopulation = offspring;
                 // 更新最佳解
-                Optional<ScheduleDTO> currentBest = population.stream()
+                Optional<ScheduleDTO> currentBest = allPopulation.stream()
                         .max(Comparator.comparingDouble(ScheduleDTO::getFitness));
                 if (currentBest.isPresent() && currentBest.get().getFitness() > bestFitness) {
                     bestFitness = currentBest.get().getFitness();
@@ -94,7 +95,6 @@ public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implement
                 int progress = (int) ((double) generation / maxGenerations * 100);
                 updateProgress(taskId, progress);
                 updateStatus(taskId, String.format("正在进行第 %d 代优化...", generation));
-
                 generation++;
             }
 

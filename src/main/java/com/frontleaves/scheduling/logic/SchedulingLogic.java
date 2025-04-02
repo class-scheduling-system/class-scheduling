@@ -12,7 +12,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -69,12 +68,27 @@ public class SchedulingLogic implements SchedulingService {
         }
     }
 
-    @Override
-    public CourseLibraryAndTeacherCourseQualificationListDTO copyAndSet(CourseLibraryAndTeacherCourseQualificationListDTO originalDto, CourseEnuType newType, BigDecimal hours) {
+
+    public static @NotNull CourseLibraryAndTeacherCourseQualificationListDTO copyAndSet(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO originalDto,
+            CourseEnuType newType,
+            BigDecimal hours) {
         CourseLibraryAndTeacherCourseQualificationListDTO newDto = new CourseLibraryAndTeacherCourseQualificationListDTO();
-        BeanUtils.copyProperties(originalDto, newDto);
-        newDto.setCourseEnuType(newType);
-        newDto.setExpectedTotalHours(hours);
-        return newDto;
+        log.debug("复制原始DTO的属性前的值: {}", originalDto.getExpectedTotalHours());
+        log.debug("复制原始DTO的属性前的计算出来的预期课时值: {}", hours);
+        // 复制原始DTO的属性
+        return newDto.setCourse(originalDto.getCourse())
+                .setClassList(originalDto.getClassList())
+                .setNumber(originalDto.getNumber())
+                .setTeacherList(originalDto.getTeacherList())
+                .setWeeklyHours(originalDto.getWeeklyHours())
+                // 使用新的类型
+                .setCourseEnuType(newType)
+                .setIsOddWeek(originalDto.getIsOddWeek())
+                .setStartWeek(originalDto.getStartWeek())
+                .setEndWeek(originalDto.getEndWeek())
+                // 使用新的课时
+                .setExpectedTotalHours(hours)
+                .setPriority(originalDto.getPriority());
     }
 }

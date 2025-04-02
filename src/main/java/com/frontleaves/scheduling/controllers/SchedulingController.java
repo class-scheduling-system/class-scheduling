@@ -4,7 +4,7 @@ import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.scheduling.ScheduleDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.CourseScheduleDTO;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
@@ -148,7 +148,7 @@ public class SchedulingController {
             @NotNull HttpServletRequest request
     ) {
         UserDO getUser = userService.getUserByRequest(request);
-        RBucket<ScheduleDTO> data = redisson.getBucket(StringConstant.Redis.SCHEDULE_RESULT + getUser.getUserUuid());
+        RBucket<CourseScheduleDTO> data = redisson.getBucket(StringConstant.Redis.SCHEDULE_RESULT + getUser.getUserUuid());
         return ResultUtil.success("Debug data", data.get());
     }
 }

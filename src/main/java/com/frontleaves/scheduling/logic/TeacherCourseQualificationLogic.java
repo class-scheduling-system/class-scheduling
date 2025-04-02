@@ -54,9 +54,6 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
     public List<CourseLibraryAndTeacherCourseQualificationListDTO>
     getCourseLibraryAndTeacherCourseQualificationList(@NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> courseLibraryDOList
             , Boolean isTeacherPreferences) {
-        // 创建返回结果列表
-        List<CourseLibraryAndTeacherCourseQualificationListDTO> courseLibraryAndTeacherCourseQualificationListDTO
-                = new ArrayList<>();
         // 遍历课程库列表，获取每个课程的教师资格信息
         for (CourseLibraryAndTeacherCourseQualificationListDTO libraryAndClassDTO : courseLibraryDOList) {
             // 根据课程库UUID获取教师课程资格信息
@@ -68,9 +65,7 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
                 throw new BusinessException("此" + libraryAndClassDTO.getCourse().getName() + "课程没有分配老师教学",
                         ErrorCode.BODY_ERROR);
             }
-            // 创建返回数据的最终关联DTO对象
-            CourseLibraryAndTeacherCourseQualificationListDTO dto =
-                    new CourseLibraryAndTeacherCourseQualificationListDTO();
+
             // 创建教师课程资格DTO列表
             List<TeacherCoursePreferencesDTO> coursePreferencesDTOList = new ArrayList<>();
             for (TeacherCourseQualificationDO courseQualificationDO : teacherCourseQualificationList) {
@@ -96,15 +91,12 @@ public class TeacherCourseQualificationLogic implements TeacherCourseQualificati
                 coursePreferencesDTOList.add(coursePreferences);
             }
             // 将数据转换为DTO
-            dto.setCourse(libraryAndClassDTO.getCourse())
+            libraryAndClassDTO.setCourse(libraryAndClassDTO.getCourse())
                     .setClassList(libraryAndClassDTO.getClassList())
                     .setNumber(libraryAndClassDTO.getNumber())
                     .setTeacherList(coursePreferencesDTOList);
-            // 将关联DTO添加到返回结果列表中
-            courseLibraryAndTeacherCourseQualificationListDTO
-                    .add(dto);
         }
         // 返回最终的DTO列表
-        return courseLibraryAndTeacherCourseQualificationListDTO;
+        return courseLibraryDOList;
     }
 }

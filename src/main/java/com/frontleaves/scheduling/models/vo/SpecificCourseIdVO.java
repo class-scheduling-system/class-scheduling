@@ -45,7 +45,7 @@ public class SpecificCourseIdVO {
      */
     private CourseEnuType courseEnuType;
     /**
-     * true=单周上课，false=双周上课 (仅当weeklyHours为1.5时生效)
+     * true=单周上课，false=双周上课 (仅当weeklyHours为奇数时生效)
      */
     private Boolean isOddWeek;
     /**

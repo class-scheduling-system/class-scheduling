@@ -172,20 +172,20 @@ public class AutomaticClassSchedulingVO {
              * 星期几（1-7，1表示周一）
              */
             @NotNull(message = "星期几不能为空")
-            private Short day;
+            private Integer day;
             /**
              * 开始节次
              */
             @NotNull(message = "开始节次不能为空")
             @Min(value = 1, message = "开始节次必须大于等于 1")
-            private Short periodStart;
+            private Integer periodStart;
             /**
              * 结束节次
              */
             @NotNull(message = "结束节次不能为空")
             @Min(value = 1, message = "结束节次必须大于等于 1")
             @Max(value = 12, message = "结束节次必须小于等于 12")
-            private Short periodEnd;
+            private Integer periodEnd;
         }
     }
 

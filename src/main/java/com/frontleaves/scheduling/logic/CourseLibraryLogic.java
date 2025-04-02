@@ -60,7 +60,6 @@ public class CourseLibraryLogic implements CourseLibraryService {
     }
 
 
-
     /**
      * 计算选课学生的总人数
      *
@@ -147,7 +146,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
                     new CourseLibraryAndTeacherCourseQualificationListDTO();
             // 设置课程
             setCourse(libraryAndClassDTO, courseMap, specificCourseIdVO);
-            log.debug("设置人数:{}",specificCourseIdVO.getNumber());
+            log.debug("设置人数:{}", specificCourseIdVO.getNumber());
             // 计算学生人数（如果外部没有提供）
             if (specificCourseIdVO.getNumber() != null) {
                 libraryAndClassDTO.setNumber(specificCourseIdVO.getNumber());
@@ -155,6 +154,12 @@ public class CourseLibraryLogic implements CourseLibraryService {
                 // 计算学生数，同时添加班级信息
                 calculateStudentCount(libraryAndClassDTO, classMap, specificCourseIdVO);
             }
+            //设置其他信息
+            libraryAndClassDTO.setIsOddWeek(specificCourseIdVO.getIsOddWeek())
+                    .setCourseEnuType(specificCourseIdVO.getCourseEnuType())
+                    .setWeeklyHours(specificCourseIdVO.getWeeklyHours())
+                    .setStartWeek(specificCourseIdVO.getStartWeek())
+                    .setEndWeek(specificCourseIdVO.getEndWeek());
             log.debug("设置后人数为:{}", libraryAndClassDTO.getNumber());
             lists.add(libraryAndClassDTO);
         }
@@ -166,6 +171,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
      * 此方法用于通过课程的唯一标识符（UUID）来检索课程信息它首先调用课程库DAO中的方法来获取课程对象如果未找到对应的课程，
      * 则抛出一个商业异常，指示课程不存在这样做的目的是确保当请求特定课程时，能够提供明确的错误信息而不是返回null，
      * 从而提高系统的健壮性和用户体验
+     *
      * @param courseUuid 课程的唯一标识符（UUID）
      * @return 返回找到的CourseLibraryDO对象
      * @throws BusinessException 如果课程不存在，则抛出此异常

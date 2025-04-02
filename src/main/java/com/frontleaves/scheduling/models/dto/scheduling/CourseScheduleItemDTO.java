@@ -25,7 +25,7 @@ import java.util.List;
  */
 @Data
 @Accessors(chain = true)
-public class ScheduleItemDTO {
+public class CourseScheduleItemDTO {
     /**
      * 课程信息
      * <p>
@@ -81,8 +81,8 @@ public class ScheduleItemDTO {
      * @param classroom 教室信息
      * @param priority  课程优先级
      */
-    public ScheduleItemDTO(CourseLibraryDTO course, TeacherCoursePreferencesDTO teacher,
-                          ClassroomAndTypeDTO classroom,List<AdministrativeClassDTO> classGroup, Short priority) {
+    public CourseScheduleItemDTO(CourseLibraryDTO course, TeacherCoursePreferencesDTO teacher,
+                                 ClassroomAndTypeDTO classroom, List<AdministrativeClassDTO> classGroup, Short priority) {
         this.course = course;
         this.teacher = teacher;
         this.classroom = classroom;
@@ -99,7 +99,7 @@ public class ScheduleItemDTO {
      *
      * @param other 原课程安排项
      */
-    public ScheduleItemDTO(ScheduleItemDTO other) {
+    public CourseScheduleItemDTO(CourseScheduleItemDTO other) {
         this.course = other.course;
         this.teacher = other.teacher;
         this.classroom = other.classroom;

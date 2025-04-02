@@ -90,8 +90,6 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     @Resource
     private DepartmentService departmentService;
     @Resource
-    private SchedulingService schedulingService;
-    @Resource
     private RedissonClient redisson;
     private HttpServletRequest request;
     private AutomaticClassSchedulingVO classSchedulingVO;
@@ -171,6 +169,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                                 classSchedulingVO.getScopeSettings().getSpecificCourseIds(),
                                 classSchedulingVO.getDepartmentUuid()
                         );
+                log.debug("获取课程库和学生班级数据: {}", libraryAndClassDTOList);
                 //检查课程学分是否能够修满
                 for (SpecificCourseIdVO specificCourseIdVO
                         : classSchedulingVO.getScopeSettings().getSpecificCourseIds()) {
@@ -194,10 +193,10 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     // 计算课程的总课时（课程周数 * 每周课时）
                     BigDecimal expectedTotalHours = BigDecimal.valueOf(durationWeeks)
                             .multiply(BigDecimal.valueOf(specificCourseIdVO.getWeeklyHours()));
-                    // 课程学分不足时抛出异常
-                    if (expectedTotalHours.compareTo(selectedCredit) > 0) {
+                    // 课程学时时抛出异常
+                    if (expectedTotalHours.compareTo(selectedCredit) < 0) {
                         throw new BusinessException("课程类型 [" + specificCourseIdVO.getCourseEnuType().getChineseName() +
-                                "] 课时超出限制: 计划课时 " + expectedTotalHours + " > 限制课时 " + selectedCredit,
+                                "] 课时超出限制: 计划课时 " + expectedTotalHours + " < 限制课时 " + selectedCredit,
                                 ErrorCode.BODY_ERROR);
                     }
                     // 存入课程库,一些必要信息
@@ -208,6 +207,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                             .setEndWeek(specificCourseIdVO.getEndWeek())
                             .setExpectedTotalHours(selectedCredit);
                 }
+                log.debug("计算完成的课程库和班级数据: {}", libraryAndClassDTOList);
                 //获取老师所有数据
                 log.debug(LogConstant.THREAD + "获取老师所有数据");
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList = teacherCourseQualificationService
@@ -215,46 +215,26 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                                 libraryAndClassDTOList, classSchedulingVO.getConstraints().getTeacherPreference()
                         );
                 assert courseQualificationList != null;
-                log.debug(LogConstant.THREAD + "设置课程优先级");
-                for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
-                    //设置优先级
-                    CourseLibraryDTO courseLibraryDTO = dto.getCourse();
-                    assert courseLibraryDTO != null;
-                    // 获取课程类型 UUID
-                    String courseTypeUuid = courseLibraryDTO.getType();
-                    assert courseTypeUuid != null;
-                    // 在 Map 中查找对应的优先级信息
-                    CourseTypePriorityDTO courseTypePriorityDTO = courseTypePriorityMap.get(courseTypeUuid);
-                    if (courseTypePriorityDTO == null) {
-                        dto.setPriority((short) 5);
-                    } else {
-                        // 匹配成功，设置优先级
-                        dto.setPriority(courseTypePriorityDTO.getPriority());
-                    }
-                }
                 //把混排课程的分为课程的几类
                 log.debug(LogConstant.THREAD + "把混排课程的分为课程的类");
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> updatedList = new ArrayList<>();
                 for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
-                    if (dto.getCourseEnuType() == null) {
-                        throw new BusinessException("课程类型不能为空", ErrorCode.BODY_ERROR);
-                    }
                     if (dto.getCourseEnuType() == CourseEnuType.MIXED) {
                         CourseLibraryDTO course = dto.getCourse();
                         BigDecimal totalHours = course.getTotalHours();
                         if (totalHours != null && totalHours.compareTo(BigDecimal.ZERO) > 0) {
                             // 根据各个学时字段拆分
                             if (course.getTheoryHours().compareTo(BigDecimal.ZERO) > 0) {
-                                updatedList.add(schedulingService.copyAndSet(dto, CourseEnuType.THEORY, course.getTheoryHours()));
+                                updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.THEORY, course.getTheoryHours()));
                             }
                             if (course.getPracticeHours().compareTo(BigDecimal.ZERO) > 0) {
-                                updatedList.add(schedulingService.copyAndSet(dto, CourseEnuType.PRACTICE, course.getPracticeHours()));
+                                updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.PRACTICE, course.getPracticeHours()));
                             }
                             if (course.getComputerHours().compareTo(BigDecimal.ZERO) > 0) {
-                                updatedList.add(schedulingService.copyAndSet(dto, CourseEnuType.COMPUTER, course.getComputerHours()));
+                                updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.COMPUTER, course.getComputerHours()));
                             }
                             if (course.getOtherHours().compareTo(BigDecimal.ZERO) > 0) {
-                                updatedList.add(schedulingService.copyAndSet(dto, CourseEnuType.OTHER, course.getOtherHours()));
+                                updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.OTHER, course.getOtherHours()));
                             }
                         }
                     } else {
@@ -333,7 +313,6 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 automaticClassSchedulingBaseDTO.setTimePreferences(timePreferences);
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
                 cacheBaseData.set(automaticClassSchedulingBaseDTO);
-                log.debug("排课基础数据{}", automaticClassSchedulingBaseDTO);
                 automaticThread.startUp(userDO);
                 hasTask = false;
             } catch (Exception e) {

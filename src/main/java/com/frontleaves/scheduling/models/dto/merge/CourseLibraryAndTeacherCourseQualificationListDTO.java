@@ -66,7 +66,7 @@ public class CourseLibraryAndTeacherCourseQualificationListDTO {
      */
     private List<TeacherCoursePreferencesDTO> teacherList;
     /**
-     * 课程周数,最大为84，最低为1
+     * 课程周学时，最大为60，最低为1
      */
     private Integer weeklyHours;
     /**
