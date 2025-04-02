@@ -70,7 +70,7 @@ class BaseGeneticSchedulingLogic {
      * @param course 课程表
      * @return 所需教室ID列表
      */
-    private String getCourseType(CourseLibraryDTO course) {
+    private String getCourseType(@NotNull CourseLibraryDTO course) {
         String theoryType = course.getTheoryClassroomType();
         if (theoryType != null) {
             return theoryType;
