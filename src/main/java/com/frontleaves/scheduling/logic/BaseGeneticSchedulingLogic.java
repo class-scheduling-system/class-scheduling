@@ -1090,10 +1090,8 @@ class BaseGeneticSchedulingLogic {
                                            Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap) {
         // 当没有找到合适的教室来教授班级时，记录待分配的班级名称
         log.debug("没有找到合适的教室来教授班级: {}", pendingClasses.stream().map(AdministrativeClassDTO::getClassName).toList());
-
         // 从剩余的教室中随机选择一个教室
         ClassroomAndTypeDTO randomClassroom = selectRandomClassroom(remainingClassrooms);
-
         // 如果随机选中的教室不为空，则将所有待分配的班级都分配到这个教室，并记录分配信息
         if (randomClassroom != null) {
             allocationMap.put(new ArrayList<>(pendingClasses), randomClassroom);
@@ -1142,7 +1140,6 @@ class BaseGeneticSchedulingLogic {
                         entry -> entry.getValue().getCourse().getCourseLibraryUuid(),
                         Collectors.mapping(Map.Entry::getKey, Collectors.toList())
                 ));
-
         // 使用流处理所有课程时间槽
         return courseSlots.values().stream()
                 .flatMap(slots -> slots.stream()

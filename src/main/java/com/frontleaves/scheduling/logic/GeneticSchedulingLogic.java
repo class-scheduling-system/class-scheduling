@@ -76,20 +76,15 @@ public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implement
                 List<ScheduleDTO> selected = selection(population);
                 // 交叉
                 List<ScheduleDTO> offspring = crossover(selected, baseDTO.getAlgorithmParams().getCrossoverRate());
-
                 // 变异
                 mutation(offspring, baseDTO.getAlgorithmParams().getMutationRate(), baseDTO);
-
                 // 评估新一代
                 evaluatePopulation(offspring, baseDTO);
-
                 // 更新种群
                 population = offspring;
-
                 // 更新最佳解
                 Optional<ScheduleDTO> currentBest = population.stream()
                         .max(Comparator.comparingDouble(ScheduleDTO::getFitness));
-
                 if (currentBest.isPresent() && currentBest.get().getFitness() > bestFitness) {
                     bestFitness = currentBest.get().getFitness();
                     bestSchedule = deepCopySchedule(currentBest.get());

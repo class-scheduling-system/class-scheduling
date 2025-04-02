@@ -181,12 +181,12 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                                     .findFirst()
                                     .orElseThrow(() -> new BusinessException("课程不存在", ErrorCode.BODY_ERROR));
                     CourseLibraryDTO courseLibraryDTO = qualificationList.getCourse();
-                    // 根据课程类型选择对应的学分
+                    // 根据课程类型选择对应的学时
                     BigDecimal selectedCredit = switch (specificCourseIdVO.getCourseEnuType()) {
                         case THEORY -> courseLibraryDTO.getTheoryHours();
                         case PRACTICE -> courseLibraryDTO.getPracticeHours();
                         case COMPUTER -> courseLibraryDTO.getComputerHours();
-                        case MIXED -> courseLibraryDTO.getCredit();
+                        case MIXED -> courseLibraryDTO.getTotalHours();
                         case OTHER -> courseLibraryDTO.getOtherHours();
                     };
                     // 计算课程的持续周数
@@ -205,7 +205,8 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                             .setWeeklyHours(specificCourseIdVO.getWeeklyHours())
                             .setIsOddWeek(specificCourseIdVO.getIsOddWeek())
                             .setStartWeek(specificCourseIdVO.getStartWeek())
-                            .setEndWeek(specificCourseIdVO.getEndWeek());
+                            .setEndWeek(specificCourseIdVO.getEndWeek())
+                            .setExpectedTotalHours(selectedCredit);
                 }
                 //获取老师所有数据
                 log.debug(LogConstant.THREAD + "获取老师所有数据");
@@ -234,7 +235,6 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 //把混排课程的分为课程的几类
                 log.debug(LogConstant.THREAD + "把混排课程的分为课程的类");
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> updatedList = new ArrayList<>();
-
                 for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
                     if (dto.getCourseEnuType() == null) {
                         throw new BusinessException("课程类型不能为空", ErrorCode.BODY_ERROR);
