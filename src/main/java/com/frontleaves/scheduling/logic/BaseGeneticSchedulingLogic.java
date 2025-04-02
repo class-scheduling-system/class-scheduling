@@ -1278,7 +1278,6 @@ class BaseGeneticSchedulingLogic {
                         entry.getValue().getClassroom(),
                         course
                 );
-
                 if (newTimeSlot != null) {
                     schedule.getAssignments().put(newTimeSlot, entry.getValue());
                 } else {
@@ -1418,7 +1417,7 @@ class BaseGeneticSchedulingLogic {
      */
     private CourseLibraryAndTeacherCourseQualificationListDTO findCourseByScheduleItem(
             ScheduleItemDTO item,
-            List<CourseLibraryAndTeacherCourseQualificationListDTO> courses
+            @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> courses
     ) {
         return courses.stream()
                 .filter(course -> course.getCourse().getId().equals(item.getCourse().getId()))

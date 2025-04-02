@@ -8,6 +8,7 @@ import java.util.Objects;
 
 /**
  * 时间槽 DTO
+ * @author FLASHLACK
  */
 @Data
 @Accessors(chain = true)
