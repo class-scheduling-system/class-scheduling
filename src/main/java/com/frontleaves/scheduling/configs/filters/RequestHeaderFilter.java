@@ -62,10 +62,10 @@ public class RequestHeaderFilter extends OncePerRequestFilter {
             @NotNull HttpServletResponse response,
             @NotNull FilterChain filterChain
     ) throws ServletException, IOException {
-        String[] noMatchUrls = {"/favicon.ico"};
+        String[] noMatchUrls = {"/favicon.ico", "/ws"};
         boolean isMatch = false;
         for (String noMatchUrl : noMatchUrls) {
-            if (request.getRequestURI().contains(noMatchUrl)) {
+            if (request.getRequestURI().startsWith(noMatchUrl)) {
                 isMatch = true;
                 break;
             }

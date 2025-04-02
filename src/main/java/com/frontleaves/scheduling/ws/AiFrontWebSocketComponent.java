@@ -49,6 +49,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -102,7 +103,7 @@ public class AiFrontWebSocketComponent {
      */
     @OnOpen
     public void onOpen(@NotNull Session session) {
-        String getAuthorizationToken = (String) session.getUserProperties().get("authorization");
+        Map<String, List<String>> getAuthorizationToken = session.getRequestParameterMap();
         log.info("{}建立连接 [{}]", LogConstant.WS, session.getRequestURI().toString());
         try {
             if (getAuthorizationToken == null || getAuthorizationToken.isEmpty()) {
@@ -111,7 +112,7 @@ public class AiFrontWebSocketComponent {
                 session.close();
                 return;
             }
-            String getToken = getAuthorizationToken.replace("Bearer ", "");
+            String getToken = getAuthorizationToken.get("token").get(0).replace("Bearer ", "");
             if (!getToken.matches(StringConstant.Regular.UUID_REGULAR_EXPRESSION)) {
                 session.getAsyncRemote().sendText(WsResponseUtil.error("Failed", "正则表达式不匹配", Map.of()));
                 log.info("{}关闭连接: [{}]", LogConstant.WS, "正则表达式不匹配");
@@ -143,7 +144,9 @@ public class AiFrontWebSocketComponent {
         SESSION_POOL.put(userUuid, session);
 
         // 发送连接成功消息
-        session.getAsyncRemote().sendText(WsResponseUtil.success("Success", "连接成功", Map.of()));
+        session.getAsyncRemote().sendText(WsResponseUtil.success("Success", "connected", Map.of(
+            "message", "连接成功"
+        )));
         log.debug("{}建立与[{}]的消息提醒计数连接", LogConstant.WS, user.getName());
     }
 
