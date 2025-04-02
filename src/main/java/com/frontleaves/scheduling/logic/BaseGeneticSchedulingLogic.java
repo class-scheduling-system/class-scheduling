@@ -1321,9 +1321,14 @@ class BaseGeneticSchedulingLogic {
             CourseLibraryAndTeacherCourseQualificationListDTO course,
             AutomaticClassSchedulingBaseDTO baseDTO
     ) {
+        // **新增：检查课程是否已修满**
+        int totalScheduledHours = countTotalScheduledHours(assignments, course.getCourse().getCourseLibraryUuid());
+        if (totalScheduledHours >= course.getExpectedTotalHours().intValue()) {
+            // 课程修满，不再排课
+            return null;
+        }
         List<TimeSlotDTO> allTimeSlots = generateTimeSlotsByCourse(course, baseDTO);
         Collections.shuffle(allTimeSlots);
-
         for (TimeSlotDTO slot : allTimeSlots) {
             if (isTimeSlotSuitable(slot, assignments, teacher, classroom, course, baseDTO)) {
                 return slot;
@@ -1341,49 +1346,43 @@ class BaseGeneticSchedulingLogic {
             @NotNull AutomaticClassSchedulingBaseDTO baseDTO
     ) {
         List<TimeSlotDTO> slots = new ArrayList<>();
-        // 跟踪每周已分配的课时数
         Map<Integer, Integer> weeklySlotCount = new HashMap<>();
-        // 根据是否允许晚课决定每天的最大课时数
         int maxPeriodsPerDay = Boolean.TRUE.equals(baseDTO.getTimePreferences().getEveningCourses()) ? 12 : 8;
+        int totalScheduled = 0; // **新增变量：记录已安排的总学时**
         for (int week = course.getStartWeek(); week <= course.getEndWeek(); week++) {
             boolean isOddWeek = (week % 2 == 1);
-            // 计算本周需要的课时数
             int weeklyHoursNeeded = course.getWeeklyHours();
             if (course.getWeeklyHours() % 2 == 1 && course.getIsOddWeek() != null) {
-                // 单双周课程处理
                 if (Boolean.TRUE.equals(course.getIsOddWeek()) != isOddWeek) {
-                    continue; // 跳过不符合单双周要求的周
+                    continue;
                 }
             }
-            // 一周5天
             for (int day = 1; day <= 5; day++) {
-                // 检查本周是否已达到所需课时
                 if (weeklySlotCount.getOrDefault(week, 0) >= weeklyHoursNeeded) {
                     break;
                 }
-                // 根据晚课设置决定最大课时
                 for (int period = 1; period <= maxPeriodsPerDay; period++) {
-                    // 检查本周是否已达到所需课时
                     if (weeklySlotCount.getOrDefault(week, 0) >= weeklyHoursNeeded) {
                         break;
                     }
+                    // **检查是否超出总学时**
+                    if (totalScheduled >= course.getExpectedTotalHours().intValue()) {
+                        return slots;
+                    }
                     TimeSlotDTO slot;
                     if (course.getWeeklyHours() % 2 == 1 && course.getIsOddWeek() != null) {
-                        // 单双周课程
                         slot = new TimeSlotDTO(week, day, period, isOddWeek);
                     } else {
-                        // 普通课程
                         slot = new TimeSlotDTO(week, day, period, null);
                     }
                     slots.add(slot);
-                    // 更新本周已分配的课时数
                     weeklySlotCount.merge(week, 1, Integer::sum);
+                    totalScheduled++; // **更新已安排学时**
                 }
             }
         }
         return slots;
     }
-
     /**
      * 检查时间槽是否合适
      */
@@ -1424,7 +1423,23 @@ class BaseGeneticSchedulingLogic {
         }
         // 7. 检查本周的课时数是否已达到限制
         int currentWeekSlots = countWeeklySlots(assignments, course.getCourse().getCourseLibraryUuid(), slot.getWeek());
-        return currentWeekSlots < course.getWeeklyHours();
+        if (currentWeekSlots >= course.getWeeklyHours()) {
+            return false;
+        }
+        // 8. **新增检查：课程总学时是否已修满**
+        int totalScheduledHours = countTotalScheduledHours(assignments, course.getCourse().getCourseLibraryUuid());
+        return totalScheduledHours < course.getExpectedTotalHours().intValue();
+    }
+    /**
+     * 计算课程的总排课时长
+     */
+    private int countTotalScheduledHours(
+            @NotNull Map<TimeSlotDTO, ScheduleItemDTO> assignments,
+            String courseId
+    ) {
+        return (int) assignments.values().stream()
+                .filter(item -> item.getCourse().getCourseLibraryUuid().equals(courseId))
+                .count();
     }
 
     /**
