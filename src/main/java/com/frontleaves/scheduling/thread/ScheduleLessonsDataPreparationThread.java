@@ -197,7 +197,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     // 课程学时时抛出异常
                     if (expectedTotalHours.compareTo(selectedCredit) < 0) {
                         throw new BusinessException("课程类型 [" + specificCourseIdVO.getCourseEnuType().getChineseName() +
-                                "] 课时超出限制: 计划课时 " + expectedTotalHours + " < 限制课时 " + selectedCredit,
+                                "] 课时无法完成: 计划课时 " + expectedTotalHours + " < 规定课时 " + selectedCredit,
                                 ErrorCode.BODY_ERROR);
                     }
                     // 存入课程库,一些必要信息

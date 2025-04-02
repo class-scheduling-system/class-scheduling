@@ -690,7 +690,7 @@ class BaseGeneticSchedulingLogic {
                     switch (strategy) {
                         case 0:
                             // 时间槽变异
-                            timeSlotMutation(courseSchedule, baseDTO.getCourseList(), baseDTO, schedules);
+                            this.timeSlotMutation(courseSchedule, baseDTO.getCourseList(), baseDTO, schedules);
                             break;
                         case 1:
                             // 教室变异
@@ -1071,7 +1071,8 @@ class BaseGeneticSchedulingLogic {
      * 为课程分配虚拟班级和教室
      * 此方法根据剩余教室的容量和课程类型，为一定数量的学生分配虚拟班级和合适的教室
      */
-    private void allocateVirtualClasses(CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList, int number,
+    private void allocateVirtualClasses(@NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList,
+                                        int number,
                                         @NotNull List<ClassroomAndTypeDTO> remainingClassrooms,
                                         Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap) {
         CourseLibraryDTO course = courseQualificationList.getCourse();
@@ -1085,186 +1086,176 @@ class BaseGeneticSchedulingLogic {
         if (number > totalCapacity) {
             log.warn("总人数 {} 超过所有教室总容量 {}，无法完成分配", number, totalCapacity);
             return;
+        }
+        // 循环分配学生，直到所有学生都被分配
         while (studentCounter < number) {
             int remainingStudents = number - studentCounter;
-            // 检查是否有单个教室能容纳所有剩余学生
-            ClassroomAndTypeDTO fullCapacityClassroom = this.findBestClassroom(
+            // 尝试找到能容纳所有剩余学生的教室
+            ClassroomAndTypeDTO classroom = this.findBestClassroom(
                     remainingClassrooms,
                     remainingStudents,
                     course,
                     courseQualificationList
             );
-            if (fullCapacityClassroom == null) {
-                // 如果没有单个教室能容纳，进行分班
-                int currentSplitSize = remainingStudents;
-                boolean foundSuitableClassroom = false;
-                while (currentSplitSize > 20 && !foundSuitableClassroom) {
-                    // 对半分
-                    int splitSize = currentSplitSize / 2;
-                    if (splitSize < 20) {
-                        // 确保每个班级至少20人
-                        splitSize = 20;
-                    }
-                    // 寻找能容纳对半分后人数的教室
-                    ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(
-                            remainingClassrooms,
-                            splitSize,
-                            course,
-                            courseQualificationList
-                    );
-                    if (selectedClassroom != null) {
-                        // 找到合适的教室，分配学生
-                        foundSuitableClassroom = true;
-                        String classKey = course.getCourseLibraryUuid() + "-" + virtualClassIndex;
-
-                        AdministrativeClassDTO classDTO = new AdministrativeClassDTO()
-                                .setAdministrativeClassUuid(classKey)
-                                .setClassName(course.getName() + virtualClassIndex)
-                                .setStudentCount(splitSize);
-                        List<AdministrativeClassDTO> virtualClass = List.of(classDTO);
-                        allocationMap.put(virtualClass, selectedClassroom);
-                        studentCounter += splitSize;
-                        virtualClassIndex++;
-                        remainingClassrooms.remove(selectedClassroom);
-                    } else {
-                        // 没找到合适的教室，继续对半分
-                        currentSplitSize = splitSize;
-                    }
-                }
-                // 如果最后一批学生还没分配
-                if (!foundSuitableClassroom && currentSplitSize > 0) {
-                    ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(
-                            remainingClassrooms,
-                            currentSplitSize,
-                            course,
-                            courseQualificationList
-                    );
-                    if (selectedClassroom == null) {
-                        log.debug("没有合适的教室容纳最后 {} 名学生", currentSplitSize);
-                        return;
-                    }
-                    String classKey = course.getCourseLibraryUuid() + "-" + virtualClassIndex;
-                    AdministrativeClassDTO classDTO = new AdministrativeClassDTO()
-                            .setAdministrativeClassUuid(classKey)
-                            .setClassName(course.getName() + virtualClassIndex)
-                            .setStudentCount(currentSplitSize);
-                    List<AdministrativeClassDTO> virtualClass = List.of(classDTO);
-                    allocationMap.put(virtualClass, selectedClassroom);
-                    studentCounter += currentSplitSize;
-                    virtualClassIndex++;
-                    remainingClassrooms.remove(selectedClassroom);
-                }
-            } else {
-                // 有单个教室能容纳所有剩余学生，直接分配
-                int assignedStudents = remainingStudents;
-                String classKey = course.getCourseLibraryUuid() + "-" + virtualClassIndex;
-                AdministrativeClassDTO classDTO = new AdministrativeClassDTO()
-                        .setAdministrativeClassUuid(classKey)
-                        .setClassName(course.getName() + virtualClassIndex)
-                        .setStudentCount(assignedStudents);
-                List<AdministrativeClassDTO> virtualClass = List.of(classDTO);
-                allocationMap.put(virtualClass, fullCapacityClassroom);
-                studentCounter += assignedStudents;
+            if (classroom != null) {
+                // 如果找到合适的教室，直接分配所有剩余学生
+                allocateStudentsToClassroom(
+                        course,
+                        remainingStudents,
+                        virtualClassIndex,
+                        classroom,
+                        allocationMap
+                );
+                studentCounter += remainingStudents;
                 virtualClassIndex++;
-                remainingClassrooms.remove(fullCapacityClassroom);
+                remainingClassrooms.remove(classroom);
+            } else {
+                // 如果找不到合适的教室，进行分班
+                int splitSize = remainingStudents / 2;
+                if (splitSize < 20) {
+                    // 确保每个班级至少20人
+                    splitSize = 20;
+                }
+                // 尝试为分班后的学生找到教室
+                classroom = this.findBestClassroom(
+                        remainingClassrooms,
+                        splitSize,
+                        course,
+                        courseQualificationList
+                );
+                if (classroom == null) {
+                    log.debug("无法为 {} 名学生找到合适的教室", splitSize);
+                    return;
+                }
+                // 分配分班后的学生
+                allocateStudentsToClassroom(
+                        course,
+                        splitSize,
+                        virtualClassIndex,
+                        classroom,
+                        allocationMap
+                );
+                studentCounter += splitSize;
+                virtualClassIndex++;
+                remainingClassrooms.remove(classroom);
             }
         }
     }
     /**
-     * 根据专业分配班级到教室
-     * 该方法旨在根据班级的学生人数和课程类型，尽可能高效地利用剩余教室资源进行班级分配
-     *
-     * @param classList           待分配的行政班列表，不能为空
-     * @param remainingClassrooms 剩余可用的教室及其类型列表
-     * @param allocationMap       班级到教室的分配映射
-     * @param courseQualificationList  课程资格列表，包含课程信息和班级列表
+     * 将学生分配到教室并创建虚拟班级
      */
-      void allocateClassesByMajor (
-              @NotNull List<AdministrativeClassDTO> classList,
-                                        List<ClassroomAndTypeDTO> remainingClassrooms,
-                                        Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap,
-                                        CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList) {
-        CourseLibraryDTO course = courseQualificationList.getCourse();
-        // 按专业分组班级，以便后续处理
-        Map<String, List<AdministrativeClassDTO>> classesByMajor = classList.stream()
-                .collect(Collectors.groupingBy(AdministrativeClassDTO::getMajorUuid));
-        // 遍历每个专业的班级
-        for (List<AdministrativeClassDTO> majorClasses : classesByMajor.values()) {
-            List<AdministrativeClassDTO> pendingClasses = new ArrayList<>();
-            // 遍历当前专业的所有班级，尝试分配教室
-            for (AdministrativeClassDTO adminClass : majorClasses) {
-                pendingClasses.add(adminClass);
-                int totalStudents = pendingClasses.stream().mapToInt(AdministrativeClassDTO::getStudentCount).sum();
-                // 先尝试分配教室，不立即清空 pendingClasses
-                ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(remainingClassrooms,
-                        totalStudents, course,courseQualificationList);
-                if (selectedClassroom != null) {
-                    int remainingCapacity = selectedClassroom.getClassroom().getCapacity() - totalStudents;
-                    // **如果教室还有多余容量，尝试添加更多班级**
-                    while (!remainingClassrooms.isEmpty() && remainingCapacity > 0) {
-                        AdministrativeClassDTO nextClass = this.findNextClass(majorClasses, pendingClasses);
-                        if (nextClass == null) {
-                            break;
+    private void allocateStudentsToClassroom(
+            @NotNull CourseLibraryDTO course,
+            int studentCount,
+            int classIndex,
+            ClassroomAndTypeDTO classroom,
+            @NotNull Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap) {
+
+        String classKey = course.getCourseLibraryUuid() + "-" + classIndex;
+        AdministrativeClassDTO classDTO = new AdministrativeClassDTO()
+                .setAdministrativeClassUuid(classKey)
+                .setClassName(course.getName() + classIndex)
+                .setStudentCount(studentCount);
+
+        List<AdministrativeClassDTO> virtualClass = List.of(classDTO);
+        allocationMap.put(virtualClass, classroom);
+    }
+        /**
+         * 根据专业分配班级到教室
+         * 该方法旨在根据班级的学生人数和课程类型，尽可能高效地利用剩余教室资源进行班级分配
+         *
+         * @param classList           待分配的行政班列表，不能为空
+         * @param remainingClassrooms 剩余可用的教室及其类型列表
+         * @param allocationMap       班级到教室的分配映射
+         * @param courseQualificationList  课程资格列表，包含课程信息和班级列表
+         */
+        void allocateClassesByMajor (
+                @NotNull List < AdministrativeClassDTO > classList,
+                List < ClassroomAndTypeDTO > remainingClassrooms,
+                Map < List < AdministrativeClassDTO >, ClassroomAndTypeDTO > allocationMap,
+                CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList)
+        {
+            CourseLibraryDTO course = courseQualificationList.getCourse();
+            // 按专业分组班级，以便后续处理
+            Map<String, List<AdministrativeClassDTO>> classesByMajor = classList.stream()
+                    .collect(Collectors.groupingBy(AdministrativeClassDTO::getMajorUuid));
+            // 遍历每个专业的班级
+            for (List<AdministrativeClassDTO> majorClasses : classesByMajor.values()) {
+                List<AdministrativeClassDTO> pendingClasses = new ArrayList<>();
+                // 遍历当前专业的所有班级，尝试分配教室
+                for (AdministrativeClassDTO adminClass : majorClasses) {
+                    pendingClasses.add(adminClass);
+                    int totalStudents = pendingClasses.stream().mapToInt(AdministrativeClassDTO::getStudentCount).sum();
+                    // 先尝试分配教室，不立即清空 pendingClasses
+                    ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(remainingClassrooms,
+                            totalStudents, course, courseQualificationList);
+                    if (selectedClassroom != null) {
+                        int remainingCapacity = selectedClassroom.getClassroom().getCapacity() - totalStudents;
+                        // **如果教室还有多余容量，尝试添加更多班级**
+                        while (!remainingClassrooms.isEmpty() && remainingCapacity > 0) {
+                            AdministrativeClassDTO nextClass = this.findNextClass(majorClasses, pendingClasses);
+                            if (nextClass == null) {
+                                break;
+                            }
+                            int nextClassSize = nextClass.getStudentCount();
+                            if (remainingCapacity >= nextClassSize) {
+                                pendingClasses.add(nextClass);
+                                remainingCapacity -= nextClassSize;
+                            } else {
+                                break;
+                            }
                         }
-                        int nextClassSize = nextClass.getStudentCount();
-                        if (remainingCapacity >= nextClassSize) {
-                            pendingClasses.add(nextClass);
-                            remainingCapacity -= nextClassSize;
-                        } else {
-                            break;
-                        }
+                        // **最终确认分配**
+                        allocationMap.put(new ArrayList<>(pendingClasses), selectedClassroom);
+                        remainingClassrooms.remove(selectedClassroom);
+                        pendingClasses.clear();
                     }
-                    // **最终确认分配**
-                    allocationMap.put(new ArrayList<>(pendingClasses), selectedClassroom);
-                    remainingClassrooms.remove(selectedClassroom);
-                    pendingClasses.clear();
+                }
+                // **仍然有未分配的班级，尝试随机分配**
+                if (!pendingClasses.isEmpty()) {
+                    this.allocateUnassignedClasses(pendingClasses, remainingClassrooms, allocationMap);
                 }
             }
-            // **仍然有未分配的班级，尝试随机分配**
-            if (!pendingClasses.isEmpty()) {
-                this.allocateUnassignedClasses(pendingClasses, remainingClassrooms, allocationMap);
+        }
+
+        /**
+         * 寻找下一个未处理的行政班级
+         * 该方法用于在给定的专业班级列表中，找到下一个不在待处理列表中的班级
+         * 主要用于班级处理流程中，确定下一个需要处理的班级
+         *
+         * @param majorClasses   专业班级列表，不能为空
+         * @param pendingClasses 待处理班级列表，可能为空
+         * @return 如果找到下一个未处理的班级，则返回该班级；否则返回null
+         */
+        private @Nullable AdministrativeClassDTO findNextClass (@NotNull List < AdministrativeClassDTO > majorClasses,
+                List < AdministrativeClassDTO > pendingClasses){
+            // 使用流处理，过滤出下一个未处理的班级
+            return majorClasses.stream()
+                    .filter(cls -> !pendingClasses.contains(cls))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        /**
+         * 将未分配的班级随机分配到剩余的教室
+         * 当没有找到完全匹配的教室时，此方法旨在确保所有班级都能被分配一个教室，以避免空班情况
+         *
+         * @param pendingClasses      待分配的班级列表
+         * @param remainingClassrooms 剩余可用的教室列表
+         * @param allocationMap       班级到教室的分配映射
+         */
+        private void allocateUnassignedClasses (@NotNull List < AdministrativeClassDTO > pendingClasses,
+                List < ClassroomAndTypeDTO > remainingClassrooms,
+                Map < List < AdministrativeClassDTO >, ClassroomAndTypeDTO > allocationMap){
+            // 当没有找到合适的教室来教授班级时，记录待分配的班级名称
+            log.debug("没有找到合适的教室来教授班级: {}", pendingClasses.stream().map(AdministrativeClassDTO::getClassName).toList());
+            // 从剩余的教室中随机选择一个教室
+            ClassroomAndTypeDTO randomClassroom = this.selectRandomClassroom(remainingClassrooms);
+            // 如果随机选中的教室不为空，则将所有待分配的班级都分配到这个教室，并记录分配信息
+            if (randomClassroom != null) {
+                allocationMap.put(new ArrayList<>(pendingClasses), randomClassroom);
             }
         }
-    }
-
-    /**
-     * 寻找下一个未处理的行政班级
-     * 该方法用于在给定的专业班级列表中，找到下一个不在待处理列表中的班级
-     * 主要用于班级处理流程中，确定下一个需要处理的班级
-     *
-     * @param majorClasses   专业班级列表，不能为空
-     * @param pendingClasses 待处理班级列表，可能为空
-     * @return 如果找到下一个未处理的班级，则返回该班级；否则返回null
-     */
-    private @Nullable AdministrativeClassDTO findNextClass(@NotNull List<AdministrativeClassDTO> majorClasses,
-                                                           List<AdministrativeClassDTO> pendingClasses) {
-        // 使用流处理，过滤出下一个未处理的班级
-        return majorClasses.stream()
-                .filter(cls -> !pendingClasses.contains(cls))
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * 将未分配的班级随机分配到剩余的教室
-     * 当没有找到完全匹配的教室时，此方法旨在确保所有班级都能被分配一个教室，以避免空班情况
-     *
-     * @param pendingClasses      待分配的班级列表
-     * @param remainingClassrooms 剩余可用的教室列表
-     * @param allocationMap       班级到教室的分配映射
-     */
-    private void allocateUnassignedClasses(@NotNull List<AdministrativeClassDTO> pendingClasses,
-                                           List<ClassroomAndTypeDTO> remainingClassrooms,
-                                           Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap) {
-        // 当没有找到合适的教室来教授班级时，记录待分配的班级名称
-        log.debug("没有找到合适的教室来教授班级: {}", pendingClasses.stream().map(AdministrativeClassDTO::getClassName).toList());
-        // 从剩余的教室中随机选择一个教室
-        ClassroomAndTypeDTO randomClassroom = this.selectRandomClassroom(remainingClassrooms);
-        // 如果随机选中的教室不为空，则将所有待分配的班级都分配到这个教室，并记录分配信息
-        if (randomClassroom != null) {
-            allocationMap.put(new ArrayList<>(pendingClasses), randomClassroom);
-        }
-    }
 
     /**
      * 查找最佳教室
@@ -1297,380 +1288,386 @@ class BaseGeneticSchedulingLogic {
                     break;
             }
         }
-        String finalRequiredClassroomType = requiredClassroomType;
-
         // 先尝试找到指定类型的教室
-        ClassroomAndTypeDTO specializedClassroom = classrooms.stream()
+        String finalRequiredClassroomType = requiredClassroomType;
+        return classrooms.stream()
                 .filter(c -> {
                     // 首先检查容量是否满足
                     if (c.getClassroom().getCapacity() < studentCount) {
                         return false;
                     }
-                    // 如果课程类型和教室类型都为空，则匹配
-                    if (finalRequiredClassroomType == null && c.getClassroomType().getClassTypeUuid() == null) {
+                    // 如果课程类型为空，则匹配任何教室
+                    if (finalRequiredClassroomType == null) {
                         return true;
                     }
                     // 如果课程类型不为空，则必须匹配
-                    if (finalRequiredClassroomType != null) {
-                        return finalRequiredClassroomType.equals(c.getClassroomType().getClassTypeUuid());
-                    }
-                    return false;
+                    return finalRequiredClassroomType.equals(c.getClassroomType().getClassTypeUuid());
                 })
                 .min(Comparator.comparingInt(c -> c.getClassroom().getCapacity()))
-                .orElse(null);
-
-        // 如果找到了指定类型的教室，直接返回
-        if (specializedClassroom != null) {
-            return specializedClassroom;
+                .orElseGet(() -> {
+                    // 如果找不到指定类型的教室，尝试找普通教室
+                    return classrooms.stream()
+                            .filter(c -> {
+                                // 检查容量是否满足
+                                if (c.getClassroom().getCapacity() < studentCount) {
+                                    return false;
+                                }
+                                // 返回普通教室
+                                return c.getClassroomType().getClassTypeUuid() == SystemConstant.getClassroomTypeCommon();
+                            })
+                            .min(Comparator.comparingInt(c -> c.getClassroom().getCapacity()))
+                            .orElse(null);
+                });
+    }
+        /**
+         * 随机选择一个教室
+         * 从给定的教室列表中随机选择一个教室如果列表为空，则返回null
+         *
+         * @param classrooms 一个包含教室信息的列表，不能为null
+         * @return 随机选中的教室信息，如果列表为空则返回null
+         */
+        private @Nullable ClassroomAndTypeDTO selectRandomClassroom (@NotNull List < ClassroomAndTypeDTO > classrooms) {
+            return classrooms.isEmpty() ? null : classrooms.get(new Random().nextInt(classrooms.size()));
         }
-        // 如果没找到指定类型的教室，返回一个普通教室（教室类型为空的教室）
-        return classrooms.stream()
-                .filter(c -> {
-                    // 检查容量是否满足
-                    if (c.getClassroom().getCapacity() < studentCount) {
-                        return false;
-                    }
-                    // 返回教室类型为空的教室（普通教室）
-                    return c.getClassroomType().getClassTypeUuid() == SystemConstant.getClassroomTypeCommon();
-                })
-                .min(Comparator.comparingInt(c -> c.getClassroom().getCapacity()))
-                .orElse(null);
-    }
 
-    /**
-     * 随机选择一个教室
-     * 从给定的教室列表中随机选择一个教室如果列表为空，则返回null
-     *
-     * @param classrooms 一个包含教室信息的列表，不能为null
-     * @return 随机选中的教室信息，如果列表为空则返回null
-     */
-    private @Nullable ClassroomAndTypeDTO selectRandomClassroom(@NotNull List<ClassroomAndTypeDTO> classrooms) {
-        return classrooms.isEmpty() ? null : classrooms.get(new Random().nextInt(classrooms.size()));
-    }
-
-    /**
-     * 计算连续课程的适应度值
-     *
-     * @param schedule 课程表
-     * @return 连续课程的适应度值
-     */
-    private double calculateConsecutiveCoursesFitness(@NotNull CourseScheduleDTO schedule) {
-        // 按课程分组，获取每个课程的所有时间槽
-        Map<String, List<List<TimeSlotDTO>>> courseSlots = schedule.getAssignments().entrySet().stream()
-                .collect(Collectors.groupingBy(
-                        entry -> entry.getValue().getCourse().getCourseLibraryUuid(),
-                        Collectors.mapping(Map.Entry::getKey, Collectors.toList())
-                ));
-
-        double totalFitness = 0.0;
-
-        // 遍历每个课程
-        for (Map.Entry<String, List<List<TimeSlotDTO>>> courseEntry : courseSlots.entrySet()) {
-            // 展平所有时间槽
-            List<TimeSlotDTO> allSlots = courseEntry.getValue().stream()
-                    .flatMap(List::stream)
-                    .toList();
-
-            // 按周和天分组
-            Map<Integer, Map<Integer, List<TimeSlotDTO>>> weekDaySlots = allSlots.stream()
+        /**
+         * 计算连续课程的适应度值
+         *
+         * @param schedule 课程表
+         * @return 连续课程的适应度值
+         */
+        private double calculateConsecutiveCoursesFitness (@NotNull CourseScheduleDTO schedule){
+            // 按课程分组，获取每个课程的所有时间槽
+            Map<String, List<List<TimeSlotDTO>>> courseSlots = schedule.getAssignments().entrySet().stream()
                     .collect(Collectors.groupingBy(
-                            TimeSlotDTO::getWeek,
-                            Collectors.groupingBy(TimeSlotDTO::getDay)
+                            entry -> entry.getValue().getCourse().getCourseLibraryUuid(),
+                            Collectors.mapping(Map.Entry::getKey, Collectors.toList())
                     ));
 
-            // 遍历每周
-            for (Map<Integer, List<TimeSlotDTO>> daySlots : weekDaySlots.values()) {
-                // 遍历每天
-                for (List<TimeSlotDTO> dailySlots : daySlots.values()) {
-                    if (dailySlots.size() > 1) {
-                        // 按节次排序
-                        List<TimeSlotDTO> sortedSlots = dailySlots.stream()
-                                .sorted(Comparator.comparingInt(TimeSlotDTO::getPeriod))
-                                .toList();
-                        // 计算连续课程数
-                        int consecutiveCount = 1;
-                        for (int i = 0; i < sortedSlots.size() - 1; i++) {
-                            if (sortedSlots.get(i + 1).getPeriod() - sortedSlots.get(i).getPeriod() == 1) {
-                                consecutiveCount++;
-                            } else {
-                                // 如果有连续课程，给予奖励
-                                if (consecutiveCount > 1) {
-                                    totalFitness += (consecutiveCount - 1) * 5.0;
-                                }
-                                consecutiveCount = 1;
-                            }
-                        }
+            double totalFitness = 0.0;
 
-                        // 处理最后一组连续课程
-                        if (consecutiveCount > 1) {
-                            totalFitness += (consecutiveCount - 1) * 5.0;
+            // 遍历每个课程
+            for (Map.Entry<String, List<List<TimeSlotDTO>>> courseEntry : courseSlots.entrySet()) {
+                // 展平所有时间槽
+                List<TimeSlotDTO> allSlots = courseEntry.getValue().stream()
+                        .flatMap(List::stream)
+                        .toList();
+
+                // 按周和天分组
+                Map<Integer, Map<Integer, List<TimeSlotDTO>>> weekDaySlots = allSlots.stream()
+                        .collect(Collectors.groupingBy(
+                                TimeSlotDTO::getWeek,
+                                Collectors.groupingBy(TimeSlotDTO::getDay)
+                        ));
+
+                // 遍历每周
+                for (Map<Integer, List<TimeSlotDTO>> daySlots : weekDaySlots.values()) {
+                    // 遍历每天
+                    for (List<TimeSlotDTO> dailySlots : daySlots.values()) {
+                        if (dailySlots.size() > 1) {
+                            // 按节次排序
+                            List<TimeSlotDTO> sortedSlots = dailySlots.stream()
+                                    .sorted(Comparator.comparingInt(TimeSlotDTO::getPeriod))
+                                    .toList();
+                            // 计算连续课程数
+                            int consecutiveCount = 1;
+                            for (int i = 0; i < sortedSlots.size() - 1; i++) {
+                                if (sortedSlots.get(i + 1).getPeriod() - sortedSlots.get(i).getPeriod() == 1) {
+                                    consecutiveCount++;
+                                } else {
+                                    // 如果有连续课程，给予奖励
+                                    if (consecutiveCount > 1) {
+                                        totalFitness += (consecutiveCount - 1) * 5.0;
+                                    }
+                                    consecutiveCount = 1;
+                                }
+                            }
+
+                            // 处理最后一组连续课程
+                            if (consecutiveCount > 1) {
+                                totalFitness += (consecutiveCount - 1) * 5.0;
+                            }
                         }
                     }
                 }
             }
+
+            return totalFitness;
         }
 
-        return totalFitness;
-    }
+        /**
+         * 计算时间偏好适应度值
+         *
+         * @param schedule    课程表
+         * @param preferences 时间偏好设置
+         * @return 时间偏好适应度值
+         */
+        private double calculateTimePreferenceFitness (
+                @NotNull CourseScheduleDTO schedule,
+                AutomaticClassSchedulingBaseDTO.TimePreferences preferences
+    ){
+            double fitness = 0.0;
+            // 遍历所有课程安排
+            for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
+                List<TimeSlotDTO> slots = entry.getKey();
+                // 遍历每个时间槽
+                for (TimeSlotDTO slot : slots) {
+                    // 检查是否在偏好时间段
+                    boolean inPreferredSlot = preferences.getPreferredTimeSlots().stream()
+                            .anyMatch(preferred ->
+                                    Objects.equals(preferred.getDay(), slot.getDay()) &&
+                                            preferred.getPeriodStart() <= slot.getPeriod() &&
+                                            preferred.getPeriodEnd() >= slot.getPeriod());
 
-    /**
-     * 计算时间偏好适应度值
-     *
-     * @param schedule    课程表
-     * @param preferences 时间偏好设置
-     * @return 时间偏好适应度值
-     */
-    private double calculateTimePreferenceFitness(
-            @NotNull CourseScheduleDTO schedule,
-            AutomaticClassSchedulingBaseDTO.TimePreferences preferences
-    ) {
-        double fitness = 0.0;
-        // 遍历所有课程安排
-        for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
-            List<TimeSlotDTO> slots = entry.getKey();
-            // 遍历每个时间槽
-            for (TimeSlotDTO slot : slots) {
-                // 检查是否在偏好时间段
-                boolean inPreferredSlot = preferences.getPreferredTimeSlots().stream()
-                        .anyMatch(preferred ->
-                                Objects.equals(preferred.getDay(), slot.getDay()) &&
-                                        preferred.getPeriodStart() <= slot.getPeriod() &&
-                                        preferred.getPeriodEnd() >= slot.getPeriod());
+                    if (inPreferredSlot) {
+                        fitness += 10.0;
+                    }
 
-                if (inPreferredSlot) {
-                    fitness += 10.0;
+                    // 如果不喜欢晚课但安排在晚上
+                    if (Boolean.TRUE.equals(preferences.getEveningCourses()) && slot.getPeriod() >= 5) {
+                        fitness -= 5.0;
+                    }
                 }
+            }
 
-                // 如果不喜欢晚课但安排在晚上
-                if (Boolean.TRUE.equals(preferences.getEveningCourses()) && slot.getPeriod() >= 5) {
+            return fitness;
+        }
+
+        /**
+         * 计算教室优化适应度
+         * <p>
+         * 评估教室分配的合理性，包括容量匹配度和教室类型匹配度。
+         * 理想情况下，教室容量应略大于学生数量，教室类型应符合课程需求。
+         * </p>
+         *
+         * @param schedule 待评估的课程表
+         * @return 教室优化适应度得分
+         */
+        private double calculateRoomOptimizationFitness (@NotNull CourseScheduleDTO schedule){
+            double fitness = 0.0;
+            // 遍历所有课程安排
+            for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
+                CourseScheduleItemDTO item = entry.getValue();
+                // 获取教室容量
+                int capacity = item.getClassroom().getClassroom().getCapacity();
+                // 获取课程所需学生数，使用totalHours作为替代指标
+                int studentCount = item.getCourse().getTotalHours() != null ?
+                        item.getCourse().getTotalHours().intValue() : 30;
+                // 计算容量匹配度
+                if (capacity >= studentCount) {
+                    // 容量足够，计算利用率
+                    double utilizationRate = (double) studentCount / capacity;
+                    // 利用率达到70%以上给予奖励
+                    if (utilizationRate >= 0.7) {
+                        fitness += 5.0;
+                    }
+                    // 利用率过高（超过90%）给予惩罚
+                } else {
+                    // 容量不足，严重惩罚
+                    fitness -= 50.0;
+                }
+                // 教室类型匹配度
+                String courseType = item.getCourse().getType();
+                String classroomType = item.getClassroom().getClassroomType().getName();
+                if (classroomType != null && classroomType.equals(courseType)) {
+                    fitness += 10.0;
+                } else if (classroomType != null && courseType != null) {
+                    // 类型不匹配，给予惩罚
                     fitness -= 5.0;
                 }
             }
+            return fitness;
         }
 
-        return fitness;
-    }
-
-    /**
-     * 计算教室优化适应度
-     * <p>
-     * 评估教室分配的合理性，包括容量匹配度和教室类型匹配度。
-     * 理想情况下，教室容量应略大于学生数量，教室类型应符合课程需求。
-     * </p>
-     *
-     * @param schedule 待评估的课程表
-     * @return 教室优化适应度得分
-     */
-    private double calculateRoomOptimizationFitness(@NotNull CourseScheduleDTO schedule) {
-        double fitness = 0.0;
-        // 遍历所有课程安排
-        for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
-            CourseScheduleItemDTO item = entry.getValue();
-            // 获取教室容量
-            int capacity = item.getClassroom().getClassroom().getCapacity();
-            // 获取课程所需学生数，使用totalHours作为替代指标
-            int studentCount = item.getCourse().getTotalHours() != null ?
-                    item.getCourse().getTotalHours().intValue() : 30;
-            // 计算容量匹配度
-            if (capacity >= studentCount) {
-                // 容量足够，计算利用率
-                double utilizationRate = (double) studentCount / capacity;
-                // 利用率达到70%以上给予奖励
-                if (utilizationRate >= 0.7) {
-                    fitness += 5.0;
-                }
-                // 利用率过高（超过90%）给予惩罚
-            } else {
-                // 容量不足，严重惩罚
-                fitness -= 50.0;
-            }
-            // 教室类型匹配度
-            String courseType = item.getCourse().getType();
-            String classroomType = item.getClassroom().getClassroomType().getName();
-            if (classroomType != null && classroomType.equals(courseType)) {
-                fitness += 10.0;
-            } else if (classroomType != null && courseType != null) {
-                // 类型不匹配，给予惩罚
-                fitness -= 5.0;
-            }
-        }
-        return fitness;
-    }
-
-    /**
-     * 执行时间槽变异
-     */
-    public void timeSlotMutation(
-            @NotNull CourseScheduleDTO schedule,
-            @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> courses,
-            @NotNull AutomaticClassSchedulingBaseDTO baseDTO,
-            //总排课安排
-            @NotNull List<CourseScheduleDTO> population
-    ) {
-        // 获取当前课程安排
-        Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry = schedule.getAssignments().entrySet().iterator().next();
-        // 获取对应的课程信息
-        CourseLibraryAndTeacherCourseQualificationListDTO course = findCourseByScheduleItem(entry.getValue(), courses);
-        if (course != null) {
-            // 尝试找到新的合适时间槽
-            List<TimeSlotDTO> newTimeSlot = this.findSuitableTimeSlot(
-                    population,
-                    schedule.getAssignments(),
-                    entry.getValue().getTeacher(),
-                    entry.getValue().getClassroom(),
-                    course,
-                    baseDTO
-            );
-            if (newTimeSlot != null) {
-                // 找到新时间槽才进行替换
-                schedule.getAssignments().remove(entry.getKey());
-                schedule.getAssignments().put(newTimeSlot, entry.getValue());
-            } else {
-                // 如果找不到合适的新时间槽，尝试与其他课程交换时间
-                for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> other : schedule.getAssignments().entrySet()) {
-                    if (!other.equals(entry) && this.isSwapValid(entry, other, schedule, courses, baseDTO, population)) {
-                        swapTimeSlots(schedule, entry, other);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * 根据ScheduleItem查找对应的课程信息
-     */
-    private CourseLibraryAndTeacherCourseQualificationListDTO findCourseByScheduleItem(
-            CourseScheduleItemDTO item,
-            @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> courses
-    ) {
-        return courses.stream()
-                .filter(course -> course.getCourse().getId().equals(item.getCourse().getId()))
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * 查找合适的时间槽
-     * <p>
-     * 该方法用于在给定的排课安排中查找合适的时间槽，
-     * 以便为指定的课程、教师和教室分配新的时间槽。
-     * 它会检查现有的排课安排，确保新的时间槽不会与已有的时间槽冲突。
-     * 如果找到合适的时间槽，则返回该时间槽列表；
-     * 如果没有找到合适的时间槽，则返回null。
-     * </p>
-     */
-    @Nullable
-    private List<TimeSlotDTO> findSuitableTimeSlot(
-            List<CourseScheduleDTO> schedules,
-            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments,
-            TeacherCoursePreferencesDTO teacher,
-            ClassroomAndTypeDTO classroom,
-            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO course,
-            AutomaticClassSchedulingBaseDTO baseDTO
-    ) {
-        // 寻找合适的时间槽,重新获得一个排课
-        List<TimeSlotDTO> allTimeSlots = generateTimeSlotsByCourse(course, baseDTO);
-        //时间槽为空，则就是初始化种群的情况
-        if (assignments == null || assignments.isEmpty()) {
-            log.debug("初始化种群，直接返回随机生成的时间槽");
-            return allTimeSlots;
-        }
-        // 如果有排课安排，检查新的时间槽是否与现有安排冲突
-        if (schedules != null && !schedules.isEmpty()) {
-            if (isTimeSlotSuitable(allTimeSlots, teacher, classroom, course, baseDTO, schedules)) {
-                log.debug("有排课安排，检查新的时间槽是否与现有安排冲突");
-                return allTimeSlots;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 生成时间槽
-     * @param course 课程信息
-     * @param baseDTO 基础信息
-     * @return 生成的时间槽列表
-     */
-    private @NotNull List<TimeSlotDTO> generateTimeSlotsByCourse(
-            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO course,
-            @NotNull AutomaticClassSchedulingBaseDTO baseDTO
-    ) {
-        List<TimeSlotDTO> slots = new ArrayList<>();
-        // 根据是否开设晚上课程确定每天最多节次
-        int maxPeriodsPerDay = Boolean.TRUE.equals(baseDTO.getTimePreferences().getEveningCourses()) ? 12 : 8;
-        int totalScheduledHours = 0;
-        int targetTotalHours = course.getExpectedTotalHours().intValue();
-
-        // 创建每天可用的连续时间段
-        Map<Integer, List<List<Integer>>> availableBlocksByDay = new HashMap<>();
-        for (int day = 1; day <= 5; day++) {
-            List<List<Integer>> dayBlocks = new ArrayList<>();
-            // 上午时间段（1-4节）
-            dayBlocks.add(Arrays.asList(1, 2, 3, 4));
-            // 下午时间段（5-8节）
-            dayBlocks.add(Arrays.asList(5, 6, 7, 8));
-            if (maxPeriodsPerDay > 8) {
-                // 晚上时间段（9-12节）
-                dayBlocks.add(Arrays.asList(9, 10, 11, 12));
-            }
-            availableBlocksByDay.put(day, dayBlocks);
-        }
-
-        // 根据每周课时数决定分配策略
-        List<Integer> distribution = this.determineDistribution(course.getWeeklyHours());
-
-        // 随机选择天数
-        List<Integer> days = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5));
-        Collections.shuffle(days);
-
-        // 记录每个时间块对应的节次
-        Map<Integer, List<Integer>> dayTimeSlots = new HashMap<>();
-
-        // 为每个选中的天数分配时间块
-        for (Integer blockSize : distribution) {
-            if (days.isEmpty()) break;
-            int day = days.remove(0);
-            // 获取该天的可用时间块
-            List<List<Integer>> dayBlocks = new ArrayList<>(availableBlocksByDay.get(day));
-
-            // 如果是2节课，按照优先级选择时间段
-            if (blockSize == 2) {
-                // 定义时间段优先级
-                List<List<Integer>> timeSlotPriorities = new ArrayList<>();
-                // 1-2节
-                timeSlotPriorities.add(Arrays.asList(1, 2));
-                // 3-4节
-                timeSlotPriorities.add(Arrays.asList(3, 4));
-                // 5-6节
-                timeSlotPriorities.add(Arrays.asList(5, 6));
-                // 7-8节
-                timeSlotPriorities.add(Arrays.asList(7, 8));
-
-                // 如果允许晚间开课，添加晚间时间段
-                if (maxPeriodsPerDay > 8) {
-                    // 9-10节
-                    timeSlotPriorities.add(Arrays.asList(9, 10));
-                    // 11-12节
-                    timeSlotPriorities.add(Arrays.asList(11, 12));
-                }
-
-                // 遍历优先级列表，找到第一个可用的时间段
-                boolean timeSlotFound = false;
-                for (List<Integer> prioritySlot : timeSlotPriorities) {
-                    // 检查该时间段是否在可用时间块中
-                    for (List<Integer> block : dayBlocks) {
-                        if (new HashSet<>(block).containsAll(prioritySlot)) {
-                            dayTimeSlots.put(day, prioritySlot);
-                            timeSlotFound = true;
+        /**
+         * 执行时间槽变异
+         */
+        public void timeSlotMutation (
+                @NotNull CourseScheduleDTO schedule,
+                @NotNull List < CourseLibraryAndTeacherCourseQualificationListDTO > courses,
+                @NotNull AutomaticClassSchedulingBaseDTO baseDTO,
+                //总排课安排
+                @NotNull List < CourseScheduleDTO > population
+    ){
+            // 获取当前课程安排
+            Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry = schedule.getAssignments().entrySet().iterator().next();
+            // 获取对应的课程信息
+            CourseLibraryAndTeacherCourseQualificationListDTO course = findCourseByScheduleItem(entry.getValue(), courses);
+            if (course != null) {
+                // 尝试找到新的合适时间槽
+                List<TimeSlotDTO> newTimeSlot = this.findSuitableTimeSlot(
+                        population,
+                        schedule.getAssignments(),
+                        entry.getValue().getTeacher(),
+                        entry.getValue().getClassroom(),
+                        course,
+                        baseDTO
+                );
+                if (newTimeSlot != null) {
+                    // 找到新时间槽才进行替换
+                    schedule.getAssignments().remove(entry.getKey());
+                    schedule.getAssignments().put(newTimeSlot, entry.getValue());
+                } else {
+                    // 如果找不到合适的新时间槽，尝试与其他课程交换时间
+                    for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> other : schedule.getAssignments().entrySet()) {
+                        if (!other.equals(entry) && this.isSwapValid(entry, other, schedule, courses, baseDTO, population)) {
+                            swapTimeSlots(schedule, entry, other);
                             break;
                         }
                     }
-                    if (timeSlotFound) break;
                 }
+            }
+        }
 
-                // 如果没有找到合适的时间段，随机选择一个
-                if (!timeSlotFound) {
+        /**
+         * 根据ScheduleItem查找对应的课程信息
+         */
+        private CourseLibraryAndTeacherCourseQualificationListDTO findCourseByScheduleItem (
+                CourseScheduleItemDTO item,
+                @NotNull List < CourseLibraryAndTeacherCourseQualificationListDTO > courses
+    ){
+            return courses.stream()
+                    .filter(course -> course.getCourse().getId().equals(item.getCourse().getId()))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        /**
+         * 查找合适的时间槽
+         * <p>
+         * 该方法用于在给定的排课安排中查找合适的时间槽，
+         * 以便为指定的课程、教师和教室分配新的时间槽。
+         * 它会检查现有的排课安排，确保新的时间槽不会与已有的时间槽冲突。
+         * 如果找到合适的时间槽，则返回该时间槽列表；
+         * 如果没有找到合适的时间槽，则返回null。
+         * </p>
+         */
+        @Nullable
+        private List<TimeSlotDTO> findSuitableTimeSlot (
+                List < CourseScheduleDTO > schedules,
+                Map < List < TimeSlotDTO >, CourseScheduleItemDTO > assignments,
+                TeacherCoursePreferencesDTO teacher,
+                ClassroomAndTypeDTO classroom,
+                @NotNull CourseLibraryAndTeacherCourseQualificationListDTO course,
+                AutomaticClassSchedulingBaseDTO baseDTO
+    ){
+            // 寻找合适的时间槽,重新获得一个排课
+            List<TimeSlotDTO> allTimeSlots = generateTimeSlotsByCourse(course, baseDTO);
+            //时间槽为空，则就是初始化种群的情况
+            if (assignments == null || assignments.isEmpty()) {
+                log.debug("初始化种群，直接返回随机生成的时间槽");
+                return allTimeSlots;
+            }
+            // 如果有排课安排，检查新的时间槽是否与现有安排冲突
+            if (schedules != null && !schedules.isEmpty()) {
+                if (isTimeSlotSuitable(allTimeSlots, teacher, classroom, course, baseDTO, schedules)) {
+                    log.debug("有排课安排，检查新的时间槽是否与现有安排冲突");
+                    return allTimeSlots;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * 生成时间槽
+         * @param course 课程信息
+         * @param baseDTO 基础信息
+         * @return 生成的时间槽列表
+         */
+        private @NotNull List<TimeSlotDTO> generateTimeSlotsByCourse (
+                @NotNull CourseLibraryAndTeacherCourseQualificationListDTO course,
+                @NotNull AutomaticClassSchedulingBaseDTO baseDTO
+    ){
+            List<TimeSlotDTO> slots = new ArrayList<>();
+            // 根据是否开设晚上课程确定每天最多节次
+            int maxPeriodsPerDay = Boolean.TRUE.equals(baseDTO.getTimePreferences().getEveningCourses()) ? 12 : 8;
+            int totalScheduledHours = 0;
+            int targetTotalHours = course.getExpectedTotalHours().intValue();
+
+            // 创建每天可用的连续时间段
+            Map<Integer, List<List<Integer>>> availableBlocksByDay = new HashMap<>();
+            for (int day = 1; day <= 5; day++) {
+                List<List<Integer>> dayBlocks = new ArrayList<>();
+                // 上午时间段（1-4节）
+                dayBlocks.add(Arrays.asList(1, 2, 3, 4));
+                // 下午时间段（5-8节）
+                dayBlocks.add(Arrays.asList(5, 6, 7, 8));
+                if (maxPeriodsPerDay > 8) {
+                    // 晚上时间段（9-12节）
+                    dayBlocks.add(Arrays.asList(9, 10, 11, 12));
+                }
+                availableBlocksByDay.put(day, dayBlocks);
+            }
+
+            // 根据每周课时数决定分配策略
+            List<Integer> distribution = this.determineDistribution(course.getWeeklyHours());
+
+            // 随机选择天数
+            List<Integer> days = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5));
+            Collections.shuffle(days);
+
+            // 记录每个时间块对应的节次
+            Map<Integer, List<Integer>> dayTimeSlots = new HashMap<>();
+
+            // 为每个选中的天数分配时间块
+            for (Integer blockSize : distribution) {
+                if (days.isEmpty()) break;
+                int day = days.remove(0);
+                // 获取该天的可用时间块
+                List<List<Integer>> dayBlocks = new ArrayList<>(availableBlocksByDay.get(day));
+
+                // 如果是2节课，按照优先级选择时间段
+                if (blockSize == 2) {
+                    // 定义时间段优先级
+                    List<List<Integer>> timeSlotPriorities = new ArrayList<>();
+                    // 1-2节
+                    timeSlotPriorities.add(Arrays.asList(1, 2));
+                    // 3-4节
+                    timeSlotPriorities.add(Arrays.asList(3, 4));
+                    // 5-6节
+                    timeSlotPriorities.add(Arrays.asList(5, 6));
+                    // 7-8节
+                    timeSlotPriorities.add(Arrays.asList(7, 8));
+
+                    // 如果允许晚间开课，添加晚间时间段
+                    if (maxPeriodsPerDay > 8) {
+                        // 9-10节
+                        timeSlotPriorities.add(Arrays.asList(9, 10));
+                        // 11-12节
+                        timeSlotPriorities.add(Arrays.asList(11, 12));
+                    }
+
+                    // 遍历优先级列表，找到第一个可用的时间段
+                    boolean timeSlotFound = false;
+                    for (List<Integer> prioritySlot : timeSlotPriorities) {
+                        // 检查该时间段是否在可用时间块中
+                        for (List<Integer> block : dayBlocks) {
+                            if (new HashSet<>(block).containsAll(prioritySlot)) {
+                                dayTimeSlots.put(day, prioritySlot);
+                                timeSlotFound = true;
+                                break;
+                            }
+                        }
+                        if (timeSlotFound) break;
+                    }
+
+                    // 如果没有找到合适的时间段，随机选择一个
+                    if (!timeSlotFound) {
+                        for (List<Integer> block : dayBlocks) {
+                            if (block.size() >= blockSize) {
+                                int startIdx = new Random().nextInt(block.size() - blockSize + 1);
+                                List<Integer> timeSlots = new ArrayList<>();
+                                for (int i = 0; i < blockSize; i++) {
+                                    timeSlots.add(block.get(startIdx + i));
+                                }
+                                dayTimeSlots.put(day, timeSlots);
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    // 如果不是2节课，随机选择时间段
+                    Collections.shuffle(dayBlocks);
                     for (List<Integer> block : dayBlocks) {
                         if (block.size() >= blockSize) {
                             int startIdx = new Random().nextInt(block.size() - blockSize + 1);
@@ -1683,299 +1680,283 @@ class BaseGeneticSchedulingLogic {
                         }
                     }
                 }
-            } else {
-                // 如果不是2节课，随机选择时间段
-                Collections.shuffle(dayBlocks);
-                for (List<Integer> block : dayBlocks) {
-                    if (block.size() >= blockSize) {
-                        int startIdx = new Random().nextInt(block.size() - blockSize + 1);
-                        List<Integer> timeSlots = new ArrayList<>();
-                        for (int i = 0; i < blockSize; i++) {
-                            timeSlots.add(block.get(startIdx + i));
-                        }
-                        dayTimeSlots.put(day, timeSlots);
-                        break;
+            }
+
+            // 遍历周，生成时间槽
+            for (int week = course.getStartWeek(); week <= course.getEndWeek()
+                    && totalScheduledHours < targetTotalHours; week++) {
+                // 为每个选中的天数生成时间槽
+                for (Map.Entry<Integer, List<Integer>> entry : dayTimeSlots.entrySet()) {
+                    int day = entry.getKey();
+                    List<Integer> timeSlots = entry.getValue();
+                    for (Integer period : timeSlots) {
+                        TimeSlotDTO timeSlot = new TimeSlotDTO(week, day, period);
+                        slots.add(timeSlot);
+                        totalScheduledHours++;
                     }
                 }
             }
-        }
 
-        // 遍历周，生成时间槽
-        for (int week = course.getStartWeek(); week <= course.getEndWeek()
-                && totalScheduledHours < targetTotalHours; week++) {
-            // 为每个选中的天数生成时间槽
-            for (Map.Entry<Integer, List<Integer>> entry : dayTimeSlots.entrySet()) {
-                int day = entry.getKey();
-                List<Integer> timeSlots = entry.getValue();
-                for (Integer period : timeSlots) {
-                    TimeSlotDTO timeSlot = new TimeSlotDTO(week, day, period);
-                    slots.add(timeSlot);
-                    totalScheduledHours++;
+            return slots;
+        }
+        /**
+         * 根据每周课时数确定分配策略
+         *
+         * @param weeklyHours 每周总课时数
+         * @return 返回课时分配列表，每个数字代表一天要安排的连续课时数
+         */
+        private @NotNull List<Integer> determineDistribution ( int weeklyHours){
+            List<Integer> distribution = new ArrayList<>();
+            // 处理所有2节课的部分
+            while (weeklyHours >= 2) {
+                distribution.add(2);
+                weeklyHours -= 2;
+            }
+            // 如果还剩1节课
+            if (weeklyHours == 1) {
+                distribution.add(1);
+            }
+            // 打乱分配顺序
+            Collections.shuffle(distribution);
+            return distribution;
+        }
+        /**
+         * 检查时间槽是否合适
+         */
+        private boolean isTimeSlotSuitable (
+                @NotNull List < TimeSlotDTO > timeSlots,
+                TeacherCoursePreferencesDTO teacher,
+                ClassroomAndTypeDTO classroom,
+                CourseLibraryAndTeacherCourseQualificationListDTO course,
+                AutomaticClassSchedulingBaseDTO baseDTO,
+                List < CourseScheduleDTO > population
+    ){
+            // 1. 检查是否是晚课时段且不允许晚课
+            for (TimeSlotDTO time : timeSlots) {
+                if (!Boolean.TRUE.equals(baseDTO.getTimePreferences().getEveningCourses())
+                        && time.getPeriod() > 8) {
+                    return false;
                 }
             }
-        }
-
-        return slots;
-    }
-    /**
-     * 根据每周课时数确定分配策略
-     *
-     * @param weeklyHours 每周总课时数
-     * @return 返回课时分配列表，每个数字代表一天要安排的连续课时数
-     */
-    private @NotNull List<Integer> determineDistribution(int weeklyHours) {
-        List<Integer> distribution = new ArrayList<>();
-        // 处理所有2节课的部分
-        while (weeklyHours >= 2) {
-            distribution.add(2);
-            weeklyHours -= 2;
-        }
-        // 如果还剩1节课
-        if (weeklyHours == 1) {
-            distribution.add(1);
-        }
-        // 打乱分配顺序
-        Collections.shuffle(distribution);
-        return distribution;
-    }
-    /**
-     * 检查时间槽是否合适
-     */
-    private boolean isTimeSlotSuitable(
-            @NotNull List<TimeSlotDTO> timeSlots,
-            TeacherCoursePreferencesDTO teacher,
-            ClassroomAndTypeDTO classroom,
-            CourseLibraryAndTeacherCourseQualificationListDTO course,
-            AutomaticClassSchedulingBaseDTO baseDTO,
-            List<CourseScheduleDTO> population
-    ) {
-        // 1. 检查是否是晚课时段且不允许晚课
-        for (TimeSlotDTO time : timeSlots) {
-            if (!Boolean.TRUE.equals(baseDTO.getTimePreferences().getEveningCourses())
-                    && time.getPeriod() > 8) {
+            // 2. 检查教师在该时间段是否有其他课程
+            if (!isTeacherAvailable(teacher, timeSlots, population)) {
                 return false;
             }
-        }
-        // 2. 检查教师在该时间段是否有其他课程
-        if (!isTeacherAvailable(teacher, timeSlots, population)) {
-            return false;
-        }
-        // 3. 检查教室在该时间段是否可用
-        if (!isClassroomAvailable(classroom, timeSlots, population)) {
-            return false;
-        }
-        // 4. 检查是否在课程的周数范围内
-        for (TimeSlotDTO time : timeSlots) {
-            if (time.getWeek() < course.getStartWeek() || time.getWeek() > course.getEndWeek()) {
+            // 3. 检查教室在该时间段是否可用
+            if (!isClassroomAvailable(classroom, timeSlots, population)) {
                 return false;
             }
-        }
-        // 5. 检查本周的课时数是否已达到限制
-        for (TimeSlotDTO time : timeSlots) {
-            int currentWeekSlots = countWeeklySlots(
-                    population, course.getCourse().getCourseLibraryUuid(), time.getWeek());
-            if (currentWeekSlots >= course.getWeeklyHours()) {
-                return false;
+            // 4. 检查是否在课程的周数范围内
+            for (TimeSlotDTO time : timeSlots) {
+                if (time.getWeek() < course.getStartWeek() || time.getWeek() > course.getEndWeek()) {
+                    return false;
+                }
             }
+            // 5. 检查本周的课时数是否已达到限制
+            for (TimeSlotDTO time : timeSlots) {
+                int currentWeekSlots = countWeeklySlots(
+                        population, course.getCourse().getCourseLibraryUuid(), time.getWeek());
+                if (currentWeekSlots >= course.getWeeklyHours()) {
+                    return false;
+                }
+            }
+            // 6.按照这样子排课是否学时能够修满
+            int totalScheduledHours = countTotalScheduledHours(population, course.getCourse().getCourseLibraryUuid());
+            return totalScheduledHours < course.getExpectedTotalHours().intValue();
         }
-        // 6.按照这样子排课是否学时能够修满
-        int totalScheduledHours = countTotalScheduledHours(population, course.getCourse().getCourseLibraryUuid());
-        return totalScheduledHours < course.getExpectedTotalHours().intValue();
-    }
 
-    /**
-     * 计算课程的总排课时长
-     */
-    private int countTotalScheduledHours(
-            @NotNull List<CourseScheduleDTO> population,
-            String courseId
-    ) {
-        return population.stream()
-                .flatMap(schedule -> schedule.getAssignments().entrySet().stream())
-                .filter(entry -> entry.getValue().getCourse().getCourseLibraryUuid().equals(courseId))
-                .mapToInt(entry -> entry.getKey().size())
-                .sum();
-    }
+        /**
+         * 计算课程的总排课时长
+         */
+        private int countTotalScheduledHours (
+                @NotNull List < CourseScheduleDTO > population,
+                String courseId
+    ){
+            return population.stream()
+                    .flatMap(schedule -> schedule.getAssignments().entrySet().stream())
+                    .filter(entry -> entry.getValue().getCourse().getCourseLibraryUuid().equals(courseId))
+                    .mapToInt(entry -> entry.getKey().size())
+                    .sum();
+        }
 
-    /**
-     * 计算指定课程在特定周的课时数
-     * <p>
-     * 统计指定课程在给定周内已经安排的课时总数。
-     * 这个方法用于确保课程不会超过每周课时限制。
-     * </p>
-     *
-     * @param population 当前的课程安排映射
-     * @param courseId   课程ID
-     * @param week       要检查的周数
-     * @return 该课程在指定周的课时数
-     */
-    private int countWeeklySlots(
-            @NotNull List<CourseScheduleDTO> population,
-            String courseId,
-            Integer week
-    ) {
-        return population.stream()
-                .flatMap(schedule -> schedule.getAssignments().entrySet().stream())
-                .filter(entry -> entry.getValue().getCourse().getCourseLibraryUuid().equals(courseId))
-                .flatMap(entry -> entry.getKey().stream())
-                .filter(slot -> slot.getWeek().equals(week))
-                .mapToInt(slot -> 1)
-                .sum();
-    }
+        /**
+         * 计算指定课程在特定周的课时数
+         * <p>
+         * 统计指定课程在给定周内已经安排的课时总数。
+         * 这个方法用于确保课程不会超过每周课时限制。
+         * </p>
+         *
+         * @param population 当前的课程安排映射
+         * @param courseId   课程ID
+         * @param week       要检查的周数
+         * @return 该课程在指定周的课时数
+         */
+        private int countWeeklySlots (
+                @NotNull List < CourseScheduleDTO > population,
+                String courseId,
+                Integer week
+    ){
+            return population.stream()
+                    .flatMap(schedule -> schedule.getAssignments().entrySet().stream())
+                    .filter(entry -> entry.getValue().getCourse().getCourseLibraryUuid().equals(courseId))
+                    .flatMap(entry -> entry.getKey().stream())
+                    .filter(slot -> slot.getWeek().equals(week))
+                    .mapToInt(slot -> 1)
+                    .sum();
+        }
 
-    /**
-     * 检查教师在指定时间槽是否可用
-     * <p>
-     * 验证教师在特定时间段是否已有其他课程安排。
-     * 通过检查所有现有课程安排，确保不会出现教师在同一时间段被重复安排的情况。
-     * </p>
-     *
-     * @param teacher    要检查的教师
-     * @param slot       要检查的时间槽
-     * @param population 当前的课程安排映射
-     * @return 如果教师在该时间段可用返回true，否则返回false
-     */
-    private boolean isTeacherAvailable(
-            TeacherCoursePreferencesDTO teacher,
-            List<TimeSlotDTO> slot,
-            @NotNull List<CourseScheduleDTO> population
-    ) {
-        // 遍历所有现有的课程安排
-        for (CourseScheduleDTO schedule : population) {
-            // 遍历每个具体的课程安排
-            for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
-                // 检查是否是同一个教师
-                if (entry.getValue().getTeacher().getTeacher().getTeacherUuid()
-                        .equals(teacher.getTeacher().getTeacherUuid())) {
-                    // 检查时间是否冲突
-                    List<TimeSlotDTO> existingSlots = entry.getKey();
-                    // 检查两个时间槽列表是否有重叠
-                    for (TimeSlotDTO newSlot : slot) {
-                        for (TimeSlotDTO existingSlot : existingSlots) {
-                            if (Objects.equals(newSlot.getWeek(), existingSlot.getWeek())
-                                    && Objects.equals(newSlot.getDay(), existingSlot.getDay())
-                                    && Objects.equals(newSlot.getPeriod(), existingSlot.getPeriod())) {
-                                // 发现时间冲突
-                                return false;
+        /**
+         * 检查教师在指定时间槽是否可用
+         * <p>
+         * 验证教师在特定时间段是否已有其他课程安排。
+         * 通过检查所有现有课程安排，确保不会出现教师在同一时间段被重复安排的情况。
+         * </p>
+         *
+         * @param teacher    要检查的教师
+         * @param slot       要检查的时间槽
+         * @param population 当前的课程安排映射
+         * @return 如果教师在该时间段可用返回true，否则返回false
+         */
+        private boolean isTeacherAvailable (
+                TeacherCoursePreferencesDTO teacher,
+                List < TimeSlotDTO > slot,
+                @NotNull List < CourseScheduleDTO > population
+    ){
+            // 遍历所有现有的课程安排
+            for (CourseScheduleDTO schedule : population) {
+                // 遍历每个具体的课程安排
+                for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
+                    // 检查是否是同一个教师
+                    if (entry.getValue().getTeacher().getTeacher().getTeacherUuid()
+                            .equals(teacher.getTeacher().getTeacherUuid())) {
+                        // 检查时间是否冲突
+                        List<TimeSlotDTO> existingSlots = entry.getKey();
+                        // 检查两个时间槽列表是否有重叠
+                        for (TimeSlotDTO newSlot : slot) {
+                            for (TimeSlotDTO existingSlot : existingSlots) {
+                                if (Objects.equals(newSlot.getWeek(), existingSlot.getWeek())
+                                        && Objects.equals(newSlot.getDay(), existingSlot.getDay())
+                                        && Objects.equals(newSlot.getPeriod(), existingSlot.getPeriod())) {
+                                    // 发现时间冲突
+                                    return false;
+                                }
                             }
                         }
                     }
                 }
             }
+            // 没有发现冲突
+            return true;
         }
-        // 没有发现冲突
-        return true;
-    }
 
-    /**
-     * 检查教室在指定时间槽是否可用
-     * <p>
-     * 验证教室在特定时间段是否已被占用。
-     * 通过检查所有现有课程安排，确保不会出现教室在同一时间段被多门课程使用的情况。
-     * </p>
-     *
-     * @param classroom  要检查的教室
-     * @param slot       要检查的时间槽
-     * @param population 当前的所有课程安排映射
-     * @return 如果教室在该时间段可用返回true，否则返回false
-     */
-    private boolean isClassroomAvailable(
-            ClassroomAndTypeDTO classroom,
-            List<TimeSlotDTO> slot,
-            @NotNull List<CourseScheduleDTO> population
-    ) {
-        for (CourseScheduleDTO schedule : population) {
-            // 遍历每个课程安排
-            for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
-                // 检查是否是同一个教室
-                if (entry.getValue().getClassroom().getClassroom().getClassroomUuid()
-                        .equals(classroom.getClassroom().getClassroomUuid())) {
-                    // 获取现有的时间槽列表
-                    List<TimeSlotDTO> existingSlots = entry.getKey();
-                    // 检查新的时间槽列表是否与现有的时间槽列表有重叠
-                    for (TimeSlotDTO newSlot : slot) {
-                        for (TimeSlotDTO existingSlot : existingSlots) {
-                            // 使用Objects.equals进行安全的空值比较
-                            if (Objects.equals(newSlot.getWeek(), existingSlot.getWeek())
-                                    && Objects.equals(newSlot.getDay(), existingSlot.getDay())
-                                    && Objects.equals(newSlot.getPeriod(), existingSlot.getPeriod())) {
-                                // 发现冲突
-                                return false;
+        /**
+         * 检查教室在指定时间槽是否可用
+         * <p>
+         * 验证教室在特定时间段是否已被占用。
+         * 通过检查所有现有课程安排，确保不会出现教室在同一时间段被多门课程使用的情况。
+         * </p>
+         *
+         * @param classroom  要检查的教室
+         * @param slot       要检查的时间槽
+         * @param population 当前的所有课程安排映射
+         * @return 如果教室在该时间段可用返回true，否则返回false
+         */
+        private boolean isClassroomAvailable (
+                ClassroomAndTypeDTO classroom,
+                List < TimeSlotDTO > slot,
+                @NotNull List < CourseScheduleDTO > population
+    ){
+            for (CourseScheduleDTO schedule : population) {
+                // 遍历每个课程安排
+                for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
+                    // 检查是否是同一个教室
+                    if (entry.getValue().getClassroom().getClassroom().getClassroomUuid()
+                            .equals(classroom.getClassroom().getClassroomUuid())) {
+                        // 获取现有的时间槽列表
+                        List<TimeSlotDTO> existingSlots = entry.getKey();
+                        // 检查新的时间槽列表是否与现有的时间槽列表有重叠
+                        for (TimeSlotDTO newSlot : slot) {
+                            for (TimeSlotDTO existingSlot : existingSlots) {
+                                // 使用Objects.equals进行安全的空值比较
+                                if (Objects.equals(newSlot.getWeek(), existingSlot.getWeek())
+                                        && Objects.equals(newSlot.getDay(), existingSlot.getDay())
+                                        && Objects.equals(newSlot.getPeriod(), existingSlot.getPeriod())) {
+                                    // 发现冲突
+                                    return false;
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-        // 没有冲突
-        return true;
-    }
-
-    /**
-     * 检查交换是否有效
-     */
-    private boolean isSwapValid(
-            Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry1,
-            Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry2,
-            CourseScheduleDTO schedule,
-            List<CourseLibraryAndTeacherCourseQualificationListDTO> courses,
-            AutomaticClassSchedulingBaseDTO baseDTO,
-            List<CourseScheduleDTO> population
-    ) {
-        CourseLibraryAndTeacherCourseQualificationListDTO course1 = findCourseByScheduleItem(entry1.getValue(), courses);
-        CourseLibraryAndTeacherCourseQualificationListDTO course2 = findCourseByScheduleItem(entry2.getValue(), courses);
-
-        if (course1 == null || course2 == null) {
-            return false;
+            // 没有冲突
+            return true;
         }
 
+        /**
+         * 检查交换是否有效
+         */
+        private boolean isSwapValid (
+                Map.@NotNull Entry < List < TimeSlotDTO >, CourseScheduleItemDTO > entry1,
+                Map.@NotNull Entry < List < TimeSlotDTO >, CourseScheduleItemDTO > entry2,
+                CourseScheduleDTO schedule,
+                List < CourseLibraryAndTeacherCourseQualificationListDTO > courses,
+                AutomaticClassSchedulingBaseDTO baseDTO,
+                List < CourseScheduleDTO > population
+    ){
+            CourseLibraryAndTeacherCourseQualificationListDTO course1 = findCourseByScheduleItem(entry1.getValue(), courses);
+            CourseLibraryAndTeacherCourseQualificationListDTO course2 = findCourseByScheduleItem(entry2.getValue(), courses);
 
-        // 检查交换后的时间槽是否适合各自的课程
-        boolean slot1Valid = this.isTimeSlotSuitable(
-                // 注意这里用entry2的时间槽给entry1的课程
-                entry2.getKey(),
-                entry1.getValue().getTeacher(),
-                entry1.getValue().getClassroom(),
-                course1,
-                baseDTO,
-                population
-        );
+            if (course1 == null || course2 == null) {
+                return false;
+            }
 
-        boolean slot2Valid = this.isTimeSlotSuitable(
-                // 注意这里用entry1的时间槽给entry2的课程
-                entry1.getKey(),
-                entry2.getValue().getTeacher(),
-                entry2.getValue().getClassroom(),
-                course2,
-                baseDTO,
-                population
-        );
-        return true;
+
+            // 检查交换后的时间槽是否适合各自的课程
+            boolean slot1Valid = this.isTimeSlotSuitable(
+                    // 注意这里用entry2的时间槽给entry1的课程
+                    entry2.getKey(),
+                    entry1.getValue().getTeacher(),
+                    entry1.getValue().getClassroom(),
+                    course1,
+                    baseDTO,
+                    population
+            );
+
+            boolean slot2Valid = this.isTimeSlotSuitable(
+                    // 注意这里用entry1的时间槽给entry2的课程
+                    entry1.getKey(),
+                    entry2.getValue().getTeacher(),
+                    entry2.getValue().getClassroom(),
+                    course2,
+                    baseDTO,
+                    population
+            );
+            return true;
+        }
+
+        /**
+         * 交换两个课程的时间槽
+         *
+         * @param schedule 课程表
+         * @param entry1   第一个课程的时间槽和课程信息
+         * @param entry2   第二个课程的时间槽和课程信息
+         */
+        private void swapTimeSlots (
+                @NotNull CourseScheduleDTO schedule,
+                Map.@NotNull Entry < List < TimeSlotDTO >, CourseScheduleItemDTO > entry1,
+                Map.@NotNull Entry < List < TimeSlotDTO >, CourseScheduleItemDTO > entry2){
+            // 先保存原始的时间槽和课程信息
+            List<TimeSlotDTO> timeSlot1 = new ArrayList<>(entry1.getKey());
+            List<TimeSlotDTO> timeSlot2 = new ArrayList<>(entry2.getKey());
+            CourseScheduleItemDTO item1 = entry1.getValue();
+            CourseScheduleItemDTO item2 = entry2.getValue();
+            // 从Map中移除原有的安排
+            schedule.getAssignments().remove(entry1.getKey());
+            schedule.getAssignments().remove(entry2.getKey());
+            // 重新放入交换后的安排
+            schedule.getAssignments().put(timeSlot1, item2);
+            schedule.getAssignments().put(timeSlot2, item1);
+        }
     }
-
-    /**
-     * 交换两个课程的时间槽
-     *
-     * @param schedule 课程表
-     * @param entry1   第一个课程的时间槽和课程信息
-     * @param entry2   第二个课程的时间槽和课程信息
-     */
-    private void swapTimeSlots(
-            @NotNull CourseScheduleDTO schedule,
-            Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry1,
-            Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry2
-    ) {
-        // 先保存原始的时间槽和课程信息
-        List<TimeSlotDTO> timeSlot1 = new ArrayList<>(entry1.getKey());
-        List<TimeSlotDTO> timeSlot2 = new ArrayList<>(entry2.getKey());
-        CourseScheduleItemDTO item1 = entry1.getValue();
-        CourseScheduleItemDTO item2 = entry2.getValue();
-        // 从Map中移除原有的安排
-        schedule.getAssignments().remove(entry1.getKey());
-        schedule.getAssignments().remove(entry2.getKey());
-        // 重新放入交换后的安排
-        schedule.getAssignments().put(timeSlot1, item2);
-        schedule.getAssignments().put(timeSlot2, item1);
-    }
-}
 
