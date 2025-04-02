@@ -81,6 +81,11 @@ public class AiLogic implements AiService {
      *
      * @param userInput 用户输入的路由路径
      * @param html      HTML 内容
+     * @param role      用户角色
+     * @param form      表单数据
+     * @param otherData 其他数据
+     * @param record    记录数据
+     * @param thisPage  当前页面
      * @param user      用户对象
      * @param userAgent 用户代理信息
      */
@@ -88,6 +93,12 @@ public class AiLogic implements AiService {
     public void sendRouteJump(
             @NotNull String userInput,
             @Nullable String html,
+            @Nullable String role,
+            @Nullable String form,
+            @Nullable String otherData,
+            @Nullable String record,
+            @Nullable String thisPage,
+            @Nullable String chat,
             @NotNull UserDO user,
             @NotNull String userAgent) {
         String aiFrontApiKey = systemDAO.getSystemInfo("ai_front_api_key");
@@ -98,7 +109,7 @@ public class AiLogic implements AiService {
 
         String requestUrl = UrlBuilder.of()
                 .setScheme("http")
-                .setHost("ai.x-lf.com")
+                .setHost("172.16.1.6")
                 .addPath("/v1")
                 .addPath("/workflows/run")
                 .build();
@@ -116,7 +127,12 @@ public class AiLogic implements AiService {
                         "inputs", Map.of(
                                 "user_input", userInput,
                                 "html", html != null ? HtmlUtil.escape(html) : "",
-                                "role", getRole.getRoleName()),
+                                "role", role != null ? role : getRole.getRoleName(),
+                                "form", form != null ? form : "",
+                                "other_data", otherData != null ? otherData : "",
+                                "record", record != null ? record : "",
+                                "this_page", thisPage != null ? thisPage : "",
+                                "chat", chat != null ? chat : ""),
                         "response_mode", "streaming",
                         "user",
                         "uuid_" + user.getUserUuid() + "_" + System.currentTimeMillis())))

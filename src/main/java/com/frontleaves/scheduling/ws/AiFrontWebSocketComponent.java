@@ -177,7 +177,18 @@ public class AiFrontWebSocketComponent {
             log.debug("{}接收到消息: [{}]", LogConstant.WS, message);
             JSONObject getJson = new JSONObject(message);
             log.debug("{}接收到消息: [{}]", LogConstant.WS, getJson);
-            aiService.sendRouteJump(getJson.getStr("user_input"), getJson.getStr("html"), user, userAgent);
+            aiService.sendRouteJump(
+                getJson.getStr("user_input"),
+                getJson.getStr("html"),
+                getJson.getStr("role"),
+                getJson.getStr("form"),
+                getJson.getStr("other_data"),
+                getJson.getStr("record"),
+                getJson.getStr("this_page"),
+                getJson.getStr("chat"),
+                user,
+                userAgent
+            );
         } catch (Exception e) {
             this.sendMessage(userUuid, WsResponseUtil.error("Failed", "消息处理失败", Map.of(
                 "message", e.getMessage()
