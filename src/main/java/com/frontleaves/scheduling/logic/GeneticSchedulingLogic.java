@@ -72,6 +72,8 @@ public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implement
             int maxGenerations = baseDTO.getAlgorithmParams().getMaxIterations();
             double bestFitness = 0.0;
             ScheduleDTO bestSchedule = null;
+            log.debug("进行迭代进化...");
+            // 迭代进化
             while (generation < maxGenerations) {
                 // 选择
                 List<ScheduleDTO> selected = selection(allPopulation);

@@ -29,6 +29,7 @@
 package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
@@ -768,7 +769,8 @@ class BaseGeneticSchedulingLogic {
                                 course,
                                 currentItem.getTeacher(),
                                 newClassroomEntry.getValue(),
-                                newClassroomEntry.getKey(),
+                                //使用原来的班级
+                                currentItem.getClassGroup(),
                                 currentItem.getPriority()
                         );
                         // 更新课程安排
@@ -1055,13 +1057,12 @@ class BaseGeneticSchedulingLogic {
             @Nonnull List<ClassroomAndTypeDTO> classrooms) {
         CourseLibraryDTO course = courseQualificationList.getCourse();
         List<AdministrativeClassDTO> classList = courseQualificationList.getClassList();
-        String courseType = getCourseType(course);
         Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap = new HashMap<>();
         List<ClassroomAndTypeDTO> remainingClassrooms = new ArrayList<>(classrooms);
         if (classList == null || classList.isEmpty()) {
-            this.allocateVirtualClasses(course, courseQualificationList.getNumber(), remainingClassrooms, allocationMap, courseType);
+            this.allocateVirtualClasses(courseQualificationList, courseQualificationList.getNumber(), remainingClassrooms, allocationMap);
         } else {
-            this.allocateClassesByMajor(classList, remainingClassrooms, allocationMap, courseType);
+            this.allocateClassesByMajor(classList, remainingClassrooms, allocationMap, courseQualificationList);
         }
         return allocationMap;
     }
@@ -1069,18 +1070,11 @@ class BaseGeneticSchedulingLogic {
     /**
      * 为课程分配虚拟班级和教室
      * 此方法根据剩余教室的容量和课程类型，为一定数量的学生分配虚拟班级和合适的教室
-     *
-     * @param course              课程库DTO，包含课程信息
-     * @param number              需要分配虚拟班级的学生人数
-     * @param remainingClassrooms 剩余可用的教室和类型列表
-     * @param allocationMap       分配结果映射，键为虚拟班级列表，值为分配的教室
-     * @param courseType          课程类型，用于筛选合适的教室
      */
-    private void allocateVirtualClasses(CourseLibraryDTO course, int number,
+    private void allocateVirtualClasses(CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList, int number,
                                         @NotNull List<ClassroomAndTypeDTO> remainingClassrooms,
-                                        Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap,
-                                        String courseType) {
-        // 初始化学生计数器和虚拟班级索引
+                                        Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap) {
+        CourseLibraryDTO course = courseQualificationList.getCourse();
         int studentCounter = 0;
         int virtualClassIndex = 1;
 
@@ -1088,27 +1082,22 @@ class BaseGeneticSchedulingLogic {
         int totalCapacity = remainingClassrooms.stream()
                 .mapToInt(c -> c.getClassroom().getCapacity())
                 .sum();
-
-        // 如果总人数超过所有教室的总容量，记录警告并返回
         if (number > totalCapacity) {
             log.warn("总人数 {} 超过所有教室总容量 {}，无法完成分配", number, totalCapacity);
             return;
-        }
-
-        // 循环直到所有学生都被分配到虚拟班级
         while (studentCounter < number) {
-
-            // 计算剩余未分配的学生人数
             int remainingStudents = number - studentCounter;
-
             // 检查是否有单个教室能容纳所有剩余学生
-            ClassroomAndTypeDTO fullCapacityClassroom = this.findBestClassroom(remainingClassrooms, remainingStudents, courseType);
-
+            ClassroomAndTypeDTO fullCapacityClassroom = this.findBestClassroom(
+                    remainingClassrooms,
+                    remainingStudents,
+                    course,
+                    courseQualificationList
+            );
             if (fullCapacityClassroom == null) {
                 // 如果没有单个教室能容纳，进行分班
                 int currentSplitSize = remainingStudents;
                 boolean foundSuitableClassroom = false;
-
                 while (currentSplitSize > 20 && !foundSuitableClassroom) {
                     // 对半分
                     int splitSize = currentSplitSize / 2;
@@ -1116,60 +1105,51 @@ class BaseGeneticSchedulingLogic {
                         // 确保每个班级至少20人
                         splitSize = 20;
                     }
-
                     // 寻找能容纳对半分后人数的教室
-                    ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(remainingClassrooms, splitSize, courseType);
-
+                    ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(
+                            remainingClassrooms,
+                            splitSize,
+                            course,
+                            courseQualificationList
+                    );
                     if (selectedClassroom != null) {
                         // 找到合适的教室，分配学生
                         foundSuitableClassroom = true;
-
-                        // 生成虚拟班级的唯一标识
                         String classKey = course.getCourseLibraryUuid() + "-" + virtualClassIndex;
 
-                        // 创建并初始化虚拟班级DTO
                         AdministrativeClassDTO classDTO = new AdministrativeClassDTO()
                                 .setAdministrativeClassUuid(classKey)
                                 .setClassName(course.getName() + virtualClassIndex)
                                 .setStudentCount(splitSize);
-
-                        // 将虚拟班级DTO封装为列表，作为映射的键
                         List<AdministrativeClassDTO> virtualClass = List.of(classDTO);
-
-                        // 将虚拟班级和选定的教室添加到分配结果映射中
                         allocationMap.put(virtualClass, selectedClassroom);
-
-                        // 记录分配结果的日志信息
-
-                        // 更新学生计数器和虚拟班级索引
                         studentCounter += splitSize;
                         virtualClassIndex++;
-
-                        // 从剩余教室列表中移除已分配的教室
                         remainingClassrooms.remove(selectedClassroom);
                     } else {
                         // 没找到合适的教室，继续对半分
                         currentSplitSize = splitSize;
                     }
                 }
-
                 // 如果最后一批学生还没分配
                 if (!foundSuitableClassroom && currentSplitSize > 0) {
-                    ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(remainingClassrooms, currentSplitSize, courseType);
+                    ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(
+                            remainingClassrooms,
+                            currentSplitSize,
+                            course,
+                            courseQualificationList
+                    );
                     if (selectedClassroom == null) {
                         log.debug("没有合适的教室容纳最后 {} 名学生", currentSplitSize);
                         return;
                     }
-
                     String classKey = course.getCourseLibraryUuid() + "-" + virtualClassIndex;
                     AdministrativeClassDTO classDTO = new AdministrativeClassDTO()
                             .setAdministrativeClassUuid(classKey)
                             .setClassName(course.getName() + virtualClassIndex)
                             .setStudentCount(currentSplitSize);
-
                     List<AdministrativeClassDTO> virtualClass = List.of(classDTO);
                     allocationMap.put(virtualClass, selectedClassroom);
-
                     studentCounter += currentSplitSize;
                     virtualClassIndex++;
                     remainingClassrooms.remove(selectedClassroom);
@@ -1180,19 +1160,16 @@ class BaseGeneticSchedulingLogic {
                 String classKey = course.getCourseLibraryUuid() + "-" + virtualClassIndex;
                 AdministrativeClassDTO classDTO = new AdministrativeClassDTO()
                         .setAdministrativeClassUuid(classKey)
-                        .setClassName(course.getName()+ virtualClassIndex)
+                        .setClassName(course.getName() + virtualClassIndex)
                         .setStudentCount(assignedStudents);
-
                 List<AdministrativeClassDTO> virtualClass = List.of(classDTO);
                 allocationMap.put(virtualClass, fullCapacityClassroom);
-
                 studentCounter += assignedStudents;
                 virtualClassIndex++;
                 remainingClassrooms.remove(fullCapacityClassroom);
             }
         }
     }
-
     /**
      * 根据专业分配班级到教室
      * 该方法旨在根据班级的学生人数和课程类型，尽可能高效地利用剩余教室资源进行班级分配
@@ -1200,12 +1177,14 @@ class BaseGeneticSchedulingLogic {
      * @param classList           待分配的行政班列表，不能为空
      * @param remainingClassrooms 剩余可用的教室及其类型列表
      * @param allocationMap       班级到教室的分配映射
-     * @param courseType          课程类型，用于辅助教室分配决策
+     * @param courseQualificationList  课程资格列表，包含课程信息和班级列表
      */
-    private void allocateClassesByMajor(@NotNull List<AdministrativeClassDTO> classList,
+      void allocateClassesByMajor (
+              @NotNull List<AdministrativeClassDTO> classList,
                                         List<ClassroomAndTypeDTO> remainingClassrooms,
                                         Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap,
-                                        String courseType) {
+                                        CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList) {
+        CourseLibraryDTO course = courseQualificationList.getCourse();
         // 按专业分组班级，以便后续处理
         Map<String, List<AdministrativeClassDTO>> classesByMajor = classList.stream()
                 .collect(Collectors.groupingBy(AdministrativeClassDTO::getMajorUuid));
@@ -1217,7 +1196,8 @@ class BaseGeneticSchedulingLogic {
                 pendingClasses.add(adminClass);
                 int totalStudents = pendingClasses.stream().mapToInt(AdministrativeClassDTO::getStudentCount).sum();
                 // 先尝试分配教室，不立即清空 pendingClasses
-                ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(remainingClassrooms, totalStudents, courseType);
+                ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(remainingClassrooms,
+                        totalStudents, course,courseQualificationList);
                 if (selectedClassroom != null) {
                     int remainingCapacity = selectedClassroom.getClassroom().getCapacity() - totalStudents;
                     // **如果教室还有多余容量，尝试添加更多班级**
@@ -1291,18 +1271,69 @@ class BaseGeneticSchedulingLogic {
      *
      * @param classrooms   教室列表
      * @param studentCount 学生人数
-     * @param courseType   课程类型
+     * @param course      课程信息
      * @return 最佳教室，如果没有找到合适的教室，则返回null
      */
-    private @Nullable ClassroomAndTypeDTO findBestClassroom(@NotNull List<ClassroomAndTypeDTO> classrooms,
-                                                            int studentCount, String courseType) {
-        return classrooms.stream()
-                .filter(c -> c.getClassroom().getCapacity() >= studentCount &&
-                        (courseType == null || courseType.equals(c.getClassroomType().getClassTypeUuid())))
+    private @Nullable ClassroomAndTypeDTO findBestClassroom(
+            @NotNull List<ClassroomAndTypeDTO> classrooms,
+            int studentCount,
+            CourseLibraryDTO course,
+            CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList) {
+        // 获取课程对应的教室类型
+        String requiredClassroomType = null;
+        if (course != null) {
+            switch (courseQualificationList.getCourseEnuType()) {
+                case THEORY:
+                    requiredClassroomType = course.getTheoryClassroomType();
+                    break;
+                case EXPERIMENT:
+                    requiredClassroomType = course.getExperimentClassroomType();
+                    break;
+                case PRACTICE:
+                    requiredClassroomType = course.getPracticeClassroomType();
+                    break;
+                case COMPUTER:
+                    requiredClassroomType = course.getComputerClassroomType();
+                    break;
+            }
+        }
+        String finalRequiredClassroomType = requiredClassroomType;
+
+        // 先尝试找到指定类型的教室
+        ClassroomAndTypeDTO specializedClassroom = classrooms.stream()
+                .filter(c -> {
+                    // 首先检查容量是否满足
+                    if (c.getClassroom().getCapacity() < studentCount) {
+                        return false;
+                    }
+                    // 如果课程类型和教室类型都为空，则匹配
+                    if (finalRequiredClassroomType == null && c.getClassroomType().getClassTypeUuid() == null) {
+                        return true;
+                    }
+                    // 如果课程类型不为空，则必须匹配
+                    if (finalRequiredClassroomType != null) {
+                        return finalRequiredClassroomType.equals(c.getClassroomType().getClassTypeUuid());
+                    }
+                    return false;
+                })
                 .min(Comparator.comparingInt(c -> c.getClassroom().getCapacity()))
-                .or(() -> classrooms.stream()
-                        .filter(c -> c.getClassroom().getCapacity() >= studentCount && c.getClassroomType().getClassTypeUuid() == null)
-                        .min(Comparator.comparingInt(c -> c.getClassroom().getCapacity())))
+                .orElse(null);
+
+        // 如果找到了指定类型的教室，直接返回
+        if (specializedClassroom != null) {
+            return specializedClassroom;
+        }
+        // 如果没找到指定类型的教室，返回一个普通教室（教室类型为空的教室）
+        return classrooms.stream()
+                .filter(c -> {
+                    // 检查容量是否满足
+                    if (c.getClassroom().getCapacity() < studentCount) {
+                        return false;
+                    }
+                    // 返回教室类型为空的教室（普通教室）
+                    return c.getClassroomType().getClassTypeUuid() == SystemConstant.getClassroomTypeCommon();
+                })
+                .min(Comparator.comparingInt(c -> c.getClassroom().getCapacity()))
                 .orElse(null);
     }
 

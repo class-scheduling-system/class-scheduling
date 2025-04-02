@@ -83,6 +83,7 @@ public class ScheduleResultDTO {
          * 教室信息
          */
         private ClassroomAndTypeDTO classroom;
+
         /**
          * 班级分组信息
          */

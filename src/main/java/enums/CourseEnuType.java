@@ -22,6 +22,11 @@ public enum CourseEnuType {
      */
     THEORY("theory", "理论课"),
     /**
+     * 实验课
+     */
+    EXPERIMENT("experiment", "实验课"),
+
+    /**
      * 实践课
      */
     PRACTICE("practice", "实践课"),
@@ -33,10 +38,15 @@ public enum CourseEnuType {
      * 混排课程（理论+实践混合）
      */
     MIXED("mixed", "混排课程"),
+
     /**
      * 其他类型课程
      */
     OTHER("other", "其他类型");
+
+    /**
+     * 课程类型名称
+     */
 
     /**
      * 英文类型名称

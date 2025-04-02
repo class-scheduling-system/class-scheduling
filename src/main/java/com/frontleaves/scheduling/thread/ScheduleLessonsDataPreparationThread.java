@@ -183,6 +183,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     // 根据课程类型选择对应的学时
                     BigDecimal selectedCredit = switch (specificCourseIdVO.getCourseEnuType()) {
                         case THEORY -> courseLibraryDTO.getTheoryHours();
+                        case EXPERIMENT -> courseLibraryDTO.getExperimentHours();
                         case PRACTICE -> courseLibraryDTO.getPracticeHours();
                         case COMPUTER -> courseLibraryDTO.getComputerHours();
                         case MIXED -> courseLibraryDTO.getTotalHours();
@@ -227,12 +228,16 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                             if (course.getTheoryHours().compareTo(BigDecimal.ZERO) > 0) {
                                 updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.THEORY, course.getTheoryHours()));
                             }
+                            if (course.getExperimentHours().compareTo(BigDecimal.ZERO) > 0) {
+                                updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.EXPERIMENT, course.getExperimentHours()));
+                            }
                             if (course.getPracticeHours().compareTo(BigDecimal.ZERO) > 0) {
                                 updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.PRACTICE, course.getPracticeHours()));
                             }
                             if (course.getComputerHours().compareTo(BigDecimal.ZERO) > 0) {
                                 updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.COMPUTER, course.getComputerHours()));
                             }
+
                             if (course.getOtherHours().compareTo(BigDecimal.ZERO) > 0) {
                                 updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.OTHER, course.getOtherHours()));
                             }
