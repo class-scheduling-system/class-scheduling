@@ -571,7 +571,7 @@ class BaseGeneticSchedulingLogic {
                 switch (strategy) {
                     case 0:
                         // 时间槽变异
-                        timeSlotMutation(schedule, baseDTO);
+                        timeSlotMutation(schedule, baseDTO.getCourseList());
                         break;
                     case 1:
                         // 教室变异
@@ -584,48 +584,6 @@ class BaseGeneticSchedulingLogic {
                     default:
                         break;
                 }
-            }
-        }
-    }
-
-    /**
-     * 时间槽变异
-     * <p>
-     * 随机选择一个课程安排，改变其时间槽，
-     * 包括尝试找到新的合适时间槽或与其他课程交换时间。
-     * </p>
-     *
-     * @param schedule 待变异的课程表
-     * @param baseDTO  排课基础数据
-     */
-    void timeSlotMutation(@NotNull ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
-        List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
-
-        if (!entries.isEmpty()) {
-            // 随机选择一个课程进行时间变异
-            Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry = entries.get(random.nextInt(entries.size()));
-            schedule.getAssignments().remove(entry.getKey());
-
-            // 尝试找到新的合适时间槽
-            TimeSlotDTO newTimeSlot = findSuitableTimeSlot(
-                    schedule.getAssignments(),
-                    entry.getValue().getTeacher(),
-                    entry.getValue().getClassroom(),
-                    baseDTO
-            );
-
-            if (newTimeSlot != null) {
-                schedule.getAssignments().put(newTimeSlot, entry.getValue());
-            } else {
-                // 如果找不到合适的新时间槽，尝试与其他课程交换时间
-                for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> other : entries) {
-                    if (other != entry && isSwapValid(entry, other, schedule)) {
-                        swapTimeSlots(schedule, entry, other);
-                        return;
-                    }
-                }
-                // 如果无法交换，恢复原有安排
-                schedule.getAssignments().put(entry.getKey(), entry.getValue());
             }
         }
     }
@@ -795,24 +753,6 @@ class BaseGeneticSchedulingLogic {
                 );
     }
 
-    /**
-     * 交换两个课程的时间槽
-     *
-     * @param schedule 课程表
-     * @param entry1   第一个课程安排
-     * @param entry2   第二个课程安排
-     */
-    void swapTimeSlots(
-            @NotNull ScheduleDTO schedule,
-            Map.@NotNull Entry<TimeSlotDTO, ScheduleItemDTO> entry1,
-            Map.@NotNull Entry<TimeSlotDTO, ScheduleItemDTO> entry2
-    ) {
-        ScheduleItemDTO item1 = entry1.getValue();
-        ScheduleItemDTO item2 = entry2.getValue();
-
-        schedule.getAssignments().put(entry1.getKey(), item2);
-        schedule.getAssignments().put(entry2.getKey(), item1);
-    }
 
     /**
      * 转换课程表为课程安排列表
@@ -1180,105 +1120,6 @@ class BaseGeneticSchedulingLogic {
 
 
 
-    /**
-     * 查找合适的时间槽
-     * <p>
-     * 从所有可能的时间槽中查找一个不会导致冲突的时间槽。
-     * </p>
-     *
-     * @param assignments 已有的课程安排
-     * @param teacher     教师信息
-     * @param classroom   教室信息
-     * @param baseDTO     排课基础数据
-     * @return 合适的时间槽，如果没有找到则返回null
-     */
-    @Nullable TimeSlotDTO findSuitableTimeSlot(
-            Map<TimeSlotDTO, ScheduleItemDTO> assignments,
-            TeacherCoursePreferencesDTO teacher,
-            ClassroomAndTypeDTO classroom,
-            CourseLibraryAndTeacherCourseQualificationListDTO baseDTO
-    ) {
-        List<TimeSlotDTO> allTimeSlots = generateAllTimeSlots(baseDTO);
-        Collections.shuffle(allTimeSlots);
-
-        for (TimeSlotDTO slot : allTimeSlots) {
-            if (isTimeSlotSuitable(slot, assignments, teacher, classroom)) {
-                return slot;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * 生成所有可能的时间槽
-     * <p>
-     * 基于排课周数、每周天数和每天课时数生成所有可能的时间槽。
-     * </p>
-     *
-     * @param baseDTO 排课基础数据
-     * @return 所有可能的时间槽列表
-     */
-    @NotNull List<TimeSlotDTO> generateAllTimeSlots(@NotNull CourseLibraryAndTeacherCourseQualificationListDTO baseDTO) {
-        List<TimeSlotDTO> slots = new ArrayList<>();
-
-        for (int week = 1; week <= baseDTO.getEndWeek(); week++) {
-            // 假设一周5天
-            for (int day = 1; day <= 5; day++) {
-                // 假设一天8节课
-                for (int period = 1; period <= 8; period++) {
-                    slots.add(new TimeSlotDTO(week, day, period));
-                }
-            }
-        }
-
-        return slots;
-    }
-
-    /**
-     * 检查时间槽是否合适
-     * <p>
-     * 检查给定时间槽是否已被占用，包括教师和教室的时间冲突检查。
-     * </p>
-     *
-     * @param slot        待检查的时间槽
-     * @param assignments 已有的课程安排
-     * @param teacher     教师信息
-     * @param classroom   教室信息
-     * @return 时间槽是否合适
-     */
-    boolean isTimeSlotSuitable(
-            TimeSlotDTO slot,
-            @NotNull Map<TimeSlotDTO, ScheduleItemDTO> assignments,
-            TeacherCoursePreferencesDTO teacher,
-            ClassroomAndTypeDTO classroom
-    ) {
-        // 检查该时间槽是否已被占用
-        for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry : assignments.entrySet()) {
-            TimeSlotDTO existingSlot = entry.getKey();
-            ScheduleItemDTO existingItem = entry.getValue();
-
-            // 如果是同一时间段
-            if (slot.getWeek() == existingSlot.getWeek() &&
-                    slot.getDay() == existingSlot.getDay() &&
-                    slot.getPeriod() == existingSlot.getPeriod()) {
-
-                // 检查教师是否已被安排
-                if (existingItem.getTeacher().getTeacher().getTeacherUuid()
-                        .equals(teacher.getTeacher().getTeacherUuid())) {
-                    return false;
-                }
-
-                // 检查教室是否已被安排
-                if (existingItem.getClassroom().getClassroom().getClassroomUuid()
-                        .equals(classroom.getClassroom().getClassroomUuid())) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
 
     /**
      * 计算连续课程适应度
@@ -1414,5 +1255,228 @@ class BaseGeneticSchedulingLogic {
         }
 
         return fitness;
+    }
+    /**
+     * 执行时间槽变异
+     */
+    public void timeSlotMutation(
+            @NotNull ScheduleDTO schedule,
+            @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> courses
+    ) {
+        List<Map.Entry<TimeSlotDTO, ScheduleItemDTO>> entries = new ArrayList<>(schedule.getAssignments().entrySet());
+        if (!entries.isEmpty()) {
+            // 随机选择一个课程进行时间变异
+            Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry = entries.get(random.nextInt(entries.size()));
+            // 获取对应的课程信息
+            CourseLibraryAndTeacherCourseQualificationListDTO course = findCourseByScheduleItem(entry.getValue(), courses);
+            if (course != null) {
+                schedule.getAssignments().remove(entry.getKey());
+                // 尝试找到新的合适时间槽
+                TimeSlotDTO newTimeSlot = findSuitableTimeSlot(
+                        schedule.getAssignments(),
+                        entry.getValue().getTeacher(),
+                        entry.getValue().getClassroom(),
+                        course
+                );
+
+                if (newTimeSlot != null) {
+                    schedule.getAssignments().put(newTimeSlot, entry.getValue());
+                } else {
+                    // 如果找不到合适的新时间槽，尝试与其他课程交换时间
+                    for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> other : entries) {
+                        if (other != entry && isSwapValid(entry, other, schedule, courses)) {
+                            swapTimeSlots(schedule, entry, other);
+                            return;
+                        }
+                    }
+                    // 如果无法交换，恢复原有安排
+                    schedule.getAssignments().put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+    }
+
+    /**
+     * 查找合适的时间槽
+     */
+    @Nullable
+    private TimeSlotDTO findSuitableTimeSlot(
+            Map<TimeSlotDTO, ScheduleItemDTO> assignments,
+            TeacherCoursePreferencesDTO teacher,
+            ClassroomAndTypeDTO classroom,
+            CourseLibraryAndTeacherCourseQualificationListDTO course
+    ) {
+        List<TimeSlotDTO> allTimeSlots = generateTimeSlotsByCourse(course);
+        Collections.shuffle(allTimeSlots);
+
+        for (TimeSlotDTO slot : allTimeSlots) {
+            if (isTimeSlotSuitable(slot, assignments, teacher, classroom, course)) {
+                return slot;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 根据课程信息生成合适的时间槽
+     */
+    private @NotNull List<TimeSlotDTO> generateTimeSlotsByCourse(@NotNull CourseLibraryAndTeacherCourseQualificationListDTO course) {
+        List<TimeSlotDTO> slots = new ArrayList<>();
+
+        for (int week = course.getStartWeek(); week <= course.getEndWeek(); week++) {
+            boolean isOddWeek = (week % 2 == 1);
+            // 检查是否符合单双周要求
+            if (course.getWeeklyHours() % 2 == 1 && course.getIsOddWeek() != null) {
+                // 如果是单双周课程，只添加符合要求的周
+                if (Boolean.TRUE.equals(course.getIsOddWeek()) != isOddWeek) {
+                    continue;
+                }
+            }
+            // 一周5天
+            for (int day = 1; day <= 5; day++) {
+                // 一天8节课
+                for (int period = 1; period <= 8; period++) {
+                    if (course.getWeeklyHours() % 2 == 1 && course.getIsOddWeek() != null) {
+                        // 单双周课程
+                        slots.add(new TimeSlotDTO(week, day, period, isOddWeek));
+                    } else {
+                        // 普通课程
+                        slots.add(new TimeSlotDTO(week, day, period, null));
+                    }
+                }
+            }
+        }
+
+        return slots;
+    }
+
+    /**
+     * 检查时间槽是否合适
+     */
+    private boolean isTimeSlotSuitable(
+            TimeSlotDTO slot,
+            @NotNull Map<TimeSlotDTO, ScheduleItemDTO> assignments,
+            TeacherCoursePreferencesDTO teacher,
+            ClassroomAndTypeDTO classroom,
+            CourseLibraryAndTeacherCourseQualificationListDTO course
+    ) {
+        // 1. 检查时间槽是否已被占用
+        if (assignments.containsKey(slot)) {
+            return false;
+        }
+        // 2. 检查教师在该时间段是否有其他课程
+        if (!isTeacherAvailable(teacher, slot, assignments)) {
+            return false;
+        }
+        // 3. 检查教室在该时间段是否可用
+        if (!isClassroomAvailable(classroom, slot, assignments)) {
+            return false;
+        }
+        // 4. 检查是否符合课程的单双周要求
+        if (course.getWeeklyHours() % 2 == 1 && course.getIsOddWeek() != null) {
+            if (slot.getIsOddWeek() == null || !Objects.equals(slot.getIsOddWeek(), course.getIsOddWeek())) {
+                return false;
+            }
+        }
+        // 5. 检查是否在课程的周数范围内
+        return slot.getWeek() >= course.getStartWeek() && slot.getWeek() <= course.getEndWeek();
+    }
+
+    /**
+     * 检查教师是否在指定时间槽可用
+     */
+    private boolean isTeacherAvailable(
+            TeacherCoursePreferencesDTO teacher,
+            TimeSlotDTO slot,
+            @NotNull Map<TimeSlotDTO, ScheduleItemDTO> assignments
+    ) {
+        return assignments.entrySet().stream()
+                .noneMatch(entry -> entry.getKey().getWeek() == slot.getWeek() &&
+                        entry.getKey().getDay() == slot.getDay() &&
+                        entry.getKey().getPeriod() == slot.getPeriod() &&
+                        entry.getValue().getTeacher().equals(teacher));
+    }
+
+    /**
+     * 检查教室是否在指定时间槽可用
+     */
+    private boolean isClassroomAvailable(
+            ClassroomAndTypeDTO classroom,
+            TimeSlotDTO slot,
+            @NotNull Map<TimeSlotDTO, ScheduleItemDTO> assignments
+    ) {
+        return assignments.entrySet().stream()
+                .noneMatch(entry -> entry.getKey().getWeek() == slot.getWeek() &&
+                        entry.getKey().getDay() == slot.getDay() &&
+                        entry.getKey().getPeriod() == slot.getPeriod() &&
+                        entry.getValue().getClassroom().equals(classroom));
+    }
+
+    /**
+     * 根据ScheduleItem查找对应的课程信息
+     */
+    private CourseLibraryAndTeacherCourseQualificationListDTO findCourseByScheduleItem(
+            ScheduleItemDTO item,
+            List<CourseLibraryAndTeacherCourseQualificationListDTO> courses
+    ) {
+        return courses.stream()
+                .filter(course -> course.getCourse().getId().equals(item.getCourse().getId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * 检查交换是否有效
+     */
+    private boolean isSwapValid(
+            Map.@NotNull Entry<TimeSlotDTO, ScheduleItemDTO> entry1,
+            Map.@NotNull Entry<TimeSlotDTO, ScheduleItemDTO> entry2,
+            ScheduleDTO schedule,
+            List<CourseLibraryAndTeacherCourseQualificationListDTO> courses
+    ) {
+        CourseLibraryAndTeacherCourseQualificationListDTO course1 = findCourseByScheduleItem(entry1.getValue(), courses);
+        CourseLibraryAndTeacherCourseQualificationListDTO course2 = findCourseByScheduleItem(entry2.getValue(), courses);
+
+        if (course1 == null || course2 == null) {
+            return false;
+        }
+
+        // 创建临时的assignments来验证交换是否有效
+        Map<TimeSlotDTO, ScheduleItemDTO> tempAssignments = new HashMap<>(schedule.getAssignments());
+        tempAssignments.remove(entry1.getKey());
+        tempAssignments.remove(entry2.getKey());
+
+        // 检查交换后的时间槽是否适合各自的课程
+        boolean slot1Valid = isTimeSlotSuitable(
+                entry2.getKey(),
+                tempAssignments,
+                entry1.getValue().getTeacher(),
+                entry1.getValue().getClassroom(),
+                course1
+        );
+
+        boolean slot2Valid = isTimeSlotSuitable(
+                entry1.getKey(),
+                tempAssignments,
+                entry2.getValue().getTeacher(),
+                entry2.getValue().getClassroom(),
+                course2
+        );
+
+        return slot1Valid && slot2Valid;
+    }
+
+    /**
+     * 交换时间槽
+     */
+    private void swapTimeSlots(
+            @NotNull ScheduleDTO schedule,
+            Map.@NotNull Entry<TimeSlotDTO, ScheduleItemDTO> entry1,
+            Map.@NotNull Entry<TimeSlotDTO, ScheduleItemDTO> entry2
+    ) {
+        ScheduleItemDTO temp = entry1.getValue();
+        schedule.getAssignments().put(entry1.getKey(), entry2.getValue());
+        schedule.getAssignments().put(entry2.getKey(), temp);
     }
 }
