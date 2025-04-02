@@ -948,9 +948,9 @@ class BaseGeneticSchedulingLogic {
         log.debug("课程人数,{}",courseQualificationList.getNumber());
         if (classList == null || classList.isEmpty()) {
             log.debug("只限定了人数");
-            allocateVirtualClasses(course, courseQualificationList.getNumber(), remainingClassrooms, allocationMap, courseType);
+            this.allocateVirtualClasses(course, courseQualificationList.getNumber(), remainingClassrooms, allocationMap, courseType);
         } else {
-            allocateClassesByMajor(classList, remainingClassrooms, allocationMap, courseType);
+            this.allocateClassesByMajor(classList, remainingClassrooms, allocationMap, courseType);
         }
         return allocationMap;
     }
@@ -977,7 +977,7 @@ class BaseGeneticSchedulingLogic {
             // 计算剩余未分配的学生人数
             int remainingStudents = number - studentCounter;
             // 寻找最适合当前剩余学生数的教室
-            ClassroomAndTypeDTO selectedClassroom = findBestClassroom(remainingClassrooms, remainingStudents, courseType);
+            ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(remainingClassrooms, remainingStudents, courseType);
             // 如果没有合适的教室，则记录日志并退出分配过程
             if (selectedClassroom == null) {
                 log.debug("没有足够的教室容纳剩余的 {} 名学生", remainingStudents);
@@ -1028,12 +1028,12 @@ class BaseGeneticSchedulingLogic {
                 pendingClasses.add(adminClass);
                 int totalStudents = pendingClasses.stream().mapToInt(AdministrativeClassDTO::getStudentCount).sum();
                 // 先尝试分配教室，不立即清空 pendingClasses
-                ClassroomAndTypeDTO selectedClassroom = findBestClassroom(remainingClassrooms, totalStudents, courseType);
+                ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(remainingClassrooms, totalStudents, courseType);
                 if (selectedClassroom != null) {
                     int remainingCapacity = selectedClassroom.getClassroom().getCapacity() - totalStudents;
                     // **如果教室还有多余容量，尝试添加更多班级**
                     while (!remainingClassrooms.isEmpty() && remainingCapacity > 0) {
-                        AdministrativeClassDTO nextClass = findNextClass(majorClasses, pendingClasses);
+                        AdministrativeClassDTO nextClass = this.findNextClass(majorClasses, pendingClasses);
                         if (nextClass == null) {
                             break;
                         }
@@ -1056,7 +1056,7 @@ class BaseGeneticSchedulingLogic {
             }
             // **仍然有未分配的班级，尝试随机分配**
             if (!pendingClasses.isEmpty()) {
-                allocateUnassignedClasses(pendingClasses, remainingClassrooms, allocationMap);
+                this.allocateUnassignedClasses(pendingClasses, remainingClassrooms, allocationMap);
             }
         }
     }
@@ -1091,13 +1091,21 @@ class BaseGeneticSchedulingLogic {
         // 当没有找到合适的教室来教授班级时，记录待分配的班级名称
         log.debug("没有找到合适的教室来教授班级: {}", pendingClasses.stream().map(AdministrativeClassDTO::getClassName).toList());
         // 从剩余的教室中随机选择一个教室
-        ClassroomAndTypeDTO randomClassroom = selectRandomClassroom(remainingClassrooms);
+        ClassroomAndTypeDTO randomClassroom = this.selectRandomClassroom(remainingClassrooms);
         // 如果随机选中的教室不为空，则将所有待分配的班级都分配到这个教室，并记录分配信息
         if (randomClassroom != null) {
             allocationMap.put(new ArrayList<>(pendingClasses), randomClassroom);
             log.debug("为班级 {} 随机分配了教室 {}", pendingClasses.stream().map(AdministrativeClassDTO::getClassName).toList(), randomClassroom.getClassroom().getName());
         }
     }
+
+    /**
+     * 查找最佳教室
+     * @param classrooms 教室列表
+     * @param studentCount 学生人数
+     * @param courseType 课程类型
+     * @return 最佳教室，如果没有找到合适的教室，则返回null
+     */
     private @Nullable ClassroomAndTypeDTO findBestClassroom(@NotNull List<ClassroomAndTypeDTO> classrooms,
                                                             int studentCount, String courseType) {
         return classrooms.stream()
@@ -1119,10 +1127,6 @@ class BaseGeneticSchedulingLogic {
     private @Nullable ClassroomAndTypeDTO selectRandomClassroom(@NotNull List<ClassroomAndTypeDTO> classrooms) {
         return classrooms.isEmpty() ? null : classrooms.get(new Random().nextInt(classrooms.size()));
     }
-
-
-
-
     /**
      * 计算连续课程适应度
      * <p>
