@@ -556,7 +556,6 @@ public class TeacherLogic implements TeacherService {
 
         // 返回解码后的文件字节数组
         return fileBytes;
-
     }
 
     /**
@@ -646,15 +645,15 @@ public class TeacherLogic implements TeacherService {
                 validateTeacherName(teacherImportDTO.getName());
                 validateTeacherId(teacherImportDTO.getId());
 
-                // 验证并获取教师类型，根据教师类型名称在基础数据中查找对应的教师类型 DO
-                findTeacherTypeByName(teacherBaseImport.getTeacherTypes(), teacherImportDTO.getType());
+                // 获取教师类型 DO
+                TeacherTypeDO teacherTypeDO = findTeacherTypeByName(teacherBaseImport.getTeacherTypes(), teacherImportDTO.getType());
 
                 // 构建教师对象，并设置各字段
                 TeacherDO teacherDO = new TeacherDO();
-                teacherDO.setId(teacherList.get(i).getId())
-                        .setName(teacherList.get(i).getName())
-                        .setEnglishName(teacherList.get(i).getEnglishName())
-                        .setEthnic(teacherList.get(i).getEthnic());
+                teacherDO.setId(teacherImportDTO.getId())
+                        .setName(teacherImportDTO.getName())
+                        .setEnglishName(teacherImportDTO.getEnglishName())
+                        .setEthnic(teacherImportDTO.getEthnic());
                 // 设置性别
                 if ("男".equals(teacherImportDTO.getSex())) {
                     teacherDO.setSex(true);
@@ -667,15 +666,15 @@ public class TeacherLogic implements TeacherService {
                 // 设置所属单位（使用基础数据中部门UUID）
                 teacherDO.setUnitUuid(teacherBaseImport.getDepartment().getDepartmentUuid());
 
-                // 设置教师类型
-                teacherDO.setType(teacherList.get(i).getType());
+                // 修改教师类型设置为教师类型DO的UUID
+                teacherDO.setType(teacherTypeDO.getTeacherTypeUuid());
 
                 // 设置其他字段
-                teacherDO.setPhone(teacherList.get(i).getPhone())
-                        .setEmail(teacherList.get(i).getEmail())
-                        .setJobTitle(teacherList.get(i).getJobTitle())
-                        .setDesc(teacherList.get(i).getDescription());
-                // 保存学生数据
+                teacherDO.setPhone(teacherImportDTO.getPhone())
+                        .setEmail(teacherImportDTO.getEmail())
+                        .setJobTitle(teacherImportDTO.getJobTitle())
+                        .setDesc(teacherImportDTO.getDescription());
+                // 保存教师数据
                 List<BackAddTeacherDTO.FailedDetail> saveFailedDetails = teacherDAO.saveTeacherIgnoreError(teacherDO, i);
                 if (saveFailedDetails.isEmpty()) {
                     // 保存成功
@@ -752,8 +751,11 @@ public class TeacherLogic implements TeacherService {
                     // 使用基础信息中的部门信息设置所属单位
                     .setUnitUuid(teacherBaseImport.getDepartment().getDepartmentUuid());
 
-            // 保存教师数据
-            teacherDAO.saveTeacherIgnoreError(teacherDO, i);
+            // 调用保存方法，并检查错误详情
+            List<BackAddTeacherDTO.FailedDetail> saveFailedDetails = teacherDAO.saveTeacherIgnoreError(teacherDO, i);
+            if (!saveFailedDetails.isEmpty()) {
+                throw new BusinessException("第" + (i + 3) + "行保存失败：" + saveFailedDetails.get(0).getReason(), ErrorCode.OPERATION_FAILED);
+            }
         }
         // 如果所有数据均成功保存，返回统计结果（失败记录为0）
         return new BackAddTeacherDTO()
@@ -873,7 +875,7 @@ public class TeacherLogic implements TeacherService {
      * @param teacherTypeDTOList 教师类型数据传输对象列表，表示不同类型的教师
      * @return PrepareTeacherExampleDTO 返回准备好的教师示例DTO，包含单位和教师类型信息
      */
-    private static @org.jetbrains.annotations.NotNull PrepareTeacherExampleDTO getPrepareTeacherExampleDTO(
+    private static PrepareTeacherExampleDTO getPrepareTeacherExampleDTO(
             DepartmentDO departmentDO, List<TeacherTypeDTO> teacherTypeDTOList
     ) {
         PrepareTeacherExampleDTO.UnitDTO unitDTO = new PrepareTeacherExampleDTO.UnitDTO();
