@@ -857,7 +857,7 @@ class BaseGeneticSchedulingLogic {
                     TeacherCoursePreferencesDTO assignedTeacher = entry.getValue();
                     ClassroomAndTypeDTO assignedClassroom = classroomAssignments.get(classGroup);
                     // 寻找合适的时间槽
-                    TimeSlotDTO timeSlot = findSuitableTimeSlot(assignments,
+                    List<TimeSlotDTO> timeSlot = findSuitableTimeSlot(assignments,
                             assignedTeacher,
                             assignedClassroom,
                             courseAndTeachers,
