@@ -35,6 +35,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherMapper;
+import com.frontleaves.scheduling.models.dto.BackAddTeacherDTO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
 import com.xlf.utility.ErrorCode;
@@ -45,11 +46,15 @@ import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.*;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 教师数据访问对象
@@ -366,5 +371,90 @@ public class TeacherDAO extends ServiceImpl<TeacherMapper, TeacherDO> {
                         .setTeacher(data)
                         .setUser(null)
                 ).toList();
+    }
+
+    /**
+     * 保存教师信息，忽略错误并返回失败详情
+     * 当保存教师信息时，如果遇到任何异常，该方法将捕获异常并返回一个包含错误详情的列表
+     * 此方法确保即使在保存过程中发生错误，程序也能继续执行而不会中断
+     *
+     * @param teacherDO 待保存的教师数据对象
+     * @param i         表示教师顺序或批次的整数，用于错误详情中
+     * @return 如果保存成功，返回空列表；如果失败，返回包含错误详情的单元素列表
+     */
+    public List<BackAddTeacherDTO.FailedDetail> saveTeacherIgnoreError(TeacherDO teacherDO, int i) {
+        try {
+            this.save(teacherDO);
+            // 成功时返回空列表
+            return Collections.emptyList();
+        } catch (Exception e) {
+            // 失败时创建并返回包含错误详情的列表
+            return Collections.singletonList(createFailedDetail(e, i));
+        }
+    }
+
+    /**
+     * 创建添加教师失败的详细信息
+     * 当添加教师信息由于某些原因失败时，此方法用于创建一个包含失败原因的详细对象
+     *
+     * @param e 异常对象，用于判断失败原因
+     * @param i 教师信息在批量添加中的索引，用于确定是哪一行数据失败
+     * @return 返回一个包含失败原因和行号的FailedDetail对象
+     */
+    private BackAddTeacherDTO.FailedDetail createFailedDetail(Exception e, int i) {
+        BackAddTeacherDTO.FailedDetail failedDetail = new BackAddTeacherDTO.FailedDetail();
+        failedDetail.setRow(i + 3);
+
+        // 根据异常类型创建失败原因
+        if (e instanceof DuplicateKeyException) {
+            failedDetail.setReason("工号重复");
+        } else if (e instanceof DataIntegrityViolationException) {
+            String errorMessage = e.getMessage();
+            failedDetail.setReason(analyzeDataIntegrityError(errorMessage));
+        } else {
+            failedDetail.setReason("保存失败" + e.getMessage());
+        }
+        return failedDetail;
+    }
+
+    /**
+     * 分析数据完整性错误信息并返回对应的错误描述
+     * 该方法主要用于解析数据库操作中遇到的数据完整性问题，包括外键约束错误、数据长度超出限制等
+     *
+     * @param errorMessage 数据库操作中返回的错误信息，用于分析错误类型
+     * @return 返回针对特定错误的描述信息如果无法匹配到特定错误，则返回通用数据错误信息
+     */
+    private String analyzeDataIntegrityError(String errorMessage) {
+        // 外键错误映射
+        Map<String, String> foreignKeyErrors = Map.of(
+                "fk_teacher_type", "教师类型错误",
+                "fk_teacher_unit_type", "单位信息错误",
+                "fk_teacher_user_uuid", "用户信息错误"
+        );
+
+        // 检查外键错误
+        String foreignKeyMatch = foreignKeyErrors.entrySet().stream()
+                .filter(entry -> errorMessage.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
+        if (foreignKeyMatch != null) {
+            return foreignKeyMatch;
+        }
+
+        // 长度错误检查
+        if (errorMessage.contains("Data too long")) {
+            Map<String, String> lengthError = Map.of(
+                    "id", "教师工号长度超出限制，最大64个字符",
+                    "name", "教师姓名长度超出限制，最大32个字符"
+            );
+            return lengthError.entrySet().stream()
+                    .filter(entry -> errorMessage.contains(entry.getKey()))
+                    .map(Map.Entry::getValue)
+                    .findFirst()
+                    .orElse("数据长度超出限制");
+        }
+        // 默认错误信息
+        return "数据错误：可能包含空值、超出长度限制或不符合外键约束";
     }
 }

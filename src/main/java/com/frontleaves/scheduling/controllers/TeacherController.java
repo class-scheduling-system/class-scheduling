@@ -3,9 +3,8 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.TeacherDTO;
-import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
+import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.vo.TeacherBatchImportVO;
 import com.frontleaves.scheduling.models.dto.TeacherLiteDTO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
 import com.frontleaves.scheduling.services.TeacherService;
@@ -13,14 +12,22 @@ import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+
+import java.util.List;
 
 /**
  * 教师控制器
@@ -199,5 +206,68 @@ public class TeacherController {
 
         List<TeacherLiteDTO> teacherList = teacherService.getTeacherLiteList(departmentUuid, teacherTypeUuid);
         return ResultUtil.success("查询教师列表成功", teacherList);
+    }
+
+    /**
+     * 获取教师导入模板.
+     * <p>
+     * 该控制器方法用于处理教务角色获取教师导入模板的请求
+     * 它准备部门数据并生成一个Excel模板文件，供用户下载
+     * </p>
+     *
+     * @param request 不为空的HttpServletRequest对象，用于获取请求信息
+     * @return ResponseEntity<byte [ ]> 返回包含文件数据和下载信息的响应实体
+     */
+    @RequestRole("教务")
+    @GetMapping("/get-example")
+    public ResponseEntity<byte[]> getExample(
+            @NotNull HttpServletRequest request
+    ) {
+        PrepareTeacherExampleDTO prepareTeacherExampleDTO = teacherService.prepareDepartmentData(request);
+        byte[] bytes = teacherService.getExample(prepareTeacherExampleDTO);
+
+        HttpHeaders headers = Optional.of(new HttpHeaders())
+                .map(header -> {
+                    header.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                    header.setContentLength(bytes.length);
+                    String fileName = URLEncoder.encode("教师导入模板.xlsx", StandardCharsets.UTF_8)
+                            .replace("+", "%20");
+                    header.add(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + fileName + "\"; filename*=UTF-8''" + fileName);
+                    return header;
+                })
+                .orElseThrow(() -> new BusinessException("获取响应头失败", ErrorCode.SERVER_INTERNAL_ERROR));
+
+        return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+    }
+
+    /**
+     * 处理批量导入教师的请求
+     * 该接口用于批量导入教师信息，支持忽略错误继续导入的选项
+     *
+     * @param teacherBatchImportVO 包含导入教师信息的批量导入视图对象
+     * @param request              HTTP请求对象，用于获取部门UUID
+     * @return 返回包含批量导入结果的响应实体
+     * @throws BusinessException 当存在教师添加失败情况时抛出业务异常
+     */
+    @RequestRole("教务")
+    @PostMapping("/batch-import")
+    public @NotNull ResponseEntity<BaseResponse<BackAddTeacherDTO>> batchImport(
+            @RequestBody @Validated TeacherBatchImportVO teacherBatchImportVO,
+            @NotNull HttpServletRequest request
+    ) {
+        byte[] file = teacherService.verifyTeacherBatchAndBackFile(teacherBatchImportVO);
+        String departmentUuid = teacherService.getDepartmentUuid(request);
+        // 执行批量导入教师的操作
+        BackAddTeacherDTO backAddTeacherDTO = Optional.of(teacherBatchImportVO.getIgnoreError())
+                .filter(Boolean.TRUE::equals)
+                .map(ignoreError -> teacherService.batchImportIgnoreError(file, departmentUuid))
+                .orElseGet(() -> teacherService.batchImportNoIgnoreError(file, departmentUuid));
+
+        // 教师导入失败
+        if (backAddTeacherDTO.getFailedCount() > 0) {
+            throw new BusinessException("存在教师添加失败情况", ErrorCode.OPERATION_FAILED);
+        }
+        return ResultUtil.success("批量添加教师成功", backAddTeacherDTO);
     }
 }
