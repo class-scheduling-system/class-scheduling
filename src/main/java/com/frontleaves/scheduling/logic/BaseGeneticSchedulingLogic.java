@@ -183,7 +183,7 @@ class BaseGeneticSchedulingLogic {
                                 // 检查是否在同一时间段
                                 TimeSlotDTO slot2 = entry2.getKey();
                                 return slot1.getWeek() == slot2.getWeek() &&
-                                        slot1.getDayOfWeek() == slot2.getDayOfWeek() &&
+                                        slot1.getDay() == slot2.getDay() &&
                                         slot1.getPeriod() == slot2.getPeriod();
                             })
                             .mapToDouble(entry2 -> {
@@ -245,7 +245,7 @@ class BaseGeneticSchedulingLogic {
 
                         // 检查是否在同一时间段
                         return slot1.getWeek() == slot2.getWeek() &&
-                                slot1.getDayOfWeek() == slot2.getDayOfWeek() &&
+                                slot1.getDay() == slot2.getDay() &&
                                 slot1.getPeriod() == slot2.getPeriod();
                     })
                     .forEach(entry2 -> {
@@ -263,7 +263,7 @@ class BaseGeneticSchedulingLogic {
                                             "教师 %s 在第%d周星期%d第%d节课有重复安排",
                                             item1.getTeacher().getTeacher().getName(),
                                             slot1.getWeek(),
-                                            slot1.getDayOfWeek(),
+                                            slot1.getDay(),
                                             slot1.getPeriod()
                                     )));
                         }
@@ -280,7 +280,7 @@ class BaseGeneticSchedulingLogic {
                                             "教室 %s 在第%d周星期%d第%d节课有重复安排",
                                             item1.getClassroom().getClassroom().getName(),
                                             slot1.getWeek(),
-                                            slot1.getDayOfWeek(),
+                                            slot1.getDay(),
                                             slot1.getPeriod()
                                     )));
                         }
@@ -330,7 +330,7 @@ class BaseGeneticSchedulingLogic {
             teacherWorkload.merge(teacherId, 1, Integer::sum);
 
             // 时间槽使用统计
-            String timeSlotKey = String.format("%d-%d-%d", slot.getWeek(), slot.getDayOfWeek(), slot.getPeriod());
+            String timeSlotKey = String.format("%d-%d-%d", slot.getWeek(), slot.getDay(), slot.getPeriod());
             usedTimeSlots.add(timeSlotKey);
             totalTimeSlots++;
         }
@@ -381,7 +381,7 @@ class BaseGeneticSchedulingLogic {
         for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
             TimeSlotDTO slotCopy = new TimeSlotDTO(
                     entry.getKey().getWeek(),
-                    entry.getKey().getDayOfWeek(),
+                    entry.getKey().getDay(),
                     entry.getKey().getPeriod()
             );
             ScheduleItemDTO itemCopy = new ScheduleItemDTO(entry.getValue());
@@ -541,7 +541,7 @@ class BaseGeneticSchedulingLogic {
             for (Map.Entry<TimeSlotDTO, ScheduleItemDTO> entry : assignments) {
                 TimeSlotDTO slotCopy = new TimeSlotDTO(
                         entry.getKey().getWeek(),
-                        entry.getKey().getDayOfWeek(),
+                        entry.getKey().getDay(),
                         entry.getKey().getPeriod()
                 );
                 ScheduleItemDTO itemCopy = new ScheduleItemDTO(entry.getValue());
@@ -777,7 +777,7 @@ class BaseGeneticSchedulingLogic {
 
                                     // 如果不在同一时间段，则无冲突
                                     if (slotFirst.getWeek() != slotSecond.getWeek() ||
-                                            slotFirst.getDayOfWeek() != slotSecond.getDayOfWeek() ||
+                                            slotFirst.getDay() != slotSecond.getDay() ||
                                             slotFirst.getPeriod() != slotSecond.getPeriod()) {
                                         return false;
                                     }
@@ -832,7 +832,7 @@ class BaseGeneticSchedulingLogic {
 
             ScheduleResultDTO.TimeSlot timeSlot = new ScheduleResultDTO.TimeSlot()
                     .setWeek(slot.getWeek())
-                    .setDayOfWeek(slot.getDayOfWeek())
+                    .setDayOfWeek(slot.getDay())
                     .setPeriod(slot.getPeriod());
 
             ScheduleResultDTO.ClassAssignmentDTO assignment = new ScheduleResultDTO.ClassAssignmentDTO()
@@ -917,7 +917,7 @@ class BaseGeneticSchedulingLogic {
                     TeacherCoursePreferencesDTO assignedTeacher = entry.getValue();
                     ClassroomAndTypeDTO assignedClassroom = classroomAssignments.get(classGroup);
                     // 寻找合适的时间槽
-                    TimeSlotDTO timeSlot = findSuitableTimeSlot(assignments, assignedTeacher, assignedClassroom, baseData);
+                    TimeSlotDTO timeSlot = findSuitableTimeSlot(assignments, assignedTeacher, assignedClassroom, courseAndTeachers);
                     if (timeSlot != null) {
                         ScheduleItemDTO item = new ScheduleItemDTO(
                                 course,
@@ -1196,7 +1196,7 @@ class BaseGeneticSchedulingLogic {
             Map<TimeSlotDTO, ScheduleItemDTO> assignments,
             TeacherCoursePreferencesDTO teacher,
             ClassroomAndTypeDTO classroom,
-            AutomaticClassSchedulingBaseDTO baseDTO
+            CourseLibraryAndTeacherCourseQualificationListDTO baseDTO
     ) {
         List<TimeSlotDTO> allTimeSlots = generateAllTimeSlots(baseDTO);
         Collections.shuffle(allTimeSlots);
@@ -1219,7 +1219,7 @@ class BaseGeneticSchedulingLogic {
      * @param baseDTO 排课基础数据
      * @return 所有可能的时间槽列表
      */
-    @NotNull List<TimeSlotDTO> generateAllTimeSlots(@NotNull AutomaticClassSchedulingBaseDTO baseDTO) {
+    @NotNull List<TimeSlotDTO> generateAllTimeSlots(@NotNull CourseLibraryAndTeacherCourseQualificationListDTO baseDTO) {
         List<TimeSlotDTO> slots = new ArrayList<>();
 
         for (int week = 1; week <= baseDTO.getEndWeek(); week++) {
@@ -1260,7 +1260,7 @@ class BaseGeneticSchedulingLogic {
 
             // 如果是同一时间段
             if (slot.getWeek() == existingSlot.getWeek() &&
-                    slot.getDayOfWeek() == existingSlot.getDayOfWeek() &&
+                    slot.getDay() == existingSlot.getDay() &&
                     slot.getPeriod() == existingSlot.getPeriod()) {
 
                 // 检查教师是否已被安排
@@ -1304,7 +1304,7 @@ class BaseGeneticSchedulingLogic {
                         // 按周和天分组
                         .collect(Collectors.groupingBy(
                                 TimeSlotDTO::getWeek,
-                                Collectors.groupingBy(TimeSlotDTO::getDayOfWeek)
+                                Collectors.groupingBy(TimeSlotDTO::getDay)
                         )).values().stream())
                 .flatMap(dayMap -> dayMap.values().stream())
                 // 只处理有多个时间槽的天
@@ -1351,7 +1351,7 @@ class BaseGeneticSchedulingLogic {
             // 检查是否在偏好时间段
             boolean inPreferredSlot = preferences.getPreferredTimeSlots().stream()
                     .anyMatch(preferred ->
-                            preferred.getDay() == slot.getDayOfWeek() &&
+                            preferred.getDay() == slot.getDay() &&
                                     preferred.getPeriodStart() <= slot.getPeriod() &&
                                     preferred.getPeriodEnd() >= slot.getPeriod());
 
