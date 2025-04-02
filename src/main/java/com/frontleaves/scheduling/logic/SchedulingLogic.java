@@ -1,17 +1,21 @@
 package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
+import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.services.SchedulingService;
 import com.frontleaves.scheduling.thread.ScheduleLessonsDataPreparationThread;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import enums.CourseEnuType;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Calendar;
 
 /**
@@ -63,5 +67,14 @@ public class SchedulingLogic implements SchedulingService {
         } catch (Exception e) {
             throw new BusinessException("排课失败", ErrorCode.BODY_ERROR, e);
         }
+    }
+
+    @Override
+    public CourseLibraryAndTeacherCourseQualificationListDTO copyAndSet(CourseLibraryAndTeacherCourseQualificationListDTO originalDto, CourseEnuType newType, BigDecimal hours) {
+        CourseLibraryAndTeacherCourseQualificationListDTO newDto = new CourseLibraryAndTeacherCourseQualificationListDTO();
+        BeanUtils.copyProperties(originalDto, newDto);
+        newDto.setCourseEnuType(newType);
+        newDto.setExpectedTotalHours(hours);
+        return newDto;
     }
 }

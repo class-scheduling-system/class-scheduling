@@ -90,6 +90,8 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     @Resource
     private DepartmentService departmentService;
     @Resource
+    private SchedulingService schedulingService;
+    @Resource
     private RedissonClient redisson;
     private HttpServletRequest request;
     private AutomaticClassSchedulingVO classSchedulingVO;
@@ -231,17 +233,38 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 }
                 //把混排课程的分为课程的几类
                 log.debug(LogConstant.THREAD + "把混排课程的分为课程的类");
+                List<CourseLibraryAndTeacherCourseQualificationListDTO> updatedList = new ArrayList<>();
+
                 for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
                     if (dto.getCourseEnuType() == null) {
                         throw new BusinessException("课程类型不能为空", ErrorCode.BODY_ERROR);
                     }
                     if (dto.getCourseEnuType() == CourseEnuType.MIXED) {
-                        //计算各课程的课时
-                        BigDecimal totalHours = dto.getExpectedTotalHours();
-                        //仔细划分个周课时
-                        int weeks = dto.getEndWeek() - dto.getStartWeek() + 1;
+                        CourseLibraryDTO course = dto.getCourse();
+                        BigDecimal totalHours = course.getTotalHours();
+                        if (totalHours != null && totalHours.compareTo(BigDecimal.ZERO) > 0) {
+                            // 根据各个学时字段拆分
+                            if (course.getTheoryHours().compareTo(BigDecimal.ZERO) > 0) {
+                                updatedList.add(schedulingService.copyAndSet(dto, CourseEnuType.THEORY, course.getTheoryHours()));
+                            }
+                            if (course.getPracticeHours().compareTo(BigDecimal.ZERO) > 0) {
+                                updatedList.add(schedulingService.copyAndSet(dto, CourseEnuType.PRACTICE, course.getPracticeHours()));
+                            }
+                            if (course.getComputerHours().compareTo(BigDecimal.ZERO) > 0) {
+                                updatedList.add(schedulingService.copyAndSet(dto, CourseEnuType.COMPUTER, course.getComputerHours()));
+                            }
+                            if (course.getOtherHours().compareTo(BigDecimal.ZERO) > 0) {
+                                updatedList.add(schedulingService.copyAndSet(dto, CourseEnuType.OTHER, course.getOtherHours()));
+                            }
+                        }
+                    } else {
+                        // 非 MIXED 课程直接添加
+                        updatedList.add(dto);
                     }
                 }
+                // 替换原列表
+                courseQualificationList.clear();
+                courseQualificationList.addAll(updatedList);
                 //获取教室数据
                 log.debug(LogConstant.THREAD + "获取教室数据");
                 List<ClassroomAndTypeDTO> classroomAndTypeDTOList = new ArrayList<>();
