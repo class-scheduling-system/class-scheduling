@@ -70,11 +70,18 @@ public class CourseLibraryLogic implements CourseLibraryService {
     private void calculateStudentCount(
             CourseLibraryAndTeacherCourseQualificationListDTO courselibraryandclassdto,
             Map<String, AdministrativeClassDO> classMap, @NotNull SpecificCourseIdVO specificCourseIdVO) {
+        log.debug("计算学生数:");
         // 初始化总学生数为0
         int totalStudentCount = 0;
-        // 遍历特定课程VO中的班级ID列表
-        for (String classId : specificCourseIdVO.getClassId()) {
-            // 从班级映射中获取当前班级ID对应的班级信息
+        // 初始化班级列表
+        if (courselibraryandclassdto.getClassList() == null) {
+            courselibraryandclassdto.setClassList(new ArrayList<>());
+        }
+        // 获取班级ID列表
+        List<String> classIds = specificCourseIdVO.getClassId();
+        // 使用for循环遍历String类型的班级ID
+        for (String classId : classIds) {
+            // 从班级映射中获取当前班级信息
             AdministrativeClassDO administrativeClassDO = classMap.get(classId);
             // 如果找到了对应的班级信息
             if (administrativeClassDO != null) {
@@ -89,8 +96,6 @@ public class CourseLibraryLogic implements CourseLibraryService {
         // 将计算得到的总学生数设置到课程库和班级信息DTO中
         courselibraryandclassdto.setNumber(totalStudentCount);
     }
-
-
     /**
      * 根据部门UUID、特定课程ID列表和排除课程ID列表获取课程库列表
      * 如果查询结果为空，则抛出业务异常
@@ -148,11 +153,11 @@ public class CourseLibraryLogic implements CourseLibraryService {
             setCourse(libraryAndClassDTO, courseMap, specificCourseIdVO);
             log.debug("设置人数:{}", specificCourseIdVO.getNumber());
             // 计算学生人数（如果外部没有提供）
-            if (specificCourseIdVO.getNumber() != null) {
-                libraryAndClassDTO.setNumber(specificCourseIdVO.getNumber());
-            } else {
+            if (specificCourseIdVO.getNumber() == null) {
                 // 计算学生数，同时添加班级信息
                 calculateStudentCount(libraryAndClassDTO, classMap, specificCourseIdVO);
+            } else {
+                libraryAndClassDTO.setNumber(specificCourseIdVO.getNumber());
             }
             //设置其他信息
             libraryAndClassDTO.setIsOddWeek(specificCourseIdVO.getIsOddWeek())
