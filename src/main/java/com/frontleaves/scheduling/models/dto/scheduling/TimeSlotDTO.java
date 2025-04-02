@@ -2,10 +2,10 @@ package com.frontleaves.scheduling.models.dto.scheduling;
 
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 时间槽 DTO
+ *
  * @author FLASHLACK
  */
 @Data
@@ -14,57 +14,15 @@ public class TimeSlotDTO {
     /**
      * 周数
      */
-    private int week;
-    
+    private Integer week;
+
     /**
      * 星期几 (1-5)
      */
-    private int day;
+    private Integer day;
 
     /**
      * 第几节课 (1-8)
      */
-    private int period;
-
-
-    public TimeSlotDTO() {
-    }
-
-    public TimeSlotDTO(int week, int day, int period) {
-        this.week = week;
-        this.day = day;
-        this.period = period;
-        // 默认不区分单双周
-    }
-    
-    public TimeSlotDTO(int week, int day, int period, Boolean isOddWeek) {
-        this.week = week;
-        this.day = day;
-        this.period = period;
-    }
-
-    public TimeSlotDTO(@NotNull TimeSlotDTO other) {
-        this.week = other.week;
-        this.day = other.day;
-        this.period = other.period;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TimeSlotDTO that = (TimeSlotDTO) o;
-        return week == that.week &&
-               day == that.day &&
-               period == that.period;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = 17;
-        result = 31 * result + week;
-        result = 31 * result + day;
-        result = 31 * result + period;
-        return result;
-    }
+    private Integer period;
 }
