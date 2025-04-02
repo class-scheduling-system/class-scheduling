@@ -4,6 +4,7 @@ import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import enums.CourseEnuType;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -62,6 +63,10 @@ public class CourseScheduleItemDTO {
     private List<AdministrativeClassDTO> classGroup;
 
     /**
+     * 课程类型
+     */
+    private CourseEnuType courseEnuType;
+    /**
      * 课程优先级
      * <p>
      * 表示该课程在排课过程中的优先级，值越小优先级越高。
@@ -82,11 +87,12 @@ public class CourseScheduleItemDTO {
      * @param priority  课程优先级
      */
     public CourseScheduleItemDTO(CourseLibraryDTO course, TeacherCoursePreferencesDTO teacher,
-                                 ClassroomAndTypeDTO classroom, List<AdministrativeClassDTO> classGroup, Short priority) {
+                                 ClassroomAndTypeDTO classroom, List<AdministrativeClassDTO> classGroup,CourseEnuType courseEnuType, Short priority) {
         this.course = course;
         this.teacher = teacher;
         this.classroom = classroom;
         this.classGroup = classGroup;
+        this.courseEnuType = courseEnuType;
         this.priority = priority;
     }
 
@@ -104,6 +110,7 @@ public class CourseScheduleItemDTO {
         this.teacher = other.teacher;
         this.classroom = other.classroom;
         this.priority = other.priority;
+        this.courseEnuType = other.courseEnuType;
         this.classGroup = other.classGroup;
     }
 }
