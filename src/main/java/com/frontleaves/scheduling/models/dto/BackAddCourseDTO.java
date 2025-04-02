@@ -26,7 +26,7 @@ public class BackAddCourseDTO {
     /**
      * 失败详情列表
      */
-    private List<BackAddBuildingDTO.FailedDetail> failedDetails;
+    private List<BackAddCourseDTO.FailedDetail> failedDetails;
 
     /**
      * 失败详情内部类

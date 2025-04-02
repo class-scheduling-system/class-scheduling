@@ -55,7 +55,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         }
 
         // 验证课程是否存在
-        CourseLibraryDO course = courseLibraryDAO.getCourseByUuid(vo.getCourseUuid());
+        CourseLibraryDO course = courseLibraryDAO.getCourseLibraryByUuid(vo.getCourseUuid());
         if (course == null) {
             throw new BusinessException("课程不存在", ErrorCode.NOT_EXIST);
         }
@@ -102,7 +102,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
 
         // 验证课程是否存在
         if (vo.getCourseUuid() != null) {
-            CourseLibraryDO course = courseLibraryDAO.getCourseByUuid(vo.getCourseUuid());
+            CourseLibraryDO course = courseLibraryDAO.getCourseLibraryByUuid(vo.getCourseUuid());
             if (course == null) {
                 throw new BusinessException("课程不存在", ErrorCode.NOT_EXIST);
             }

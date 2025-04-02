@@ -40,4 +40,5 @@ public class CourseLiteDTO {
      * 所属院系
      */
     private String department;
+
 }

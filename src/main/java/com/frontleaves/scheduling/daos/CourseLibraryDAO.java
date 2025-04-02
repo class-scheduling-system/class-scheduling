@@ -1,13 +1,29 @@
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CourseLibraryMapper;
+import com.frontleaves.scheduling.models.dto.BackAddCourseDTO;
 import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
+import com.xlf.utility.util.ConvertUtil;
+import lombok.RequiredArgsConstructor;
+import org.redisson.api.*;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 课程库数据访问对象
@@ -24,32 +40,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLibraryDO> {
     private final RedissonClient redisson;
-
-    /**
-     * 根据课程的唯一标识获取课程信息
-     * <p>
-     * 该方法首先尝试从 Redis 缓存中获取课程数据。如果缓存中没有找到对应的课程信息，则会从数据库中查询。
-     * 查询到的数据会被存入 Redis 缓存中，并设置过期时间为一天（86400秒）。如果在缓存和数据库中都没有找到对应的课程信息，则返回 {@code null}。
-     * </p>
-     *
-     * @param courseUuid 课程的唯一标识符
-     * @return 返回与给定 UUID 对应的课程对象，如果没有找到则返回 {@code null}
-     */
-    @Nullable
-    public CourseLibraryDO getCourseByUuid(String courseUuid) {
-        RMap<String, String> map = redisson.getMap(StringConstant.Redis.COURSE_LIBRARY_UUID + courseUuid);
-        if (map.isEmpty()) {
-            CourseLibraryDO courseLibraryDO = this.getById(courseUuid);
-            if (courseLibraryDO != null) {
-                map.putAll(ConvertUtil.convertObjectToMapString(courseLibraryDO));
-                map.expire(Duration.ofSeconds(86400));
-                return courseLibraryDO;
-            }
-        } else {
-            return BeanUtil.toBean(map, CourseLibraryDO.class);
-        }
-        return null;
-    }
 
     /**
      * 根据UUID获取课程库信息
@@ -99,6 +89,8 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
             // 删除Redis中的课程库信息，确保缓存数据与数据库数据保持一致
             transaction.getMap(StringConstant.Redis.COURSE_LIBRARY_UUID + courseLibraryDO.getCourseLibraryUuid()).delete();
 
+            // 提交Redis事务
+            transaction.commit();
         } catch (Exception e) {
             // 如果操作失败，抛出服务器内部错误异常
             throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
@@ -192,6 +184,114 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
         }else {
             // 如果缓存存在，则直接返回缓存中的数据
             return cacheList.readAll();
+        }
+    }
+
+    /**
+     * 保存课程库信息，忽略错误并返回失败详情
+     * <p>
+     * 该方法尝试保存课程库信息，发生异常时不抛出，而是收集错误信息并返回。
+     * </p>
+     *
+     * @param courseLibraryDO 课程库实体对象
+     * @param i 当前处理的行索引
+     * @return 失败详情列表，如果成功则返回空列表
+     */
+    public List<BackAddCourseDTO.FailedDetail> saveCourseLibraryIgnoreError(CourseLibraryDO courseLibraryDO, int i) {
+        try {
+            this.save(courseLibraryDO);
+            return Collections.emptyList();
+        } catch (Exception e) {
+            return Collections.singletonList(createCourseLibraryFailedDetail(e, i));
+        }
+    }
+
+    /**
+     * 根据异常创建课程库失败详情
+     *
+     * @param e 异常对象
+     * @param i 行索引
+     * @return 失败详情对象
+     */
+    private BackAddCourseDTO.FailedDetail createCourseLibraryFailedDetail(Exception e, int i) {
+        BackAddCourseDTO.FailedDetail failedDetail = new BackAddCourseDTO.FailedDetail();
+        failedDetail.setRow(i + 3);  // +3 是因为Excel文件中有表头和示例行
+
+        if (e instanceof DuplicateKeyException) {
+            failedDetail.setReason("课程ID或名称重复");
+        } else if (e instanceof DataIntegrityViolationException) {
+            String errorMessage = e.getMessage();
+            failedDetail.setReason(analyzeCourseLibraryDataIntegrityError(errorMessage));
+        } else {
+            failedDetail.setReason("保存失败：" + e.getMessage());
+        }
+
+        return failedDetail;
+    }
+
+    /**
+     * 分析课程库数据完整性错误
+     *
+     * @param errorMessage 错误信息
+     * @return 格式化的错误原因
+     */
+    private String analyzeCourseLibraryDataIntegrityError(String errorMessage) {
+        // 外键错误映射
+        Map<String, String> foreignKeyErrors = Map.of(
+                "fk_cs_course_library_cs_department", "部门信息错误",
+                "fk_cs_course_library_cs_course_category", "课程类别信息错误",
+                "fk_cs_course_library_cs_course_property", "课程属性信息错误",
+                "fk_cs_course_library_cs_course_type", "课程类型信息错误",
+                "fk_cs_course_library_cs_course_nature", "课程性质信息错误"
+        );
+
+        // 检查外键错误
+        for (Map.Entry<String, String> entry : foreignKeyErrors.entrySet()) {
+            if (errorMessage.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+
+        // 长度错误检查
+        if (errorMessage.contains("Data too long")) {
+            if (errorMessage.contains("id")) {
+                return "课程ID长度超出限制，最大32个字符";
+            } else if (errorMessage.contains("name")) {
+                return "课程名称长度超出限制，最大64个字符";
+            }
+            return "数据长度超出限制";
+        }
+
+        // 默认错误信息
+        return "数据错误：可能包含错误的值";
+    }
+    
+    /**
+     * 保存课程库信息，遇到错误时抛出异常
+     * <p>
+     * 该方法尝试保存课程库信息，并处理可能出现的各种异常，将其转换为业务异常抛出。
+     * </p>
+     *
+     * @param courseLibraryDO 课程库实体对象
+     * @param i 行号索引
+     * @throws BusinessException 当保存过程中发生异常时抛出，并包含详细的错误信息
+     */
+    public void saveCourseLibraryBackError(CourseLibraryDO courseLibraryDO, int i) {
+        try {
+            this.save(courseLibraryDO);
+        } catch (DuplicateKeyException e) {
+            // 课程ID或名称重复异常
+            log.error("课程ID或名称重复", e);
+            throw new BusinessException("第" + (i + 3) + "行课程ID或名称重复，请检查", ErrorCode.BODY_ERROR);
+        } catch (DataIntegrityViolationException e) {
+            // 分析数据完整性异常的具体原因
+            String errorMessage = e.getMessage();
+            String detailedReason = analyzeCourseLibraryDataIntegrityError(errorMessage);
+            log.error("数据完整性错误", e);
+            throw new BusinessException("第" + (i + 3) + "行" + detailedReason, ErrorCode.BODY_ERROR);
+        } catch (Exception e) {
+            // 其他未预期的异常
+            throw new BusinessException("第" + (i + 3) + "行保存失败：" + e.getMessage(), ErrorCode.BODY_ERROR);
         }
     }
 }

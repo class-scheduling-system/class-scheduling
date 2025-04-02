@@ -164,12 +164,14 @@ public class CourseLibraryController {
         if (courseDepartmentUuid != null && !courseDepartmentUuid.isBlank() && !courseDepartmentUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException("课程部门UUID格式不正确", ErrorCode.PARAMETER_ERROR);
         }
+
         List<CourseLiteDTO> courseLibraryList = courseLibraryService.getCourseLibraryList(
                 courseCategoryUuid,
                 coursePropertyUuid,
                 courseTypeUuid,
                 courseNatureUuid,
                 courseDepartmentUuid
+
         );
         return ResultUtil.success("课程库列表获取成功", courseLibraryList);
     }

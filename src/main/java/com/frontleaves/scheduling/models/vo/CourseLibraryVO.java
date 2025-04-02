@@ -35,15 +35,13 @@ public class CourseLibraryVO {
     /**
      * 课程类别
      */
-    @NotBlank(message = "课程类别不能为空")
-    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "课程类别主键格式不正确")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "课程类别主键格式不正确")
     private String category;
 
     /**
      * 课程属性
      */
-    @NotBlank(message = "课程属性不能为空")
-    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "课程属性主键格式不正确")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "课程属性主键格式不正确")
     private String property;
 
     /**
@@ -56,8 +54,7 @@ public class CourseLibraryVO {
     /**
      * 课程性质
      */
-    @NotBlank(message = "课程性质不能为空")
-    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "课程性质主键格式不正确")
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "课程性质主键格式不正确")
     private String nature;
 
     /**
@@ -66,6 +63,30 @@ public class CourseLibraryVO {
     @NotBlank(message = "所属院系不能为空")
     @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, message = "课程院系主键格式不正确")
     private String department;
+
+    /**
+     * 理论教室类型
+     */
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "教室类型主键格式不正确")
+    private String theoryClassroomType;
+
+    /**
+     * 实验教室类型
+     */
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "教室类型主键格式不正确")
+    private String experimentClassroomType;
+    /**
+     * 实践教室类型
+     */
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "教室类型主键格式不正确")
+    private String practiceClassroomType;
+
+    /**
+     * 上机教室类型
+     */
+    @Pattern(regexp = StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION_ABLE_EMPTY, message = "教室类型主键格式不正确")
+    private String computerClassroomType;
+
 
     /**
      * 是否启用
@@ -124,7 +145,6 @@ public class CourseLibraryVO {
     /**
      * 课程描述
      */
-
     private String description;
 
 }
