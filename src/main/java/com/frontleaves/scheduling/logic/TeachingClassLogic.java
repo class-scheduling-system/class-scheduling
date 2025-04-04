@@ -5,8 +5,11 @@ import com.frontleaves.scheduling.daos.TeachingClassDAO;
 import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
 import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
 import com.frontleaves.scheduling.services.TeachingClassService;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,5 +29,14 @@ public class TeachingClassLogic implements TeachingClassService {
         return list.stream().map(teachingClassDO -> {
             return BeanUtil.toBean(teachingClassDO, TeachingClassDTO.class);
         }).toList();
+    }
+
+    @Override
+    public @NotNull TeachingClassDTO getTeachingClassByUuid(String teachingClassUuid) {
+        TeachingClassDO teachingClassDO = teachingClassDAO.getTeachingClassByUuid(teachingClassUuid);
+        if (teachingClassDO == null) {
+            throw new BusinessException("教学班不存在", ErrorCode.BODY_ERROR);
+        }
+        return BeanUtil.toBean(teachingClassDO, TeachingClassDTO.class);
     }
 }

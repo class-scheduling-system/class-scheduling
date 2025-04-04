@@ -30,8 +30,10 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
-import com.frontleaves.scheduling.models.dto.base.*;
-import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
+import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.*;

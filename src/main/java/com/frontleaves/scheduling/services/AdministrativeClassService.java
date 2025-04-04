@@ -3,7 +3,7 @@ package com.frontleaves.scheduling.services;
 import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
-import org.jetbrains.annotations.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 

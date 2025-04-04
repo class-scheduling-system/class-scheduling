@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -17,4 +18,13 @@ public interface TeachingClassService {
 
     List<TeachingClassDTO> getTeachingClassListBySemester(
            String semesterUuid);
+
+    /**
+     * 根据UUID查询教学班
+     * @param teachingClassUuid 教学班UUID
+     * @return 教学班数据传输对象
+     */
+    @NotNull
+    TeachingClassDTO getTeachingClassByUuid(
+            String teachingClassUuid);
 }

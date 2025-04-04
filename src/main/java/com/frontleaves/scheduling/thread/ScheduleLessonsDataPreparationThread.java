@@ -42,7 +42,6 @@ import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.*;
-import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import enums.CourseEnuType;
@@ -100,6 +99,8 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     private AdministrativeClassService administrativeClassService;
     @Resource
     private CreditHourTypeService creditHourTypeService;
+    @Resource
+    private TeachingClassService teachingClassService;
     @Resource
     private RedissonClient redisson;
     private HttpServletRequest request;
@@ -505,7 +506,10 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         TeacherCoursePreferencesDTO teacherCoursePreferencesDTO = new TeacherCoursePreferencesDTO();
         teacherCoursePreferencesDTO.setTeacher(teacherDTO);
         ClassroomInfoDTO classroomDTO = classroomService.getClassroomByUuid(classAssignment.getClassroomUuid());
-        List<String> classUuid = ProjectUtil.parseUuidsFromClassGroup(classAssignment.getClassTime());
+        //获取行政班级信息
+        TeachingClassDTO teachingClassDTO =
+                teachingClassService.getTeachingClassByUuid(classAssignment.getTeachingClassUuid());
+        List<String> classUuid = JSONUtil.toList(teachingClassDTO.getAdministrativeClasses(), String.class);
         List<AdministrativeClassDTO> administrativeClassDTOList = new ArrayList<>();
         for (String uuid : classUuid) {
             administrativeClassDTOList.add(administrativeClassService.getClassByUuid(uuid));

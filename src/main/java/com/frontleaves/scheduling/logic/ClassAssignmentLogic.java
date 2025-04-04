@@ -200,12 +200,9 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         if (classAssignments == null || classAssignments.isEmpty()) {
             throw new BusinessException("排课结果为空", ErrorCode.PARAMETER_ERROR);
         }
-
         // 遍历排课结果，保存到数据库
         for (ScheduleResultDTO.ClassAssignmentDTO assignment : classAssignments) {
             ClassAssignmentDO assignmentDO = new ClassAssignmentDO();
-            // 查询班级（如果为Uuid格式则需查询为名字）
-            List<String> className = administrativeClassService.getClassNameByGroup(assignment.getClassGroup());
             //交换数据
             assignmentDO.setSemesterUuid(result.getSemesterId())
                     .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
@@ -307,11 +304,9 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
                 .filter(dto -> dto.getTeachingClassUuid().equals(classAssignment.getTeachingClassUuid()))
                 .findFirst()
                 .orElse(null);
-
         if (teachingClassDTO == null || teachingClassDTO.getAdministrativeClasses() == null) {
             return;
         }
-
         try {
             List<String> administrativeClassUuids = JSONUtil.toList(teachingClassDTO.getAdministrativeClasses(), String.class);
             for (String uuid : administrativeClassUuids) {

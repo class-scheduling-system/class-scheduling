@@ -85,4 +85,5 @@ public interface ClassAssignmentService {
      */
     List<ClassAssignmentDTO> getClassAssignmentListByLimit(
             AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO);
+
 }

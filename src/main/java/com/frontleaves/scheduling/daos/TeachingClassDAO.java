@@ -28,13 +28,16 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeachingClassMapper;
 import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
+import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RList;
+import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
@@ -83,4 +86,19 @@ public List<TeachingClassDO> getTeachingClassBySemester(String semesterUuid) {
     return list.readAll();
 }
 
+    public TeachingClassDO getTeachingClassByUuid(String teachingClassUuid) {
+        RMap<String,String> rMap = redisson.getMap(
+                StringConstant.Redis.TEACHING_CLASS_UUID + teachingClassUuid);
+        if (!rMap.isExists()){
+            TeachingClassDO teachingClassDO = this.lambdaQuery()
+                    .eq(TeachingClassDO::getTeachingClassUuid,teachingClassUuid)
+                    .one();
+            if (teachingClassDO != null) {
+                rMap.putAll(ConvertUtil.convertObjectToMapString(teachingClassDO));
+                rMap.expire(Duration.ofSeconds(3600));
+            }
+            return null;
+        }
+        return BeanUtil.toBean(rMap,TeachingClassDO.class);
+    }
 }

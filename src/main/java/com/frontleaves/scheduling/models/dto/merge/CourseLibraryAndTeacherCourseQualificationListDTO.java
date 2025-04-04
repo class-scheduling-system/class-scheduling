@@ -54,9 +54,13 @@ public class CourseLibraryAndTeacherCourseQualificationListDTO {
      */
     private CourseLibraryDTO course;
     /**
-     * 行政班级列表（可为空）
+     * 行政班级列表（为空则为选修课）
      */
     private List<AdministrativeClassDTO> classList;
+    /**
+     * 教学班级UUID
+     */
+    private String teachingClassUuid;
     /**
      * 需排课人数
      */

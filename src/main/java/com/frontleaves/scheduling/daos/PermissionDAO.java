@@ -51,7 +51,7 @@ import java.util.List;
  * 权限数据访问对象
  * <p>
  * 该类继承自 ServiceImpl，专门处理 {@link PermissionDO} 的数据访问，
- * 实现了 {@link IService} 接口以支持 CRUD 操作。通过与 {@link PermissionMapper}
+ * 实现了 {@link } 接口以支持 CRUD 操作。通过与 {@link PermissionMapper}
  * 结合，提供了对权限表的数据库操作能力。
  * </p>
  *
