@@ -12,6 +12,16 @@ import java.util.List;
 @Data
 @Accessors(chain = true)
 public class ScheduleDTO {
+    /**
+     * 用于存放系统课程安排
+     */
     private List<CourseScheduleDTO> schedule;
+    /**
+     * 用于存放数据库内已经排好的课程
+     */
+    private List<CourseScheduleDTO> data;
+    /**
+     * 用于存放课程安排的适应度
+     */
     private double fitness = 0.0;
 }

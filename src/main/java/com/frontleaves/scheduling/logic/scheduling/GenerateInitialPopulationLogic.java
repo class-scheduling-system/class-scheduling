@@ -14,6 +14,7 @@ import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -39,7 +40,8 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
     private final SecureRandom random = new SecureRandom();
 
     @Override
-    public List<ScheduleDTO> generateInitialPopulation(@NotNull AutomaticClassSchedulingBaseDTO baseData) {
+    public List<ScheduleDTO> generateInitialPopulation(
+            @NotNull AutomaticClassSchedulingBaseDTO baseData) {
         // 初始化种群列表
         List<ScheduleDTO> allPopulation = new ArrayList<>();
         int populationSize = baseData.getAlgorithmParams().getPopulationSize();
@@ -73,7 +75,7 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
                     TeacherCoursePreferencesDTO assignedTeacher = entry.getValue();
                     ClassroomInfoDTO assignedClassroom = classroomAssignments.get(classGroup);
                     // 寻找合适的时间槽
-                    List<TimeSlotDTO> timeSlot = findSuitableTimeSlot(
+                    List<TimeSlotDTO> timeSlot = this.findSuitableTimeSlot(
                             null,
                             null,
                             assignedTeacher,
@@ -103,8 +105,223 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             scheduleDTO.setSchedule(population);
             allPopulation.add(scheduleDTO);
         }
+        //添加上系统已经排好的课程
+
         log.debug("生成初始种群完成，种群大小: {}", allPopulation.size());
         return allPopulation;
+    }
+
+    /**
+     * 查找合适的时间槽
+     * <p>
+     * 该方法用于在给定的排课安排中查找合适的时间槽，
+     * 以便为指定的课程、教师和教室分配新的时间槽。
+     * 它会检查现有的排课安排，确保新的时间槽不会与已有的时间槽冲突。
+     * 如果找到合适的时间槽，则返回该时间槽列表；
+     * 如果没有找到合适的时间槽，则返回null。
+     * </p>
+     */
+    @Nullable
+    private List<TimeSlotDTO> findSuitableTimeSlot(
+            List<CourseScheduleDTO> schedules,
+            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments,
+            TeacherCoursePreferencesDTO teacher,
+            ClassroomInfoDTO classroom,
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO course,
+            AutomaticClassSchedulingBaseDTO baseDTO
+    ) {
+        // 寻找合适的时间槽,重新获得一个排课
+        List<TimeSlotDTO> allTimeSlots = this.generateTimeSlotsByCourse(course, baseDTO);
+        //时间槽为空，则就是初始化种群的情况
+        if (assignments == null || assignments.isEmpty()) {
+            log.debug("初始化种群，直接返回随机生成的时间槽");
+            return allTimeSlots;
+        }
+        return null;
+    }
+
+    /**
+     * 生成时间槽
+     */
+    private @NotNull List<TimeSlotDTO> generateTimeSlotsByCourse(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO course,
+            @NotNull AutomaticClassSchedulingBaseDTO baseDTO) {
+        // 1. 初始化基础数据
+        TimeSlotGenerationContext context = this.initializeContext(course, baseDTO);
+        // 2. 生成每天可用的时间块
+        Map<Integer, List<List<Integer>>> availableBlocksByDay = this.generateAvailableBlocks(context.maxPeriodsPerDay);
+        // 3. 分配时间块到具体天数
+        Map<Integer, List<Integer>> dayTimeSlots = this.assignTimeBlocksToDays(
+                this.determineDistribution(course.getWeeklyHours()),
+                availableBlocksByDay);
+        // 4. 生成最终的时间槽
+        return this.generateFinalTimeSlots(dayTimeSlots, context);
+    }
+
+    /**
+     * 时间槽生成上下文
+     */
+    private static class TimeSlotGenerationContext {
+        final int maxPeriodsPerDay;
+        final int targetTotalHours;
+        final int startWeek;
+        final int endWeek;
+        int totalScheduledHours;
+
+        TimeSlotGenerationContext(int maxPeriodsPerDay, int targetTotalHours, int startWeek, int endWeek) {
+            this.maxPeriodsPerDay = maxPeriodsPerDay;
+            this.targetTotalHours = targetTotalHours;
+            this.startWeek = startWeek;
+            this.endWeek = endWeek;
+            this.totalScheduledHours = 0;
+        }
+    }
+
+    /**
+     * 初始化上下文
+     */
+    @Contract("_, _ -> new")
+    private @NotNull TimeSlotGenerationContext initializeContext(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO course,
+            @NotNull AutomaticClassSchedulingBaseDTO baseDTO) {
+        int maxPeriodsPerDay = Boolean.TRUE.equals(baseDTO.getTimePreferences().getEveningCourses()) ? 12 : 8;
+        return new TimeSlotGenerationContext(
+                maxPeriodsPerDay,
+                course.getExpectedTotalHours().intValue(),
+                course.getStartWeek(),
+                course.getEndWeek()
+        );
+    }
+
+    /**
+     * 生成每天可用的时间块
+     */
+    private @NotNull Map<Integer, List<List<Integer>>> generateAvailableBlocks(int maxPeriodsPerDay) {
+        Map<Integer, List<List<Integer>>> availableBlocksByDay = new HashMap<>();
+        for (int day = 1; day <= 5; day++) {
+            List<List<Integer>> dayBlocks = new ArrayList<>();
+            dayBlocks.add(Arrays.asList(1, 2, 3, 4));
+            dayBlocks.add(Arrays.asList(5, 6, 7, 8));
+            if (maxPeriodsPerDay > 8) {
+                dayBlocks.add(Arrays.asList(9, 10, 11, 12));
+            }
+            availableBlocksByDay.put(day, dayBlocks);
+        }
+        return availableBlocksByDay;
+    }
+
+    /**
+     * 分配时间块到具体天数
+     */
+    private @NotNull Map<Integer, List<Integer>> assignTimeBlocksToDays(
+            @NotNull List<Integer> distribution,
+            Map<Integer, List<List<Integer>>> availableBlocksByDay) {
+        Map<Integer, List<Integer>> dayTimeSlots = new HashMap<>();
+        List<Integer> days = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5));
+        Collections.shuffle(days);
+
+        for (Integer blockSize : distribution) {
+            if (days.isEmpty()) break;
+
+            int day = days.remove(0);
+            List<List<Integer>> possibleTimeSlots = this.generatePossibleTimeSlots(
+                    availableBlocksByDay.get(day),
+                    blockSize);
+
+            if (!possibleTimeSlots.isEmpty()) {
+                Collections.shuffle(possibleTimeSlots);
+                dayTimeSlots.put(day, possibleTimeSlots.get(0));
+            }
+        }
+        return dayTimeSlots;
+    }
+    /**
+     * 生成可能的时间段
+     */
+    private @NotNull List<List<Integer>> generatePossibleTimeSlots(@NotNull List<List<Integer>> dayBlocks, int blockSize) {
+        List<List<Integer>> possibleTimeSlots = new ArrayList<>();
+        for (List<Integer> block : dayBlocks) {
+            for (int i = 0; i <= block.size() - blockSize; i++) {
+                List<Integer> timeSlot = new ArrayList<>();
+                for (int j = 0; j < blockSize; j++) {
+                    timeSlot.add(block.get(i + j));
+                }
+                possibleTimeSlots.add(timeSlot);
+            }
+        }
+        return possibleTimeSlots;
+    }
+
+    /**
+     * 生成最终的时间槽
+     */
+    private @NotNull List<TimeSlotDTO> generateFinalTimeSlots(
+            Map<Integer, List<Integer>> dayTimeSlots,
+            @NotNull TimeSlotGenerationContext context) {
+        List<TimeSlotDTO> slots = new ArrayList<>();
+
+        for (int week = context.startWeek;
+             week <= context.endWeek && context.totalScheduledHours < context.targetTotalHours;
+             week++) {
+            for (Map.Entry<Integer, List<Integer>> entry : dayTimeSlots.entrySet()) {
+                int day = entry.getKey();
+                for (Integer period : entry.getValue()) {
+                    slots.add(new TimeSlotDTO(week, day, period));
+                    context.totalScheduledHours++;
+                }
+            }
+        }
+        return slots;
+    }    /**
+     * 根据每周课时数确定分配策略
+     *
+     * @param weeklyHours 每周总课时数
+     * @return 返回课时分配列表，每个数字代表一天要安排的连续课时数
+     */
+    private @NotNull List<Integer> determineDistribution(int weeklyHours) {
+        List<Integer> distribution = new ArrayList<>();
+        // 处理所有2节课的部分
+        while (weeklyHours >= 2) {
+            distribution.add(2);
+            weeklyHours -= 2;
+        }
+        // 如果还剩1节课
+        if (weeklyHours == 1) {
+            distribution.add(1);
+        }
+        // 打乱分配顺序
+        Collections.shuffle(distribution);
+        return distribution;
+    }
+
+    /**
+     * 为课程选择合适的教师
+     * <p>
+     * 本方法根据课程的学科要求，从候选教师列表中选择一名合适的教师进行课程教学。
+     * 选择过程仅考虑教师对课程学科的适应性，确保教师具备教授该课程的资格。
+     * </p>
+     *
+     * @param course   课程信息对象，包含课程学科、课程类型等基本属性
+     * @param teachers 候选教师列表，包含所有可能分配给该课程的教师
+     * @return 选择的教师对象；如果没有合适的教师，则返回null
+     */
+    @Nullable
+    private TeacherCoursePreferencesDTO selectTeacherForCourse(
+            CourseLibraryDTO course,
+            @NotNull List<TeacherCoursePreferencesDTO> teachers
+    ) {
+        // 筛选出能够教授该课程学科的教师列表
+        List<TeacherCoursePreferencesDTO> suitableTeachers = teachers.stream()
+                .filter(teacher -> teacher.getQualification() != null
+                        && teacher.getQualification().getCourseUuid().equals(course.getCourseLibraryUuid()))
+                .toList();
+        // 如果没有找到符合条件的教师，返回null
+        if (suitableTeachers.isEmpty()) {
+            log.warn("没有找到合适的教师来教授课程: {}", course.getName());
+            return null;
+        }
+        // 随机选择一个符合条件的教师
+        return suitableTeachers.get(random.nextInt(suitableTeachers.size()));
     }
 
     /**
