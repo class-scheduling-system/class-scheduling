@@ -30,24 +30,38 @@ package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
+import cn.hutool.poi.excel.ExcelUtil;
+import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.ClassroomDO;
-import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
-import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
+import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.vo.BatchAddClassroomVO;
 import com.frontleaves.scheduling.models.vo.ClassroomVO;
 import com.frontleaves.scheduling.services.ClassroomService;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -61,6 +75,7 @@ import java.util.Optional;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 @Service
 public class ClassroomLogic extends BaseClassroomLogic implements ClassroomService {
 
@@ -355,30 +370,6 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
         return classroomDO;
     }
 
-    /**
-     * 从 JSON 字符串中解析标签列表
-     * <p>
-     * 该方法接收一个包含标签 UUID 的 JSON 字符串，从中提取每个 UUID 并查询数据库获取对应的标签信息，
-     * 然后将这些标签信息转换为 {@code ClassroomTagDTO} 对象，并返回一个包含所有标签的列表。
-     * 如果传入的 JSON 字符串为空或无法解析，则返回空列表。
-     *
-     * @param getJsonTags 包含标签 UUID 的 JSON 字符串
-     * @return 根据传入的 JSON 字符串解析得到的标签列表
-     */
-    private @NotNull List<ClassroomTagDTO> getTagListForJson(String getJsonTags) {
-        List<ClassroomTagDTO> tags = new ArrayList<>();
-        if (getJsonTags != null && !getJsonTags.isBlank()) {
-            JSONArray getTags = new JSONArray(getJsonTags);
-            getTags.forEach(tagUuidStr -> {
-                ClassroomTagDO tagDO = classroomTagDAO.getTagByUuid(tagUuidStr.toString());
-                if (tagDO != null) {
-                    tags.add(BeanUtil.toBean(tagDO, ClassroomTagDTO.class));
-                }
-            });
-        }
-        return tags;
-    }
-
     @Override
     public List<ClassroomLiteDTO> listClassroomLite(String keyword) {
         return Optional.ofNullable(classroomDAO.getClassroomByStatus(true))
@@ -396,5 +387,702 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
                                 .toList()
                 )
                 .orElse(List.of());
+    }
+
+    /**
+     * 读取教室导入通知文本文件
+     * 该方法尝试从类路径下的"notes/classroom-import-notice.txt"文件中读取通知内容
+     * 如果文件存在，则读取并返回文件内容；如果文件不存在或读取过程中发生异常，则返回默认的注意事项文本
+     *
+     * @return 文件内容或默认的注意事项文本
+     */
+    private @NotNull String readClassroomNoticeFile() {
+        try {
+            // 从资源文件夹读取 notice.txt
+            Resource resource = new ClassPathResource("notes/classroom-import-notice.txt");
+            // 尝试读取资源
+            if (resource.exists()) {
+                try (InputStream inputStream = resource.getInputStream()) {
+                    // 读取并返回文件内容
+                    return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            } else {
+                throw new IOException("文件不存在");
+            }
+        } catch (IOException e) {
+            // 如果读取失败，返回默认文本
+            return """
+                    注意事项：
+                    1. 请严格按照模板格式填写信息
+                    2. 标有"*"的为必填项
+                    3. 必备信息请按照示例表格填写
+                    4. 请勿修改模板结构
+                    5. 状态请填入1(启用)或0(禁用)
+                    6. 标签多个时请用英文逗号分隔 
+                    """;
+        }
+    }
+
+    /**
+     * 获取教室导入模板的字节数组
+     * <p>
+     * 该方法生成用于批量导入教室信息的Excel模板，返回包含模板数据的字节数组。
+     * 模板包含必填字段、可选字段的说明以及示例数据。
+     * </p>
+     *
+     * @return 包含教室导入模板的字节数组
+     */
+    @Override
+    public byte[] getClassroomImportTemplate() {
+        // 创建ExcelWriter对象
+        ExcelWriter writer = ExcelUtil.getWriter(true);
+
+        // 创建居中样式
+        CellStyle centerStyle = writer.getWorkbook().createCellStyle();
+        centerStyle.setAlignment(HorizontalAlignment.CENTER);
+        centerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+
+        // 创建自动换行的样式
+        CellStyle wrapStyle = writer.getWorkbook().createCellStyle();
+        wrapStyle.cloneStyleFrom(centerStyle);
+        wrapStyle.setWrapText(true);
+
+        // 设置列宽
+        for (int i = 0; i <= 16; i++) {
+            Sheet sheet = writer.getSheet();
+            int currentWidth = sheet.getColumnWidth(i);
+            if (currentWidth == sheet.getDefaultColumnWidth() * 256) {
+                currentWidth = 2048;
+            }
+            sheet.setColumnWidth(i, currentWidth * 2);
+        }
+
+        // 合并第一行的前10列，并设置居中
+        writer.getSheet().addMergedRegion(new CellRangeAddress(0, 0, 0, 16));
+
+        // 写入标题到合并的单元格
+        Cell titleCell = writer.getSheet().createRow(0).createCell(0);
+        titleCell.setCellValue("导入教室模板");
+        titleCell.setCellStyle(centerStyle);
+
+        // 写入表头（第1行）
+        writer.writeCellValue(0, 1, "*校区名称");
+        writer.writeCellValue(1, 1, "*楼栋名称");
+        writer.writeCellValue(2, 1, "*教室编号");
+        writer.writeCellValue(3, 1, "*教室名称");
+        writer.writeCellValue(4, 1, "*楼层");
+        writer.writeCellValue(5, 1, "*教室类型");
+        writer.writeCellValue(6, 1, "教室标签");
+        writer.writeCellValue(7, 1, "*教室容量");
+        writer.writeCellValue(8, 1, "*是否是考场");
+        writer.writeCellValue(9, 1, "考场容量");
+        writer.writeCellValue(10, 1, "*是否是多媒体教室");
+        writer.writeCellValue(11, 1, "*是否有空调");
+        writer.writeCellValue(12, 1, "*教室状态");
+        writer.writeCellValue(13, 1, "教室描述");
+        writer.writeCellValue(14, 1, "管理部门");
+        writer.writeCellValue(15, 1, "*教室面积");
+        writer.writeCellValue(16, 1, "桌椅类型");
+
+        // 创建红色字体样式
+        Font redFont = writer.getWorkbook().createFont();
+        redFont.setColor(IndexedColors.RED.getIndex());
+        redFont.setBold(true);
+
+        CellStyle redWrapStyle = writer.getWorkbook().createCellStyle();
+        redWrapStyle.cloneStyleFrom(wrapStyle);
+        redWrapStyle.setFont(redFont);
+
+        // 读取注意事项文本并写入Excel
+        String noticeText = this.readClassroomNoticeFile();
+        String[] noticeLines = noticeText.split("\n");
+        int startRow = 3; // 从第3行开始写入注意事项
+        for (String line : noticeLines) {
+            Cell noticeCell = writer.getOrCreateRow(startRow).createCell(0);
+            noticeCell.setCellValue(line.trim());
+            noticeCell.setCellStyle(redWrapStyle);
+
+            // 合并单元格显示注意事项（合并17列）
+            writer.getSheet().addMergedRegion(new CellRangeAddress(startRow, startRow, 0, 16));
+            startRow++;
+        }
+
+        // 写入示例数据（第2行）
+        writer.writeCellValue(0, 2, "示例校区");
+        writer.writeCellValue(1, 2, "示例楼栋");
+        writer.writeCellValue(2, 2, "101");
+        writer.writeCellValue(3, 2, "示例教室");
+        writer.writeCellValue(4, 2, "1");
+        writer.writeCellValue(5, 2, "普通教室");
+        writer.writeCellValue(6, 2, "电子屏,投影仪");
+        writer.writeCellValue(7, 2, "60");
+        writer.writeCellValue(8, 2, "1");
+        writer.writeCellValue(9, 2, "40");
+        writer.writeCellValue(10, 2, "1");
+        writer.writeCellValue(11, 2, "1");
+        writer.writeCellValue(12, 2, "1");
+        writer.writeCellValue(13, 2, "示例描述");
+        writer.writeCellValue(14, 2, "教务处");
+        writer.writeCellValue(15, 2, "80.0");
+        writer.writeCellValue(16, 2, "固定桌椅");
+
+        // 将Excel写入字节数组
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        writer.flush(outputStream, true);
+        writer.close();
+        return outputStream.toByteArray();
+    }
+
+    /**
+     * 解析Excel文件为教室列表
+     * <p>
+     * 该方法解析Excel文件中的教室数据，从第3行开始读取（跳过标题和示例行）
+     * </p>
+     *
+     * @param excelBytes Excel文件字节数组
+     * @return 教室导入对象列表
+     */
+    private List<ClassroomImportDTO> parseExcelToClassroomList(byte[] excelBytes) {
+        // 首先解析Excel文件获取行数据列表，从第3行开始读取
+        List<List<Object>> rowList = ProjectUtil.parseExcelToRowList(excelBytes, 3, 17);
+        // 创建结果列表
+        List<ClassroomImportDTO> classroomList = new ArrayList<>();
+
+        // 处理每一行数据
+        for (List<Object> row : rowList) {
+            try {
+                // 确保行数据至少有一个元素，避免处理完全空的行
+                if (!row.isEmpty() && row.stream().anyMatch(cell -> cell != null && !cell.toString().trim().isEmpty())) {
+                    ClassroomImportDTO classroom = new ClassroomImportDTO();
+
+                    // 设置教室数据（注意处理可能的null值）
+                    classroom.setCampusName(row.size() > 0 && row.get(0) != null ? row.get(0).toString() : null);
+                    classroom.setBuildingName(row.size() > 1 && row.get(1) != null ? row.get(1).toString() : null);
+                    classroom.setNumber(row.size() > 2 && row.get(2) != null ? row.get(2).toString() : null);
+                    classroom.setName(row.size() > 3 && row.get(3) != null ? row.get(3).toString() : null);
+                    classroom.setFloor(row.size() > 4 && row.get(4) != null ? row.get(4).toString() : null);
+                    classroom.setType(row.size() > 5 && row.get(5) != null ? row.get(5).toString() : null);
+                    classroom.setTag(row.size() > 6 && row.get(6) != null ? row.get(6).toString() : null);
+
+                    // 处理数字类型字段
+                    if (row.size() > 7 && row.get(7) != null && !row.get(7).toString().isEmpty()) {
+                        try {
+                            classroom.setCapacity(Integer.parseInt(row.get(7).toString().trim()));
+                        } catch (NumberFormatException e) {
+                            classroom.setCapacity(null);
+                        }
+                    }
+
+                    // 处理布尔类型字段
+                    if (row.size() > 8 && row.get(8) != null && !row.get(8).toString().isEmpty()) {
+                        String value = row.get(8).toString().trim();
+                        classroom.setExaminationRoom("1".equals(value) || "true".equalsIgnoreCase(value) || "是".equals(value));
+                    }
+
+                    // 处理考场容量
+                    if (row.size() > 9 && row.get(9) != null && !row.get(9).toString().isEmpty()) {
+                        try {
+                            classroom.setExaminationRoomCapacity(Integer.parseInt(row.get(9).toString().trim()));
+                        } catch (NumberFormatException e) {
+                            classroom.setExaminationRoomCapacity(null);
+                        }
+                    }
+
+                    // 多媒体教室标志
+                    if (row.size() > 10 && row.get(10) != null && !row.get(10).toString().isEmpty()) {
+                        String value = row.get(10).toString().trim();
+                        classroom.setIsMultimedia("1".equals(value) || "true".equalsIgnoreCase(value) || "是".equals(value));
+                    }
+
+                    // 空调标志
+                    if (row.size() > 11 && row.get(11) != null && !row.get(11).toString().isEmpty()) {
+                        String value = row.get(11).toString().trim();
+                        classroom.setIsAirConditioned("1".equals(value) || "true".equalsIgnoreCase(value) || "是".equals(value));
+                    }
+
+                    // 教室状态
+                    if (row.size() > 12 && row.get(12) != null && !row.get(12).toString().isEmpty()) {
+                        String value = row.get(12).toString().trim();
+                        classroom.setStatus("1".equals(value) || "true".equalsIgnoreCase(value) || "是".equals(value));
+                    }
+
+                    // 教室描述
+                    classroom.setDescription(row.size() > 13 && row.get(13) != null ? row.get(13).toString() : null);
+
+                    // 管理部门
+                    classroom.setManagementDepartment(row.size() > 14 && row.get(14) != null ? row.get(14).toString() : null);
+
+                    // 教室面积
+                    if (row.size() > 15 && row.get(15) != null && !row.get(15).toString().isEmpty()) {
+                        try {
+                            classroom.setArea(new BigDecimal(row.get(15).toString().trim()));
+                        } catch (NumberFormatException e) {
+                            classroom.setArea(null);
+                        }
+                    }
+
+                    // 桌椅类型
+                    classroom.setTablesChairsType(row.size() > 16 && row.get(16) != null ? row.get(16).toString() : null);
+
+                    classroomList.add(classroom);
+                }
+            } catch (Exception e) {
+                // 记录异常并继续处理下一行
+                log.error("解析教室数据时出错: {}", e.getMessage());
+            }
+        }
+        return classroomList;
+    }
+
+    /**
+     * 验证批量导入教室数据并返回处理后的文件
+     * <p>
+     * 该方法用于验证通过Base64编码传入的Excel文件，确保其格式正确并且可以用于教室信息的批量导入。
+     * </p>
+     *
+     * @param batchAddClassroomVO 包含Excel文件的Base64编码和导入设置的对象
+     * @return 处理后的Excel文件字节数组
+     */
+    @Override
+    public byte[] verifyClassroomBatchAndBackFile(BatchAddClassroomVO batchAddClassroomVO) {
+        if (batchAddClassroomVO.getFile() == null || batchAddClassroomVO.getFile().isEmpty()) {
+            throw new BusinessException("文件不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        // 解码Base64文件
+        String base64File = batchAddClassroomVO.getFile();
+        if (base64File.contains(",")) {
+            base64File = base64File.split(",")[1];
+        }
+
+        byte[] fileBytes;
+        try {
+            fileBytes = Base64.getDecoder().decode(base64File);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("文件解码失败，请检查文件格式", ErrorCode.BODY_ERROR);
+        }
+
+        try {
+            // 解析Excel文件中的教室数据
+            List<ClassroomImportDTO> classroomList = parseExcelToClassroomList(fileBytes);
+
+            // 创建ExcelWriter对象
+            ExcelWriter writer = ExcelUtil.getWriter(true);
+
+            // 设置列宽
+            for (int i = 0; i <= 19; i++) {
+                Sheet sheet = writer.getSheet();
+                sheet.setColumnWidth(i, 4096); // 设置统一宽度
+            }
+
+            // 设置标题行
+            writer.writeCellValue(0, 0, "校区名称");
+            writer.writeCellValue(1, 0, "楼栋名称");
+            writer.writeCellValue(2, 0, "教室编号");
+            writer.writeCellValue(3, 0, "教室名称");
+            writer.writeCellValue(4, 0, "楼层");
+            writer.writeCellValue(5, 0, "教室类型");
+            writer.writeCellValue(6, 0, "教室标签");
+            writer.writeCellValue(7, 0, "教室容量");
+            writer.writeCellValue(8, 0, "是否考场");
+            writer.writeCellValue(9, 0, "考场容量");
+            writer.writeCellValue(10, 0, "是否多媒体");
+            writer.writeCellValue(11, 0, "是否有空调");
+            writer.writeCellValue(12, 0, "教室状态");
+            writer.writeCellValue(13, 0, "教室描述");
+            writer.writeCellValue(14, 0, "管理部门");
+            writer.writeCellValue(15, 0, "教室面积");
+            writer.writeCellValue(16, 0, "桌椅类型");
+            writer.writeCellValue(17, 0, "验证状态");
+            writer.writeCellValue(18, 0, "错误信息");
+            writer.writeCellValue(19, 0, "行号");
+
+            // 创建样式
+            CellStyle normalStyle = writer.getWorkbook().createCellStyle();
+            CellStyle errorStyle = writer.getWorkbook().createCellStyle();
+            CellStyle warnStyle = writer.getWorkbook().createCellStyle();
+
+            // 设置错误样式（红色）
+            Font redFont = writer.getWorkbook().createFont();
+            redFont.setColor(IndexedColors.RED.getIndex());
+            errorStyle.setFont(redFont);
+
+            // 设置警告样式（橙色）
+            Font orangeFont = writer.getWorkbook().createFont();
+            orangeFont.setColor(IndexedColors.ORANGE.getIndex());
+            warnStyle.setFont(orangeFont);
+
+            // 逐行写入和验证数据
+            for (int i = 0; i < classroomList.size(); i++) {
+                ClassroomImportDTO classroom = classroomList.get(i);
+                int rowIndex = i + 1; // Excel行从1开始（0是标题行）
+
+                // 写入数据
+                writer.writeCellValue(0, rowIndex, classroom.getCampusName());
+                writer.writeCellValue(1, rowIndex, classroom.getBuildingName());
+                writer.writeCellValue(2, rowIndex, classroom.getNumber());
+                writer.writeCellValue(3, rowIndex, classroom.getName());
+                writer.writeCellValue(4, rowIndex, classroom.getFloor());
+                writer.writeCellValue(5, rowIndex, classroom.getType());
+                writer.writeCellValue(6, rowIndex, classroom.getTag());
+                writer.writeCellValue(7, rowIndex, classroom.getCapacity());
+                writer.writeCellValue(8, rowIndex, classroom.getExaminationRoom() != null ?
+                        (classroom.getExaminationRoom() ? "1" : "0") : null);
+                writer.writeCellValue(9, rowIndex, classroom.getExaminationRoomCapacity());
+                writer.writeCellValue(10, rowIndex, classroom.getIsMultimedia() != null ?
+                        (classroom.getIsMultimedia() ? "1" : "0") : null);
+                writer.writeCellValue(11, rowIndex, classroom.getIsAirConditioned() != null ?
+                        (classroom.getIsAirConditioned() ? "1" : "0") : null);
+                writer.writeCellValue(12, rowIndex, classroom.getStatus() != null ?
+                        (classroom.getStatus() ? "1" : "0") : null);
+                writer.writeCellValue(13, rowIndex, classroom.getDescription());
+                writer.writeCellValue(14, rowIndex, classroom.getManagementDepartment());
+                writer.writeCellValue(15, rowIndex, classroom.getArea());
+                writer.writeCellValue(16, rowIndex, classroom.getTablesChairsType());
+                writer.writeCellValue(19, rowIndex, i + 4); // 实际Excel文件中的行号（标题行+示例行+起始索引3）
+
+                try {
+                    // 验证数据完整性
+                    validateClassroomData(classroom, i);
+                    writer.writeCellValue(17, rowIndex, "通过");
+                } catch (BusinessException e) {
+                    // 设置错误信息和状态
+                    writer.writeCellValue(17, rowIndex, "错误");
+                    writer.writeCellValue(18, rowIndex, e.getMessage());
+
+                    // 设置错误行的样式
+                    for (int j = 0; j <= 18; j++) {
+                        Cell cell = writer.getOrCreateCell(j, rowIndex);
+                        cell.setCellStyle(errorStyle);
+                    }
+                }
+            }
+
+            // 将Excel写入字节数组
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            writer.flush(outputStream, true);
+            writer.close();
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            throw new BusinessException("文件处理失败: " + e.getMessage(), ErrorCode.SERVER_INTERNAL_ERROR);
+        }
+    }
+
+    /**
+     * 验证教室数据的完整性和合法性
+     *
+     * @param classroom 教室导入数据对象
+     * @param index     数据索引，用于错误消息显示
+     * @throws BusinessException 如果数据验证失败
+     */
+    private void validateClassroomData(ClassroomImportDTO classroom, int index) throws BusinessException {
+        int rowNumber = index + 4; // Excel实际行号（标题行+示例行+起始索引3）
+
+        // 验证必填字段
+        if (classroom.getCampusName() == null || classroom.getCampusName().isEmpty()) {
+            throw new BusinessException("第" + rowNumber + "行校区名称不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        if (classroom.getBuildingName() == null || classroom.getBuildingName().isEmpty()) {
+            throw new BusinessException("第" + rowNumber + "行楼栋名称不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        if (classroom.getNumber() == null || classroom.getNumber().isEmpty()) {
+            throw new BusinessException("第" + rowNumber + "行教室编号不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        if (classroom.getName() == null || classroom.getName().isEmpty()) {
+            throw new BusinessException("第" + rowNumber + "行教室名称不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        if (classroom.getFloor() == null || classroom.getFloor().isEmpty()) {
+            throw new BusinessException("第" + rowNumber + "行楼层不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        if (classroom.getType() == null || classroom.getType().isEmpty()) {
+            throw new BusinessException("第" + rowNumber + "行教室类型不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        if (classroom.getCapacity() == null) {
+            throw new BusinessException("第" + rowNumber + "行教室容量不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        if (classroom.getExaminationRoom() == null) {
+            throw new BusinessException("第" + rowNumber + "行是否考场不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        if (classroom.getIsMultimedia() == null) {
+            throw new BusinessException("第" + rowNumber + "行是否多媒体教室不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        if (classroom.getIsAirConditioned() == null) {
+            throw new BusinessException("第" + rowNumber + "行是否有空调不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        if (classroom.getStatus() == null) {
+            throw new BusinessException("第" + rowNumber + "行教室状态不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        if (classroom.getArea() == null) {
+            throw new BusinessException("第" + rowNumber + "行教室面积不能为空", ErrorCode.BODY_ERROR);
+        }
+
+        // 验证校区和楼栋是否存在
+        CampusDO campusDO = campusDAO.getCampusByName(classroom.getCampusName());
+        if (campusDO == null) {
+            throw new BusinessException("第" + rowNumber + "行校区名称不存在: " + classroom.getCampusName(), ErrorCode.BODY_ERROR);
+        }
+
+        BuildingDO buildingDO = buildingDAO.getBuildingByName(classroom.getBuildingName());
+        if (buildingDO == null) {
+            throw new BusinessException("第" + rowNumber + "行楼栋名称不存在: " + classroom.getBuildingName(), ErrorCode.BODY_ERROR);
+        }
+
+        // 验证校区和楼栋的关联
+        if (!buildingDO.getCampusUuid().equals(campusDO.getCampusUuid())) {
+            throw new BusinessException("第" + rowNumber + "行楼栋 '" + classroom.getBuildingName() +
+                    "' 不属于校区 '" + classroom.getCampusName() + "'", ErrorCode.BODY_ERROR);
+        }
+
+        // 验证教室类型是否存在
+        ClassroomTypeDO typeDO = classroomTypeDAO.getTypeByName(classroom.getType());
+        if (typeDO == null) {
+            throw new BusinessException("第" + rowNumber + "行教室类型不存在: " + classroom.getType(), ErrorCode.BODY_ERROR);
+        }
+
+        // 验证数据类型和格式
+        if (classroom.getCapacity() <= 0) {
+            throw new BusinessException("第" + rowNumber + "行教室容量必须大于0", ErrorCode.BODY_ERROR);
+        }
+
+        if (Boolean.TRUE.equals(classroom.getExaminationRoom()) &&
+            (classroom.getExaminationRoomCapacity() == null || classroom.getExaminationRoomCapacity() <= 0)) {
+            throw new BusinessException("第" + rowNumber + "行考场容量必须大于0", ErrorCode.BODY_ERROR);
+        }
+
+        // 验证教室编号是否已存在
+        ClassroomDO existingClassroom = classroomDAO.getClassroomByNumber(classroom.getNumber());
+        if (existingClassroom != null) {
+            throw new BusinessException("第" + rowNumber + "行教室编号已存在: " + classroom.getNumber(), ErrorCode.BODY_ERROR);
+        }
+    }
+
+    /**
+     * 批量导入教室信息，不忽略错误
+     * <p>
+     * 该方法用于批量导入教室信息，当遇到任何数据错误时会立即停止导入并抛出异常。
+     * </p>
+     *
+     * @param file Excel文件的字节数组
+     * @return 包含导入结果统计的对象
+     */
+    @Override
+    @Transactional
+    public BackAddClassroomDTO batchImportNoIgnoreError(byte[] file) {
+        // 解析Excel文件
+        List<ClassroomImportDTO> classroomList = parseExcelToClassroomList(file);
+        log.debug("第一个教室信息{}", classroomList.get(0));
+
+        int totalCount = classroomList.size();
+        int successCount = 0;
+
+        // 不忽略错误模式，任何错误都会中断导入
+        for (int i = 0; i < classroomList.size(); i++) {
+            ClassroomImportDTO classroomImport = classroomList.get(i);
+
+            // 验证教室数据
+            validateClassroomData(classroomImport, i);
+
+            // 获取相关实体
+            CampusDO campusDO = campusDAO.getCampusByName(classroomImport.getCampusName());
+            BuildingDO buildingDO = buildingDAO.getBuildingByName(classroomImport.getBuildingName());
+            ClassroomTypeDO typeDO = classroomTypeDAO.getTypeByName(classroomImport.getType());
+
+            // 处理标签
+            String tagJson = null;
+            if (classroomImport.getTag() != null && !classroomImport.getTag().isEmpty()) {
+                JSONArray tagArray = new JSONArray();
+                String[] tags = classroomImport.getTag().split(",");
+                for (String tagName : tags) {
+                    tagName = tagName.trim();
+                    if (!tagName.isEmpty()) {
+                        ClassroomTagDO tagDO = classroomTagDAO.getTagByName(tagName);
+                        if (tagDO != null) {
+                            tagArray.put(tagDO.getClassTagUuid());
+                        } else {
+                            // 创建新标签
+                            ClassroomTagDO newTagDO = new ClassroomTagDO()
+                                    .setName(tagName)
+                                    .setDescription("通过导入创建的标签");
+                            classroomTagDAO.save(newTagDO);
+                            tagArray.put(newTagDO.getClassTagUuid());
+                        }
+                    }
+                }
+                tagJson = tagArray.toString();
+            }
+
+            // 处理管理部门
+            String departmentUuid = null;
+            if (classroomImport.getManagementDepartment() != null && !classroomImport.getManagementDepartment().isEmpty()) {
+                // 假设有一个service可以根据部门名称获取部门UUID
+                // departmentUuid = departmentService.getDepartmentUuidByName(classroomImport.getManagementDepartment());
+            }
+
+            // 处理桌椅类型
+            String tablesChairsTypeUuid = null;
+            if (classroomImport.getTablesChairsType() != null && !classroomImport.getTablesChairsType().isEmpty()) {
+                // 假设有一个service可以根据桌椅类型名称获取UUID
+                // tablesChairsTypeUuid = tablesChairsTypeService.getTablesChairsTypeUuidByName(classroomImport.getTablesChairsType());
+            }
+
+            // 创建教室DO对象
+            ClassroomDO classroomDO = new ClassroomDO()
+                    .setNumber(classroomImport.getNumber())
+                    .setName(classroomImport.getName())
+                    .setCampusUuid(campusDO.getCampusUuid())
+                    .setBuildingUuid(buildingDO.getBuildingUuid())
+                    .setFloor(classroomImport.getFloor())
+                    .setType(typeDO.getClassTypeUuid())
+                    .setTag(tagJson)
+                    .setCapacity(classroomImport.getCapacity())
+                    .setExaminationRoom(classroomImport.getExaminationRoom())
+                    .setExaminationRoomCapacity(classroomImport.getExaminationRoomCapacity())
+                    .setIsMultimedia(classroomImport.getIsMultimedia())
+                    .setIsAirConditioned(classroomImport.getIsAirConditioned())
+                    .setStatus(classroomImport.getStatus())
+                    .setDescription(classroomImport.getDescription())
+                    .setManagementDepartment(departmentUuid)
+                    .setArea(classroomImport.getArea())
+                    .setTablesChairsType(tablesChairsTypeUuid);
+
+            // 保存教室数据
+            classroomDAO.save(classroomDO);
+            successCount++;
+        }
+
+        // 清除缓存
+        classroomDAO.deleteClassroomCache();
+
+        // 返回结果
+        return new BackAddClassroomDTO()
+                .setTotalCount(totalCount)
+                .setSuccessCount(successCount)
+                .setFailedCount(0)
+                .setFailedDetails(null);
+    }
+
+    /**
+     * 批量导入教室信息，忽略错误
+     * <p>
+     * 该方法用于批量导入教室信息，当遇到数据错误时会继续处理其他数据，并记录错误信息。
+     * </p>
+     *
+     * @param file Excel文件的字节数组
+     * @return 包含导入结果统计和错误详情的对象
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public BackAddClassroomDTO batchImportIgnoreError(byte[] file) {
+        // 解析Excel文件
+        List<ClassroomImportDTO> classroomList = parseExcelToClassroomList(file);
+        BackAddClassroomDTO backAddClassroomDTO = new BackAddClassroomDTO();
+
+        // 创建失败详情列表
+        List<BackAddClassroomDTO.FailedDetail> failedDetails = new ArrayList<>();
+        int successCount = 0;
+
+        // 循环处理每条教室记录
+        for (int i = 0; i < classroomList.size(); i++) {
+            try {
+                ClassroomImportDTO classroomImport = classroomList.get(i);
+
+                // 验证教室数据
+                validateClassroomData(classroomImport, i);
+
+                // 获取相关实体
+                CampusDO campusDO = campusDAO.getCampusByName(classroomImport.getCampusName());
+                BuildingDO buildingDO = buildingDAO.getBuildingByName(classroomImport.getBuildingName());
+                ClassroomTypeDO typeDO = classroomTypeDAO.getTypeByName(classroomImport.getType());
+
+                // 处理标签
+                String tagJson = null;
+                if (classroomImport.getTag() != null && !classroomImport.getTag().isEmpty()) {
+                    JSONArray tagArray = new JSONArray();
+                    String[] tags = classroomImport.getTag().split(",");
+                    for (String tagName : tags) {
+                        tagName = tagName.trim();
+                        if (!tagName.isEmpty()) {
+                            ClassroomTagDO tagDO = classroomTagDAO.getTagByName(tagName);
+                            if (tagDO != null) {
+                                tagArray.put(tagDO.getClassTagUuid());
+                            } else {
+                                // 创建新标签
+                                ClassroomTagDO newTagDO = new ClassroomTagDO()
+                                        .setName(tagName)
+                                        .setDescription("通过导入创建的标签");
+                                classroomTagDAO.save(newTagDO);
+                                tagArray.put(newTagDO.getClassTagUuid());
+                            }
+                        }
+                    }
+                    tagJson = tagArray.toString();
+                }
+
+                // 处理管理部门
+                String departmentUuid = null;
+                if (classroomImport.getManagementDepartment() != null && !classroomImport.getManagementDepartment().isEmpty()) {
+                    // 假设有一个service可以根据部门名称获取部门UUID
+                    // departmentUuid = departmentService.getDepartmentUuidByName(classroomImport.getManagementDepartment());
+                }
+
+                // 处理桌椅类型
+                String tablesChairsTypeUuid = null;
+                if (classroomImport.getTablesChairsType() != null && !classroomImport.getTablesChairsType().isEmpty()) {
+                    // 假设有一个service可以根据桌椅类型名称获取UUID
+                    // tablesChairsTypeUuid = tablesChairsTypeService.getTablesChairsTypeUuidByName(classroomImport.getTablesChairsType());
+                }
+
+                // 创建教室DO对象
+                ClassroomDO classroomDO = new ClassroomDO()
+                        .setNumber(classroomImport.getNumber())
+                        .setName(classroomImport.getName())
+                        .setCampusUuid(campusDO.getCampusUuid())
+                        .setBuildingUuid(buildingDO.getBuildingUuid())
+                        .setFloor(classroomImport.getFloor())
+                        .setType(typeDO.getClassTypeUuid())
+                        .setTag(tagJson)
+                        .setCapacity(classroomImport.getCapacity())
+                        .setExaminationRoom(classroomImport.getExaminationRoom())
+                        .setExaminationRoomCapacity(classroomImport.getExaminationRoomCapacity())
+                        .setIsMultimedia(classroomImport.getIsMultimedia())
+                        .setIsAirConditioned(classroomImport.getIsAirConditioned())
+                        .setStatus(classroomImport.getStatus())
+                        .setDescription(classroomImport.getDescription())
+                        .setManagementDepartment(departmentUuid)
+                        .setArea(classroomImport.getArea())
+                        .setTablesChairsType(tablesChairsTypeUuid);
+
+                // 保存教室数据
+                classroomDAO.save(classroomDO);
+                successCount++;
+            } catch (Exception e) {
+                // 创建失败详情
+                BackAddClassroomDTO.FailedDetail failedDetail = new BackAddClassroomDTO.FailedDetail()
+                        .setRow(i + 4) // Excel实际行号（标题行+示例行+起始索引3）
+                        .setReason(e.getMessage());
+                failedDetails.add(failedDetail);
+            }
+        }
+
+        // 清除缓存
+        classroomDAO.deleteClassroomCache();
+
+        // 设置统计结果
+        return backAddClassroomDTO
+                .setTotalCount(classroomList.size())
+                .setSuccessCount(successCount)
+                .setFailedCount(failedDetails.size())
+                .setFailedDetails(failedDetails.isEmpty() ? null : failedDetails);
     }
 }

@@ -258,4 +258,57 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
         }
         return campusList.readAll();
     }
+
+    /**
+     * 保存校区信息
+     * <p>
+     * 该方法用于保存新的校区信息到数据库，并同时更新相关的缓存。
+     * </p>
+     *
+     * @param campusDO 要保存的校区信息对象
+     * @return 返回保存后的校区信息对象
+     */
+    public CampusDO saveCampus(CampusDO campusDO) {
+        // 保存到数据库
+        this.save(campusDO);
+        
+        // 更新Redis缓存
+        RMap<String, String> campusMap = redisson.getMap(StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid());
+        campusMap.putAll(ConvertUtil.convertObjectToMapString(campusDO));
+        campusMap.expire(Duration.ofSeconds(86400));
+        
+        // 缓存校区名称到UUID的映射
+        RBucket<String> campusNameBucket = redisson.getBucket(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
+        campusNameBucket.set(campusDO.getCampusUuid());
+        campusNameBucket.expire(Duration.ofSeconds(86400));
+        
+        // 缓存校区编码到UUID的映射
+        RBucket<String> campusCodeBucket = redisson.getBucket(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode());
+        campusCodeBucket.set(campusDO.getCampusUuid());
+        campusCodeBucket.expire(Duration.ofSeconds(86400));
+        
+        // 删除列表缓存，确保下次查询时能获取到最新数据
+        RKeys keys = redisson.getKeys();
+        keys.delete(StringConstant.Redis.CAMPUS_LIST);
+        keys.delete(StringConstant.Redis.CAMPUS_FULL_LIST);
+        keys.deleteByPattern(StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
+        
+        return campusDO;
+    }
+    
+    /**
+     * 删除校区相关的所有缓存
+     * <p>
+     * 该方法用于删除与校区相关的所有Redis缓存，包括分页缓存、列表缓存等。
+     * 通常在批量操作后调用，以确保缓存数据的一致性。
+     * </p>
+     */
+    public void deleteCampusCache() {
+        RKeys keys = redisson.getKeys();
+        keys.deleteByPattern(StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
+        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_PAGE + "*");
+        keys.delete(StringConstant.Redis.CAMPUS_LIST);
+        keys.delete(StringConstant.Redis.CAMPUS_FULL_LIST);
+        log.debug("删除校区缓存数据成功");
+    }
 }
