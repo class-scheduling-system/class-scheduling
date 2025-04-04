@@ -39,75 +39,169 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
      */
     private final SecureRandom random = new SecureRandom();
 
+    /**
+     * 重写生成初始种群的方法
+     * 该方法根据提供的基础数据生成一个包含多个时间表的列表，作为遗传算法的初始种群
+     *
+     * @param baseData 不为空的自动课程调度基础数据对象，包含算法参数和种群大小等信息
+     * @return 返回一个包含多个时间表的列表，表示初始种群
+     */
     @Override
-    public List<ScheduleDTO> generateInitialPopulation(
-            @NotNull AutomaticClassSchedulingBaseDTO baseData) {
-        // 初始化种群列表
+    public List<ScheduleDTO> generateInitialPopulation(@NotNull AutomaticClassSchedulingBaseDTO baseData) {
+        // 初始化一个空列表来存储所有个体
         List<ScheduleDTO> allPopulation = new ArrayList<>();
+        // 获取种群大小
         int populationSize = baseData.getAlgorithmParams().getPopulationSize();
+        // 生成种群
         for (int i = 0; i < populationSize; i++) {
-            CourseScheduleDTO schedule = new CourseScheduleDTO();
-            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments = new HashMap<>();
+            // 记录每个个体的生成过程
             log.debug("生成第 {} 个个体", i + 1);
-            List<CourseScheduleDTO> population = new ArrayList<>();
-            // 为每一个课程分配时间槽
-            for (CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers : baseData.getCourseList()) {
-                CourseLibraryDTO course = courseAndTeachers.getCourse();
-                // 按照课程和班级进行教师选择
-                Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> teacherAssignments = new HashMap<>();
-                Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> classroomAssignments =
-                        this.selectClassroomsForCourse(courseAndTeachers, baseData.getClassroomList(), true);
-                // 为每个班级选择随机的教师
-                if (classroomAssignments != null) {
-                    for (Map.Entry<List<AdministrativeClassDTO>, ClassroomInfoDTO> entry : classroomAssignments.entrySet()) {
-                        List<AdministrativeClassDTO> classGroup = entry.getKey();
-                        TeacherCoursePreferencesDTO teacher = this.selectTeacherForCourse(
-                                course, courseAndTeachers.getTeacherList());
-                        // 记录教师分配
-                        if (teacher != null) {
-                            teacherAssignments.put(classGroup, teacher);
-                        }
-                    }
-                }
-                // 为每门课程分配时间槽，这一步分配了时间，班级，教室，老师
-                for (Map.Entry<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> entry : teacherAssignments.entrySet()) {
-                    List<AdministrativeClassDTO> classGroup = entry.getKey();
-                    TeacherCoursePreferencesDTO assignedTeacher = entry.getValue();
-                    ClassroomInfoDTO assignedClassroom = classroomAssignments.get(classGroup);
-                    // 寻找合适的时间槽
-                    List<TimeSlotDTO> timeSlot = this.findSuitableTimeSlot(
-                            null,
-                            null,
-                            assignedTeacher,
-                            assignedClassroom,
-                            courseAndTeachers,
-                            baseData);
-                    if (timeSlot != null) {
-                        CourseScheduleItemDTO item = new CourseScheduleItemDTO(
-                                course,
-                                assignedTeacher,
-                                assignedClassroom,
-                                classGroup,
-                                new CreditHourTypeEnuDTO(),
-                                courseAndTeachers.getPriority()
-                        );
-                        //将时间槽分配到课程安排中
-                        assignments.put(timeSlot, item);
-                        // 更新课程表
-                        schedule.setAssignments(assignments);
-                    } else {
-                        log.warn("无法为课程 {} 找到合适的时间槽", course.getName());
-                    }
-                }
-            }
-            population.add(schedule);
-            ScheduleDTO scheduleDTO = new ScheduleDTO();
-            scheduleDTO.setSchedule(population);
-            scheduleDTO.setData(baseData.getDataCourseScheduleList());
+            // 调用生成个体的方法，并将个体添加到种群中
+            ScheduleDTO scheduleDTO = this.generateIndividual(baseData);
             allPopulation.add(scheduleDTO);
         }
+        // 种群生成完成后，记录种群大小
         log.debug("生成初始种群完成，种群大小: {}", allPopulation.size());
+        // 返回生成的种群
         return allPopulation;
+    }
+
+    /**
+     * 生成单个个体
+     */
+    private @NotNull ScheduleDTO generateIndividual(
+            @NotNull AutomaticClassSchedulingBaseDTO baseData) {
+        CourseScheduleDTO schedule = new CourseScheduleDTO();
+        Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments = new HashMap<>();
+
+        // 处理每个课程
+        for (CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers : baseData.getCourseList()) {
+            this.processCourseAssignment(courseAndTeachers, baseData, assignments);
+        }
+
+        schedule.setAssignments(assignments);
+
+        return this.createScheduleDTO(schedule, baseData);
+    }
+
+    /**
+     * 处理单个课程的分配
+     */
+    private void processCourseAssignment(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers,
+            @NotNull AutomaticClassSchedulingBaseDTO baseData,
+            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments) {
+
+        CourseLibraryDTO course = courseAndTeachers.getCourse();
+
+        // 获取教室和教师分配
+        Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> classroomAssignments =
+                this.selectClassroomsForCourse(courseAndTeachers, baseData.getClassroomList(), true);
+
+        if (classroomAssignments == null) {
+            return;
+        }
+
+        // 为每个班级分配教师和时间槽
+        Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> teacherAssignments =
+                this.assignTeachersToClasses(course, courseAndTeachers, classroomAssignments);
+
+        // 分配时间槽
+        this.assignTimeSlots(courseAndTeachers, baseData, assignments, teacherAssignments, classroomAssignments);
+    }
+
+    /**
+     * 为班级分配教师
+     */
+    private @NotNull Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> assignTeachersToClasses(
+            CourseLibraryDTO course,
+            CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers,
+            @NotNull Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> classroomAssignments) {
+        Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> teacherAssignments = new HashMap<>();
+        for (List<AdministrativeClassDTO> classGroup : classroomAssignments.keySet()) {
+            TeacherCoursePreferencesDTO teacher = this.selectTeacherForCourse(
+                    course, courseAndTeachers.getTeacherList());
+            if (teacher != null) {
+                teacherAssignments.put(classGroup, teacher);
+            }
+        }
+
+        return teacherAssignments;
+    }
+
+    /**
+     * 分配时间槽
+     */
+    private void assignTimeSlots(
+            CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers,
+            AutomaticClassSchedulingBaseDTO baseData,
+            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments,
+            @NotNull Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> teacherAssignments,
+            Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> classroomAssignments) {
+
+        for (Map.Entry<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> entry : teacherAssignments.entrySet()) {
+            List<AdministrativeClassDTO> classGroup = entry.getKey();
+            TeacherCoursePreferencesDTO assignedTeacher = entry.getValue();
+            ClassroomInfoDTO assignedClassroom = classroomAssignments.get(classGroup);
+
+            this.createAndAssignTimeSlot(
+                    courseAndTeachers,
+                    baseData,
+                    assignments,
+                    classGroup,
+                    assignedTeacher,
+                    assignedClassroom
+            );
+        }
+    }
+
+    /**
+     * 创建并分配时间槽
+     */
+    private void createAndAssignTimeSlot(
+            CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers,
+            AutomaticClassSchedulingBaseDTO baseData,
+            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments,
+            List<AdministrativeClassDTO> classGroup,
+            TeacherCoursePreferencesDTO assignedTeacher,
+            ClassroomInfoDTO assignedClassroom) {
+
+        List<TimeSlotDTO> timeSlot = this.findSuitableTimeSlot(
+                null,
+                null,
+                assignedTeacher,
+                assignedClassroom,
+                courseAndTeachers,
+                baseData
+        );
+
+        if (timeSlot != null) {
+            CourseScheduleItemDTO item = new CourseScheduleItemDTO(
+                    courseAndTeachers.getCourse(),
+                    assignedTeacher,
+                    assignedClassroom,
+                    classGroup,
+                    new CreditHourTypeEnuDTO(),
+                    courseAndTeachers.getPriority()
+            );
+            assignments.put(timeSlot, item);
+        } else {
+            log.warn("无法为课程 {} 找到合适的时间槽", courseAndTeachers.getCourse().getName());
+        }
+    }
+
+    /**
+     * 创建ScheduleDTO
+     */
+    private ScheduleDTO createScheduleDTO(CourseScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseData) {
+        List<CourseScheduleDTO> population = new ArrayList<>();
+        population.add(schedule);
+
+        ScheduleDTO scheduleDTO = new ScheduleDTO();
+        scheduleDTO.setSchedule(population);
+        scheduleDTO.setData(baseData.getDataCourseScheduleList());
+
+        return scheduleDTO;
     }
 
     /**
@@ -155,25 +249,6 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
                 availableBlocksByDay);
         // 4. 生成最终的时间槽
         return this.generateFinalTimeSlots(dayTimeSlots, context);
-    }
-
-    /**
-     * 时间槽生成上下文
-     */
-    private static class TimeSlotGenerationContext {
-        final int maxPeriodsPerDay;
-        final int targetTotalHours;
-        final int startWeek;
-        final int endWeek;
-        int totalScheduledHours;
-
-        TimeSlotGenerationContext(int maxPeriodsPerDay, int targetTotalHours, int startWeek, int endWeek) {
-            this.maxPeriodsPerDay = maxPeriodsPerDay;
-            this.targetTotalHours = targetTotalHours;
-            this.startWeek = startWeek;
-            this.endWeek = endWeek;
-            this.totalScheduledHours = 0;
-        }
     }
 
     /**
@@ -234,6 +309,7 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
         }
         return dayTimeSlots;
     }
+
     /**
      * 生成可能的时间段
      */
@@ -271,7 +347,9 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             }
         }
         return slots;
-    }    /**
+    }
+
+    /**
      * 根据每周课时数确定分配策略
      *
      * @param weeklyHours 每周总课时数
@@ -359,8 +437,9 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
      * 此方法接收两个参数：一个是教室信息列表，另一个是课程及其相关资格信息列表
      * 它会根据课程的需求，为每门课程随机分配一个合适的教室
      * 如果没有合适的教室，则该课程不会被分配教室
+     *
      * @param classrooms 教室信息列表，包含每个教室的详细信息
-     * @param newList 课程及其相关资格信息列表，每门课程包括一系列的行政班级
+     * @param newList    课程及其相关资格信息列表，每门课程包括一系列的行政班级
      * @return 返回一个映射，键是行政班级列表，值是分配给这些班级的教室信息
      */
     @Contract(pure = true)
@@ -400,7 +479,8 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
         return matchingClassrooms;
     }
 
-    /** 查找最优教室（符合专业类型和容量要求）
+    /**
+     * 查找最优教室（符合专业类型和容量要求）
      */
     private List<ClassroomInfoDTO> findOptimalClassrooms(
             List<ClassroomInfoDTO> classrooms,
@@ -422,8 +502,8 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
     }
 
     /**
-     *  按类型和容量要求筛选教室
-      */
+     * 按类型和容量要求筛选教室
+     */
     private List<ClassroomInfoDTO> findClassroomsByTypeAndCapacity(
             @NotNull List<ClassroomInfoDTO> classrooms,
             String classroomType,
@@ -434,8 +514,8 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
                 .toList();
     }
 
-    /** 判断教室容量是否最优
-
+    /**
+     * 判断教室容量是否最优
      */
     private boolean isCapacityOptimal(int capacity, int studentCount) {
         return capacity >= studentCount
@@ -444,8 +524,8 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
                 && (double) studentCount / capacity <= 0.9;
     }
 
-    /** 查找满足最低要求的教室（只考虑容纳学生数）
-
+    /**
+     * 查找满足最低要求的教室（只考虑容纳学生数）
      */
     private List<ClassroomInfoDTO> findMinimumRequirementClassrooms(
             @NotNull List<ClassroomInfoDTO> classrooms,
@@ -471,8 +551,8 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
         return specializedClassrooms;
     }
 
-    /** 查找容量最接近的教室
-
+    /**
+     * 查找容量最接近的教室
      */
     private List<ClassroomInfoDTO> findClosestCapacityClassrooms(
             @NotNull List<ClassroomInfoDTO> classrooms,
@@ -495,8 +575,8 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
         return this.sortByCapacityDifference(classrooms, studentCount);
     }
 
-    /** 按容量差值排序
-
+    /**
+     * 按容量差值排序
      */
     private List<ClassroomInfoDTO> sortByCapacityDifference(
             @NotNull List<ClassroomInfoDTO> classrooms,
@@ -729,6 +809,25 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             newClass.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
             newCourseQualificationList.add(newClass);
             remainingClasses--;
+        }
+    }
+
+    /**
+     * 时间槽生成上下文
+     */
+    private static class TimeSlotGenerationContext {
+        final int maxPeriodsPerDay;
+        final int targetTotalHours;
+        final int startWeek;
+        final int endWeek;
+        int totalScheduledHours;
+
+        TimeSlotGenerationContext(int maxPeriodsPerDay, int targetTotalHours, int startWeek, int endWeek) {
+            this.maxPeriodsPerDay = maxPeriodsPerDay;
+            this.targetTotalHours = targetTotalHours;
+            this.startWeek = startWeek;
+            this.endWeek = endWeek;
+            this.totalScheduledHours = 0;
         }
     }
 
