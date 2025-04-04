@@ -201,8 +201,7 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
     /**
      * 查找合适的时间槽
      */
-    @Nullable
-    private List<TimeSlotDTO> findSuitableTimeSlot(
+    private @NotNull List<TimeSlotDTO> findSuitableTimeSlot(
             @NotNull CourseLibraryAndTeacherCourseQualificationListDTO course,
             @NotNull AutomaticClassSchedulingBaseDTO baseDTO
     ) {
