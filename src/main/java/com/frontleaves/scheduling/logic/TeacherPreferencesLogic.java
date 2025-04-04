@@ -34,8 +34,6 @@ import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.daos.TeacherPreferencesDAO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherPreferencesDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.TeacherPreferencesDTO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.TeacherPreferencesDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
