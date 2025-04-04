@@ -31,6 +31,7 @@ package com.frontleaves.scheduling.thread;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.logic.SchedulingLogic;
+import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.*;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
@@ -89,6 +90,8 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     private ClassroomService classroomService;
     @Resource
     private DepartmentService departmentService;
+    @Resource
+    private ClassAssignmentService  classAssignmentService;
     @Resource
     private RedissonClient redisson;
     private HttpServletRequest request;
@@ -209,6 +212,9 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 timePreferences.setEveningCourses(classSchedulingVO.getTimePreferences().getAvoidEveningCourses())
                         .setBalanceWeekdayCourses(classSchedulingVO.getTimePreferences().getBalanceWeekdayCourses());
                 automaticClassSchedulingBaseDTO.setTimePreferences(timePreferences);
+                // 获取排课表内存在可能冲突的课程排课数据
+                List<ClassAssignmentDTO> classAssignmentDTOList =
+                        classAssignmentService.getClassAssignmentListByLimit(automaticClassSchedulingBaseDTO);
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
                 cacheBaseData.set(automaticClassSchedulingBaseDTO);
                 automaticThread.startUp(userDO);

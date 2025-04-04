@@ -235,4 +235,13 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
             return ProjectUtil.convertMapToPage(cacheMap, ClassAssignmentDO.class);
         }
     }
+
+    /**
+     * 根据学期UUID获取排课分配列表
+     * @param semesterUuid 学期UUID
+     * @return 排课分配列表
+     */
+    public List<ClassAssignmentDO> getClassAssignmentListBySemester(String semesterUuid) {
+        return this.lambdaQuery().eq(ClassAssignmentDO::getSemesterUuid, semesterUuid).list();
+    }
 }

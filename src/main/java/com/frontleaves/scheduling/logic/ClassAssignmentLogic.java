@@ -9,7 +9,9 @@ import com.frontleaves.scheduling.daos.CourseLibraryDAO;
 import com.frontleaves.scheduling.daos.SemesterDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
+import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.entity.ClassAssignmentDO;
 import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
@@ -27,8 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 排课分配逻辑实现类
@@ -209,5 +211,100 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
                     .setTeachingClassComposition(JSONUtil.toJsonStr(className));
         }
 
+    }
+    /**
+     * 根据条件获取排课分配列表
+     * 根据教室、教师和行政班级的UUID进行筛选
+     * @param automaticClassSchedulingBaseDTO 自动排课基础信息DTO
+     * @return 符合条件的排课分配列表
+     */
+    @Override
+    public List<ClassAssignmentDTO> getClassAssignmentListByLimit(@NotNull AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO) {
+        Map<String, Boolean> classroomUuidsMap = automaticClassSchedulingBaseDTO.getClassroomList().stream()
+                .map(dto -> dto.getClassroom().getClassroomUuid())
+                .collect(Collectors.toMap(
+                        uuid -> uuid,
+                        uuid -> Boolean.TRUE,
+                        (existing, replacement) -> existing));
+        Map<String, Boolean> teacherUuidsMap = automaticClassSchedulingBaseDTO.getCourseList().stream()
+                .flatMap(course -> course.getTeacherList().stream())
+                .map(teacherPref -> teacherPref.getTeacher().getTeacherUuid())
+                .collect(Collectors.toMap(
+                        uuid -> uuid,
+                        uuid -> Boolean.TRUE,
+                        (existing, replacement) -> existing));
+        Map<String, Boolean> classUuidsMap = automaticClassSchedulingBaseDTO.getCourseList().stream()
+                .flatMap(course -> course.getClassList().stream())
+                .map(AdministrativeClassDTO::getAdministrativeClassUuid)
+                .collect(Collectors.toMap(
+                        uuid -> uuid,
+                        uuid -> Boolean.TRUE,
+                        (existing, replacement) -> existing));
+        // 获取本学期的所有排课分配
+        List<ClassAssignmentDO> classAssignments = classAssignmentDAO
+                .getClassAssignmentListBySemester(automaticClassSchedulingBaseDTO.getSemester().getSemesterUuid());
+        // 遍历排课分配列表并筛选出 classroomUuid 匹配的项
+        Map<String, ClassAssignmentDTO> classAssignmentMap = new HashMap<>();
+        for (ClassAssignmentDO classAssignment : classAssignments) {
+            this.processClassAssignment(classAssignment, classroomUuidsMap, teacherUuidsMap, classUuidsMap, classAssignmentMap);
+        }
+        return new ArrayList<>(classAssignmentMap.values());
+    }
+    /**
+     * 将排课分配添加到结果映射中
+     * 如果该分配已存在则不会覆盖
+     * @param classAssignment 排课分配对象
+     * @param classAssignmentMap 排课分配结果映射
+     */
+    private void processClassAssignment(@NotNull ClassAssignmentDO classAssignment,
+                                        @NotNull Map<String, Boolean> classroomUuidsMap,
+                                        Map<String, Boolean> teacherUuidsMap,
+                                        Map<String, Boolean> classUuidsMap,
+                                        Map<String, ClassAssignmentDTO> classAssignmentMap) {
+        // 检查教室匹配
+        if (classroomUuidsMap.containsKey(classAssignment.getClassroomUuid())) {
+            this.addToAssignmentMap(classAssignment, classAssignmentMap);
+        }
+        // 检查教师匹配
+        if (teacherUuidsMap.containsKey(classAssignment.getTeacherUuid())) {
+            this.addToAssignmentMap(classAssignment, classAssignmentMap);
+        }
+        // 检查行政班级匹配
+        this.checkClassGroupMatch(classAssignment, classUuidsMap, classAssignmentMap);
+    }
+
+    private void addToAssignmentMap(ClassAssignmentDO classAssignment,
+                                    @NotNull Map<String, ClassAssignmentDTO> classAssignmentMap) {
+        ClassAssignmentDTO dto = BeanUtil.toBean(classAssignment, ClassAssignmentDTO.class);
+        classAssignmentMap.putIfAbsent(classAssignment.getClassAssignmentUuid(), dto);
+    }
+
+    private void checkClassGroupMatch(@NotNull ClassAssignmentDO classAssignment,
+                                      Map<String, Boolean> classUuidsMap,
+                                      Map<String, ClassAssignmentDTO> classAssignmentMap) {
+        String classGroup = classAssignment.getTeachingClassComposition();
+        if (classGroup == null || classGroup.isEmpty()) {
+            return;
+        }
+        try {
+            String[] parts = classGroup.split(":");
+            if (parts.length <= 1) {
+                return;
+            }
+            String uuidsStr = parts[1].trim()
+                    .replace("[", "")
+                    .replace("]", "")
+                    .replace("\"", "");
+            String[] uuids = uuidsStr.split(",");
+            for (String uuid : uuids) {
+                uuid = uuid.trim();
+                if (classUuidsMap.containsKey(uuid)) {
+                    addToAssignmentMap(classAssignment, classAssignmentMap);
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            log.error("解析teachingClassComposition失败: {}", classGroup, e);
+        }
     }
 }

@@ -100,6 +100,7 @@ public class AutomaticClassSchedulingBaseDTO {
      */
     private List<CourseLibraryAndTeacherCourseQualificationListDTO> courseList;
 
+
     /**
      * 教室和教室类型列表DTO
      * 包含教室及其类型的详细信息，用于辅助排课决策。
