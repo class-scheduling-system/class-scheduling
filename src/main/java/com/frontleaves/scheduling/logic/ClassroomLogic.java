@@ -79,6 +79,8 @@ import java.util.Optional;
 @Service
 public class ClassroomLogic extends BaseClassroomLogic implements ClassroomService {
 
+    private final TablesChairsTypeDAO tablesChairsTypeDAO;
+
     /**
      * 教室逻辑处理构造函数
      * <p>
@@ -90,15 +92,18 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
      * @param classroomDAO     用于管理教室基本信息的数据访问对象
      * @param campusDAO        用于管理校园信息的数据访问对象
      * @param buildingDAO      用于管理建筑物信息的数据访问对象
+     * @param tablesChairsTypeDAO 用于管理桌椅类型的数据访问对象
      */
     public ClassroomLogic(
             ClassroomTagDAO classroomTagDAO,
             ClassroomTypeDAO classroomTypeDAO,
             ClassroomDAO classroomDAO,
             CampusDAO campusDAO,
-            BuildingDAO buildingDAO
+            BuildingDAO buildingDAO,
+            TablesChairsTypeDAO tablesChairsTypeDAO
     ) {
         super(classroomTagDAO, classroomTypeDAO, classroomDAO, campusDAO, buildingDAO);
+        this.tablesChairsTypeDAO = tablesChairsTypeDAO;
     }
 
     /**
@@ -448,7 +453,7 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
         wrapStyle.setWrapText(true);
 
         // 设置列宽
-        for (int i = 0; i <= 16; i++) {
+        for (int i = 0; i <= 25; i++) {
             Sheet sheet = writer.getSheet();
             int currentWidth = sheet.getColumnWidth(i);
             if (currentWidth == sheet.getDefaultColumnWidth() * 256) {
@@ -457,7 +462,7 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
             sheet.setColumnWidth(i, currentWidth * 2);
         }
 
-        // 合并第一行的前10列，并设置居中
+        // 合并第一行的前16列，并设置居中
         writer.getSheet().addMergedRegion(new CellRangeAddress(0, 0, 0, 16));
 
         // 写入标题到合并的单元格
@@ -493,20 +498,80 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
         redWrapStyle.cloneStyleFrom(wrapStyle);
         redWrapStyle.setFont(redFont);
 
-        // 读取注意事项文本并写入Excel
+        // 读取注意事项文本
         String noticeText = this.readClassroomNoticeFile();
-        String[] noticeLines = noticeText.split("\n");
-        int startRow = 3; // 从第3行开始写入注意事项
-        for (String line : noticeLines) {
-            Cell noticeCell = writer.getOrCreateRow(startRow).createCell(0);
-            noticeCell.setCellValue(line.trim());
-            noticeCell.setCellStyle(redWrapStyle);
-
-            // 合并单元格显示注意事项（合并17列）
-            writer.getSheet().addMergedRegion(new CellRangeAddress(startRow, startRow, 0, 16));
-            startRow++;
+        
+        // 合并注意事项单元格
+        writer.getSheet().addMergedRegion(new CellRangeAddress(1, 20, 17, 20));
+        
+        // 写入注意事项，并应用自动换行和红色样式
+        Cell noticeCell = writer.getOrCreateRow(1).createCell(17);
+        noticeCell.setCellValue(noticeText);
+        noticeCell.setCellStyle(redWrapStyle);
+        
+        // 添加参考数据标题
+        writer.writeCellValue(21, 2, "校区模板");
+        writer.writeCellValue(22, 2, "楼栋模板");
+        writer.writeCellValue(23, 2, "教室类型模板");
+        writer.writeCellValue(24, 2, "教室标签模板");
+        writer.writeCellValue(25, 2, "桌椅类型模板");
+        
+        // 获取并写入校区列表
+        List<CampusDO> campusList = campusDAO.getAllCampus();
+        if (campusList != null && !campusList.isEmpty()) {
+            for (int i = 0; i < campusList.size(); i++) {
+                writer.writeCellValue(21, i + 3, campusList.get(i).getCampusName());
+            }
         }
-
+        
+        // 获取并写入楼栋列表
+        List<BuildingDO> buildingList = buildingDAO.getBuildingListByKey("");
+        if (buildingList != null && !buildingList.isEmpty()) {
+            for (int i = 0; i < buildingList.size(); i++) {
+                writer.writeCellValue(22, i + 3, buildingList.get(i).getBuildingName());
+            }
+        }
+        
+        // 获取并写入教室类型列表
+        List<ClassroomTypeDO> typeList = classroomTypeDAO.getTypes();
+        if (typeList != null && !typeList.isEmpty()) {
+            for (int i = 0; i < typeList.size(); i++) {
+                writer.writeCellValue(23, i + 3, typeList.get(i).getName());
+            }
+        }
+        
+        // 获取并写入教室标签列表
+        List<ClassroomTagDO> tagList = classroomTagDAO.getTags();
+        if (tagList != null && !tagList.isEmpty()) {
+            StringBuilder tagExample = new StringBuilder();
+            for (int i = 0; i < tagList.size(); i++) {
+                if (i > 0) {
+                    tagExample.append(",");
+                }
+                tagExample.append(tagList.get(i).getName());
+                
+                // 单独写入每个标签，方便查看
+                writer.writeCellValue(24, i + 3, tagList.get(i).getName());
+            }
+            
+            // 写入标签组合示例
+            if (tagList.size() > 1) {
+                // 靠左不是居中
+                CellStyle leftStyle = writer.getWorkbook().createCellStyle();
+                leftStyle.setAlignment(HorizontalAlignment.LEFT);
+                writer.writeCellValue(21, 1, "多个标签示例: " + tagExample);
+                writer.getSheet().getRow(1).getCell(17).setCellStyle(leftStyle);
+            }
+        }
+        
+        // 写入桌椅类型示例
+        List<TablesChairsTypeDO> chairsTypeList = tablesChairsTypeDAO.getTablesChairsTypeList();
+        if (chairsTypeList != null && !chairsTypeList.isEmpty()) {
+            for (int i = 0; i < chairsTypeList.size(); i++) {
+                writer.writeCellValue(25, i + 3, chairsTypeList.get(i).getName());
+            }
+        }
+        
         // 写入示例数据（第2行）
         writer.writeCellValue(0, 2, "示例校区");
         writer.writeCellValue(1, 2, "示例楼栋");
