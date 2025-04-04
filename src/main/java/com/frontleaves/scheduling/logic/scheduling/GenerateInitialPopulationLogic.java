@@ -103,10 +103,9 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             population.add(schedule);
             ScheduleDTO scheduleDTO = new ScheduleDTO();
             scheduleDTO.setSchedule(population);
+            scheduleDTO.setData(baseData.getDataCourseScheduleList());
             allPopulation.add(scheduleDTO);
         }
-        //添加上系统已经排好的课程
-
         log.debug("生成初始种群完成，种群大小: {}", allPopulation.size());
         return allPopulation;
     }
