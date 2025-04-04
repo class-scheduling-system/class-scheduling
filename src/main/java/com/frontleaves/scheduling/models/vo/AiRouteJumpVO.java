@@ -26,38 +26,39 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.models.vo;
 
-import lombok.extern.slf4j.Slf4j;
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
- * 提供日志记录中使用的常量字符串，旨在统一和标准化日志输出的前缀。
- * 包含服务、控制器、数据访问层、工具类、异常、不同日志级别等标识，
- * 便于日志分析和系统维护时快速识别日志来源与重要性。
+ * AI 路由跳转对象
+ * <p>
+ * 该类用于表示 AI 路由跳转的相关信息，包括目标路由路径和 HTML 内容。
+ * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
-@Slf4j
-public class LogConstant {
-    public static final String SERVICE = "[SERV] ";
-    public static final String CONTROLLER = "[CTRL] ";
-    public static final String DAO = "[DAO] ";
-    public static final String UTIL = "[UTIL] ";
-    public static final String EXCEPTION = "[EXCP] ";
-    public static final String INFO = "[INFO] ";
-    public static final String WARN = "[WARN] ";
-    public static final String ERROR = "[ERRO] ";
-    public static final String DEBUG = "[DEBG] ";
-    public static final String TRACE = "[TRAC] ";
-    public static final String ASPECT = "[ASPT] ";
-    public static final String TEST = "[TEST] ";
-    public static final String WS = "[WS] ";
-    public static final String THREAD = "[THRD] ";
+@Getter
+@ToString
+@AllArgsConstructor
+@NoArgsConstructor
+public class AiRouteJumpVO {
+    /**
+     * 目标路由路径
+     */
+    @NotBlank(message = "目标路由路径不能为空")
+    private String userInput;
 
-
-    private LogConstant() {
-        log.error("LogConstant 不能被实例化");
-    }
+    /**
+     * HTML内容
+     */
+    @Nullable
+    private String html;
 }

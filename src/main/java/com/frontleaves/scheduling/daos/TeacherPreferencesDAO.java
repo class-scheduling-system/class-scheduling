@@ -161,15 +161,16 @@ public class TeacherPreferencesDAO extends ServiceImpl<TeacherPreferencesMapper,
      * 该方法用于更新教师课程偏好信息。首先会删除Redis中与该偏好相关的缓存，然后调用MyBatis-Plus的updateById方法将更新后的偏好信息保存到数据库中。
      * </p>
      *
-     * @param teacherPreferencesDO 要更新的教师课程偏好实体对象 {@code TeacherPreferencesDO}
+     * @param teacherPreference 要更新的教师课程偏好实体对象 {@code TeacherPreferencesDO}
      */
-    public void updateTeacherPreferences(TeacherPreferencesDO teacherPreferencesDO) {
+    public void updateTeacherPreferences(TeacherPreferencesDO teacherPreference) {
         Optional.of(redisson.getKeys())
                 .ifPresent(rKeys -> {
-                    rKeys.delete(StringConstant.Redis.TEACHER_PREFERENCES_UUID + teacherPreferencesDO.getPreferenceUuid());
-                    rKeys.delete(StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherPreferencesDO.getTeacherUuid() + ":" + teacherPreferencesDO.getSemesterUuid());
+                    rKeys.delete(StringConstant.Redis.TEACHER_PREFERENCES_UUID + teacherPreference.getPreferenceUuid());
+                    rKeys.deleteByPattern(StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherPreference.getTeacherUuid() + "*");
+                    rKeys.deleteByPattern(StringConstant.Redis.TEACHER_PREFERENCES_PAGE + "*" + teacherPreference.getTeacherUuid() + "*");
                 });
-        this.updateById(teacherPreferencesDO);
+        this.updateById(teacherPreference);
     }
 
     /**
@@ -179,18 +180,19 @@ public class TeacherPreferencesDAO extends ServiceImpl<TeacherPreferencesMapper,
      * 然后从数据库中删除该偏好记录。如果删除成功，返回true；否则，返回false。
      * </p>
      *
-     * @param preferenceUuid 教师课程偏好的唯一标识符 {@code String}
+     * @param teacherPreference 教师课程偏好实体对象 {@code TeacherPreferencesDO}
      * @return 如果删除成功返回true，否则返回false {@code boolean}
      */
-    public boolean deleteTeacherPreferences(String preferenceUuid) {
-        TeacherPreferencesDO teacherPreferencesDO = this.getById(preferenceUuid);
-        if (teacherPreferencesDO != null) {
+    public boolean deleteTeacherPreference(TeacherPreferencesDO teacherPreference) {
+        if (teacherPreference != null) {
             Optional.of(redisson.getKeys())
                     .ifPresent(rKeys -> {
-                        rKeys.delete(StringConstant.Redis.TEACHER_PREFERENCES_UUID + preferenceUuid);
-                        rKeys.delete(StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherPreferencesDO.getTeacherUuid() + ":" + teacherPreferencesDO.getSemesterUuid());
+                        rKeys.delete(StringConstant.Redis.TEACHER_PREFERENCES_UUID + teacherPreference.getTeacherUuid());
+                        rKeys.deleteByPattern(StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherPreference.getTeacherUuid() + "*");
+                        rKeys.deleteByPattern(StringConstant.Redis.TEACHER_PREFERENCES_PAGE + "*" + teacherPreference.getTeacherUuid() + "*");
                     });
-            return this.removeById(preferenceUuid);
+            this.removeById(teacherPreference);
+            return true;
         }
         return false;
     }

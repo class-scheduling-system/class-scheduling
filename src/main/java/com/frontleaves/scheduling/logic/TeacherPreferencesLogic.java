@@ -30,16 +30,25 @@ package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.daos.TeacherPreferencesDAO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherPreferencesDTO;
+import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.TeacherPreferencesDTO;
+import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.entity.TeacherPreferencesDO;
+import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.TeacherPreferencesVO;
 import com.frontleaves.scheduling.services.TeacherPreferencesService;
+import com.frontleaves.scheduling.services.UserService;
+import com.frontleaves.scheduling.utils.ProjectOption;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.exception.library.UserAuthenticationException;
 import jakarta.annotation.Nullable;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -61,6 +70,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TeacherPreferencesLogic implements TeacherPreferencesService {
     private final TeacherPreferencesDAO teacherPreferencesDAO;
+    private final UserService userService;
+    private final TeacherDAO teacherDAO;
 
     /**
      * 获取教师课程偏好分页数据
@@ -150,16 +161,30 @@ public class TeacherPreferencesLogic implements TeacherPreferencesService {
      *
      * @param preferenceUuid       教师课程偏好的唯一标识符
      * @param teacherPreferencesVO 包含要更新的教师课程偏好信息的视图对象
+     * @param request              请求对象，用于获取当前请求的上下文信息
      * @return 返回更新后的教师课程偏好信息
      */
     @Override
-    public TeacherPreferencesDTO editTeacherPreferences(String preferenceUuid, TeacherPreferencesVO teacherPreferencesVO) {
-        Optional.ofNullable(teacherPreferencesDAO.getTeacherPreferencesByUuid(preferenceUuid))
+    public TeacherPreferencesDTO editTeacherPreferences(String preferenceUuid, TeacherPreferencesVO teacherPreferencesVO, HttpServletRequest request) {
+        TeacherPreferencesDO getPreference = Optional.ofNullable(teacherPreferencesDAO.getTeacherPreferencesByUuid(preferenceUuid))
                 .orElseThrow(() -> new BusinessException("教师课程偏好不存在", ErrorCode.NOT_EXIST));
 
-        TeacherPreferencesDO updatedPreference = BeanUtil.toBean(teacherPreferencesVO, TeacherPreferencesDO.class);
-        updatedPreference.setPreferenceUuid(preferenceUuid);
-        teacherPreferencesDAO.updateTeacherPreferences(updatedPreference);
+        UserDO getUser = userService.getUserByRequest(request);
+        if (getUser == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_LOGIN, request);
+        }
+
+        TeacherDO getTeacher = teacherDAO.getTeacherByUserUuid(getUser.getUserUuid());
+
+        Optional.ofNullable(getPreference.getTeacherUuid())
+                .filter(teacherUuid -> !teacherUuid.equals(getTeacher.getTeacherUuid()))
+                .ifPresent(teacherUuid -> {
+                    throw new BusinessException("教师课程偏好不属于当前用户", ErrorCode.NOT_EXIST);
+                });
+
+        BeanUtil.copyProperties(teacherPreferencesVO, getPreference, ProjectOption.stringBlankToNull());
+
+        teacherPreferencesDAO.updateTeacherPreferences(getPreference);
 
         return Optional.ofNullable(teacherPreferencesDAO.getTeacherPreferencesByUuid(preferenceUuid))
                 .map(data -> BeanUtil.toBean(data, TeacherPreferencesDTO.class))
@@ -174,10 +199,27 @@ public class TeacherPreferencesLogic implements TeacherPreferencesService {
      * </p>
      *
      * @param preferenceUuid 教师课程偏好的唯一标识符，用于定位需要删除的具体偏好记录
+     * @param request        请求对象，用于获取当前请求的上下文信息
      */
     @Override
-    public void deleteTeacherPreferences(String preferenceUuid) {
-        if (!teacherPreferencesDAO.deleteTeacherPreferences(preferenceUuid)) {
+    public void deleteTeacherPreferences(String preferenceUuid, HttpServletRequest request) {
+        TeacherPreferencesDO getPreference = Optional.ofNullable(teacherPreferencesDAO.getTeacherPreferencesByUuid(preferenceUuid))
+                .orElseThrow(() -> new BusinessException("教师课程偏好不存在", ErrorCode.NOT_EXIST));
+
+        UserDO getUser = userService.getUserByRequest(request);
+        if (getUser == null) {
+            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_LOGIN, request);
+        }
+
+        TeacherDO getTeacher = teacherDAO.getTeacherByUserUuid(getUser.getUserUuid());
+
+        Optional.ofNullable(getPreference.getTeacherUuid())
+                .filter(teacherUuid -> !teacherUuid.equals(getTeacher.getTeacherUuid()))
+                .ifPresent(teacherUuid -> {
+                    throw new BusinessException("教师课程偏好不属于当前用户", ErrorCode.NOT_EXIST);
+                });
+
+        if (!teacherPreferencesDAO.deleteTeacherPreference(getPreference)) {
             throw new BusinessException("删除教师课程偏好失败", ErrorCode.SERVER_INTERNAL_ERROR);
         }
     }

@@ -78,6 +78,9 @@ public class StringConstant {
     public static final String STUDENT_SAVE_FAILED = "学生信息保存失败";
     public static final String REQUEST_LOG_CACHE = "request:log:cache";
     public static final String OPERATE_SUCCESS = "操作成功";
+    public static final String TABLES_CHAIRS_NOT_EXIST = "桌椅类型不存在";
+    public static final String TABLES_CHAIRS_NAME_EXISTS = "桌椅类型名称已存在";
+    public static final String TABLES_CHAIRS_UUID_FORMAT_ERROR = "桌椅类型UUID格式不正确";
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -106,7 +109,7 @@ public class StringConstant {
         public static final String TEACHER_UUID = "tea:uuid:";
         public static final String TEACHER_USER_UUID = "tea:user:uuid:";
         public static final String TEACHER_PREFERENCES_UUID = "tea:pref:uuid:";
-        public static final String TEACHER_PREFERENCES_LIST = "tea:pref:list";
+        public static final String TEACHER_PREFERENCES_LIST = "tea:pref:list:";
         public static final String TEACHER_PREFERENCES_PAGE = "tea:pref:page:";
         public static final String TEACHER_PREFERENCES_TEACHER = "tea:pref:teacher:";
         public static final String TEACHER_PREFERENCES_SEMESTER = "tea:pref:semester:";
@@ -134,7 +137,10 @@ public class StringConstant {
         public static final String CLASSROOM_UUID = "classroom:uuid:";
         public static final String CLASSROOM_NUMBER = "classroom:number:";
         public static final String CLASSROOM_STATUS = "classroom:status:";
-        public static final String TABLES_CHAIRS_UUID = "tc:uuid:";
+        public static final String TABLES_CHAIRS_UUID = "tc:type:uuid:";
+        public static final String TABLES_CHAIRS_NAME = "tc:type:name:";
+        public static final String TABLES_CHAIRS_LIST = "tc:type:list";
+        public static final String TABLES_CHAIRS_PAGE = "tc:type:page:";
         public static final String ROLE_LIST = "role:list";
         public static final String ADMINISTRATIVE_CLASS_UUID = "administrative:class:uuid:";
         public static final String GRADE_UUID = "grade:uuid:";
@@ -270,5 +276,12 @@ public class StringConstant {
         public static final String COURSE_UUID_FORMAT_ERROR = "课程UUID格式错误";
         public static final String TEACHER_UUID_FORMAT_ERROR = "教师UUID格式错误";
         public static final String PAGE_SIZE_TOO_LARGE = "单页查询不允许超过 200";
+        public static final String TABLES_CHAIRS_TYPE_UUID_FORMAT_ERROR = "桌椅类型UUID格式错误";
+        public static final String TABLES_CHAIRS_TYPE_NOT_FOUND = "桌椅类型不存在";
+        public static final String TABLES_CHAIRS_TYPE_NAME_EXISTS = "桌椅类型名称已存在";
+
+        private ErrorMessage() {
+            log.error("ErrorMessage 不能被实例化");
+        }
     }
 }

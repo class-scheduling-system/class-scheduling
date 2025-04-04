@@ -26,38 +26,50 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.configs.apps;
 
+import com.frontleaves.scheduling.daos.TokenDAO;
+import com.frontleaves.scheduling.services.AiService;
+import com.frontleaves.scheduling.ws.AiFrontWebSocketComponent;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
 
 /**
- * 提供日志记录中使用的常量字符串，旨在统一和标准化日志输出的前缀。
- * 包含服务、控制器、数据访问层、工具类、异常、不同日志级别等标识，
- * 便于日志分析和系统维护时快速识别日志来源与重要性。
+ * WebSocket 初始化配置类
+ * <p>
+ * 该类用于初始化 WebSocket 组件，设置用户服务和令牌数据访问对象。
+ * </p>
  *
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
- * @author xiao_lfeng
  */
 @Slf4j
-public class LogConstant {
-    public static final String SERVICE = "[SERV] ";
-    public static final String CONTROLLER = "[CTRL] ";
-    public static final String DAO = "[DAO] ";
-    public static final String UTIL = "[UTIL] ";
-    public static final String EXCEPTION = "[EXCP] ";
-    public static final String INFO = "[INFO] ";
-    public static final String WARN = "[WARN] ";
-    public static final String ERROR = "[ERRO] ";
-    public static final String DEBUG = "[DEBG] ";
-    public static final String TRACE = "[TRAC] ";
-    public static final String ASPECT = "[ASPT] ";
-    public static final String TEST = "[TEST] ";
-    public static final String WS = "[WS] ";
-    public static final String THREAD = "[THRD] ";
+@Order(2)
+@Configuration
+@EnableWebSocket
+@RequiredArgsConstructor
+public class WebSocketInitConfig {
+    private final TokenDAO tokenDAO;
+    private final AiService aiService;
 
-
-    private LogConstant() {
-        log.error("LogConstant 不能被实例化");
+    /**
+     * 创建 WebSocket 组件
+     * <p>
+     * 创建一个新的 {@link AiFrontWebSocketComponent} 实例，并设置用户服务和令牌数据访问对象。
+     * </p>
+     *
+     * @return {@link AiFrontWebSocketComponent} 实例
+     */
+    @Bean
+    public AiFrontWebSocketComponent webSocketComponent() {
+        AiFrontWebSocketComponent webSocket = new AiFrontWebSocketComponent();
+        AiFrontWebSocketComponent.setTokenDAO(tokenDAO);
+        AiFrontWebSocketComponent.setAiService(aiService);
+        return webSocket;
     }
 }

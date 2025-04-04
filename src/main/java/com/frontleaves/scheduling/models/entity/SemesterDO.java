@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.sql.Date;
 import java.sql.Timestamp;
 
 /**
@@ -41,17 +40,11 @@ public class SemesterDO {
     @TableField("description")
     private String description;
 
-    /**
-     * 学期开始日期
-     */
     @TableField("start_date")
-    private Date startDate;
+    private Timestamp startDate;
 
-    /**
-     * 学期结束日期
-     */
     @TableField("end_date")
-    private Date endDate;
+    private Timestamp endDate;
 
     /**
      * 是否当前学期

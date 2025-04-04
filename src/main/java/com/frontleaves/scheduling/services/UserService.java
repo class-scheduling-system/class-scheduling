@@ -38,6 +38,7 @@ import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 用户服务接口，定义了与用户相关的操作方法。
@@ -178,4 +179,13 @@ boolean checkAddUser(
             Integer size);
 
     void checkUserExist(String username, String email, String phone) throws BusinessException;
+
+    /**
+     * 获取用户信息
+     *
+     * @param userUuid 用户唯一标识符
+     * @return 用户信息数据传输对象
+     */
+    @Nullable
+    UserDO getUserByUuid(String userUuid);
 }

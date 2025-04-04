@@ -56,6 +56,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -545,5 +546,23 @@ public class UserLogic implements UserService {
         if (userDAO.getUserByTel(phone) != null) {
             throw new BusinessException("手机号已存在", ErrorCode.BODY_ERROR);
         }
+    }
+
+    /**
+     * 获取用户信息
+     *
+     * @param userUuid 用户唯一标识符
+     * @return 用户信息数据传输对象
+     */
+    @Override
+    public @Nullable UserDO getUserByUuid(String userUuid) {
+        if (userUuid == null || userUuid.isEmpty()) {
+            throw new BusinessException("丢失用户主键", ErrorCode.PARAMETER_ERROR);
+        }
+        UserDO userDO = userDAO.getUserByUuid(userUuid);
+        if (userDO == null) {
+            throw new BusinessException("用户不存在", ErrorCode.PARAMETER_ERROR);
+        }
+        return userDO;
     }
 }

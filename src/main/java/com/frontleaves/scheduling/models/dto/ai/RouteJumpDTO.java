@@ -26,38 +26,41 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.constants;
+package com.frontleaves.scheduling.models.dto.ai;
 
-import lombok.extern.slf4j.Slf4j;
+import jakarta.annotation.Nullable;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
-/**
- * 提供日志记录中使用的常量字符串，旨在统一和标准化日志输出的前缀。
- * 包含服务、控制器、数据访问层、工具类、异常、不同日志级别等标识，
- * 便于日志分析和系统维护时快速识别日志来源与重要性。
- *
- * @version v1.0.0
- * @since v1.0.0
- * @author xiao_lfeng
- */
-@Slf4j
-public class LogConstant {
-    public static final String SERVICE = "[SERV] ";
-    public static final String CONTROLLER = "[CTRL] ";
-    public static final String DAO = "[DAO] ";
-    public static final String UTIL = "[UTIL] ";
-    public static final String EXCEPTION = "[EXCP] ";
-    public static final String INFO = "[INFO] ";
-    public static final String WARN = "[WARN] ";
-    public static final String ERROR = "[ERRO] ";
-    public static final String DEBUG = "[DEBG] ";
-    public static final String TRACE = "[TRAC] ";
-    public static final String ASPECT = "[ASPT] ";
-    public static final String TEST = "[TEST] ";
-    public static final String WS = "[WS] ";
-    public static final String THREAD = "[THRD] ";
-
-
-    private LogConstant() {
-        log.error("LogConstant 不能被实例化");
-    }
+@Data
+@Accessors(chain = true)
+@AllArgsConstructor
+@NoArgsConstructor
+public class RouteJumpDTO {
+    /**
+     * 目标路由路径
+     */
+    @Nullable
+    private String route;
+    /**
+     * 当前角色
+     */
+    @Nullable
+    private String role;
+    /**
+     * 页面标题
+     */
+    @Nullable
+    private String title;
+    /**
+     * 是否成功
+     */
+    private boolean success;
+    /**
+     * 消息
+     */
+    @Nullable
+    private String message;
 }

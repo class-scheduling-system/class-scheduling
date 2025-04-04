@@ -32,6 +32,7 @@ import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherPreferencesDTO;
 import com.frontleaves.scheduling.models.vo.TeacherPreferencesVO;
 import jakarta.annotation.Nullable;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 
@@ -113,9 +114,10 @@ public interface TeacherPreferencesService {
      *
      * @param preferenceUuid       教师课程偏好的唯一标识符
      * @param teacherPreferencesVO 包含要更新的教师课程偏好信息的视图对象
+     * @param request              请求对象，用于获取当前请求的上下文信息
      * @return 返回更新后的教师课程偏好信息
      */
-    TeacherPreferencesDTO editTeacherPreferences(String preferenceUuid, TeacherPreferencesVO teacherPreferencesVO);
+    TeacherPreferencesDTO editTeacherPreferences(String preferenceUuid, TeacherPreferencesVO teacherPreferencesVO, HttpServletRequest request);
 
     /**
      * 删除教师课程偏好
@@ -125,6 +127,7 @@ public interface TeacherPreferencesService {
      * </p>
      *
      * @param preferenceUuid 教师课程偏好的唯一标识符，用于定位需要删除的具体偏好记录
+     * @param request        请求对象，用于获取当前请求的上下文信息
      */
-    void deleteTeacherPreferences(String preferenceUuid);
+    void deleteTeacherPreferences(String preferenceUuid, HttpServletRequest request);
 }
