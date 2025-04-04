@@ -30,7 +30,7 @@ package com.frontleaves.scheduling.models.dto.scheduling;
 
 import com.frontleaves.scheduling.models.dto.base.DepartmentDTO;
 import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
-import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import enums.StrategyEnum;
 import lombok.Data;
@@ -99,13 +99,15 @@ public class AutomaticClassSchedulingBaseDTO {
      * 在教室资格表中会有相应的教师DTO和教师时间偏好DTO。
      */
     private List<CourseLibraryAndTeacherCourseQualificationListDTO> courseList;
-
-
+    /**
+     * 数据库内的课程安排列表DTO
+     */
+    private List<CourseScheduleDTO> dataCourseScheduleList;
     /**
      * 教室和教室类型列表DTO
      * 包含教室及其类型的详细信息，用于辅助排课决策。
      */
-    private List<ClassroomAndTypeDTO> classroomList;
+    private List<ClassroomInfoDTO> classroomList;
 
     @Data
     @Accessors(chain = true)

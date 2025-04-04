@@ -4,7 +4,7 @@ import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
-import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import enums.CourseEnuType;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -83,7 +83,7 @@ public class ScheduleResultDTO {
         /**
          * 教室信息
          */
-        private ClassroomAndTypeDTO classroom;
+        private ClassroomInfoDTO classroom;
 
         /**
          * 班级分组信息

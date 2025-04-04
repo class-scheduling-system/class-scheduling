@@ -3,7 +3,7 @@ package com.frontleaves.scheduling.models.dto.scheduling;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
-import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import enums.CourseEnuType;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -52,7 +52,7 @@ public class CourseScheduleItemDTO {
      * 教室信息需要与课程要求相匹配，以满足教学需求。
      * </p>
      */
-    private final ClassroomAndTypeDTO classroom;
+    private final ClassroomInfoDTO classroom;
     /**
      * 班级分组信息
      * <p>
@@ -87,7 +87,7 @@ public class CourseScheduleItemDTO {
      * @param priority  课程优先级
      */
     public CourseScheduleItemDTO(CourseLibraryDTO course, TeacherCoursePreferencesDTO teacher,
-                                 ClassroomAndTypeDTO classroom, List<AdministrativeClassDTO> classGroup,CourseEnuType courseEnuType, Short priority) {
+                                 ClassroomInfoDTO classroom, List<AdministrativeClassDTO> classGroup,CourseEnuType courseEnuType, Short priority) {
         this.course = course;
         this.teacher = teacher;
         this.classroom = classroom;

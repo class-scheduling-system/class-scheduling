@@ -28,19 +28,25 @@
 
 package com.frontleaves.scheduling.thread;
 
+import cn.hutool.json.JSONUtil;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.logic.SchedulingLogic;
 import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.*;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseTypePriorityDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.CourseScheduleDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.CourseScheduleItemDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.TimeSlotDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.*;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import enums.CourseEnuType;
@@ -93,6 +99,10 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     @Resource
     private ClassAssignmentService  classAssignmentService;
     @Resource
+    private TeacherService teacherService;
+    @Resource
+    private AdministrativeClassService administrativeClassService;
+    @Resource
     private RedissonClient redisson;
     private HttpServletRequest request;
     private AutomaticClassSchedulingVO classSchedulingVO;
@@ -135,7 +145,6 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                         );
                 log.debug("检查课程学分是否能够修满");
                 this.fillSpecificCourseInfo(classSchedulingVO.getScopeSettings().getSpecificCourseIds(), libraryAndClassDTOList);
-                log.debug("计算完成的课程库和班级数据: {}", libraryAndClassDTOList);
                 log.debug(LogConstant.THREAD + "获取老师所有数据");
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList = teacherCourseQualificationService
                         .getCourseLibraryAndTeacherCourseQualificationList(
@@ -216,7 +225,26 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 List<ClassAssignmentDTO> classAssignmentDTOList =
                         classAssignmentService.getClassAssignmentListByLimit(automaticClassSchedulingBaseDTO);
                 //将数据库内排课数据转换成baseDTO
-                log.debug("转换排课数据");
+                log.debug("准备数据库内排课数据");
+                List<CourseScheduleDTO> courseScheduleDTOList = new ArrayList<>();
+                for (ClassAssignmentDTO classAssignment : classAssignmentDTOList){
+                    CourseScheduleDTO courseScheduleDTO = new CourseScheduleDTO();
+                    //设置课程安排项
+                    CourseScheduleItemDTO courseScheduleItemDTO = this.prepareTheCourseSchedule(classAssignment);
+                    Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments = new HashMap<>();
+                    // 解析classTime JSON字符串
+                    String classTime = classAssignment.getClassTime();
+                    if (classTime != null && !classTime.isEmpty()) {
+                        try {
+                            // 使用JSONUtil解析JSON字符串
+                            List<TimeSlotDTO> timeSlots = JSONUtil.toList(classTime, TimeSlotDTO.class);
+                            // 设置到map的key
+                            assignments.put(timeSlots, courseScheduleItemDTO);
+                        } catch (Exception e) {
+                            log.error("解析classTime失败: {}", classTime, e);
+                        }
+                    }
+                }
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
                 cacheBaseData.set(automaticClassSchedulingBaseDTO);
                 automaticThread.startUp(userDO);
@@ -233,7 +261,20 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         log.debug(LogConstant.THREAD + "线程结束运行");
     }
 
+    private CourseScheduleItemDTO prepareTheCourseSchedule(@NotNull ClassAssignmentDTO classAssignment) {
+        CourseLibraryDTO courseLibraryDTO = courseLibraryService.getCourseByUuid(classAssignment.getCourseUuid());
+        TeacherDTO teacherDTO = teacherService.getTeacher(classAssignment.getTeacherUuid());
+        ClassroomInfoDTO classroomDTO = classroomService.getClassroomByUuid(classAssignment.getClassroomUuid());
+        List<String> classUuid = ProjectUtil.parseUuidsFromClassGroup(classAssignment.getClassTime());
+        List<AdministrativeClassDTO> administrativeClassDTOList = new ArrayList<>();
+        for (String uuid : classUuid) {
+            administrativeClassDTOList.add(administrativeClassService.getClassByUuid(uuid));
+        }
+        //查询学时
 
+        CourseScheduleItemDTO scheduleItem = new CourseScheduleItemDTO(
+                courseLibraryDTO,teacherDTO,classroomDTO,administrativeClassDTOList);
+    }
 
 
     /**

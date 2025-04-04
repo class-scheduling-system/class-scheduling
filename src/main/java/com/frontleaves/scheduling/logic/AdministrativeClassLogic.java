@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.logic;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.AdministrativeClassDAO;
 import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
@@ -102,6 +103,16 @@ public class AdministrativeClassLogic implements AdministrativeClassService {
         }
         return List.of();
     }
+
+    @Override
+    public AdministrativeClassDTO getClassByUuid(String uuid) {
+        AdministrativeClassDO administrativeClassDO = administrativeClassDAO.getAdministrativeClassByUuid(uuid);
+        if (administrativeClassDO == null) {
+            throw new BusinessException("获取班级用户名时，行政班级信息不存在", ErrorCode.NOT_EXIST);
+        }
+        return BeanUtil.toBean(administrativeClassDO, AdministrativeClassDTO.class);
+    }
+
     /**
      * 验证给定的字符串是否符合 UUID 的正则表达式格式
      * 此方法使用正则表达式来检查字符串的格式是否与 UUID 标准匹配

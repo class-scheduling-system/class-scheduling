@@ -182,11 +182,11 @@ public class CourseLibraryLogic implements CourseLibraryService {
      * @throws BusinessException 如果课程不存在，则抛出此异常
      */
     @Override
-    public @NotNull CourseLibraryDO getCourseByUuid(String courseUuid) {
+    public @NotNull CourseLibraryDTO getCourseByUuid(String courseUuid) {
         CourseLibraryDO courseLibraryDO = courseLibraryDAO.getCourseByUuid(courseUuid);
         if (courseLibraryDO == null) {
             throw new BusinessException("课程不存在", ErrorCode.NOT_EXIST);
         }
-        return courseLibraryDO;
+        return BeanUtil.toBean(courseLibraryDO, CourseLibraryDTO.class);
     }
 }

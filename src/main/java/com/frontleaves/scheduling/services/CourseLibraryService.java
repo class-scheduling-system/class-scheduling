@@ -2,7 +2,6 @@ package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
-import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import jakarta.validation.constraints.NotBlank;
 import org.jetbrains.annotations.NotNull;
@@ -45,6 +44,6 @@ public interface CourseLibraryService {
      * @return 课程库信息
      */
    @NotNull
-    CourseLibraryDO getCourseByUuid(@NotBlank String courseUuid);
+    CourseLibraryDTO getCourseByUuid(@NotBlank String courseUuid);
 
 }
