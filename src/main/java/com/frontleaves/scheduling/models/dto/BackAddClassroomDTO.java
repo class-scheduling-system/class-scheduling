@@ -26,62 +26,72 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.services;
+package com.frontleaves.scheduling.models.dto;
 
-import com.frontleaves.scheduling.models.entity.UserDO;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import lombok.Data;
+import lombok.experimental.Accessors;
+
+import java.util.List;
 
 /**
- * AI 服务接口
+ * 批量添加教室返回DTO
  * <p>
- * 该接口用于定义与 AI 相关的服务方法。
+ * 该类用于封装批量导入教室信息的结果，包含总记录数、成功数量、失败数量以及失败详情。
+ * 当批量导入过程中出现错误时，failedDetails字段将包含详细的错误信息。
  * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
-public interface AiService {
+@Data
+@Accessors(chain = true)
+public class BackAddClassroomDTO {
 
     /**
-     * 发送路由跳转
-     * <p>
-     * 该方法用于处理路由跳转请求。
-     * </p>
-     *
-     * @param userInput 用户输入的路由路径
-     * @param role      用户角色
-     * @param form      表单数据
-     * @param otherData 其他数据
-     * @param record    记录数据
-     * @param thisPage  当前页面
-     * @param chat      聊天记录
-     * @param user      用户对象
-     * @param userAgent 用户代理信息
+     * 总记录数
      */
-    void sendRouteJump(
-            @NotNull String userInput,
-            @Nullable String role,
-            @Nullable String form,
-            @Nullable String otherData,
-            @Nullable String record,
-            @Nullable String thisPage,
-            @Nullable String chat,
-            @NotNull UserDO user,
-            @NotNull String userAgent
-    );
+    private Integer totalCount;
 
     /**
-     * 发送 AI 聊天消息
-     * <p>
-     * 该方法用于处理 AI 聊天消息请求。
-     * </p>
-     *
-     * @param userInput      用户输入的消息
-     * @param chat          聊天记录
-     * @param user          用户对象
-     * @param userAgent     用户代理信息
+     * 成功数量
      */
-    void sendAiChat(String userInput, String chat, UserDO user, String userAgent);
-}
+    private Integer successCount;
+
+    /**
+     * 失败数量
+     */
+    private Integer failedCount;
+
+    /**
+     * 失败详情列表
+     */
+    private List<FailedDetail> failedDetails;
+
+    /**
+     * 失败详情内部类
+     * <p>
+     * 用于记录每条失败记录的详细信息，包括行号和失败原因。
+     * </p>
+     */
+    @Data
+    @Accessors(chain = true)
+    public static class FailedDetail {
+        
+        /**
+         * 行号
+         * <p>
+         * 表示在Excel文件中的行号，便于用户定位问题。
+         * </p>
+         */
+        private Integer row;
+        
+        /**
+         * 失败原因
+         * <p>
+         * 详细描述导入失败的原因，如数据格式错误、必填字段缺失等。
+         * </p>
+         */
+        private String reason;
+    }
+} 

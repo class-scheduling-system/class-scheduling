@@ -26,30 +26,39 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto.base;
+package com.frontleaves.scheduling.models.entity.base;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
-import java.util.List;
-import java.util.Map;
 
 /**
- * 教学班数据传输对象
- * @author FLASHLACK
+ * 教学班表实体类
+ * <p>
+ * 对应数据库表：`cs_teaching_class`
+ * 主键为 teaching_class_uuid，类型为 UUID 自动生成。
+ * </p>
  *
  * @author xiaolfeng
  * @version v1.0.0
  * @since v1.0.0
  */
+@TableName(value = "cs_teaching_class")
 @Data
 @Accessors(chain = true)
-public class TeachingClassDTO {
-
+@NoArgsConstructor
+@AllArgsConstructor
+public class TeachingClassDO {
     /**
      * 教学班主键
      */
+    @TableId(value = "teaching_class_uuid", type = IdType.ASSIGN_UUID)
     private String teachingClassUuid;
 
     /**
@@ -58,19 +67,9 @@ public class TeachingClassDTO {
     private String semesterUuid;
 
     /**
-     * 学期名称（非数据库字段，用于前端展示）
-     */
-    private String semesterName;
-
-    /**
      * 课程主键
      */
     private String courseUuid;
-
-    /**
-     * 课程名称（非数据库字段，用于前端展示）
-     */
-    private String courseName;
 
     /**
      * 教学班编号
@@ -83,26 +82,12 @@ public class TeachingClassDTO {
     private String teachingClassName;
 
     /**
-     * 包含的行政班级(包含班级UUID和课程性质[必修/选修])
-     * 用于JSON序列化/反序列化
-     * 包含的行政班级(包含班级UUID)
+     * 包含的行政班级(包含班级UUID和课程性质[必修/选修])，JSON格式
      */
     private String administrativeClasses;
 
     /**
-     * 行政班级列表（非数据库字段，用于前端展示）
-     * 包含行政班UUID和课程性质
-     */
-    private List<Map<String, Object>> administrativeClassList;
-
-    /**
-     * 行政班级名称列表（非数据库字段，用于前端展示）
-     */
-    private List<String> administrativeClassNames;
-
-    /**
      * 如果是必修课则该字段为true，否则为false
-     * 如果是必修课（区分必修和选修，选修不包含行政班）则该字段为true，否则为false
      */
     private Boolean isAdministrative;
 
@@ -120,11 +105,6 @@ public class TeachingClassDTO {
      * 开课院系
      */
     private String courseDepartmentUuid;
-
-    /**
-     * 开课院系名称（非数据库字段，用于前端展示）
-     */
-    private String courseDepartmentName;
 
     /**
      * 教学班描述

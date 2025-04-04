@@ -123,6 +123,7 @@ public class StringConstant {
         public static final String CAMPUS_CODE = "campus:code:";
         public static final String MAJOR_UUID = "major:uuid:";
         public static final String CAMPUS_LIST = "campus:list";
+        public static final String CAMPUS_FULL_LIST = "campus:full:list";
         public static final String CAMPUS_PAGE_OF_LIST = "campus:page:";
         public static final String DEPARTMENT_UUID = "department:uuid:";
         public static final String DEPARTMENT_LIST = "department:list";
@@ -186,6 +187,7 @@ public class StringConstant {
         public static final String CREDIT_HOUR_TYPE_UUID = "credit:hour:type:uuid:";
         public static final String TEACHING_CLASS_LIST_SEMESTER = "teaching:class:list:semester:";
         public static final String CLASS_ASSIGNMENT_LIST_SEMESTER = "class:assignment:list:semester:";
+        public static final String CLASSROOM_LIST = "classroom:list";
 
         private Redis() {
             log.error("Redis 不能被实例化");

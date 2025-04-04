@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -26,22 +26,38 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.mappers;
+package com.frontleaves.scheduling.models.dto;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.TeachingClassDO;
-import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
-import org.apache.ibatis.annotations.Mapper;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 /**
- * 教学班数据访问对象
- * @author FLASHLACK
- * 教学班Mapper
+ * 文件传输对象
+ * <p>
+ * 该类用于封装文件的基本信息，包括文件名、文件类型和文件数据。
+ * </p>
  *
- * @author xiaolfeng
  * @version v1.0.0
  * @since v1.0.0
+ * @author xiao_lfeng
  */
-@Mapper
-public interface TeachingClassMapper extends BaseMapper<TeachingClassDO> {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+public class FileDTO {
+    /**
+     * 文件名
+     */
+    private String name;
+    /**
+     * 文件类型
+     */
+    private String type;
+    /**
+     * 文件数据
+     */
+    private String data;
 }

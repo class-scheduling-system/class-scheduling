@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -32,6 +32,7 @@ import com.frontleaves.scheduling.models.dto.base.CampusDTO;
 import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.vo.BatchAddCampusVO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import jakarta.annotation.Nullable;
 
@@ -147,4 +148,46 @@ public interface CampusService {
      */
     List<ListOfCampusDTO> getCampusList();
 
+    /**
+     * 获取校区导入模板的字节数组
+     * <p>
+     * 该方法生成用于批量导入校区信息的Excel模板，返回包含模板数据的字节数组。
+     * </p>
+     *
+     * @return 包含校区导入模板的字节数组
+     */
+    byte[] getCampusImportTemplate();
+
+    /**
+     * 验证批量导入校区数据并返回处理后的文件
+     * <p>
+     * 该方法用于验证通过Base64编码传入的Excel文件，确保其格式正确并且可以用于校区信息的批量导入。
+     * </p>
+     *
+     * @param batchAddCampusVO 包含Excel文件的Base64编码和导入设置的对象
+     * @return 处理后的Excel文件字节数组
+     */
+    byte[] verifyCampusBatchAndBackFile(BatchAddCampusVO batchAddCampusVO);
+
+    /**
+     * 批量导入校区信息，忽略错误
+     * <p>
+     * 该方法用于批量导入校区信息，当遇到数据错误时会继续处理其他数据，并记录错误信息。
+     * </p>
+     *
+     * @param file Excel文件的字节数组
+     * @return 包含导入结果统计和错误详情的对象
+     */
+    BackAddCampusDTO batchImportIgnoreError(byte[] file);
+
+    /**
+     * 批量导入校区信息，不忽略错误
+     * <p>
+     * 该方法用于批量导入校区信息，当遇到任何数据错误时会立即停止导入并抛出异常。
+     * </p>
+     *
+     * @param file Excel文件的字节数组
+     * @return 包含导入结果统计的对象
+     */
+    BackAddCampusDTO batchImportNoIgnoreError(byte[] file);
 }

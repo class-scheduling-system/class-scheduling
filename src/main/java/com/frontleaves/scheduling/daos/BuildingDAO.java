@@ -425,4 +425,20 @@ public class BuildingDAO extends ServiceImpl<BuildingMapper, BuildingDO> {
         // 默认错误信息
         return "数据错误：可能包含空值、超出长度限制或不符合外键约束";
     }
+
+    /**
+     * 删除所有教学楼缓存数据
+     * <p>
+     * 该方法用于删除 Redis 中所有与教学楼相关的缓存数据，包括教学楼列表、教学楼 UUID、名称和校区等信息。
+     * </p>
+     */
+    public void deleteBuildingCache() {
+        RKeys keys = redisson.getKeys();
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_LIST + "*");
+        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_PAGE + "*");
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_UUID + "*");
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_NAME + "*");
+        keys.deleteByPattern(StringConstant.Redis.BUILDING_CAMPUS + "*");
+        log.debug(LogConstant.DAO + "删除教学楼缓存数据成功");
+    }
 }

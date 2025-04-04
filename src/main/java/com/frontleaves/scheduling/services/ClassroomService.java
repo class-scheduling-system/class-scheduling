@@ -35,6 +35,8 @@ import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomLiteDTO;
+import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.vo.BatchAddClassroomVO;
 import com.frontleaves.scheduling.models.vo.ClassroomVO;
 import jakarta.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
@@ -200,4 +202,48 @@ public interface ClassroomService {
      */
     @NotNull
     List<ClassroomAndTypeDTO> getClassroomAndTypeByUuidWihError(String buildingUuid);
+
+    /**
+     * 获取教室导入模板的字节数组
+     * <p>
+     * 该方法生成用于批量导入教室信息的Excel模板，返回包含模板数据的字节数组。
+     * 模板包含必填字段、可选字段的说明以及示例数据。
+     * </p>
+     *
+     * @return 包含教室导入模板的字节数组
+     */
+    byte[] getClassroomImportTemplate();
+
+    /**
+     * 验证批量导入教室数据并返回处理后的文件
+     * <p>
+     * 该方法用于验证通过Base64编码传入的Excel文件，确保其格式正确并且可以用于教室信息的批量导入。
+     * </p>
+     *
+     * @param batchAddClassroomVO 包含Excel文件的Base64编码和导入设置的对象
+     * @return 处理后的Excel文件字节数组
+     */
+    byte[] verifyClassroomBatchAndBackFile(BatchAddClassroomVO batchAddClassroomVO);
+
+    /**
+     * 批量导入教室信息，不忽略错误
+     * <p>
+     * 该方法用于批量导入教室信息，当遇到任何数据错误时会立即停止导入并抛出异常。
+     * </p>
+     *
+     * @param file Excel文件的字节数组
+     * @return 包含导入结果统计的对象
+     */
+    BackAddClassroomDTO batchImportNoIgnoreError(byte[] file);
+
+    /**
+     * 批量导入教室信息，忽略错误
+     * <p>
+     * 该方法用于批量导入教室信息，当遇到数据错误时会继续处理其他数据，并记录错误信息。
+     * </p>
+     *
+     * @param file Excel文件的字节数组
+     * @return 包含导入结果统计和错误详情的对象
+     */
+    BackAddClassroomDTO batchImportIgnoreError(byte[] file);
 }

@@ -146,5 +146,62 @@ public class CampusController {
         return ResultUtil.success("获取校区列表成功", campusList);
     }
 
+    /**
+     * 获取校区导入模板
+     * <p>
+     * 该方法用于提供校区批量导入的Excel模板文件，以Base64编码的形式返回。
+     * 此接口仅限拥有"管理员"角色的用户访问。
+     * </p>
+     *
+     * @return 包含Excel模板文件Base64编码的响应实体
+     */
+    @RequestRole({"管理员"})
+    @GetMapping("/get-template")
+    public ResponseEntity<BaseResponse<FileDTO>> getCampusImportTemplate() {
+        // 获取校区导入模板的字节数组
+        byte[] bytes = campusService.getCampusImportTemplate();
 
+        // 将字节数组转换为Base64编码字符串
+        FileDTO fileDTO = new FileDTO(
+                "校区导入模板.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + Base64.getEncoder().encodeToString(bytes)
+        );
+
+        return ResultUtil.success("获取校区导入模板成功", fileDTO);
+    }
+
+    /**
+     * 批量导入校区信息
+     * <p>
+     * 该方法用于批量导入校区信息，支持忽略错误的选项。
+     * 只有具有"管理员"角色的用户才能访问此方法。
+     * </p>
+     *
+     * @param batchAddCampusVO 批量添加校区的信息对象
+     * @return 返回一个包含操作结果的响应实体对象
+     */
+    @RequestRole({"管理员"})
+    @PostMapping("/batch-import")
+    public ResponseEntity<BaseResponse<BackAddCampusDTO>> batchImportCampus(
+            @RequestBody @Validated BatchAddCampusVO batchAddCampusVO
+    ) {
+        // 验证批量导入校区数据并返回处理后的文件
+        byte[] file = campusService.verifyCampusBatchAndBackFile(batchAddCampusVO);
+
+        // 根据是否忽略错误选择相应的导入方法
+        BackAddCampusDTO backAddCampusDTO = Optional.ofNullable(batchAddCampusVO.getIgnoreError())
+                .filter(Boolean.TRUE::equals)
+                .map(ignoreError -> campusService.batchImportIgnoreError(file))
+                .orElseGet(() -> campusService.batchImportNoIgnoreError(file));
+
+        // 检查是否有校区导入失败
+        if (backAddCampusDTO.getFailedCount() > 0) {
+            // 如果有校区导入失败，返回带有错误信息的响应
+            return ResultUtil.success("存在添加失败的校区", backAddCampusDTO);
+        }
+
+        // 如果所有校区都成功导入，返回批量添加校区成功的响应
+        return ResultUtil.success("批量添加校区成功", backAddCampusDTO);
+    }
 }

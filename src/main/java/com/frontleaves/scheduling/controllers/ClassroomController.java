@@ -290,4 +290,62 @@ public class ClassroomController {
                                 .orElseThrow(() -> new BusinessException("教室标签不存在", ErrorCode.NOT_EXIST))
                         ));
     }
+
+    /**
+     * 获取教室导入模板
+     * <p>
+     * 该方法用于获取教室批量导入的Excel模板文件。模板包含必填字段、示例数据以及注意事项，
+     * 用户可以根据模板格式正确填写数据，然后通过批量导入接口上传。
+     * </p>
+     *
+     * @return 包含Base64编码的模板文件数据和文件信息的响应实体
+     */
+    @RequestRole({"管理员"})
+    @GetMapping("/get-template")
+    public ResponseEntity<BaseResponse<FileDTO>> getClassroomImportTemplate() {
+        byte[] templateBytes = classroomService.getClassroomImportTemplate();
+
+        // 将字节数组转换为Base64编码字符串
+        FileDTO fileDTO = new FileDTO(
+                "教室导入模板.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," +
+                        java.util.Base64.getEncoder().encodeToString(templateBytes)
+        );
+
+        return ResultUtil.success("获取教室导入模板成功", fileDTO);
+    }
+
+    /**
+     * 批量导入教室信息
+     * <p>
+     * 该方法用于批量导入教室信息，支持忽略错误的选项。
+     * 当ignoreError为true时，遇到错误数据会跳过继续导入其他数据，并记录错误信息。
+     * 当ignoreError为false时，遇到任何错误都会立即终止导入过程。
+     * </p>
+     *
+     * @param batchAddClassroomVO 包含Excel文件Base64编码和导入选项的请求对象
+     * @return 包含导入结果统计信息的响应实体
+     */
+    @RequestRole({"管理员"})
+    @PostMapping("/batch-import")
+    public ResponseEntity<BaseResponse<BackAddClassroomDTO>> batchImportClassrooms(
+            @RequestBody @Validated BatchAddClassroomVO batchAddClassroomVO
+    ) {
+        // 验证并获取处理后的文件
+        byte[] file = classroomService.verifyClassroomBatchAndBackFile(batchAddClassroomVO);
+
+        // 根据ignoreError参数决定导入方式
+        BackAddClassroomDTO result = Optional.ofNullable(batchAddClassroomVO.getIgnoreError())
+                .filter(Boolean.TRUE::equals)
+                .map(ignoreError -> classroomService.batchImportIgnoreError(file))
+                .orElseGet(() -> classroomService.batchImportNoIgnoreError(file));
+
+        // 检查是否有教室导入失败
+        if (result.getFailedCount() > 0) {
+            return ResultUtil.success("存在添加失败的教室", result);
+        }
+
+        return ResultUtil.success("批量添加教室成功", result);
+    }
 }

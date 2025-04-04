@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -111,5 +111,26 @@ public class ClassroomTypeDAO extends ServiceImpl<ClassroomTypeMapper, Classroom
             return BeanUtil.toBean(map, ClassroomTypeDO.class, ProjectOption.stringBlankToNull());
         }
         return null;
+    }
+
+    /**
+     * 根据类型名称获取类型实体
+     * <p>
+     * 该方法用于通过教室类型名称查询对应的类型实体。如果缓存中存在，则直接从缓存获取；
+     * 否则从数据库中查询，并将结果缓存。这对于批量导入操作中的类型匹配特别有用。
+     * </p>
+     *
+     * @param name 类型名称
+     * @return 返回与指定名称匹配的类型实体对象，如果不存在则返回null
+     */
+    @Nullable
+    public ClassroomTypeDO getTypeByName(String name) {
+        // 先从缓存中获取所有类型
+        List<ClassroomTypeDO> allTypes = getTypes();
+        // 在列表中查找匹配名称的类型
+        return allTypes.stream()
+                .filter(type -> type.getName().equals(name))
+                .findFirst()
+                .orElse(null);
     }
 }

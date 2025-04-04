@@ -26,31 +26,40 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto.base;
+package com.frontleaves.scheduling.models.entity.base;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.List;
-import java.util.Map;
 
 /**
- * 教学班数据传输对象
- * @author FLASHLACK
+ * 排课分配实体类
+ * <p>
+ * 对应数据库表：`cs_class_assignment`
+ * 本类用于封装排课分配的详细信息，主键为 class_assignment_uuid，采用 UUID 自动生成。
+ * </p>
  *
  * @author xiaolfeng
  * @version v1.0.0
  * @since v1.0.0
  */
 @Data
+@TableName("cs_class_assignment")
+@NoArgsConstructor
 @Accessors(chain = true)
-public class TeachingClassDTO {
+public class ClassAssignmentDO {
 
     /**
-     * 教学班主键
+     * 排课主键，采用 UUID 自动生成
      */
-    private String teachingClassUuid;
+    @TableId(value = "class_assignment_uuid", type = IdType.ASSIGN_UUID)
+    private String classAssignmentUuid;
 
     /**
      * 学期主键
@@ -58,83 +67,84 @@ public class TeachingClassDTO {
     private String semesterUuid;
 
     /**
-     * 学期名称（非数据库字段，用于前端展示）
-     */
-    private String semesterName;
-
-    /**
      * 课程主键
      */
     private String courseUuid;
 
     /**
-     * 课程名称（非数据库字段，用于前端展示）
+     * 教师主键
      */
-    private String courseName;
+    private String teacherUuid;
 
     /**
-     * 教学班编号
+     * 校区主键
      */
-    private String teachingClassCode;
+    private String campusUuid;
 
     /**
-     * 教学班名称
+     * 教学楼主键
      */
-    private String teachingClassName;
+    private String buildingUuid;
 
     /**
-     * 包含的行政班级(包含班级UUID和课程性质[必修/选修])
-     * 用于JSON序列化/反序列化
-     * 包含的行政班级(包含班级UUID)
+     * 教室主键
      */
-    private String administrativeClasses;
+    private String classroomUuid;
 
     /**
-     * 行政班级列表（非数据库字段，用于前端展示）
-     * 包含行政班UUID和课程性质
+     * 教学班主键
      */
-    private List<Map<String, Object>> administrativeClassList;
+    private String teachingClassUuid;
 
     /**
-     * 行政班级名称列表（非数据库字段，用于前端展示）
+     * 课程归属
      */
-    private List<String> administrativeClassNames;
+    private String courseOwnership;
 
     /**
-     * 如果是必修课则该字段为true，否则为false
-     * 如果是必修课（区分必修和选修，选修不包含行政班）则该字段为true，否则为false
+     * 学时类型
      */
-    private Boolean isAdministrative;
+    private String creditHourType;
 
     /**
-     * 班级规模
+     * 教学学时（指教师实际授课的学时）
      */
-    private Integer classSize;
+    private BigDecimal teachingHours;
 
     /**
-     * 实际学生人数
+     * 排课学时（指课程安排的学时）
      */
-    private Integer actualStudentCount;
+    private BigDecimal scheduledHours;
 
     /**
-     * 开课院系
+     * 总需学时
      */
-    private String courseDepartmentUuid;
+    private BigDecimal totalHours;
 
     /**
-     * 开课院系名称（非数据库字段，用于前端展示）
+     * 排课优先级
      */
-    private String courseDepartmentName;
+    private Integer schedulingPriority;
 
     /**
-     * 教学班描述
+     * 上课时间，JSON格式
      */
-    private String description;
+    private String classTime;
 
     /**
-     * 是否启用(0:禁用,1:启用)
+     * 连堂节数
      */
-    private Boolean isEnabled;
+    private Integer consecutiveSessions;
+
+    /**
+     * 教室类型
+     */
+    private String classroomType;
+
+    /**
+     * 指定时间，JSON格式
+     */
+    private String specifiedTime;
 
     /**
      * 创建时间
