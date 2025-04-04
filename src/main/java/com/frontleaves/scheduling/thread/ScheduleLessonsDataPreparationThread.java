@@ -245,36 +245,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         log.debug(LogConstant.THREAD + "线程结束运行");
     }
 
-    /**
-     * 构建课程时间表列表
-     * 该方法负责将一组班级分配信息转换为课程时间表对象列表每个班级分配信息
-     * 将被转换为一个课程时间表对象，其中包含根据班级分配信息中包含的时间
-     * 信息构建的时间槽和课程安排项的映射
-     * @param classAssignmentDTOList 不为空的班级分配DTO列表，包含班级分配信息
-     * @return 返回一个填充了课程安排信息的课程时间表DTO列表
-     */
-    private @NotNull List<CourseScheduleDTO> buildCourseScheduleList(@NotNull List<ClassAssignmentDTO> classAssignmentDTOList) {
-        List<CourseScheduleDTO> courseScheduleDTOList = new ArrayList<>();
-        for (ClassAssignmentDTO classAssignment : classAssignmentDTOList) {
-            CourseScheduleDTO courseScheduleDTO = new CourseScheduleDTO();
-            CourseScheduleItemDTO courseScheduleItemDTO = this.prepareTheCourseSchedule(classAssignment);
-            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments = new HashMap<>();
-            String classTime = classAssignment.getClassTime();
-            if (classTime != null && !classTime.isEmpty()) {
-                try {
-                    // 使用JSONUtil解析JSON字符串
-                    List<TimeSlotDTO> timeSlots = JSONUtil.toList(classTime, TimeSlotDTO.class);
-                    // 设置到map的key
-                    assignments.put(timeSlots, courseScheduleItemDTO);
-                } catch (Exception e) {
-                    log.error("解析classTime失败: {}", classTime, e);
-                }
-            }
-            courseScheduleDTO.setAssignments(assignments);
-            courseScheduleDTOList.add(courseScheduleDTO);
-        }
-        return courseScheduleDTOList;
-    }
+
 
 
     /**
@@ -573,5 +544,34 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         return classroomAndTypeDTOList;
     }
 
-
+    /**
+     * 构建课程时间表列表
+     * 该方法负责将一组班级分配信息转换为课程时间表对象列表每个班级分配信息
+     * 将被转换为一个课程时间表对象，其中包含根据班级分配信息中包含的时间
+     * 信息构建的时间槽和课程安排项的映射
+     * @param classAssignmentDTOList 不为空的班级分配DTO列表，包含班级分配信息
+     * @return 返回一个填充了课程安排信息的课程时间表DTO列表
+     */
+    private @NotNull List<CourseScheduleDTO> buildCourseScheduleList(@NotNull List<ClassAssignmentDTO> classAssignmentDTOList) {
+        List<CourseScheduleDTO> courseScheduleDTOList = new ArrayList<>();
+        for (ClassAssignmentDTO classAssignment : classAssignmentDTOList) {
+            CourseScheduleDTO courseScheduleDTO = new CourseScheduleDTO();
+            CourseScheduleItemDTO courseScheduleItemDTO = this.prepareTheCourseSchedule(classAssignment);
+            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments = new HashMap<>();
+            String classTime = classAssignment.getClassTime();
+            if (classTime != null && !classTime.isEmpty()) {
+                try {
+                    // 使用JSONUtil解析JSON字符串
+                    List<TimeSlotDTO> timeSlots = JSONUtil.toList(classTime, TimeSlotDTO.class);
+                    // 设置到map的key
+                    assignments.put(timeSlots, courseScheduleItemDTO);
+                } catch (Exception e) {
+                    log.error("解析classTime失败: {}", classTime, e);
+                }
+            }
+            courseScheduleDTO.setAssignments(assignments);
+            courseScheduleDTOList.add(courseScheduleDTO);
+        }
+        return courseScheduleDTOList;
+    }
 }
