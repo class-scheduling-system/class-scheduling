@@ -39,15 +39,14 @@ import com.frontleaves.scheduling.models.dto.base.UserDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.redisson.api.RMap;
 
 import java.io.ByteArrayInputStream;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 项目工具类
@@ -59,6 +58,7 @@ import java.util.Map;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 public class ProjectUtil {
 
     private ProjectUtil() {
@@ -233,6 +233,37 @@ public class ProjectUtil {
             }
         }
         return false;
+    }
+    /**
+     * 从teachingClassComposition中解析UUID列表
+     * 格式为 "class" : [uuid1,uuid2,uuid3....]
+     *
+     * @param classGroup teachingClassComposition字符串
+     * @return UUID列表，解析失败返回空列表
+     */
+    public static List<String> parseUuidsFromClassGroup(String classGroup) {
+        if (classGroup == null || classGroup.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        try {
+            String[] parts = classGroup.split(":");
+            if (parts.length <= 1) {
+                return Collections.emptyList();
+            }
+
+            String uuidsStr = parts[1].trim()
+                    .replace("[", "")
+                    .replace("]", "")
+                    .replace("\"", "");
+
+            return Arrays.stream(uuidsStr.split(","))
+                    .map(String::trim)
+                    .toList();
+        } catch (Exception e) {
+            log.error("解析teachingClassComposition失败: {}", classGroup, e);
+            return Collections.emptyList();
+        }
     }
 
 }

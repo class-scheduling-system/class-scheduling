@@ -282,29 +282,13 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     private void checkClassGroupMatch(@NotNull ClassAssignmentDO classAssignment,
                                       Map<String, Boolean> classUuidsMap,
                                       Map<String, ClassAssignmentDTO> classAssignmentMap) {
-        String classGroup = classAssignment.getTeachingClassComposition();
-        if (classGroup == null || classGroup.isEmpty()) {
-            return;
-        }
-        try {
-            String[] parts = classGroup.split(":");
-            if (parts.length <= 1) {
-                return;
+        List<String> uuids = ProjectUtil.parseUuidsFromClassGroup(classAssignment.getTeachingClassComposition());
+
+        for (String uuid : uuids) {
+            if (classUuidsMap.containsKey(uuid)) {
+                addToAssignmentMap(classAssignment, classAssignmentMap);
+                break;
             }
-            String uuidsStr = parts[1].trim()
-                    .replace("[", "")
-                    .replace("]", "")
-                    .replace("\"", "");
-            String[] uuids = uuidsStr.split(",");
-            for (String uuid : uuids) {
-                uuid = uuid.trim();
-                if (classUuidsMap.containsKey(uuid)) {
-                    addToAssignmentMap(classAssignment, classAssignmentMap);
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            log.error("解析teachingClassComposition失败: {}", classGroup, e);
         }
     }
 }

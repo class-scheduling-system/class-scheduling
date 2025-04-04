@@ -212,9 +212,11 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 timePreferences.setEveningCourses(classSchedulingVO.getTimePreferences().getAvoidEveningCourses())
                         .setBalanceWeekdayCourses(classSchedulingVO.getTimePreferences().getBalanceWeekdayCourses());
                 automaticClassSchedulingBaseDTO.setTimePreferences(timePreferences);
-                // 获取排课表内存在可能冲突的课程排课数据
+                log.debug("获取排课表内存在可能冲突的课程排课数据");
                 List<ClassAssignmentDTO> classAssignmentDTOList =
                         classAssignmentService.getClassAssignmentListByLimit(automaticClassSchedulingBaseDTO);
+                //将数据库内排课数据转换成baseDTO
+                log.debug("转换排课数据");
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
                 cacheBaseData.set(automaticClassSchedulingBaseDTO);
                 automaticThread.startUp(userDO);
