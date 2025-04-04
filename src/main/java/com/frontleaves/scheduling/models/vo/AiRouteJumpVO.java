@@ -33,15 +33,27 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
+/**
+ * AI 路由跳转对象
+ * <p>
+ * 该类用于表示 AI 路由跳转的相关信息，包括目标路由路径和 HTML 内容。
+ * </p>
+ *
+ * @author xiao_lfeng
+ * @version v1.0.0
+ * @since v1.0.0
+ */
 @Getter
+@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 public class AiRouteJumpVO {
     /**
      * 目标路由路径
      */
-    @NotBlank
+    @NotBlank(message = "目标路由路径不能为空")
     private String userInput;
 
     /**

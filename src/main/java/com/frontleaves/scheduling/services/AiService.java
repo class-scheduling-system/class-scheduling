@@ -28,9 +28,9 @@
 
 package com.frontleaves.scheduling.services;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.constraints.NotBlank;
+import com.frontleaves.scheduling.models.entity.UserDO;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * AI 服务接口
@@ -52,7 +52,25 @@ public interface AiService {
      *
      * @param userInput 用户输入的路由路径
      * @param html      HTML 内容
-     * @param request   HTTP 请求对象
+     * @param role      用户角色
+     * @param form      表单数据
+     * @param otherData 其他数据
+     * @param record    记录数据
+     * @param thisPage  当前页面
+     * @param chat      聊天记录
+     * @param user      用户对象
+     * @param userAgent 用户代理信息
      */
-    void sendRouteJump(@NotBlank String userInput, String html, @NotNull HttpServletRequest request);
+    void sendRouteJump(
+            @NotNull String userInput,
+            @Nullable String html,
+            @Nullable String role,
+            @Nullable String form,
+            @Nullable String otherData,
+            @Nullable String record,
+            @Nullable String thisPage,
+            @Nullable String chat,
+            @NotNull UserDO user,
+            @NotNull String userAgent
+    );
 }

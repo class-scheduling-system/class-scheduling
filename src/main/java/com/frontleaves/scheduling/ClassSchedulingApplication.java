@@ -35,8 +35,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import org.springframework.web.socket.config.annotation.EnableWebSocket;
-import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 
 /**
  * 项目启动类
@@ -57,8 +55,6 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
         com.xlf.utility.config.app.MybatisPlusConfiguration.class
 }, value = "com.frontleaves.scheduling")
 @EnableTransactionManagement
-@EnableWebSocket
-@EnableWebSocketMessageBroker
 public class ClassSchedulingApplication {
 
     public static void main(String[] args) {
