@@ -259,7 +259,7 @@ public class BuildingController {
     @GetMapping("/get-template")
     public ResponseEntity<BaseResponse<FileDTO>> getBuildingImportTemplate() {
         // 准备建筑物示例数据，用于生成导入模板
-        List<CampusDTO> prepareBuildingExampleDTO = buildingService.prepareCampusData();
+        List<ListOfCampusDTO> prepareBuildingExampleDTO = buildingService.prepareCampusData();
         // 获取建筑物导入模板的字节数组
         byte[] bytes = buildingService.getBuildingImportTemplate(prepareBuildingExampleDTO);
 

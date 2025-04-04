@@ -377,17 +377,12 @@ public class BuildingLogic implements BuildingService {
      * @return List<CampusDTO> 包含所有转换后的校园数据的传输对象
      */
     @Override
-    public List<CampusDTO> prepareCampusData() {
-        // 从数据库获取所有校园信息，并转换为CampusDTO列表
-        return campusDAO.getAllCampus().stream()
-                .map(campusDO -> {
-                    CampusDTO campusDTO = new CampusDTO();
-                    // 设置校区属性
-                    campusDTO.setCampusUuid(campusDO.getCampusUuid())
-                            .setCampusName(campusDO.getCampusName());
-                    return campusDTO;
-                })
-                .toList();
+    public List<ListOfCampusDTO> prepareCampusData() {
+        return Optional.ofNullable(campusDAO.getCampusList())
+                .map(list -> list.stream()
+                        .map(campus -> BeanUtil.toBean(campus, ListOfCampusDTO.class))
+                        .toList())
+                .orElse(List.of());
     }
 
     /**
@@ -398,7 +393,7 @@ public class BuildingLogic implements BuildingService {
      */
     //生成模板
     @Override
-    public byte[] getBuildingImportTemplate(List<CampusDTO> prepareBuildingExampleDTO) {
+    public byte[] getBuildingImportTemplate(List<ListOfCampusDTO> prepareBuildingExampleDTO) {
         // 创建ExcelWriter对象
         ExcelWriter writer = ExcelUtil.getWriter(true);
 

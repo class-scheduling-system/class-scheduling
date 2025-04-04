@@ -33,7 +33,6 @@ import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
@@ -78,7 +77,7 @@ import java.util.Map;
 @Slf4j
 @Repository
 @RequiredArgsConstructor
-public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> implements IService<StudentDO> {
+public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> {
     private final RedissonClient redisson;
     private final AdministrativeClassDAO administrativeClassDAO;
 
