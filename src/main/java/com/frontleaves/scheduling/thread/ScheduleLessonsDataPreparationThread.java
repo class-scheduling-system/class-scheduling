@@ -116,85 +116,46 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 // 根据请求获取用户信息
                 UserDO userDO = userService.getUserByRequest(request);
                 assert userDO != null;
-                // 检查用户所属部门与所填写部门是否一致
                 log.debug(LogConstant.THREAD + "检查用户所属部门与所填写部门是否一致");
                 this.validateUserDepartmentPermission(userDO.getUserUuid(), classSchedulingVO.getDepartmentUuid());
-                //检查学期是否存在并且是否启用
                 log.debug(LogConstant.THREAD + "检查学期是否存在并且是否启用");
                 SemesterDTO semesterDTO =
                         semesterService.getSemesterByUuidCheckEnabled(classSchedulingVO.getSemesterUuid());
                 assert semesterDTO != null;
-                //检查结束周是否超过学期周
                 log.debug(LogConstant.THREAD + "检查结束周是否超过学期周");
                 this.validateCourseWeeks(classSchedulingVO.getScopeSettings().getSpecificCourseIds(), semesterDTO);
-                // 使用 Map 存储课程类型优先级，以 courseTypeUuid 为键
-                log.debug(LogConstant.THREAD + "使用 Map 存储课程类型优先级，以 courseTypeUuid 为键");
-                Map<String, CourseTypePriorityDTO> courseTypePriorityMap = this.setupCourseTypePriority(classSchedulingVO);
                 log.debug(LogConstant.THREAD + "获取课程库和学生班级");
-                //获取课程库和学生班级
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList =
                         courseLibraryService.getCourseListAndClassDTO(
                                 classSchedulingVO.getScopeSettings().getSpecificCourseIds(),
                                 classSchedulingVO.getDepartmentUuid()
                         );
                 log.debug("检查课程学分是否能够修满");
-                //检查课程学分是否能够修满
                 this.fillSpecificCourseInfo(classSchedulingVO.getScopeSettings().getSpecificCourseIds(), libraryAndClassDTOList);
                 log.debug("计算完成的课程库和班级数据: {}", libraryAndClassDTOList);
-                //获取老师所有数据
                 log.debug(LogConstant.THREAD + "获取老师所有数据");
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList = teacherCourseQualificationService
                         .getCourseLibraryAndTeacherCourseQualificationList(
                                 libraryAndClassDTOList, classSchedulingVO.getConstraints().getTeacherPreference()
                         );
                 assert courseQualificationList != null;
-                //把混排课程的分为课程的几类
                 log.debug(LogConstant.THREAD + "把混排课程的分为课程的类");
-                List<CourseLibraryAndTeacherCourseQualificationListDTO> updatedList = new ArrayList<>();
-                for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
-                    if (dto.getCourseEnuType() == CourseEnuType.MIXED) {
-                        CourseLibraryDTO course = dto.getCourse();
-                        BigDecimal totalHours = course.getTotalHours();
-                        if (totalHours != null && totalHours.compareTo(BigDecimal.ZERO) > 0) {
-                            // 根据各个学时字段拆分
-                            if (course.getTheoryHours().compareTo(BigDecimal.ZERO) > 0) {
-                                updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.THEORY, course.getTheoryHours()));
-                            }
-                            if (course.getExperimentHours().compareTo(BigDecimal.ZERO) > 0) {
-                                updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.EXPERIMENT, course.getExperimentHours()));
-                            }
-                            if (course.getPracticeHours().compareTo(BigDecimal.ZERO) > 0) {
-                                updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.PRACTICE, course.getPracticeHours()));
-                            }
-                            if (course.getComputerHours().compareTo(BigDecimal.ZERO) > 0) {
-                                updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.COMPUTER, course.getComputerHours()));
-                            }
-
-                            if (course.getOtherHours().compareTo(BigDecimal.ZERO) > 0) {
-                                updatedList.add(SchedulingLogic.copyAndSet(dto, CourseEnuType.OTHER, course.getOtherHours()));
-                            }
-                        }
-                    } else {
-                        // 非 MIXED 课程直接添加
-                        updatedList.add(dto);
-                    }
-                }
-                // 替换原列表
+                List<CourseLibraryAndTeacherCourseQualificationListDTO> updatedList =
+                        this.expandMixedCourses(courseQualificationList);
+                log.debug("更新课程表");
                 courseQualificationList.clear();
                 courseQualificationList.addAll(updatedList);
-                //获取教室数据
+                log.debug(LogConstant.THREAD + "使用 Map 存储课程类型优先级，以 courseTypeUuid 为键");
+                Map<String, CourseTypePriorityDTO> courseTypePriorityMap = this.setupCourseTypePriority(classSchedulingVO);
+                log.debug("设置课程优先级");
+                this.applyCourseTypePriority(courseQualificationList, courseTypePriorityMap);
                 log.debug(LogConstant.THREAD + "获取教室数据");
-                List<ClassroomAndTypeDTO> classroomAndTypeDTOList = new ArrayList<>();
-                for (String buildingUuid : classSchedulingVO.getScopeSettings().getAllowedBuildingIds()) {
-                    classroomAndTypeDTOList.addAll(classroomService.getClassroomAndTypeByUuidWihError(buildingUuid));
-                }
-                //获取部门DTO
+                List<ClassroomAndTypeDTO> classroomAndTypeDTOList =
+                        this.getAllClassroomAndType(classSchedulingVO.getScopeSettings().getAllowedBuildingIds());
                 log.debug(LogConstant.THREAD + "获取部门DTO");
                 DepartmentDTO departmentDTO = departmentService.
-                        getDepartmentByUuid(classSchedulingVO.getDepartmentUuid());
-                if (departmentDTO == null) {
-                    throw new BusinessException("部门不存在", ErrorCode.BODY_ERROR);
-                }
+                        getDepartmentByUuidWithThrows(classSchedulingVO.getDepartmentUuid());
+                assert departmentDTO != null;
                 //创建返回结果
                 log.debug(LogConstant.THREAD + "创建返回结果");
                 AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO = new AutomaticClassSchedulingBaseDTO();
@@ -414,6 +375,103 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
             this.processSpecificCourse(specificCourseIdVO, libraryAndClassDTOList);
         }
     }
+    /**
+     * 扩展混合课程以生成一个新的列表
+     * 此方法遍历给定的课程资格列表，对于每个被认为是混合课程的项目，将其拆分并添加到新的列表中
+     * 非混合课程直接添加到列表中该方法确保返回的列表中没有混合课程
+     * @param courseQualificationList 一个包含课程资格的列表，不能为空
+     * @return 一个扩展后的列表，其中包含拆分后的混合课程和其他未更改的课程资格
+     */
+    private @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> expandMixedCourses(
+            @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList) {
+        // 创建一个新的列表来存储更新后的课程资格
+        List<CourseLibraryAndTeacherCourseQualificationListDTO> updatedList = new ArrayList<>();
+        for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseQualificationList) {
+            if (this.isMixedCourseValid(dto)) {
+                updatedList.addAll(this.splitMixedCourse(dto));
+            } else {
+                updatedList.add(dto);
+            }
+        }
+        return updatedList;
+    }
+    /**
+     * 检查混合课程是否有效
+     * 有效性条件包括：
+     * 1. 课程类型为混合课程（CourseEnuType.MIXED）
+     * 2. 课程对象不为空
+     * 3. 课程的总学时字段存在且大于零
+     * @param dto 包含课程库和教师课程资格的DTO对象，不能为空
+     * @return 如果课程满足上述条件，则返回true，否则返回false
+     */
+    private boolean isMixedCourseValid(@NotNull CourseLibraryAndTeacherCourseQualificationListDTO dto) {
+        return dto.getCourseEnuType() == CourseEnuType.MIXED
+                && dto.getCourse() != null
+                && dto.getCourse().getTotalHours() != null
+                && dto.getCourse().getTotalHours().compareTo(BigDecimal.ZERO) > 0;
+    }
+    /**
+     * 将混合类型的课程拆分为多个单一类型的课程
+     * 此方法接收一个包含课程信息及其对应课时的DTO对象，根据课程类型（如理论、实验等）
+     * 拆分成多个仅包含一种课程类型信息的DTO对象，便于后续处理和展示
+     * @param dto 课程库和教师课程资格列表DTO对象，包含课程信息及其课时
+     * @return 返回一个List，其中包含按课程类型拆分后的课程信息DTO对象
+     */
+    private List<CourseLibraryAndTeacherCourseQualificationListDTO> splitMixedCourse(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO dto) {
+        CourseLibraryDTO course = dto.getCourse();
+        Map<CourseEnuType, BigDecimal> hourMap = Map.of(
+                CourseEnuType.THEORY, course.getTheoryHours(),
+                CourseEnuType.EXPERIMENT, course.getExperimentHours(),
+                CourseEnuType.PRACTICE, course.getPracticeHours(),
+                CourseEnuType.COMPUTER, course.getComputerHours(),
+                CourseEnuType.OTHER, course.getOtherHours()
+        );
+        return hourMap.entrySet().stream()
+                .filter(entry -> entry.getValue() != null && entry.getValue().compareTo(BigDecimal.ZERO) > 0)
+                .map(entry -> SchedulingLogic.copyAndSet(dto, entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
+    /**
+     * 获取所有允许的建筑物下的教室及其类型
+     * 该方法通过允许的建筑物ID列表来获取相关的教室及其类型信息
+     * 它利用Stream API对每个允许的建筑物ID进行处理，调用getClassroomAndTypeByUuidWihError方法获取教室信息，
+     * 并将结果合并为一个列表
+     * @param allowedBuildingIds 允许的建筑物ID列表，不能为空
+     * @return 包含所有允许建筑物下的教室及其类型信息的列表
+     */
+    private List<ClassroomAndTypeDTO> getAllClassroomAndType(@NotNull List<String> allowedBuildingIds) {
+        return allowedBuildingIds.stream()
+                .map(classroomService::getClassroomAndTypeByUuidWihError)
+                .flatMap(List::stream)
+                .toList();
+    }
+    /**
+     * 根据课程类型优先级配置更新课程列表中的每个课程优先级
+     * 如果课程类型没有对应的优先级配置，则将优先级设置为默认值
+     * @param courseList 课程列表，包含课程信息和教师课程资格信息
+     * @param courseTypePriorityMap 课程类型优先级配置，键为课程类型UUID，值为课程类型优先级DTO
+     */
+    private void applyCourseTypePriority(
+            @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> courseList,
+            @NotNull Map<String, CourseTypePriorityDTO> courseTypePriorityMap
+    ) {
+        for (CourseLibraryAndTeacherCourseQualificationListDTO dto : courseList) {
+            String typeUuid = dto.getCourse().getType();
+            CourseTypePriorityDTO priorityDTO = courseTypePriorityMap.get(typeUuid);
+            if (priorityDTO != null) {
+                // 如果找到了对应的优先级配置，设置课程优先级为配置的值
+                dto.setPriority(priorityDTO.getPriority());
+            } else {
+                // 没配置的课程类型统一设置为默认优先级 5（可根据业务调整）
+                dto.setPriority((short) 5);
+            }
+        }
+    }
+
+
+
 
 
 }

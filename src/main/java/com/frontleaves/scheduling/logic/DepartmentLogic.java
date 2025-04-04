@@ -38,8 +38,8 @@ import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.UnitCategoryDAO;
 import com.frontleaves.scheduling.daos.UnitTypeDAO;
 import com.frontleaves.scheduling.models.dto.base.DepartmentDTO;
-import com.frontleaves.scheduling.models.dto.lite.DepartmentLiteDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.lite.DepartmentLiteDTO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.UnitCategoryDO;
 import com.frontleaves.scheduling.models.entity.UnitTypeDO;
@@ -318,12 +318,12 @@ public class DepartmentLogic implements DepartmentService {
      * @return 部门信息
      */
     @Override
-    public DepartmentDO getDepartmentByUuidWithThrows(@NotBlank String departmentUuid) {
+    public DepartmentDTO getDepartmentByUuidWithThrows(@NotBlank String departmentUuid) {
         DepartmentDO departmentDO = departmentDAO.getDepartmentByUuid(departmentUuid);
         if (departmentDO == null) {
             throw new BusinessException("通过部门ID查询，部门不存在", ErrorCode.NOT_EXIST);
         }
-        return departmentDO;
+        return BeanUtil.toBean(departmentDO,DepartmentDTO.class);
     }
 
     /**
