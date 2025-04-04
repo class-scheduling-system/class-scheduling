@@ -245,13 +245,19 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         log.debug(LogConstant.THREAD + "线程结束运行");
     }
 
-    private @NotNull List<CourseScheduleDTO> buildCourseScheduleList(List<ClassAssignmentDTO> classAssignmentDTOList) {
+    /**
+     * 构建课程时间表列表
+     * 该方法负责将一组班级分配信息转换为课程时间表对象列表每个班级分配信息
+     * 将被转换为一个课程时间表对象，其中包含根据班级分配信息中包含的时间
+     * 信息构建的时间槽和课程安排项的映射
+     * @param classAssignmentDTOList 不为空的班级分配DTO列表，包含班级分配信息
+     * @return 返回一个填充了课程安排信息的课程时间表DTO列表
+     */
+    private @NotNull List<CourseScheduleDTO> buildCourseScheduleList(@NotNull List<ClassAssignmentDTO> classAssignmentDTOList) {
         List<CourseScheduleDTO> courseScheduleDTOList = new ArrayList<>();
         for (ClassAssignmentDTO classAssignment : classAssignmentDTOList) {
             CourseScheduleDTO courseScheduleDTO = new CourseScheduleDTO();
-            // 设置课程安排项
             CourseScheduleItemDTO courseScheduleItemDTO = this.prepareTheCourseSchedule(classAssignment);
-            // 构建时间槽和课程安排项的映射
             Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments = new HashMap<>();
             String classTime = classAssignment.getClassTime();
             if (classTime != null && !classTime.isEmpty()) {
@@ -264,7 +270,6 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     log.error("解析classTime失败: {}", classTime, e);
                 }
             }
-            // 设置课程安排
             courseScheduleDTO.setAssignments(assignments);
             courseScheduleDTOList.add(courseScheduleDTO);
         }
