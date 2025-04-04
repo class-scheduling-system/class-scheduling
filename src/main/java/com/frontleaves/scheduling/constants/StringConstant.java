@@ -184,6 +184,8 @@ public class StringConstant {
         public static final String SCHEDULE_EXECUTE_STATUS = "schedule:execute:status:";
         public static final String SCHEDULE_EXECUTE_PROGRESS = "schedule:execute:progress:";
         public static final String CREDIT_HOUR_TYPE_UUID = "credit:hour:type:uuid:";
+        public static final String TEACHING_CLASS_LIST_SEMESTER = "teaching:class:list:semester:";
+        public static final String CLASS_ASSIGNMENT_LIST_SEMESTER = "class:assignment:list:semester:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
