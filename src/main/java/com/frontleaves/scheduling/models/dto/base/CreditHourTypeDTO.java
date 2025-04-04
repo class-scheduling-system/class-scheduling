@@ -3,6 +3,8 @@ package com.frontleaves.scheduling.models.dto.base;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.sql.Timestamp;
+
 /**
  * 学时类型数据传输对象
  *
