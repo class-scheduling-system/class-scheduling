@@ -5,7 +5,7 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
-import com.frontleaves.scheduling.services.GeneticSchedulingService;
+import com.frontleaves.scheduling.services.scheduling.GeneticSchedulingService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.annotation.Resource;

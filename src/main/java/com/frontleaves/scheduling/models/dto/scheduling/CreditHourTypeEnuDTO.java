@@ -1,5 +1,6 @@
-package com.frontleaves.scheduling.models.dto.base;
+package com.frontleaves.scheduling.models.dto.scheduling;
 
+import enums.CourseEnuType;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -12,7 +13,7 @@ import java.sql.Timestamp;
  */
 @Data
 @Accessors(chain = true)
-public class CreditHourTypeDTO {
+public class CreditHourTypeEnuDTO {
     /**
      * 学时类型主键
      */
@@ -33,4 +34,8 @@ public class CreditHourTypeDTO {
      * 更新时间
      */
     private Timestamp updatedAt;
+    /**
+     * 对应枚举类
+     */
+    private CourseEnuType courseEnuType;
 }

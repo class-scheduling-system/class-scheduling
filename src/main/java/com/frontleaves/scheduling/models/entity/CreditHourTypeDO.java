@@ -19,7 +19,7 @@ public class CreditHourTypeDO {
     /**
      * 学时类型主键
      */
-    @TableId(value = "credit_hour_type_uuid", type = IdType.INPUT)
+    @TableId(value = "credit_hour_type_uuid", type = IdType.ASSIGN_UUID)
     private String creditHourTypeUuid;
 
     /**

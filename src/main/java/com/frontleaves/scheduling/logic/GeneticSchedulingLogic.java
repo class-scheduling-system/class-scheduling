@@ -5,11 +5,14 @@ import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
-import com.frontleaves.scheduling.services.GeneticSchedulingService;
+import com.frontleaves.scheduling.services.scheduling.GenerateInitialPopulationService;
+import com.frontleaves.scheduling.services.scheduling.GeneticSchedulingService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RedissonClient;
+import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -29,14 +32,15 @@ import java.util.Optional;
 @Service
 @Slf4j
 public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implements GeneticSchedulingService {
-
+private final GenerateInitialPopulationService generateInitialPopulationService;
     /**
      * 构造函数
      *
      * @param redisson Redis客户端，用于缓存和分布式锁
      */
-    public GeneticSchedulingLogic(RedissonClient redisson) {
+    public GeneticSchedulingLogic(RedissonClient redisson, GenerateInitialPopulationService generateInitialPopulationService) {
         super(redisson);
+        this.generateInitialPopulationService = generateInitialPopulationService;
     }
 
     /**
@@ -62,7 +66,7 @@ public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implement
             this.updateProgress(taskId, 0);
             this.updateStatus(taskId, "正在初始化种群...");
             // 生成初始种群
-            List<ScheduleDTO> allPopulation = this.generateInitialPopulation(baseDTO);
+            List<ScheduleDTO> allPopulation = generateInitialPopulationService.generateInitialPopulation(baseDTO);
             log.debug("初始种群生成完成，种群大小: {}", allPopulation.size());
             log.debug("获取第一个种群: {}", allPopulation.get(0));
             // 评估初始种群

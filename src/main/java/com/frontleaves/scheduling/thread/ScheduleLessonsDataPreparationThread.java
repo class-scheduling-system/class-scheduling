@@ -37,10 +37,7 @@ import com.frontleaves.scheduling.models.dto.base.*;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseTypePriorityDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.CourseScheduleDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.CourseScheduleItemDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.TimeSlotDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.*;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
@@ -152,7 +149,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                                 libraryAndClassDTOList, classSchedulingVO.getConstraints().getTeacherPreference()
                         );
                 assert courseQualificationList != null;
-                log.debug(LogConstant.THREAD + "把混排课程的分为课程的类");
+                log.debug(LogConstant.THREAD + "把混排课程的分为数据库内定义课程的类");
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> updatedList =
                         this.expandMixedCourses(courseQualificationList);
                 log.debug("更新课程表");
@@ -513,10 +510,10 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         for (String uuid : classUuid) {
             administrativeClassDTOList.add(administrativeClassService.getClassByUuid(uuid));
         }
-        CreditHourTypeDTO creditHourTypeDTO =
+        CreditHourTypeEnuDTO creditHourTypeEnuDTO =
                 creditHourTypeService.getCreditHourTypeByUuid(classAssignment.getCreditHourType());
         return new CourseScheduleItemDTO(
-                courseLibraryDTO, teacherCoursePreferencesDTO, classroomDTO, administrativeClassDTOList, creditHourTypeDTO,
+                courseLibraryDTO, teacherCoursePreferencesDTO, classroomDTO, administrativeClassDTOList, creditHourTypeEnuDTO,
                 classAssignment.getSchedulingPriority());
     }
 

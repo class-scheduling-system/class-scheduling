@@ -1,6 +1,6 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.base.CreditHourTypeDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.CreditHourTypeEnuDTO;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -14,5 +14,5 @@ public interface CreditHourTypeService {
      * @return 学时类型
      */
     @NotNull
-    CreditHourTypeDTO getCreditHourTypeByUuid(String creditHourType);
+    CreditHourTypeEnuDTO getCreditHourTypeByUuid(String creditHourType);
 }

@@ -1,4 +1,4 @@
-package com.frontleaves.scheduling.services;
+package com.frontleaves.scheduling.services.scheduling;
 
 
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
@@ -6,6 +6,7 @@ import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 
 /**
  * 遗传算法排课服务接口
+ * @author FLASHLACK
  */
 public interface GeneticSchedulingService {
     /**

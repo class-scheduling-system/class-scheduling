@@ -11,6 +11,7 @@ import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.entity.ClassAssignmentDO;
@@ -20,6 +21,7 @@ import com.frontleaves.scheduling.models.entity.TeacherDO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
 import com.frontleaves.scheduling.services.AdministrativeClassService;
 import com.frontleaves.scheduling.services.ClassAssignmentService;
+import com.frontleaves.scheduling.services.TeachingClassService;
 import com.frontleaves.scheduling.utils.ProjectOption;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
@@ -52,6 +54,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     private final CourseLibraryDAO courseLibraryDAO;
     private final TeacherDAO teacherDAO;
     private final AdministrativeClassService administrativeClassService;
+    private final TeachingClassService teachingClassService;
 
     @Override
     public void add(ClassAssignmentVO vo) {
@@ -240,27 +243,34 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
                         uuid -> uuid,
                         uuid -> Boolean.TRUE,
                         (existing, replacement) -> existing));
+        //获取教学班
+        List<TeachingClassDTO> teachingClassDTOList = teachingClassService
+                .getTeachingClassListBySemester(automaticClassSchedulingBaseDTO.getSemester().getSemesterUuid());
         // 获取本学期的所有排课分配
         List<ClassAssignmentDO> classAssignments = classAssignmentDAO
                 .getClassAssignmentListBySemester(automaticClassSchedulingBaseDTO.getSemester().getSemesterUuid());
         // 遍历排课分配列表并筛选出 classroomUuid 匹配的项
         Map<String, ClassAssignmentDTO> classAssignmentMap = new HashMap<>();
         for (ClassAssignmentDO classAssignment : classAssignments) {
-            this.processClassAssignment(classAssignment, classroomUuidsMap, teacherUuidsMap, classUuidsMap, classAssignmentMap);
+            this.processClassAssignment(classAssignment, classroomUuidsMap, teacherUuidsMap, classUuidsMap, classAssignmentMap, teachingClassDTOList);
         }
         return new ArrayList<>(classAssignmentMap.values());
     }
     /**
-     * 将排课分配添加到结果映射中
-     * 如果该分配已存在则不会覆盖
+     * 处理排课分配对象
      * @param classAssignment 排课分配对象
-     * @param classAssignmentMap 排课分配结果映射
+     * @param classroomUuidsMap 教室UUID映射
+     * @param teacherUuidsMap 教师UUID映射
+     * @param classUuidsMap 行政班级UUID映射
+     * @param classAssignmentMap 排课分配映射
+     * @param teachingClassDTOList 教学班列表
      */
     private void processClassAssignment(@NotNull ClassAssignmentDO classAssignment,
                                         @NotNull Map<String, Boolean> classroomUuidsMap,
                                         Map<String, Boolean> teacherUuidsMap,
                                         Map<String, Boolean> classUuidsMap,
-                                        Map<String, ClassAssignmentDTO> classAssignmentMap) {
+                                        Map<String, ClassAssignmentDTO> classAssignmentMap,
+                                        List<TeachingClassDTO> teachingClassDTOList) {
         // 检查教室匹配
         if (classroomUuidsMap.containsKey(classAssignment.getClassroomUuid())) {
             this.addToAssignmentMap(classAssignment, classAssignmentMap);
@@ -270,25 +280,52 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
             this.addToAssignmentMap(classAssignment, classAssignmentMap);
         }
         // 检查行政班级匹配
-        this.checkClassGroupMatch(classAssignment, classUuidsMap, classAssignmentMap);
+        this.checkClassGroupMatch(classAssignment, classUuidsMap, classAssignmentMap, teachingClassDTOList);
     }
-
+    /**
+     * 将排课分配对象添加到映射中
+     * @param classAssignment 排课分配对象
+     * @param classAssignmentMap 排课分配映射
+     */
     private void addToAssignmentMap(ClassAssignmentDO classAssignment,
                                     @NotNull Map<String, ClassAssignmentDTO> classAssignmentMap) {
         ClassAssignmentDTO dto = BeanUtil.toBean(classAssignment, ClassAssignmentDTO.class);
         classAssignmentMap.putIfAbsent(classAssignment.getClassAssignmentUuid(), dto);
     }
-
+    /**
+     * 检查行政班级匹配
+     * @param classAssignment 排课分配对象
+     * @param classUuidsMap 行政班级UUID映射
+     * @param classAssignmentMap 排课分配映射
+     * @param teachingClassDTOList 教学班列表
+     */
     private void checkClassGroupMatch(@NotNull ClassAssignmentDO classAssignment,
                                       Map<String, Boolean> classUuidsMap,
-                                      Map<String, ClassAssignmentDTO> classAssignmentMap) {
-        List<String> uuids = ProjectUtil.parseUuidsFromClassGroup(classAssignment.getTeachingClassComposition());
+                                      Map<String, ClassAssignmentDTO> classAssignmentMap,
+                                      List<TeachingClassDTO> teachingClassDTOList) {
+        // 在教学班列表中查找匹配的教学班
+        TeachingClassDTO teachingClassDTO = teachingClassDTOList.stream()
+                .filter(dto -> dto.getTeachingClassUuid().equals(classAssignment.getTeachingClassUuid()))
+                .findFirst()
+                .orElse(null);
 
-        for (String uuid : uuids) {
-            if (classUuidsMap.containsKey(uuid)) {
-                addToAssignmentMap(classAssignment, classAssignmentMap);
-                break;
+        if (teachingClassDTO == null || teachingClassDTO.getAdministrativeClasses() == null) {
+            return;
+        }
+
+        try {
+            List<String> administrativeClassUuids = JSONUtil.toList(teachingClassDTO.getAdministrativeClasses(), String.class);
+            for (String uuid : administrativeClassUuids) {
+                if (classUuidsMap.containsKey(uuid)) {
+                    addToAssignmentMap(classAssignment, classAssignmentMap);
+                    break;
+                }
             }
+        } catch (Exception e) {
+            log.error("解析教学班行政班级列表失败, teachingClassUuid: {}, administrativeClasses: {}",
+                    teachingClassDTO.getTeachingClassUuid(),
+                    teachingClassDTO.getAdministrativeClasses(),
+                    e);
         }
     }
 }

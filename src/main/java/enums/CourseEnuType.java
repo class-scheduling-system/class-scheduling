@@ -20,20 +20,20 @@ public enum CourseEnuType {
     /**
      * 理论课
      */
-    THEORY("theory", "理论课"),
+    THEORY("theory", "理论学时"),
     /**
      * 实验课
      */
-    EXPERIMENT("experiment", "实验课"),
+    EXPERIMENT("experiment", "实验学时"),
 
     /**
      * 实践课
      */
-    PRACTICE("practice", "实践课"),
+    PRACTICE("practice", "实践学时"),
     /**
      * 上机课
      */
-    COMPUTER("computer", "上机课"),
+    COMPUTER("computer", "上机学时"),
     /**
      * 混排课程（理论+实践混合）
      */
@@ -42,7 +42,7 @@ public enum CourseEnuType {
     /**
      * 其他类型课程
      */
-    OTHER("other", "其他类型");
+    OTHER("other", "其他学时");
 
 
     /**

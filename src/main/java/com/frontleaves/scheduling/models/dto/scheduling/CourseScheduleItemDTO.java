@@ -2,7 +2,6 @@ package com.frontleaves.scheduling.models.dto.scheduling;
 
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.dto.base.CreditHourTypeDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import lombok.Data;
@@ -65,7 +64,7 @@ public class CourseScheduleItemDTO {
     /**
      * 课程类型
      */
-    private CreditHourTypeDTO courseType;
+    private CreditHourTypeEnuDTO courseType;
     /**
      * 课程优先级
      * <p>
@@ -87,7 +86,7 @@ public class CourseScheduleItemDTO {
      * @param priority  课程优先级
      */
     public CourseScheduleItemDTO(CourseLibraryDTO course, TeacherCoursePreferencesDTO teacher,
-                                 ClassroomInfoDTO classroom, List<AdministrativeClassDTO> classGroup,CreditHourTypeDTO courseType, Integer priority) {
+                                 ClassroomInfoDTO classroom, List<AdministrativeClassDTO> classGroup, CreditHourTypeEnuDTO courseType, Integer priority) {
         this.course = course;
         this.teacher = teacher;
         this.classroom = classroom;

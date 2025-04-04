@@ -30,11 +30,9 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
-import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
-import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
-import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
+import com.frontleaves.scheduling.models.dto.base.*;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.*;
 import jakarta.annotation.Nonnull;
@@ -750,11 +748,11 @@ class BaseGeneticSchedulingLogic {
             );
             if (courseAndTeacher != null) {
                 // 获取可用的教室列表
-                Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> classroomList =
+                Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> classroomList =
                         this.selectClassroomsForCourse(courseAndTeacher, baseDTO.getClassroomList());
                 if (classroomList != null && !classroomList.isEmpty()) {
                     // 过滤掉当前教室
-                    List<Map.Entry<List<AdministrativeClassDTO>, ClassroomAndTypeDTO>> availableClassrooms =
+                    List<Map.Entry<List<AdministrativeClassDTO>, ClassroomInfoDTO>> availableClassrooms =
                             classroomList.entrySet().stream()
                                     .filter(classroomEntry ->
                                             !classroomEntry.getValue().getClassroom().getClassroomUuid()
@@ -762,7 +760,7 @@ class BaseGeneticSchedulingLogic {
                                     .toList();
                     if (!availableClassrooms.isEmpty()) {
                         // 随机选择一个新教室
-                        Map.Entry<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> newClassroomEntry =
+                        Map.Entry<List<AdministrativeClassDTO>, ClassroomInfoDTO> newClassroomEntry =
                                 availableClassrooms.get(random.nextInt(availableClassrooms.size()));
                         // 创建新的排课项
                         CourseScheduleItemDTO newItem = new CourseScheduleItemDTO(
@@ -771,7 +769,7 @@ class BaseGeneticSchedulingLogic {
                                 newClassroomEntry.getValue(),
                                 //使用原来的班级
                                 currentItem.getClassGroup(),
-                                currentItem.getCourseEnuType(),
+                                currentItem.getCourseType(),
                                 currentItem.getPriority()
                         );
                         // 更新课程安排
@@ -815,7 +813,7 @@ class BaseGeneticSchedulingLogic {
                         newTeacher,
                         currentItem.getClassroom(),
                         currentItem.getClassGroup(),
-                        currentItem.getCourseEnuType(),
+                        currentItem.getCourseType(),
                         currentItem.getPriority()
                 );
                 // 更新课程安排
@@ -947,11 +945,11 @@ class BaseGeneticSchedulingLogic {
                 CourseLibraryDTO course = courseAndTeachers.getCourse();
                 // 按照课程和班级进行教师选择
                 Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> teacherAssignments = new HashMap<>();
-                Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> classroomAssignments =
+                Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> classroomAssignments =
                         this.selectClassroomsForCourse(courseAndTeachers, baseData.getClassroomList());
                 // 为每个班级选择随机的教师
                 if (classroomAssignments != null) {
-                    for (Map.Entry<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> entry : classroomAssignments.entrySet()) {
+                    for (Map.Entry<List<AdministrativeClassDTO>, ClassroomInfoDTO> entry : classroomAssignments.entrySet()) {
                         List<AdministrativeClassDTO> classGroup = entry.getKey();
                         TeacherCoursePreferencesDTO teacher = this.selectTeacherForCourse(
                                 course, courseAndTeachers.getTeacherList());
@@ -965,7 +963,7 @@ class BaseGeneticSchedulingLogic {
                 for (Map.Entry<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> entry : teacherAssignments.entrySet()) {
                     List<AdministrativeClassDTO> classGroup = entry.getKey();
                     TeacherCoursePreferencesDTO assignedTeacher = entry.getValue();
-                    ClassroomAndTypeDTO assignedClassroom = classroomAssignments.get(classGroup);
+                    ClassroomInfoDTO assignedClassroom = classroomAssignments.get(classGroup);
                     // 寻找合适的时间槽
                     List<TimeSlotDTO> timeSlot = findSuitableTimeSlot(
                             null,
@@ -980,7 +978,7 @@ class BaseGeneticSchedulingLogic {
                                 assignedTeacher,
                                 assignedClassroom,
                                 classGroup,
-                                courseAndTeachers.getCourseEnuType(),
+                                new CreditHourTypeEnuDTO(),
                                 courseAndTeachers.getPriority()
                         );
                         //将时间槽分配到课程安排中
@@ -1031,9 +1029,8 @@ class BaseGeneticSchedulingLogic {
 
         // 随机选择一个符合条件的教师
         Collections.shuffle(suitableTeachers, random);
-        TeacherCoursePreferencesDTO selectedTeacher = suitableTeachers.get(0);
 
-        return selectedTeacher;
+        return suitableTeachers.get(0);
     }
 
 
@@ -1046,12 +1043,12 @@ class BaseGeneticSchedulingLogic {
      * @param classrooms              可用的教室列表
      * @return 分配结果，以班级列表为键，分配的教室为值如果无法为所有班级找到合适的教室，则返回null
      */
-    Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> selectClassroomsForCourse(
+    Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> selectClassroomsForCourse(
             @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList,
-            @Nonnull List<ClassroomAndTypeDTO> classrooms) {
+            @Nonnull List<ClassroomInfoDTO> classrooms) {
         List<AdministrativeClassDTO> classList = courseQualificationList.getClassList();
-        Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap = new HashMap<>();
-        List<ClassroomAndTypeDTO> remainingClassrooms = new ArrayList<>(classrooms);
+        Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> allocationMap = new HashMap<>();
+        ArrayList<ClassroomInfoDTO> remainingClassrooms = new ArrayList<>(classrooms);
         if (classList == null || classList.isEmpty()) {
             this.allocateVirtualClasses(courseQualificationList, courseQualificationList.getNumber(), remainingClassrooms, allocationMap);
         } else {
@@ -1066,8 +1063,8 @@ class BaseGeneticSchedulingLogic {
      */
     private void allocateVirtualClasses(@NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList,
                                         int number,
-                                        @NotNull List<ClassroomAndTypeDTO> remainingClassrooms,
-                                        Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap) {
+                                        @NotNull List<ClassroomInfoDTO> remainingClassrooms,
+                                        Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> allocationMap) {
         CourseLibraryDTO course = courseQualificationList.getCourse();
         int studentCounter = 0;
         int virtualClassIndex = 1;
@@ -1084,7 +1081,7 @@ class BaseGeneticSchedulingLogic {
         while (studentCounter < number) {
             int remainingStudents = number - studentCounter;
             // 尝试找到能容纳所有剩余学生的教室
-            ClassroomAndTypeDTO classroom = this.findBestClassroom(
+            ClassroomInfoDTO classroom = this.findBestClassroom(
                     remainingClassrooms,
                     remainingStudents,
                     course,
@@ -1142,8 +1139,8 @@ class BaseGeneticSchedulingLogic {
             @NotNull CourseLibraryDTO course,
             int studentCount,
             int classIndex,
-            ClassroomAndTypeDTO classroom,
-            @NotNull Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap) {
+            ClassroomInfoDTO classroom,
+            @NotNull Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> allocationMap) {
 
         String classKey = course.getCourseLibraryUuid() + "-" + classIndex;
         AdministrativeClassDTO classDTO = new AdministrativeClassDTO()
@@ -1166,13 +1163,13 @@ class BaseGeneticSchedulingLogic {
      */
     void allocateClassesByMajor(
             @NotNull List<AdministrativeClassDTO> classList,
-            List<ClassroomAndTypeDTO> remainingClassrooms,
-            Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap,
+            List<ClassroomInfoDTO> remainingClassrooms,
+            Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> allocationMap,
             @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList) {
         CourseLibraryDTO course = courseQualificationList.getCourse();
         // 1. 首先尝试将所有班级放在一个教室
         int totalStudents = classList.stream().mapToInt(AdministrativeClassDTO::getStudentCount).sum();
-        ClassroomAndTypeDTO selectedClassroom = this.findBestClassroom(remainingClassrooms,
+        ClassroomInfoDTO selectedClassroom = this.findBestClassroom(remainingClassrooms,
                 totalStudents, course, courseQualificationList);
         if (selectedClassroom != null) {
             // 如果找到足够大的教室，直接分配所有班级
@@ -1247,12 +1244,12 @@ class BaseGeneticSchedulingLogic {
      * @param allocationMap       班级到教室的分配映射
      */
     private void allocateUnassignedClasses(@NotNull List<AdministrativeClassDTO> pendingClasses,
-                                           List<ClassroomAndTypeDTO> remainingClassrooms,
-                                           Map<List<AdministrativeClassDTO>, ClassroomAndTypeDTO> allocationMap) {
+                                           List<ClassroomInfoDTO> remainingClassrooms,
+                                           Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> allocationMap) {
         // 当没有找到合适的教室来教授班级时，记录待分配的班级名称
         log.debug("没有找到合适的教室来教授班级: {}", pendingClasses.stream().map(AdministrativeClassDTO::getClassName).toList());
         // 从剩余的教室中随机选择一个教室
-        ClassroomAndTypeDTO randomClassroom = this.selectRandomClassroom(remainingClassrooms);
+        ClassroomInfoDTO randomClassroom = this.selectRandomClassroom(remainingClassrooms);
         // 如果随机选中的教室不为空，则将所有待分配的班级都分配到这个教室，并记录分配信息
         if (randomClassroom != null) {
             allocationMap.put(new ArrayList<>(pendingClasses), randomClassroom);
@@ -1267,8 +1264,8 @@ class BaseGeneticSchedulingLogic {
      * @param course       课程信息
      * @return 最佳教室，如果没有找到合适的教室，则返回null
      */
-    private @Nullable ClassroomAndTypeDTO findBestClassroom(
-            @NotNull List<ClassroomAndTypeDTO> classrooms,
+    private ClassroomInfoDTO findBestClassroom(
+            @NotNull List<ClassroomInfoDTO> classrooms,
             int studentCount,
             CourseLibraryDTO course,
             CourseLibraryAndTeacherCourseQualificationListDTO courseQualificationList) {
@@ -1303,7 +1300,7 @@ class BaseGeneticSchedulingLogic {
                         return true;
                     }
                     // 如果课程类型不为空，则必须匹配
-                    return finalRequiredClassroomType.equals(c.getClassroomType().getClassTypeUuid());
+                    return finalRequiredClassroomType.equals(c.getType().getClassTypeUuid());
                 })
                 .min(Comparator.comparingInt(c -> c.getClassroom().getCapacity()))
                 .orElseGet(() -> {
@@ -1315,7 +1312,7 @@ class BaseGeneticSchedulingLogic {
                                     return false;
                                 }
                                 // 返回普通教室
-                                return c.getClassroomType().getClassTypeUuid() == SystemConstant.getClassroomTypeCommon();
+                                return c.getType().getClassTypeUuid() == SystemConstant.getClassroomTypeCommon();
                             })
                             .min(Comparator.comparingInt(c -> c.getClassroom().getCapacity()))
                             .orElse(null);
@@ -1329,7 +1326,7 @@ class BaseGeneticSchedulingLogic {
      * @param classrooms 一个包含教室信息的列表，不能为null
      * @return 随机选中的教室信息，如果列表为空则返回null
      */
-    private @Nullable ClassroomAndTypeDTO selectRandomClassroom(@NotNull List<ClassroomAndTypeDTO> classrooms) {
+    private @Nullable ClassroomInfoDTO selectRandomClassroom(@NotNull List<ClassroomInfoDTO> classrooms) {
         return classrooms.isEmpty() ? null : classrooms.get(new Random().nextInt(classrooms.size()));
     }
 
@@ -1471,7 +1468,7 @@ class BaseGeneticSchedulingLogic {
             }
             // 教室类型匹配度
             String courseType = item.getCourse().getType();
-            String classroomType = item.getClassroom().getClassroomType().getName();
+            String classroomType = item.getClassroom().getType().getClassTypeUuid();
             if (classroomType != null && classroomType.equals(courseType)) {
                 fitness += 10.0;
             } else if (classroomType != null && courseType != null) {
@@ -1550,7 +1547,7 @@ class BaseGeneticSchedulingLogic {
             List<CourseScheduleDTO> schedules,
             Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments,
             TeacherCoursePreferencesDTO teacher,
-            ClassroomAndTypeDTO classroom,
+            ClassroomInfoDTO classroom,
             @NotNull CourseLibraryAndTeacherCourseQualificationListDTO course,
             AutomaticClassSchedulingBaseDTO baseDTO
     ) {
@@ -1678,7 +1675,7 @@ class BaseGeneticSchedulingLogic {
     private boolean isTimeSlotSuitable(
             @NotNull List<TimeSlotDTO> timeSlots,
             TeacherCoursePreferencesDTO teacher,
-            ClassroomAndTypeDTO classroom,
+            ClassroomInfoDTO classroom,
             CourseLibraryAndTeacherCourseQualificationListDTO course,
             AutomaticClassSchedulingBaseDTO baseDTO,
             List<CourseScheduleDTO> population
@@ -1814,7 +1811,7 @@ class BaseGeneticSchedulingLogic {
      * @return 如果教室在该时间段可用返回true，否则返回false
      */
     private boolean isClassroomAvailable(
-            ClassroomAndTypeDTO classroom,
+            ClassroomInfoDTO classroom,
             List<TimeSlotDTO> slot,
             @NotNull List<CourseScheduleDTO> population
     ) {
@@ -1862,8 +1859,6 @@ class BaseGeneticSchedulingLogic {
         if (course1 == null || course2 == null) {
             return false;
         }
-
-
         // 检查交换后的时间槽是否适合各自的课程
         boolean slot1Valid = this.isTimeSlotSuitable(
                 // 注意这里用entry2的时间槽给entry1的课程
@@ -1874,7 +1869,6 @@ class BaseGeneticSchedulingLogic {
                 baseDTO,
                 population
         );
-
         boolean slot2Valid = this.isTimeSlotSuitable(
                 // 注意这里用entry1的时间槽给entry2的课程
                 entry1.getKey(),

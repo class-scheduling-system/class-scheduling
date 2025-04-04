@@ -102,7 +102,7 @@ public class ScheduleResultDTO {
         /**
          * 优先级
          */
-        private Short priority;
+        private Integer priority;
     }
 
     @Data
