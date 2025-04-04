@@ -66,7 +66,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * 教学楼逻辑处理类
@@ -357,15 +356,9 @@ public class BuildingLogic implements BuildingService {
                     return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
                 }
             } else {
-                // 资源不存在，返回默认文本
-                return """
-                        注意事项：
-                        1. 请严格按照模板填写信息
-                        2. 所有信息必须准确无误
-                        3. 请勿修改模板结构""";
+                throw new IOException("文件不存在");
             }
         } catch (IOException e) {
-            // 如果读取失败，返回默认文本
             return """
                     注意事项：
                     1. 请严格按照模板填写信息
@@ -381,12 +374,12 @@ public class BuildingLogic implements BuildingService {
      * 本方法用于准备校园的相关数据，通过访问数据库获取所有校园信息，并将其转换为所需的DTO格式
      * 主要包括从数据库模型对象（DAO）到传输对象（DTO）的转换，以及数据的收集和封装
      *
-     * @return PrepareBuildingDTO 包含所有转换后的校园数据的传输对象
+     * @return List<CampusDTO> 包含所有转换后的校园数据的传输对象
      */
     @Override
-    public PrepareBuildingDTO prepareCampusData() {
+    public List<CampusDTO> prepareCampusData() {
         // 从数据库获取所有校园信息，并转换为CampusDTO列表
-        List<CampusDTO> campusList = campusDAO.getAllCampus().stream()
+        return campusDAO.getAllCampus().stream()
                 .map(campusDO -> {
                     CampusDTO campusDTO = new CampusDTO();
                     // 设置校区属性
@@ -394,10 +387,7 @@ public class BuildingLogic implements BuildingService {
                             .setCampusName(campusDO.getCampusName());
                     return campusDTO;
                 })
-                .collect(Collectors.toList());
-
-        // 创建PrepareBuildingDTO对象并设置校园列表
-        return new PrepareBuildingDTO().setCampus(campusList);
+                .toList();
     }
 
     /**
@@ -408,7 +398,7 @@ public class BuildingLogic implements BuildingService {
      */
     //生成模板
     @Override
-    public byte[] getBuildingImportTemplate(PrepareBuildingDTO prepareBuildingExampleDTO) {
+    public byte[] getBuildingImportTemplate(List<CampusDTO> prepareBuildingExampleDTO) {
         // 创建ExcelWriter对象
         ExcelWriter writer = ExcelUtil.getWriter(true);
 
@@ -465,9 +455,9 @@ public class BuildingLogic implements BuildingService {
         writer.writeCellValue(6, 1, "校区名称列表");
 
         // 填充校区数据
-        if (prepareBuildingExampleDTO.getCampus() != null) {
-            for (int i = 0; i < prepareBuildingExampleDTO.getCampus().size(); i++) {
-                writer.writeCellValue(6, i + 2, prepareBuildingExampleDTO.getCampus().get(i).getCampusName());
+        if (prepareBuildingExampleDTO != null) {
+            for (int i = 0; i < prepareBuildingExampleDTO.size(); i++) {
+                writer.writeCellValue(6, i + 2, prepareBuildingExampleDTO.get(i).getCampusName());
             }
         }
 
@@ -724,13 +714,14 @@ public class BuildingLogic implements BuildingService {
             }
         }
 
+        // 删除分页和列表缓存
+        buildingDAO.deleteBuildingCache();
+
         // 设置统计结果
-        backAddBuildingDTO.setTotalCount(buildingList.size())
+        return backAddBuildingDTO.setTotalCount(buildingList.size())
                 .setSuccessCount(successCount)
                 .setFailedCount(failedDetails.size())
                 .setFailedDetails(failedDetails.isEmpty() ? null : failedDetails);
-
-        return backAddBuildingDTO;
     }
 
     /**
@@ -767,6 +758,9 @@ public class BuildingLogic implements BuildingService {
             // 使用非忽略错误的保存方法
             buildingDAO.saveBuildingBackError(buildingDO, i);
         }
+
+        // 删除分页和列表缓存
+        buildingDAO.deleteBuildingCache();
 
         //成功
         return new BackAddBuildingDTO()
