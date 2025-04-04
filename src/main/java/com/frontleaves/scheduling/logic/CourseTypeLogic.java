@@ -39,9 +39,18 @@ public class CourseTypeLogic implements CourseTypeService {
         return BeanUtil.toBean(courseTypeDO,CourseTypeDTO.class);
     }
 
+    /**
+     * 获取课程类型列表
+     * 本方法通过调用DAO层的listCourseType方法获取课程类型数据对象列表，
+     * 然后将这些数据对象转换为DTO（数据传输对象）列表，以供上层调用
+     * @return 课程类型DTO列表
+     */
     @Override
     public List<CourseTypeDTO> listCourseType() {
+        // 从数据库中获取课程类型数据对象列表
         List<CourseTypeDO> courseTypeDOList = courseTypeDAO.listCourseType();
+
+        // 将课程类型数据对象列表转换为课程类型数据传输对象列表
         return BeanUtil.copyToList(courseTypeDOList,CourseTypeDTO.class);
     }
 }

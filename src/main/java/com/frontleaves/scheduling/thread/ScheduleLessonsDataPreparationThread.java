@@ -118,12 +118,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 assert userDO != null;
                 // 检查用户所属部门与所填写部门是否一致
                 log.debug(LogConstant.THREAD + "检查用户所属部门与所填写部门是否一致");
-                AcademicAffairsPermissionDTO academicAffairsPermissionDTO =
-                        academicAffairsPermissionService.getAcademicAffairsPermission(userDO.getUserUuid());
-                assert academicAffairsPermissionDTO != null;
-                if (!academicAffairsPermissionDTO.getDepartment().equals(classSchedulingVO.getDepartmentUuid())) {
-                    throw new BusinessException("用户所属部门与所填写部门不一致", ErrorCode.BODY_ERROR);
-                }
+                this.validateUserDepartmentPermission(userDO.getUserUuid(), classSchedulingVO.getDepartmentUuid());
                 //检查学期是否存在并且是否启用
                 log.debug(LogConstant.THREAD + "检查学期是否存在并且是否启用");
                 SemesterDTO semesterDTO =
@@ -131,37 +126,10 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 assert semesterDTO != null;
                 //检查结束周是否超过学期周
                 log.debug(LogConstant.THREAD + "检查结束周是否超过学期周");
-                for (SpecificCourseIdVO specificCourseIdVO : classSchedulingVO.getScopeSettings().getSpecificCourseIds()) {
-                    SchedulingLogic.checkEndWeekExceedSemesterWeeks(specificCourseIdVO.getStartWeek(), semesterDTO);
-                    SchedulingLogic.checkEndWeekExceedSemesterWeeks(specificCourseIdVO.getEndWeek(), semesterDTO);
-                }
+                this.validateCourseWeeks(classSchedulingVO.getScopeSettings().getSpecificCourseIds(), semesterDTO);
                 // 使用 Map 存储课程类型优先级，以 courseTypeUuid 为键
                 log.debug(LogConstant.THREAD + "使用 Map 存储课程类型优先级，以 courseTypeUuid 为键");
-                Map<String, CourseTypePriorityDTO> courseTypePriorityMap = new HashMap<>();
-                //检查优先级是否存在
-                log.debug(LogConstant.THREAD + "检查优先级是否存在");
-                if (classSchedulingVO.getPrioritySettings().getCourseTypes().isEmpty()) {
-                    //全部设为5
-                    for (CourseTypeDTO courseTypeDTO : courseTypeService.listCourseType()) {
-                        CourseTypePriorityDTO courseTypePriorityDTO = new CourseTypePriorityDTO();
-                        courseTypePriorityDTO.setCourseTypeDTO(courseTypeDTO).setPriority((short) 5);
-                        courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
-                    }
-                } else {
-                    for (AutomaticClassSchedulingVO.PrioritySettings.CourseTypePriority courseTypePriority
-                            : classSchedulingVO.getPrioritySettings().getCourseTypes()) {
-                        // 根据 typeId 获取 CourseTypeDTO
-                        CourseTypeDTO courseTypeDTO = courseTypeService
-                                .getCourseTypeByUuidWithError(courseTypePriority.getTypeId());
-                        assert courseTypeDTO != null;
-                        // 创建 CourseTypePriorityDTO 并设置优先级
-                        CourseTypePriorityDTO courseTypePriorityDTO = new CourseTypePriorityDTO();
-                        courseTypePriorityDTO.setCourseTypeDTO(courseTypeDTO)
-                                .setPriority(courseTypePriority.getPriority());
-                        // 将其添加到 Map 中，以 courseTypeUuid 为键
-                        courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
-                    }
-                }
+                Map<String, CourseTypePriorityDTO> courseTypePriorityMap = this.setupCourseTypePriority(classSchedulingVO);
                 log.debug(LogConstant.THREAD + "获取课程库和学生班级");
                 //获取课程库和学生班级
                 List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList =
@@ -169,45 +137,9 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                                 classSchedulingVO.getScopeSettings().getSpecificCourseIds(),
                                 classSchedulingVO.getDepartmentUuid()
                         );
-                log.debug("获取课程库和学生班级数据: {}", libraryAndClassDTOList);
+                log.debug("检查课程学分是否能够修满");
                 //检查课程学分是否能够修满
-                for (SpecificCourseIdVO specificCourseIdVO
-                        : classSchedulingVO.getScopeSettings().getSpecificCourseIds()) {
-                    CourseLibraryAndTeacherCourseQualificationListDTO qualificationList =
-                            libraryAndClassDTOList.stream()
-                                    .filter(dto -> dto.getCourse().getCourseLibraryUuid()
-                                            .equals(specificCourseIdVO.getCourseId()))
-                                    .findFirst()
-                                    .orElseThrow(() -> new BusinessException("课程不存在", ErrorCode.BODY_ERROR));
-                    CourseLibraryDTO courseLibraryDTO = qualificationList.getCourse();
-                    // 根据课程类型选择对应的学时
-                    BigDecimal selectedCredit = switch (specificCourseIdVO.getCourseEnuType()) {
-                        case THEORY -> courseLibraryDTO.getTheoryHours();
-                        case EXPERIMENT -> courseLibraryDTO.getExperimentHours();
-                        case PRACTICE -> courseLibraryDTO.getPracticeHours();
-                        case COMPUTER -> courseLibraryDTO.getComputerHours();
-                        case MIXED -> courseLibraryDTO.getTotalHours();
-                        case OTHER -> courseLibraryDTO.getOtherHours();
-                    };
-                    // 计算课程的持续周数
-                    int durationWeeks = specificCourseIdVO.getEndWeek() - specificCourseIdVO.getStartWeek() + 1;
-                    // 计算课程的总课时（课程周数 * 每周课时）
-                    BigDecimal expectedTotalHours = BigDecimal.valueOf(durationWeeks)
-                            .multiply(BigDecimal.valueOf(specificCourseIdVO.getWeeklyHours()));
-                    // 课程学时时抛出异常
-                    if (expectedTotalHours.compareTo(selectedCredit) < 0) {
-                        throw new BusinessException("课程类型 [" + specificCourseIdVO.getCourseEnuType().getChineseName() +
-                                "] 课时无法完成: 计划课时 " + expectedTotalHours + " < 规定课时 " + selectedCredit,
-                                ErrorCode.BODY_ERROR);
-                    }
-                    // 存入课程库,一些必要信息
-                    qualificationList.setCourseEnuType(specificCourseIdVO.getCourseEnuType())
-                            .setWeeklyHours(specificCourseIdVO.getWeeklyHours())
-                            .setIsOddWeek(specificCourseIdVO.getIsOddWeek())
-                            .setStartWeek(specificCourseIdVO.getStartWeek())
-                            .setEndWeek(specificCourseIdVO.getEndWeek())
-                            .setExpectedTotalHours(selectedCredit);
-                }
+                this.fillSpecificCourseInfo(classSchedulingVO.getScopeSettings().getSpecificCourseIds(), libraryAndClassDTOList);
                 log.debug("计算完成的课程库和班级数据: {}", libraryAndClassDTOList);
                 //获取老师所有数据
                 log.debug(LogConstant.THREAD + "获取老师所有数据");
@@ -333,6 +265,8 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     }
 
 
+
+
     /**
      * 执行具体的任务
      */
@@ -351,4 +285,135 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
             lock.unlock();
         }
     }
+    /**
+     * 验证用户部门权限
+     * @param userUuid 用户UUID
+     * @param departmentUuid 部门UUID
+     * @throws BusinessException 如果用户部门权限不匹配
+     */
+    private void validateUserDepartmentPermission(String userUuid, String departmentUuid) {
+        AcademicAffairsPermissionDTO academicAffairsPermissionDTO =
+                academicAffairsPermissionService.getAcademicAffairsPermission(userUuid);
+        assert academicAffairsPermissionDTO != null;
+        if (!academicAffairsPermissionDTO.getDepartment().equals(departmentUuid)) {
+            throw new BusinessException("用户所属部门与所填写部门不一致", ErrorCode.BODY_ERROR);
+        }
+    }
+    /**
+     * 检查课程的开始周和结束周是否在学期范围内
+     * @param specificCourseIds 特定课程ID列表
+     * @param semesterDTO 学期信息
+     */
+    private void validateCourseWeeks(@NotNull List<SpecificCourseIdVO> specificCourseIds, SemesterDTO semesterDTO) {
+        for (SpecificCourseIdVO specificCourseIdVO : specificCourseIds) {
+            SchedulingLogic.checkEndWeekExceedSemesterWeeks(specificCourseIdVO.getStartWeek(), semesterDTO);
+            SchedulingLogic.checkEndWeekExceedSemesterWeeks(specificCourseIdVO.getEndWeek(), semesterDTO);
+        }
+    }
+    /**
+     * 设置课程类型优先级
+     * @param classSchedulingVO 自动排课VO
+     * @return 课程类型优先级映射
+     */
+    private @NotNull Map<String, CourseTypePriorityDTO> setupCourseTypePriority(@NotNull AutomaticClassSchedulingVO classSchedulingVO) {
+        Map<String, CourseTypePriorityDTO> courseTypePriorityMap = new HashMap<>();
+        //检查优先级是否存在
+        if (classSchedulingVO.getPrioritySettings().getCourseTypes().isEmpty()) {
+            //全部设为5
+            for (CourseTypeDTO courseTypeDTO : courseTypeService.listCourseType()) {
+                CourseTypePriorityDTO courseTypePriorityDTO = new CourseTypePriorityDTO();
+                courseTypePriorityDTO.setCourseTypeDTO(courseTypeDTO).setPriority((short) 5);
+                courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
+            }
+        } else {
+            for (AutomaticClassSchedulingVO.PrioritySettings.CourseTypePriority courseTypePriority
+                    : classSchedulingVO.getPrioritySettings().getCourseTypes()) {
+                // 根据 typeId 获取 CourseTypeDTO
+                CourseTypeDTO courseTypeDTO = courseTypeService
+                        .getCourseTypeByUuidWithError(courseTypePriority.getTypeId());
+                assert courseTypeDTO != null;
+                // 创建 CourseTypePriorityDTO 并设置优先级
+                CourseTypePriorityDTO courseTypePriorityDTO = new CourseTypePriorityDTO();
+                courseTypePriorityDTO.setCourseTypeDTO(courseTypeDTO)
+                        .setPriority(courseTypePriority.getPriority());
+                // 将其添加到 Map 中，以 courseTypeUuid 为键
+                courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
+            }
+        }
+        return courseTypePriorityMap;
+    }
+    /**
+     * 处理特定课程的信息
+     * @param specificCourseIdVO 包含特定课程ID的信息
+     * @param libraryAndClassDTOList 课程库和教师课程资格列表，不能为空
+     * 此方法首先从课程库中查找与特定课程ID匹配的课程如果找不到匹配的课程，
+     * 则抛出一个表示业务异常的错误如果找到了匹配的课程，则更新该课程的信息，
+     * 包括课程类型、每周课时、是否单周、开始周、结束周和预期总学时
+     */
+    private void processSpecificCourse(SpecificCourseIdVO specificCourseIdVO,
+                                       @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList) {
+        // 从列表中查找与特定课程ID匹配的课程，如果找不到则抛出异常
+        CourseLibraryAndTeacherCourseQualificationListDTO qualificationList =
+                libraryAndClassDTOList.stream()
+                        .filter(dto -> dto.getCourse().getCourseLibraryUuid()
+                                .equals(specificCourseIdVO.getCourseId()))
+                        .findFirst()
+                        .orElseThrow(() -> new BusinessException("课程不存在", ErrorCode.BODY_ERROR));
+        // 获取特定课程的学时
+        BigDecimal selectedCredit = this.getBigDecimal(specificCourseIdVO, qualificationList);
+        qualificationList.setCourseEnuType(specificCourseIdVO.getCourseEnuType())
+                .setWeeklyHours(specificCourseIdVO.getWeeklyHours())
+                .setIsOddWeek(specificCourseIdVO.getIsOddWeek())
+                .setStartWeek(specificCourseIdVO.getStartWeek())
+                .setEndWeek(specificCourseIdVO.getEndWeek())
+                .setExpectedTotalHours(selectedCredit);
+    }
+    /**
+     * 根据特定课程信息和课程资格列表获取课程学时
+     * 此方法用于计算和验证课程的计划学时是否满足规定的学时要求
+     * @param specificCourseIdVO 特定课程ID信息，包含课程类型、起始周、结束周和每周学时等数据
+     * @param qualificationList 课程资格列表，包含课程库信息和教师课程资格信息
+     * @return 返回根据课程类型选择的规定学时
+     * @throws BusinessException 如果课程的计划学时小于规定学时，则抛出业务异常
+     */
+    private  BigDecimal getBigDecimal(@NotNull SpecificCourseIdVO specificCourseIdVO, @NotNull CourseLibraryAndTeacherCourseQualificationListDTO qualificationList) {
+        // 获取课程库信息
+        CourseLibraryDTO courseLibraryDTO = qualificationList.getCourse();
+        // 根据课程类型选择对应的学时
+        BigDecimal selectedCredit = switch (specificCourseIdVO.getCourseEnuType()) {
+            case THEORY -> courseLibraryDTO.getTheoryHours();
+            case EXPERIMENT -> courseLibraryDTO.getExperimentHours();
+            case PRACTICE -> courseLibraryDTO.getPracticeHours();
+            case COMPUTER -> courseLibraryDTO.getComputerHours();
+            case MIXED -> courseLibraryDTO.getTotalHours();
+            case OTHER -> courseLibraryDTO.getOtherHours();
+        };
+        // 计算课程的持续周数
+        int durationWeeks = specificCourseIdVO.getEndWeek() - specificCourseIdVO.getStartWeek() + 1;
+        // 计算课程的总课时（课程周数 * 每周课时）
+        BigDecimal expectedTotalHours = BigDecimal.valueOf(durationWeeks)
+                .multiply(BigDecimal.valueOf(specificCourseIdVO.getWeeklyHours()));
+        // 如果课程的计划学时小于规定学时，抛出异常
+        if (expectedTotalHours.compareTo(selectedCredit) < 0) {
+            throw new BusinessException("课程类型 [" + specificCourseIdVO.getCourseEnuType().getChineseName() +
+                    "] 课时无法完成: 计划课时 " + expectedTotalHours + " < 规定课时 " + selectedCredit,
+                    ErrorCode.BODY_ERROR);
+        }
+        // 返回根据课程类型选择的规定学时
+        return selectedCredit;
+    }
+    /**
+     * 填充特定课程的信息
+     * 该方法遍历特定课程ID列表，并为每个课程ID调用processSpecificCourse方法来处理课程信息
+     * @param specificCourseIds 包含特定课程ID的列表，用于标识需要处理的课程这些课程ID不能为空
+     * @param libraryAndClassDTOList 包含课程库和教师课程资格列表的DTO列表，用于与特定课程ID进行匹配和处理
+     */
+    private void fillSpecificCourseInfo(@NotNull List<SpecificCourseIdVO> specificCourseIds,
+                                        List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList) {
+        for (SpecificCourseIdVO specificCourseIdVO : specificCourseIds) {
+            this.processSpecificCourse(specificCourseIdVO, libraryAndClassDTOList);
+        }
+    }
+
+
 }

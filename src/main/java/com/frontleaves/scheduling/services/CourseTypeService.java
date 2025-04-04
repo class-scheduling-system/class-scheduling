@@ -19,7 +19,10 @@ public interface CourseTypeService {
         String uuid
     );
 
+    /**
+     * 获取课程类型列表
+     * @return 课程类型DTO列表
+     */
     List<CourseTypeDTO> listCourseType(
-
     );
 }
