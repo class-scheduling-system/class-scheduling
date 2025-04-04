@@ -5,14 +5,14 @@ import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
+import com.frontleaves.scheduling.services.scheduling.EvaluatePopulationService;
 import com.frontleaves.scheduling.services.scheduling.GenerateInitialPopulationService;
 import com.frontleaves.scheduling.services.scheduling.GeneticSchedulingService;
+import com.frontleaves.scheduling.services.scheduling.IterateService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RedissonClient;
-import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -32,15 +32,26 @@ import java.util.Optional;
 @Service
 @Slf4j
 public class GeneticSchedulingLogic extends BaseGeneticSchedulingLogic implements GeneticSchedulingService {
+
+    /**
+     * 遗传算法初始种群生成服务
+     */
 private final GenerateInitialPopulationService generateInitialPopulationService;
+private final EvaluatePopulationService evaluatePopulationService;
+private final IterateService iterateService;
     /**
      * 构造函数
      *
      * @param redisson Redis客户端，用于缓存和分布式锁
      */
-    public GeneticSchedulingLogic(RedissonClient redisson, GenerateInitialPopulationService generateInitialPopulationService) {
+    public GeneticSchedulingLogic(RedissonClient redisson,
+                                  GenerateInitialPopulationService generateInitialPopulationService,
+                                  EvaluatePopulationService evaluatePopulationService,
+                                  IterateService iterateService) {
         super(redisson);
         this.generateInitialPopulationService = generateInitialPopulationService;
+        this.evaluatePopulationService = evaluatePopulationService;
+        this.iterateService = iterateService;
     }
 
     /**
@@ -71,7 +82,7 @@ private final GenerateInitialPopulationService generateInitialPopulationService;
             log.debug("获取第一个种群: {}", allPopulation.get(0));
             // 评估初始种群
             log.debug("开始评估初始种群...");
-            this.evaluatePopulation(allPopulation, baseDTO);
+            evaluatePopulationService.evaluatePopulation(allPopulation, baseDTO);
             int generation = 0;
             int maxGenerations = baseDTO.getAlgorithmParams().getMaxIterations();
             double bestFitness = 0.0;
@@ -80,13 +91,13 @@ private final GenerateInitialPopulationService generateInitialPopulationService;
             // 迭代进化
             while (generation < maxGenerations) {
                 // 选择
-                List<ScheduleDTO> selected = selection(allPopulation);
+                List<ScheduleDTO> selected = iterateService.selection(allPopulation);
                 // 交叉
-                List<ScheduleDTO> offspring = crossover(selected, baseDTO.getAlgorithmParams().getCrossoverRate(), baseDTO);
+                List<ScheduleDTO> offspring = iterateService.crossover(selected, baseDTO.getAlgorithmParams().getCrossoverRate(), baseDTO);
                 // 变异
-                mutation(offspring, baseDTO.getAlgorithmParams().getMutationRate(), baseDTO);
+                iterateService.mutation(offspring, baseDTO.getAlgorithmParams().getMutationRate(), baseDTO);
                 // 评估新一代
-                evaluatePopulation(offspring, baseDTO);
+                evaluatePopulationService.evaluatePopulation(offspring, baseDTO);
                 // 更新种群
                 allPopulation = offspring;
                 // 更新最佳解
@@ -96,24 +107,20 @@ private final GenerateInitialPopulationService generateInitialPopulationService;
                     bestFitness = currentBest.get().getFitness();
                     bestSchedule = deepCopySchedule(currentBest.get());
                 }
-
                 // 更新进度
                 int progress = (int) ((double) generation / maxGenerations * 100);
                 updateProgress(taskId, progress);
                 updateStatus(taskId, String.format("正在进行第 %d 代优化...", generation));
                 generation++;
             }
-
             // 构建结果
             if (bestSchedule != null) {
                 log.debug("最终排课方案: {}", bestSchedule);
                 List<SchedulingConflictDTO> conflicts = findConflicts(bestSchedule);
                 ScheduleResultDTO.ResourceUtilization utilization = calculateResourceUtilization(bestSchedule);
                 List<ScheduleResultDTO.ClassAssignmentDTO> assignments = convertScheduleToAssignments(bestSchedule);
-
                 updateProgress(taskId, 100);
                 updateStatus(taskId, "排课完成");
-
 
                 return new ScheduleResultDTO()
                         .setTaskId(taskId)

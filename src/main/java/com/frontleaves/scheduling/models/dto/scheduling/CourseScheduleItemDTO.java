@@ -112,4 +112,5 @@ public class CourseScheduleItemDTO {
         this.courseType = other.courseType;
         this.classGroup = other.classGroup;
     }
+
 }

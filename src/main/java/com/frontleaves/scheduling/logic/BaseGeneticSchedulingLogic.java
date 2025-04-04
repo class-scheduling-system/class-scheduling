@@ -1494,7 +1494,8 @@ class BaseGeneticSchedulingLogic {
         // 获取当前课程安排
         Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry = schedule.getAssignments().entrySet().iterator().next();
         // 获取对应的课程信息
-        CourseLibraryAndTeacherCourseQualificationListDTO course = findCourseByScheduleItem(entry.getValue(), courses);
+        CourseLibraryAndTeacherCourseQualificationListDTO course = findCourseByScheduleItem(
+                entry.getValue(), courses);
         if (course != null) {
             // 尝试找到新的合适时间槽
             List<TimeSlotDTO> newTimeSlot = this.findSuitableTimeSlot(
