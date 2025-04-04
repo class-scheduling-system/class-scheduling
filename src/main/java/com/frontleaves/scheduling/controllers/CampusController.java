@@ -1,10 +1,13 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
-import com.frontleaves.scheduling.models.dto.base.CampusDTO;
+import com.frontleaves.scheduling.models.dto.BackAddCampusDTO;
+import com.frontleaves.scheduling.models.dto.FileDTO;
 import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
+import com.frontleaves.scheduling.models.dto.base.CampusDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.vo.BatchAddCampusVO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import com.frontleaves.scheduling.services.CampusService;
 import com.xlf.utility.BaseResponse;
@@ -17,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 

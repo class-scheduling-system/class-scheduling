@@ -32,7 +32,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeachingClassMapper;
 import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
-import com.frontleaves.scheduling.models.entity.TeachingClassDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RList;

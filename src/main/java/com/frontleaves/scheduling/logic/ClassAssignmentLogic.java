@@ -9,11 +9,15 @@ import com.frontleaves.scheduling.daos.CourseLibraryDAO;
 import com.frontleaves.scheduling.daos.SemesterDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
+import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
-import com.frontleaves.scheduling.models.entity.ClassAssignmentDO;
+import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
 import com.frontleaves.scheduling.models.entity.SemesterDO;
 import com.frontleaves.scheduling.models.entity.TeacherDO;
+import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
 import com.frontleaves.scheduling.services.AdministrativeClassService;
 import com.frontleaves.scheduling.services.ClassAssignmentService;
@@ -206,8 +210,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
             assignmentDO.setSemesterUuid(result.getSemesterId())
                     .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
                     .setTeacherUuid(assignment.getTeacher().getTeacher().getTeacherUuid())
-                    .setClassroomUuid(assignment.getClassroom().getClassroom().getClassroomUuid())
-                    .setTeachingClassComposition(JSONUtil.toJsonStr(className));
+                    .setClassroomUuid(assignment.getClassroom().getClassroom().getClassroomUuid());
         }
 
     }

@@ -32,6 +32,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.base.BuildingDTO;
 import com.frontleaves.scheduling.models.dto.base.CampusDTO;
+import com.frontleaves.scheduling.models.dto.base.ClassroomTagDTO;
 import com.frontleaves.scheduling.models.dto.base.ClassroomTypeDTO;
 import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
 import lombok.RequiredArgsConstructor;
