@@ -41,5 +41,5 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class CourseTypePriorityDTO {
     private CourseTypeDTO courseTypeDTO;
-    private short priority;
+    private Integer priority;
 }

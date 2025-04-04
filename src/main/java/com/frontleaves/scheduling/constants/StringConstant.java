@@ -183,6 +183,7 @@ public class StringConstant {
         public static final String SCHEDULE_RESULT = "schedule:result:";
         public static final String SCHEDULE_EXECUTE_STATUS = "schedule:execute:status:";
         public static final String SCHEDULE_EXECUTE_PROGRESS = "schedule:execute:progress:";
+        public static final String CREDIT_HOUR_TYPE_UUID = "credit:hour:type:uuid:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

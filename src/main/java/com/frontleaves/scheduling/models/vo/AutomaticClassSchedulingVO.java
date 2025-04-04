@@ -141,7 +141,7 @@ public class AutomaticClassSchedulingVO {
              */
             @NotNull(message = "优先级不能为空")
             @Min(value = 1, message = "优先级必须大于等于 1")
-            private Short priority;
+            private Integer priority;
         }
     }
 

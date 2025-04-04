@@ -34,7 +34,6 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.logic.SchedulingLogic;
 import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.*;
-import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseTypePriorityDTO;
@@ -97,11 +96,13 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     @Resource
     private DepartmentService departmentService;
     @Resource
-    private ClassAssignmentService  classAssignmentService;
+    private ClassAssignmentService classAssignmentService;
     @Resource
     private TeacherService teacherService;
     @Resource
     private AdministrativeClassService administrativeClassService;
+    @Resource
+    private CreditHourTypeService creditHourTypeService;
     @Resource
     private RedissonClient redisson;
     private HttpServletRequest request;
@@ -162,8 +163,8 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 log.debug("设置课程优先级");
                 this.applyCourseTypePriority(courseQualificationList, courseTypePriorityMap);
                 log.debug(LogConstant.THREAD + "获取教室数据");
-                List<ClassroomAndTypeDTO> classroomAndTypeDTOList =
-                        this.getAllClassroomAndType(classSchedulingVO.getScopeSettings().getAllowedBuildingIds());
+                List<ClassroomInfoDTO> classroomAndTypeDTOList =
+                        this.getAllClassroomInfo(classSchedulingVO.getScopeSettings().getAllowedBuildingIds());
                 log.debug(LogConstant.THREAD + "获取部门DTO");
                 DepartmentDTO departmentDTO = departmentService.
                         getDepartmentByUuidWithThrows(classSchedulingVO.getDepartmentUuid());
@@ -226,25 +227,8 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                         classAssignmentService.getClassAssignmentListByLimit(automaticClassSchedulingBaseDTO);
                 //将数据库内排课数据转换成baseDTO
                 log.debug("准备数据库内排课数据");
-                List<CourseScheduleDTO> courseScheduleDTOList = new ArrayList<>();
-                for (ClassAssignmentDTO classAssignment : classAssignmentDTOList){
-                    CourseScheduleDTO courseScheduleDTO = new CourseScheduleDTO();
-                    //设置课程安排项
-                    CourseScheduleItemDTO courseScheduleItemDTO = this.prepareTheCourseSchedule(classAssignment);
-                    Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments = new HashMap<>();
-                    // 解析classTime JSON字符串
-                    String classTime = classAssignment.getClassTime();
-                    if (classTime != null && !classTime.isEmpty()) {
-                        try {
-                            // 使用JSONUtil解析JSON字符串
-                            List<TimeSlotDTO> timeSlots = JSONUtil.toList(classTime, TimeSlotDTO.class);
-                            // 设置到map的key
-                            assignments.put(timeSlots, courseScheduleItemDTO);
-                        } catch (Exception e) {
-                            log.error("解析classTime失败: {}", classTime, e);
-                        }
-                    }
-                }
+                List<CourseScheduleDTO> courseScheduleDTOList = this.buildCourseScheduleList(classAssignmentDTOList);
+                automaticClassSchedulingBaseDTO.setDataCourseScheduleList(courseScheduleDTOList);
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
                 cacheBaseData.set(automaticClassSchedulingBaseDTO);
                 automaticThread.startUp(userDO);
@@ -261,19 +245,30 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         log.debug(LogConstant.THREAD + "线程结束运行");
     }
 
-    private CourseScheduleItemDTO prepareTheCourseSchedule(@NotNull ClassAssignmentDTO classAssignment) {
-        CourseLibraryDTO courseLibraryDTO = courseLibraryService.getCourseByUuid(classAssignment.getCourseUuid());
-        TeacherDTO teacherDTO = teacherService.getTeacher(classAssignment.getTeacherUuid());
-        ClassroomInfoDTO classroomDTO = classroomService.getClassroomByUuid(classAssignment.getClassroomUuid());
-        List<String> classUuid = ProjectUtil.parseUuidsFromClassGroup(classAssignment.getClassTime());
-        List<AdministrativeClassDTO> administrativeClassDTOList = new ArrayList<>();
-        for (String uuid : classUuid) {
-            administrativeClassDTOList.add(administrativeClassService.getClassByUuid(uuid));
+    private @NotNull List<CourseScheduleDTO> buildCourseScheduleList(List<ClassAssignmentDTO> classAssignmentDTOList) {
+        List<CourseScheduleDTO> courseScheduleDTOList = new ArrayList<>();
+        for (ClassAssignmentDTO classAssignment : classAssignmentDTOList) {
+            CourseScheduleDTO courseScheduleDTO = new CourseScheduleDTO();
+            // 设置课程安排项
+            CourseScheduleItemDTO courseScheduleItemDTO = this.prepareTheCourseSchedule(classAssignment);
+            // 构建时间槽和课程安排项的映射
+            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments = new HashMap<>();
+            String classTime = classAssignment.getClassTime();
+            if (classTime != null && !classTime.isEmpty()) {
+                try {
+                    // 使用JSONUtil解析JSON字符串
+                    List<TimeSlotDTO> timeSlots = JSONUtil.toList(classTime, TimeSlotDTO.class);
+                    // 设置到map的key
+                    assignments.put(timeSlots, courseScheduleItemDTO);
+                } catch (Exception e) {
+                    log.error("解析classTime失败: {}", classTime, e);
+                }
+            }
+            // 设置课程安排
+            courseScheduleDTO.setAssignments(assignments);
+            courseScheduleDTOList.add(courseScheduleDTO);
         }
-        //查询学时
-
-        CourseScheduleItemDTO scheduleItem = new CourseScheduleItemDTO(
-                courseLibraryDTO,teacherDTO,classroomDTO,administrativeClassDTOList);
+        return courseScheduleDTOList;
     }
 
 
@@ -295,9 +290,11 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
             lock.unlock();
         }
     }
+
     /**
      * 验证用户部门权限
-     * @param userUuid 用户UUID
+     *
+     * @param userUuid       用户UUID
      * @param departmentUuid 部门UUID
      * @throws BusinessException 如果用户部门权限不匹配
      */
@@ -309,10 +306,12 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
             throw new BusinessException("用户所属部门与所填写部门不一致", ErrorCode.BODY_ERROR);
         }
     }
+
     /**
      * 检查课程的开始周和结束周是否在学期范围内
+     *
      * @param specificCourseIds 特定课程ID列表
-     * @param semesterDTO 学期信息
+     * @param semesterDTO       学期信息
      */
     private void validateCourseWeeks(@NotNull List<SpecificCourseIdVO> specificCourseIds, SemesterDTO semesterDTO) {
         for (SpecificCourseIdVO specificCourseIdVO : specificCourseIds) {
@@ -320,8 +319,10 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
             SchedulingLogic.checkEndWeekExceedSemesterWeeks(specificCourseIdVO.getEndWeek(), semesterDTO);
         }
     }
+
     /**
      * 设置课程类型优先级
+     *
      * @param classSchedulingVO 自动排课VO
      * @return 课程类型优先级映射
      */
@@ -332,7 +333,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
             //全部设为5
             for (CourseTypeDTO courseTypeDTO : courseTypeService.listCourseType()) {
                 CourseTypePriorityDTO courseTypePriorityDTO = new CourseTypePriorityDTO();
-                courseTypePriorityDTO.setCourseTypeDTO(courseTypeDTO).setPriority((short) 5);
+                courseTypePriorityDTO.setCourseTypeDTO(courseTypeDTO).setPriority(5);
                 courseTypePriorityMap.put(courseTypeDTO.getCourseTypeUuid(), courseTypePriorityDTO);
             }
         } else {
@@ -352,13 +353,15 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         }
         return courseTypePriorityMap;
     }
+
     /**
      * 处理特定课程的信息
-     * @param specificCourseIdVO 包含特定课程ID的信息
+     *
+     * @param specificCourseIdVO     包含特定课程ID的信息
      * @param libraryAndClassDTOList 课程库和教师课程资格列表，不能为空
-     * 此方法首先从课程库中查找与特定课程ID匹配的课程如果找不到匹配的课程，
-     * 则抛出一个表示业务异常的错误如果找到了匹配的课程，则更新该课程的信息，
-     * 包括课程类型、每周课时、是否单周、开始周、结束周和预期总学时
+     *                               此方法首先从课程库中查找与特定课程ID匹配的课程如果找不到匹配的课程，
+     *                               则抛出一个表示业务异常的错误如果找到了匹配的课程，则更新该课程的信息，
+     *                               包括课程类型、每周课时、是否单周、开始周、结束周和预期总学时
      */
     private void processSpecificCourse(SpecificCourseIdVO specificCourseIdVO,
                                        @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList) {
@@ -378,15 +381,17 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 .setEndWeek(specificCourseIdVO.getEndWeek())
                 .setExpectedTotalHours(selectedCredit);
     }
+
     /**
      * 根据特定课程信息和课程资格列表获取课程学时
      * 此方法用于计算和验证课程的计划学时是否满足规定的学时要求
+     *
      * @param specificCourseIdVO 特定课程ID信息，包含课程类型、起始周、结束周和每周学时等数据
-     * @param qualificationList 课程资格列表，包含课程库信息和教师课程资格信息
+     * @param qualificationList  课程资格列表，包含课程库信息和教师课程资格信息
      * @return 返回根据课程类型选择的规定学时
      * @throws BusinessException 如果课程的计划学时小于规定学时，则抛出业务异常
      */
-    private  BigDecimal getBigDecimal(@NotNull SpecificCourseIdVO specificCourseIdVO, @NotNull CourseLibraryAndTeacherCourseQualificationListDTO qualificationList) {
+    private BigDecimal getBigDecimal(@NotNull SpecificCourseIdVO specificCourseIdVO, @NotNull CourseLibraryAndTeacherCourseQualificationListDTO qualificationList) {
         // 获取课程库信息
         CourseLibraryDTO courseLibraryDTO = qualificationList.getCourse();
         // 根据课程类型选择对应的学时
@@ -412,10 +417,12 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         // 返回根据课程类型选择的规定学时
         return selectedCredit;
     }
+
     /**
      * 填充特定课程的信息
      * 该方法遍历特定课程ID列表，并为每个课程ID调用processSpecificCourse方法来处理课程信息
-     * @param specificCourseIds 包含特定课程ID的列表，用于标识需要处理的课程这些课程ID不能为空
+     *
+     * @param specificCourseIds      包含特定课程ID的列表，用于标识需要处理的课程这些课程ID不能为空
      * @param libraryAndClassDTOList 包含课程库和教师课程资格列表的DTO列表，用于与特定课程ID进行匹配和处理
      */
     private void fillSpecificCourseInfo(@NotNull List<SpecificCourseIdVO> specificCourseIds,
@@ -424,10 +431,12 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
             this.processSpecificCourse(specificCourseIdVO, libraryAndClassDTOList);
         }
     }
+
     /**
      * 扩展混合课程以生成一个新的列表
      * 此方法遍历给定的课程资格列表，对于每个被认为是混合课程的项目，将其拆分并添加到新的列表中
      * 非混合课程直接添加到列表中该方法确保返回的列表中没有混合课程
+     *
      * @param courseQualificationList 一个包含课程资格的列表，不能为空
      * @return 一个扩展后的列表，其中包含拆分后的混合课程和其他未更改的课程资格
      */
@@ -444,12 +453,14 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         }
         return updatedList;
     }
+
     /**
      * 检查混合课程是否有效
      * 有效性条件包括：
      * 1. 课程类型为混合课程（CourseEnuType.MIXED）
      * 2. 课程对象不为空
      * 3. 课程的总学时字段存在且大于零
+     *
      * @param dto 包含课程库和教师课程资格的DTO对象，不能为空
      * @return 如果课程满足上述条件，则返回true，否则返回false
      */
@@ -459,10 +470,12 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 && dto.getCourse().getTotalHours() != null
                 && dto.getCourse().getTotalHours().compareTo(BigDecimal.ZERO) > 0;
     }
+
     /**
      * 将混合类型的课程拆分为多个单一类型的课程
      * 此方法接收一个包含课程信息及其对应课时的DTO对象，根据课程类型（如理论、实验等）
      * 拆分成多个仅包含一种课程类型信息的DTO对象，便于后续处理和展示
+     *
      * @param dto 课程库和教师课程资格列表DTO对象，包含课程信息及其课时
      * @return 返回一个List，其中包含按课程类型拆分后的课程信息DTO对象
      */
@@ -483,23 +496,10 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     }
 
     /**
-     * 获取所有允许的建筑物下的教室及其类型
-     * 该方法通过允许的建筑物ID列表来获取相关的教室及其类型信息
-     * 它利用Stream API对每个允许的建筑物ID进行处理，调用getClassroomAndTypeByUuidWihError方法获取教室信息，
-     * 并将结果合并为一个列表
-     * @param allowedBuildingIds 允许的建筑物ID列表，不能为空
-     * @return 包含所有允许建筑物下的教室及其类型信息的列表
-     */
-    private List<ClassroomAndTypeDTO> getAllClassroomAndType(@NotNull List<String> allowedBuildingIds) {
-        return allowedBuildingIds.stream()
-                .map(classroomService::getClassroomAndTypeByUuidWihError)
-                .flatMap(List::stream)
-                .toList();
-    }
-    /**
      * 根据课程类型优先级配置更新课程列表中的每个课程优先级
      * 如果课程类型没有对应的优先级配置，则将优先级设置为默认值
-     * @param courseList 课程列表，包含课程信息和教师课程资格信息
+     *
+     * @param courseList            课程列表，包含课程信息和教师课程资格信息
      * @param courseTypePriorityMap 课程类型优先级配置，键为课程类型UUID，值为课程类型优先级DTO
      */
     private void applyCourseTypePriority(
@@ -514,13 +514,59 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 dto.setPriority(priorityDTO.getPriority());
             } else {
                 // 没配置的课程类型统一设置为默认优先级 5（可根据业务调整）
-                dto.setPriority((short) 5);
+                dto.setPriority(5);
             }
         }
     }
 
+    /**
+     * 准备课程时间表项
+     * 此方法根据班级分配信息来准备课程时间表项，包括获取课程信息、教师信息、教室信息和行政班信息等
+     *
+     * @param classAssignment 班级分配信息，包含课程UUID、教师UUID、教室UUID等
+     * @return 返回一个课程时间表项DTO，包含所有准备好的信息
+     */
+    private @NotNull CourseScheduleItemDTO prepareTheCourseSchedule(@NotNull ClassAssignmentDTO classAssignment) {
+        CourseLibraryDTO courseLibraryDTO = courseLibraryService.getCourseByUuid(classAssignment.getCourseUuid());
+        TeacherDTO teacherDTO = teacherService.getTeacher(classAssignment.getTeacherUuid());
+        TeacherCoursePreferencesDTO teacherCoursePreferencesDTO = new TeacherCoursePreferencesDTO();
+        teacherCoursePreferencesDTO.setTeacher(teacherDTO);
+        ClassroomInfoDTO classroomDTO = classroomService.getClassroomByUuid(classAssignment.getClassroomUuid());
+        List<String> classUuid = ProjectUtil.parseUuidsFromClassGroup(classAssignment.getClassTime());
+        List<AdministrativeClassDTO> administrativeClassDTOList = new ArrayList<>();
+        for (String uuid : classUuid) {
+            administrativeClassDTOList.add(administrativeClassService.getClassByUuid(uuid));
+        }
+        CreditHourTypeDTO creditHourTypeDTO =
+                creditHourTypeService.getCreditHourTypeByUuid(classAssignment.getCreditHourType());
+        return new CourseScheduleItemDTO(
+                courseLibraryDTO, teacherCoursePreferencesDTO, classroomDTO, administrativeClassDTOList, creditHourTypeDTO,
+                classAssignment.getSchedulingPriority());
+    }
 
-
+    /**
+     * 获取所有允许访问的教室信息
+     * 此方法通过遍历允许的建筑ID列表，获取每个建筑ID对应的教室信息，并将这些信息收集到一个列表中
+     * 它确保了只有指定建筑ID的教室信息会被获取，从而保证了数据的权限控制
+     *
+     * @param allowedBuildingIds 允许访问的建筑ID列表，不能为空
+     * @return 包含教室信息的列表，不能为空
+     */
+    private @NotNull List<ClassroomInfoDTO> getAllClassroomInfo(@NotNull List<String> allowedBuildingIds) {
+        // 初始化一个列表，用于存储所有允许访问的教室信息
+        List<ClassroomInfoDTO> classroomAndTypeDTOList = new ArrayList<>();
+        // 遍历每个允许访问的建筑ID
+        for (String buildingId : allowedBuildingIds) {
+            // 通过建筑ID获取对应的教室信息
+            ClassroomInfoDTO classroomInfoDTO = classroomService.getClassroomByUuid(buildingId);
+            // 确保获取到的教室信息不为空
+            assert classroomInfoDTO != null;
+            // 将获取到的教室信息添加到列表中
+            classroomAndTypeDTOList.add(classroomInfoDTO);
+        }
+        // 返回收集到的教室信息列表
+        return classroomAndTypeDTOList;
+    }
 
 
 }

@@ -44,9 +44,6 @@ public enum CourseEnuType {
      */
     OTHER("other", "其他类型");
 
-    /**
-     * 课程类型名称
-     */
 
     /**
      * 英文类型名称

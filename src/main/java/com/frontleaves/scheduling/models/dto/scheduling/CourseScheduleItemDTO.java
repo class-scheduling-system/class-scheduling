@@ -2,9 +2,9 @@ package com.frontleaves.scheduling.models.dto.scheduling;
 
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.base.CreditHourTypeDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
-import enums.CourseEnuType;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -65,7 +65,7 @@ public class CourseScheduleItemDTO {
     /**
      * 课程类型
      */
-    private CourseEnuType courseEnuType;
+    private CreditHourTypeDTO courseType;
     /**
      * 课程优先级
      * <p>
@@ -73,7 +73,7 @@ public class CourseScheduleItemDTO {
      * 高优先级的课程会在排课算法中优先安排，以确保重要课程能够获得合适的时间和资源。
      * </p>
      */
-    private final Short priority;
+    private final Integer priority;
 
     /**
      * 构造方法
@@ -87,12 +87,12 @@ public class CourseScheduleItemDTO {
      * @param priority  课程优先级
      */
     public CourseScheduleItemDTO(CourseLibraryDTO course, TeacherCoursePreferencesDTO teacher,
-                                 ClassroomInfoDTO classroom, List<AdministrativeClassDTO> classGroup,CourseEnuType courseEnuType, Short priority) {
+                                 ClassroomInfoDTO classroom, List<AdministrativeClassDTO> classGroup,CreditHourTypeDTO courseType, Integer priority) {
         this.course = course;
         this.teacher = teacher;
         this.classroom = classroom;
         this.classGroup = classGroup;
-        this.courseEnuType = courseEnuType;
+        this.courseType = courseType;
         this.priority = priority;
     }
 
@@ -110,7 +110,7 @@ public class CourseScheduleItemDTO {
         this.teacher = other.teacher;
         this.classroom = other.classroom;
         this.priority = other.priority;
-        this.courseEnuType = other.courseEnuType;
+        this.courseType = other.courseType;
         this.classGroup = other.classGroup;
     }
 }
