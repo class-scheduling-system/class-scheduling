@@ -26,62 +26,27 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.services;
+package com.frontleaves.scheduling.daos;
 
-import com.frontleaves.scheduling.models.entity.UserDO;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.mappers.TeachingClassMapper;
+import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
 /**
- * AI 服务接口
+ * 教学班数据访问对象
  * <p>
- * 该接口用于定义与 AI 相关的服务方法。
+ * 此类继承自ServiceImpl，实现IService接口，主要负责对教学班（TeachingClass）数据的操作，
+ * 包括但不限于增、删、改、查等数据库操作。通过与TeachingClassMapper的交互，
+ * 提供了面向业务的数据库访问方法。
  * </p>
  *
- * @author xiao_lfeng
+ * @author xiaolfeng
  * @version v1.0.0
  * @since v1.0.0
  */
-public interface AiService {
-
-    /**
-     * 发送路由跳转
-     * <p>
-     * 该方法用于处理路由跳转请求。
-     * </p>
-     *
-     * @param userInput 用户输入的路由路径
-     * @param role      用户角色
-     * @param form      表单数据
-     * @param otherData 其他数据
-     * @param record    记录数据
-     * @param thisPage  当前页面
-     * @param chat      聊天记录
-     * @param user      用户对象
-     * @param userAgent 用户代理信息
-     */
-    void sendRouteJump(
-            @NotNull String userInput,
-            @Nullable String role,
-            @Nullable String form,
-            @Nullable String otherData,
-            @Nullable String record,
-            @Nullable String thisPage,
-            @Nullable String chat,
-            @NotNull UserDO user,
-            @NotNull String userAgent
-    );
-
-    /**
-     * 发送 AI 聊天消息
-     * <p>
-     * 该方法用于处理 AI 聊天消息请求。
-     * </p>
-     *
-     * @param userInput      用户输入的消息
-     * @param chat          聊天记录
-     * @param user          用户对象
-     * @param userAgent     用户代理信息
-     */
-    void sendAiChat(String userInput, String chat, UserDO user, String userAgent);
+@Repository
+@RequiredArgsConstructor
+public class TeachingClassDAO extends ServiceImpl<TeachingClassMapper, TeachingClassDO> {
 }

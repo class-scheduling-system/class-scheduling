@@ -26,62 +26,38 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.services;
+package com.frontleaves.scheduling.models.vo;
 
-import com.frontleaves.scheduling.models.entity.UserDO;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+import lombok.experimental.Accessors;
 
 /**
- * AI 服务接口
+ * 批量添加教室视图对象
  * <p>
- * 该接口用于定义与 AI 相关的服务方法。
+ * 该类用于表示批量添加教室时的请求参数，包含Excel文件的Base64编码和是否忽略错误的标志。
  * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
-public interface AiService {
+@Data
+@Accessors(chain = true)
+public class BatchAddClassroomVO {
 
     /**
-     * 发送路由跳转
-     * <p>
-     * 该方法用于处理路由跳转请求。
-     * </p>
-     *
-     * @param userInput 用户输入的路由路径
-     * @param role      用户角色
-     * @param form      表单数据
-     * @param otherData 其他数据
-     * @param record    记录数据
-     * @param thisPage  当前页面
-     * @param chat      聊天记录
-     * @param user      用户对象
-     * @param userAgent 用户代理信息
+     * Excel文件的Base64编码
      */
-    void sendRouteJump(
-            @NotNull String userInput,
-            @Nullable String role,
-            @Nullable String form,
-            @Nullable String otherData,
-            @Nullable String record,
-            @Nullable String thisPage,
-            @Nullable String chat,
-            @NotNull UserDO user,
-            @NotNull String userAgent
-    );
+    private String file;
 
     /**
-     * 发送 AI 聊天消息
+     * 是否忽略错误
      * <p>
-     * 该方法用于处理 AI 聊天消息请求。
+     * 如果为true，则在导入过程中遇到错误时会跳过错误记录并继续导入；
+     * 如果为false，则在遇到第一个错误时立即停止导入。
      * </p>
-     *
-     * @param userInput      用户输入的消息
-     * @param chat          聊天记录
-     * @param user          用户对象
-     * @param userAgent     用户代理信息
      */
-    void sendAiChat(String userInput, String chat, UserDO user, String userAgent);
-}
+    @JsonProperty("ignore_error")
+    private Boolean ignoreError;
+} 

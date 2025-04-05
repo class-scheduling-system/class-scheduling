@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -32,11 +32,17 @@ import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.BuildingDTO;
 import com.frontleaves.scheduling.models.dto.CampusDTO;
+import com.frontleaves.scheduling.models.dto.ClassroomTagDTO;
 import com.frontleaves.scheduling.models.dto.ClassroomTypeDTO;
+import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONArray;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -50,6 +56,7 @@ import java.util.Map;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 @RequiredArgsConstructor
 class BaseClassroomLogic {
     protected final ClassroomTagDAO classroomTagDAO;
@@ -116,6 +123,37 @@ class BaseClassroomLogic {
         } else {
             buildingCache.put(building.getBuildingUuid(), building);
             return building;
+        }
+    }
+
+    /**
+     * 从JSON字符串获取标签列表
+     * <p>
+     * 该方法用于将存储在数据库中的JSON格式的标签UUID列表转换为标签DTO对象列表。
+     * 首先解析JSON字符串获取标签UUID数组，然后根据每个UUID查询完整的标签信息并构建DTO对象。
+     * </p>
+     *
+     * @param tagJson 标签UUID的JSON字符串
+     * @return 标签DTO对象列表，如果输入为null或空字符串，则返回空列表
+     */
+    protected List<ClassroomTagDTO> getTagListForJson(String tagJson) {
+        if (tagJson == null || tagJson.isEmpty()) {
+            return List.of();
+        }
+        try {
+            JSONArray jsonArray = new JSONArray(tagJson);
+            List<ClassroomTagDTO> result = new ArrayList<>();
+            for (int i = 0; i < jsonArray.length(); i++) {
+                String tagUuid = jsonArray.getString(i);
+                ClassroomTagDO tagDO = classroomTagDAO.getTagByUuid(tagUuid);
+                if (tagDO != null) {
+                    result.add(BeanUtil.toBean(tagDO, ClassroomTagDTO.class));
+                }
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("解析教室标签JSON失败: {}", e.getMessage());
+            return List.of();
         }
     }
 }

@@ -44,6 +44,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -136,5 +137,26 @@ public class ClassroomTypeDAO extends ServiceImpl<ClassroomTypeMapper, Classroom
             return types.readAll();
         }
         return Collections.emptyList();
+    }
+
+    /**
+     * 根据类型名称获取类型实体
+     * <p>
+     * 该方法用于通过教室类型名称查询对应的类型实体。如果缓存中存在，则直接从缓存获取；
+     * 否则从数据库中查询，并将结果缓存。这对于批量导入操作中的类型匹配特别有用。
+     * </p>
+     *
+     * @param name 类型名称
+     * @return 返回与指定名称匹配的类型实体对象，如果不存在则返回null
+     */
+    @Nullable
+    public ClassroomTypeDO getTypeByName(String name) {
+        // 先从缓存中获取所有类型
+        List<ClassroomTypeDO> allTypes = getTypes();
+        // 在列表中查找匹配名称的类型
+        return allTypes.stream()
+                .filter(type -> type.getName().equals(name))
+                .findFirst()
+                .orElse(null);
     }
 }

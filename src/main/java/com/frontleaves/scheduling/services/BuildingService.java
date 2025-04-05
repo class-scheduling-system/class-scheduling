@@ -146,9 +146,9 @@ public interface BuildingService {
     List<BuildingLiteDTO> getBuildingList(
             String keyword);
 
-    PrepareBuildingDTO prepareCampusData();
+    List<ListOfCampusDTO> prepareCampusData();
 
-    byte[] getBuildingImportTemplate(PrepareBuildingDTO prepareBuildingExampleDTO);
+    byte[] getBuildingImportTemplate(List<ListOfCampusDTO> prepareBuildingExampleDTO);
 
     byte[] verifyBuildingBatchAndBackFile(BatchAddBuildingVO batchAddBuildingVO);
 

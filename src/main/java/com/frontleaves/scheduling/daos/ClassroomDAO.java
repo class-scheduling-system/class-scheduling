@@ -40,10 +40,7 @@ import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
-import org.redisson.api.RBucket;
-import org.redisson.api.RList;
-import org.redisson.api.RMap;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
@@ -244,5 +241,23 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> {
             return list.readAll();
         }
         return null;
+    }
+
+    /**
+     * 删除教室相关的所有缓存
+     * <p>
+     * 该方法用于在教室数据发生批量变更后，清除所有与教室相关的Redis缓存，
+     * 确保后续操作能够获取到最新的数据。
+     * </p>
+     */
+    public void deleteClassroomCache() {
+        RKeys keys = redisson.getKeys();
+        // 删除教室列表缓存
+        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_LIST + "*");
+        // 删除教室分页缓存
+        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_PAGE + "*");
+        // 删除其他可能的缓存
+        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_NUMBER + "*");
+        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_UUID + "*");
     }
 }
