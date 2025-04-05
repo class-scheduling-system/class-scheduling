@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -137,8 +138,7 @@ class CourseLibraryLogicTest {
     }
 
     /**
-     * 测试添加课程库 - 成功场景
-     *
+     * 测试添加课程库 - 成功场景*
      * 所有必填字段都有效，验证能否成功添加课程库
      */
     @Test
@@ -168,7 +168,6 @@ class CourseLibraryLogicTest {
 
     /**
      * 测试添加课程库 - 课程类型不存在
-     *
      * 当课程类型UUID无效时，应抛出业务异常
      */
     @Test
@@ -218,7 +217,6 @@ class CourseLibraryLogicTest {
 
     /**
      * 测试添加课程库 - 部门不存在
-     *
      * 当部门UUID无效时，应抛出业务异常
      */
     @Test
@@ -268,7 +266,6 @@ class CourseLibraryLogicTest {
 
     /**
      * 测试添加课程库 - 课程类别不存在
-     *
      * 当可选的课程类别UUID无效时，应抛出业务异常
      */
     @Test
@@ -1147,9 +1144,9 @@ class CourseLibraryLogicTest {
             
             // 验证所有查询结果是否符合所有条件
             // 获取期望的名称
-            String expectedCategoryName = courseCategoryDAO.getCourseCategoryByUuid(validCourseLibraryVO.getCategory()).getName();
-            String expectedTypeName = courseTypeDAO.getCourseTypeByUuid(validCourseLibraryVO.getType()).getName();
-            String expectedNatureName = courseNatureDAO.getCourseNatureByUuid(validCourseLibraryVO.getNature()).getName();
+            String expectedCategoryName = Objects.requireNonNull(courseCategoryDAO.getCourseCategoryByUuid(validCourseLibraryVO.getCategory())).getName();
+            String expectedTypeName = Objects.requireNonNull(courseTypeDAO.getCourseTypeByUuid(validCourseLibraryVO.getType())).getName();
+            String expectedNatureName = Objects.requireNonNull(courseNatureDAO.getCourseNatureByUuid(validCourseLibraryVO.getNature())).getName();
             String expectedDeptName = departmentDAO.getDepartmentByUuid(validCourseLibraryVO.getDepartment()).getDepartmentName();
             
             // 验证所有结果是否匹配所有条件
