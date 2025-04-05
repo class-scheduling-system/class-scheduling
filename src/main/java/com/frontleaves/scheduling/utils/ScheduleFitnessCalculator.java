@@ -1,58 +1,63 @@
 package com.frontleaves.scheduling.utils;
 
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
-import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.*;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * 排课适应度计算工具类
+ *
+ * @author FLASHLACK
  */
+@Slf4j
 public final class ScheduleFitnessCalculator {
 
     // 私有构造函数，防止实例化
     private ScheduleFitnessCalculator() {
-        throw new AssertionError("Utility class should not be instantiated");
+
     }
 
-    /**
-     * 计算排课表的适应度值
-     *
-     * @param schedule 待评估的排课表
-     * @param baseDTO 基础数据
-     * @return 适应度值
-     */
-    public static double calculateFitness(ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
-        if (schedule == null || schedule.getSchedule() == null || schedule.getSchedule().isEmpty() || baseDTO == null) {
+    public static double calculateFitness(@NotNull ScheduleDTO schedule, AutomaticClassSchedulingBaseDTO baseDTO) {
+        if (schedule.getSchedule() == null || schedule.getSchedule().isEmpty()) {
             return 0.0;
         }
         double totalFitness = 0.0;
         int courseCount = schedule.getSchedule().size();
+
         // 遍历每个课程计算适应度
         for (CourseScheduleDTO courseSchedule : schedule.getSchedule()) {
             // 基础分数
-            double courseFitness = 100.0;
+            double courseFitness = 0;
             // 减去冲突惩罚
-            courseFitness -= calculateConflictPenalty(courseSchedule, baseDTO.getDataCourseScheduleList());
+            courseFitness -= ScheduleFitnessCalculator.calculateConflictPenalty(courseSchedule, baseDTO.getDataCourseScheduleList());
+
             // 连续课程适应度
             if (Boolean.TRUE.equals(baseDTO.getConstraints().getConsecutiveCoursesPreferred())) {
-                courseFitness += calculateConsecutiveCoursesFitness(courseSchedule);
+                courseFitness += ScheduleFitnessCalculator.calculateConsecutiveCoursesFitness(courseSchedule);
             }
+
             // 时间偏好适应度
-            courseFitness += calculateTimePreferenceFitness(courseSchedule, baseDTO.getTimePreferences());
+            courseFitness += ScheduleFitnessCalculator.calculateTimePreferenceFitness(courseSchedule, baseDTO.getTimePreferences());
+
             // 教室优化适应度
             if (Boolean.TRUE.equals(baseDTO.getConstraints().getRoomOptimization())) {
-                courseFitness += calculateRoomOptimizationFitness(courseSchedule);
+                courseFitness += ScheduleFitnessCalculator.calculateRoomOptimizationFitness(courseSchedule);
             }
-            // 确保单个课程的适应度不为负
+
+            // 确保单个课程的适应度不为负，并进行分级处理
             courseFitness = Math.max(0.0, courseFitness);
+            courseFitness = adjustFitnessValue(courseFitness);
+
             // 将课程适应度添加到总适应度
             totalFitness += courseFitness;
             // 更新单个课程的适应度
             courseSchedule.setFitness(courseFitness);
         }
+
         // 计算平均适应度
         double averageFitness = totalFitness / courseCount;
         // 更新整个课程表的适应度
@@ -61,155 +66,123 @@ public final class ScheduleFitnessCalculator {
     }
 
     /**
+     * 根据适应度值大小进行分级处理
+     */
+    private static double adjustFitnessValue(double fitness) {
+        if (fitness <= 100) {
+            // 0-100范围内按比例缩小到0-40
+            return (fitness / 100.0) * 40.0;
+        } else if (fitness <= 200) {
+            return 50.0;
+        } else if (fitness <= 300) {
+            return 55.0;
+        } else if (fitness <= 400) {
+            return 60.0;
+        } else if (fitness <= 500) {
+            return 65.0;
+        } else if (fitness <= 600) {
+            return 70.0;
+        } else if (fitness <= 700) {
+            return 75.0;
+        } else if (fitness <= 800) {
+            return 80.0;
+        } else if (fitness <= 900) {
+            return 90.0;
+        } else if (fitness <= 1000) {
+            return 95.0;
+        } else {
+            return 100.0;
+        }
+    }
+    /**
      * 计算教室优化适应度
+     * <p>
+     * 评估教室分配的合理性，包括容量匹配度和教室类型匹配度。
+     * 理想情况下，教室容量应略大于学生数量，教室类型应符合课程需求。
+     * </p>
+     *
+     * @param schedule 待评估的课程表
+     * @return 教室优化适应度得分
      */
-    public static double calculateRoomOptimizationFitness(CourseScheduleDTO schedule) {
-        if (schedule == null || schedule.getAssignments() == null) {
-            return 0.0;
-        }
-
-        return schedule.getAssignments().entrySet().stream()
-                .map(Map.Entry::getValue)
-                .filter(Objects::nonNull)
-                .mapToDouble(ScheduleFitnessCalculator::calculateItemRoomFitness)
-                .sum();
-    }
-
-    /**
-     * 计算单个课程项的教室适应度
-     */
-    private static double calculateItemRoomFitness(CourseScheduleItemDTO item) {
-        // 验证对象有效性
-        if (item == null || item.getClassroom() == null || item.getClassroom().getClassroom() == null
-                || item.getCourse() == null) {
-            return 0.0;
-        }
-
+    public static double calculateRoomOptimizationFitness(@NotNull CourseScheduleDTO schedule) {
         double fitness = 0.0;
-
-        // 计算容量适应度
-        fitness += calculateCapacityFitness(
-                item.getClassroom().getClassroom().getCapacity(),
-                getStudentCount(item.getCourse())
-        );
-
-        // 计算类型匹配适应度
-        fitness += calculateTypeMatchingFitness(
-                item.getCourse().getType(),
-                item.getClassroom().getType().getClassTypeUuid()
-        );
-
+        // 遍历所有课程安排
+        for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
+            CourseScheduleItemDTO item = entry.getValue();
+            // 获取教室容量
+            int capacity = item.getClassroom().getClassroom().getCapacity();
+            // 获取课程所需学生数，使用totalHours作为替代指标
+            int studentCount = item.getCourse().getTotalHours() != null ?
+                    item.getCourse().getTotalHours().intValue() : 30;
+            // 计算容量匹配度
+            if (capacity >= studentCount) {
+                // 容量足够，计算利用率
+                double utilizationRate = (double) studentCount / capacity;
+                // 利用率达到70%以上给予奖励
+                if (utilizationRate >= 0.7) {
+                    fitness += 5.0;
+                }
+                // 利用率过高（超过90%）给予惩罚
+            } else {
+                // 容量不足，严重惩罚
+                fitness -= 50.0;
+            }
+            // 教室类型匹配度
+            String courseType = item.getCourse().getType();
+            String classroomType = item.getClassroom().getType().getClassTypeUuid();
+            if (classroomType != null && classroomType.equals(courseType)) {
+                fitness += 10.0;
+            } else if (classroomType != null && courseType != null) {
+                // 类型不匹配，给予惩罚
+                fitness -= 5.0;
+            }
+        }
         return fitness;
-    }
-
-    /**
-     * 获取学生数量
-     */
-    private static int getStudentCount(CourseLibraryDTO course) {
-        return course.getTotalHours() != null ? course.getTotalHours().intValue() : 30;
-    }
-
-    /**
-     * 计算容量适应度
-     */
-    private static double calculateCapacityFitness(int capacity, int studentCount) {
-        // 容量不足
-        if (capacity < studentCount) {
-            return -50.0;
-        }
-
-        // 计算利用率
-        double utilizationRate = (double) studentCount / capacity;
-
-        // 利用率达到70%以上给予奖励
-        return utilizationRate >= 0.7 ? 5.0 : 0.0;
-    }
-
-    /**
-     * 计算类型匹配适应度
-     */
-    private static double calculateTypeMatchingFitness(String courseType, String classroomType) {
-        if (classroomType == null) {
-            return 0.0;
-        }
-
-        if (classroomType.equals(courseType)) {
-            return 10.0;  // 类型匹配，奖励
-        }
-
-        return (courseType != null) ? -5.0 : 0.0;  // 类型不匹配且课程类型不为空，惩罚
     }
 
     /**
      * 计算时间偏好适应度值
+     *
+     * @param schedule    课程表
+     * @param preferences 时间偏好设置
+     * @return 时间偏好适应度值
      */
     public static double calculateTimePreferenceFitness(
-            CourseScheduleDTO schedule,
-            AutomaticClassSchedulingBaseDTO.TimePreferences preferences) {
-
-        if (schedule == null || schedule.getAssignments() == null || preferences == null) {
-            return 0.0;
-        }
-
-        return schedule.getAssignments().entrySet().stream()
-                .map(Map.Entry::getKey)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .mapToDouble(slot -> calculateSlotPreferenceFitness(slot, preferences))
-                .sum();
-    }
-
-    /**
-     * 计算单个时间槽的偏好适应度
-     */
-    public static double calculateSlotPreferenceFitness(
-            TimeSlotDTO slot,
-            AutomaticClassSchedulingBaseDTO.TimePreferences preferences) {
-
+            @NotNull CourseScheduleDTO schedule,
+            AutomaticClassSchedulingBaseDTO.TimePreferences preferences
+    ) {
         double fitness = 0.0;
-
-        // 检查是否在偏好时间段
-        boolean inPreferredSlot = preferences.getPreferredTimeSlots().stream()
-                .anyMatch(preferred -> isSlotInPreferredTime(slot, preferred));
-
-        if (inPreferredSlot) {
-            fitness += 10.0;
+        // 遍历所有课程安排
+        for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
+            List<TimeSlotDTO> slots = entry.getKey();
+            // 遍历每个时间槽
+            for (TimeSlotDTO slot : slots) {
+                // 检查是否在偏好时间段
+                boolean inPreferredSlot = preferences.getPreferredTimeSlots().stream()
+                        .anyMatch(preferred ->
+                                Objects.equals(preferred.getDay(), slot.getDay()) &&
+                                        preferred.getPeriodStart() <= slot.getPeriod() &&
+                                        preferred.getPeriodEnd() >= slot.getPeriod());
+                if (inPreferredSlot) {
+                    fitness += 10.0;
+                }
+                // 如果不喜欢晚课但安排在晚上
+                if (Boolean.TRUE.equals(preferences.getEveningCourses()) && slot.getPeriod() >= 5) {
+                    fitness -= 5.0;
+                }
+            }
         }
-
-        // 如果不喜欢晚课但安排在晚上
-        if (Boolean.TRUE.equals(preferences.getEveningCourses()) && slot.getPeriod() >= 5) {
-            fitness -= 5.0;
-        }
-
         return fitness;
-    }
-
-    /**
-     * 检查时间槽是否在偏好时间范围内
-     */
-    public static boolean isSlotInPreferredTime(
-            TimeSlotDTO slot,
-            AutomaticClassSchedulingBaseDTO.TimePreferences.PreferredTimeSlot preferred) {
-        if (slot == null || preferred == null) {
-            return false;
-        }
-        return Objects.equals(preferred.getDay(), slot.getDay()) &&
-                preferred.getPeriodStart() <= slot.getPeriod() &&
-                preferred.getPeriodEnd() >= slot.getPeriod();
     }
 
     /**
      * 计算连续课程的适应度值
      */
-    public static double calculateConsecutiveCoursesFitness(CourseScheduleDTO schedule) {
-        if (schedule == null || schedule.getAssignments() == null) {
-            return 0.0;
-        }
-
+    public static double calculateConsecutiveCoursesFitness(@NotNull CourseScheduleDTO schedule) {
         // 按课程分组，获取每个课程的所有时间槽
         Map<String, List<List<TimeSlotDTO>>> courseSlots = groupSlotsByCourse(schedule);
         return courseSlots.values().stream()
+                // 使用类名::方法名 的方式引用静态方法
                 .mapToDouble(ScheduleFitnessCalculator::calculateCourseFitness)
                 .sum();
     }
@@ -217,14 +190,8 @@ public final class ScheduleFitnessCalculator {
     /**
      * 按课程分组获取时间槽
      */
-    public static Map<String, List<List<TimeSlotDTO>>> groupSlotsByCourse(CourseScheduleDTO schedule) {
-        if (schedule == null || schedule.getAssignments() == null || schedule.getAssignments().isEmpty()) {
-            return Collections.emptyMap();
-        }
-
+    public static Map<String, List<List<TimeSlotDTO>>> groupSlotsByCourse(@NotNull CourseScheduleDTO schedule) {
         return schedule.getAssignments().entrySet().stream()
-                .filter(e -> e.getValue() != null && e.getValue().getCourse() != null)
-                .filter(e -> e.getValue().getCourse().getCourseLibraryUuid() != null)
                 .collect(Collectors.groupingBy(
                         entry -> entry.getValue().getCourse().getCourseLibraryUuid(),
                         Collectors.mapping(Map.Entry::getKey, Collectors.toList())
@@ -234,20 +201,11 @@ public final class ScheduleFitnessCalculator {
     /**
      * 计算单个课程的适应度值
      */
-    public static double calculateCourseFitness(List<List<TimeSlotDTO>> courseSlotsLists) {
-        if (courseSlotsLists == null || courseSlotsLists.isEmpty()) {
-            return 0.0;
-        }
-
+    public static double calculateCourseFitness(@NotNull List<List<TimeSlotDTO>> courseSlotsLists) {
         // 展平所有时间槽
         List<TimeSlotDTO> allSlots = courseSlotsLists.stream()
                 .flatMap(List::stream)
-                .filter(Objects::nonNull)
                 .toList();
-
-        if (allSlots.isEmpty()) {
-            return 0.0;
-        }
 
         // 按周和天分组
         Map<Integer, Map<Integer, List<TimeSlotDTO>>> weekDaySlots = groupSlotsByWeekAndDay(allSlots);
@@ -261,13 +219,8 @@ public final class ScheduleFitnessCalculator {
     /**
      * 按周和天分组时间槽
      */
-    public static Map<Integer, Map<Integer, List<TimeSlotDTO>>> groupSlotsByWeekAndDay(List<TimeSlotDTO> slots) {
-        if (slots == null || slots.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
+    public static Map<Integer, Map<Integer, List<TimeSlotDTO>>> groupSlotsByWeekAndDay(@NotNull List<TimeSlotDTO> slots) {
         return slots.stream()
-                .filter(Objects::nonNull)
                 .collect(Collectors.groupingBy(
                         TimeSlotDTO::getWeek,
                         Collectors.groupingBy(TimeSlotDTO::getDay)
@@ -277,13 +230,8 @@ public final class ScheduleFitnessCalculator {
     /**
      * 计算一周内的适应度值
      */
-    public static double calculateWeekFitness(Map<Integer, List<TimeSlotDTO>> daySlots) {
-        if (daySlots == null || daySlots.isEmpty()) {
-            return 0.0;
-        }
-
+    public static double calculateWeekFitness(@NotNull Map<Integer, List<TimeSlotDTO>> daySlots) {
         return daySlots.values().stream()
-                .filter(Objects::nonNull)
                 .mapToDouble(ScheduleFitnessCalculator::calculateDayFitness)
                 .sum();
     }
@@ -291,13 +239,12 @@ public final class ScheduleFitnessCalculator {
     /**
      * 计算一天内的适应度值
      */
-    public static double calculateDayFitness(List<TimeSlotDTO> dailySlots) {
-        if (dailySlots == null || dailySlots.size() <= 1) {
+    public static double calculateDayFitness(@NotNull List<TimeSlotDTO> dailySlots) {
+        if (dailySlots.size() <= 1) {
             return 0.0;
         }
 
         List<TimeSlotDTO> sortedSlots = dailySlots.stream()
-                .filter(Objects::nonNull)
                 .sorted(Comparator.comparingInt(TimeSlotDTO::getPeriod))
                 .toList();
 
@@ -307,14 +254,9 @@ public final class ScheduleFitnessCalculator {
     /**
      * 计算连续时间槽的适应度值
      */
-    public static double calculateConsecutiveSlotsFitness(List<TimeSlotDTO> sortedSlots) {
-        if (sortedSlots == null || sortedSlots.size() <= 1) {
-            return 0.0;
-        }
-
+    public static double calculateConsecutiveSlotsFitness(@NotNull List<TimeSlotDTO> sortedSlots) {
         double fitness = 0.0;
         int consecutiveCount = 1;
-
         // 遍历计算连续课程
         for (int i = 0; i < sortedSlots.size() - 1; i++) {
             if (isConsecutiveSlots(sortedSlots.get(i), sortedSlots.get(i + 1))) {
@@ -334,10 +276,7 @@ public final class ScheduleFitnessCalculator {
     /**
      * 检查两个时间槽是否连续
      */
-    public static boolean isConsecutiveSlots(TimeSlotDTO slot1, TimeSlotDTO slot2) {
-        if (slot1 == null || slot2 == null) {
-            return false;
-        }
+    public static boolean isConsecutiveSlots(@NotNull TimeSlotDTO slot1, @NotNull TimeSlotDTO slot2) {
         return slot2.getPeriod() - slot1.getPeriod() == 1;
     }
 
@@ -348,58 +287,27 @@ public final class ScheduleFitnessCalculator {
         return consecutiveCount > 1 ? (consecutiveCount - 1) * 5.0 : 0.0;
     }
 
+
     /**
      * 计算课程安排的冲突罚分
+     * 该方法旨在评估给定课程安排与其他安排之间的冲突程度，通过计算冲突罚分来实现
+     * 冲突包括课程安排内部的冲突以及与已有课程安排的冲突罚分越高，表示冲突越严重
+     *
+     * @param schedule               当前课程安排，用于计算冲突罚分
+     * @param dataCourseScheduleList 所有已有的课程安排列表，用于检查与当前安排的冲突情况
+     * @return 返回总冲突罚分，作为评估冲突程度的指标
      */
     public static double calculateConflictPenalty(
-            CourseScheduleDTO schedule,
+            @NotNull CourseScheduleDTO schedule,
             List<CourseScheduleDTO> dataCourseScheduleList) {
-
-        if (schedule == null || schedule.getAssignments() == null) {
-            return 0.0;
-        }
-
         double totalPenalty = 0.0;
-
         // 获取当前课程表的所有安排
         var currentEntries = schedule.getAssignments().entrySet().stream().toList();
-
-        // 1. 检查当前课程表内部的冲突
-        totalPenalty += calculateInternalConflicts(currentEntries);
-
-        // 2. 检查与已排课程的冲突
         totalPenalty += calculateExistingScheduleConflicts(currentEntries, dataCourseScheduleList);
-
         return totalPenalty;
     }
 
-    /**
-     * 计算当前课程表内部的冲突
-     */
-    public static double calculateInternalConflicts(
-            List<Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO>> entries) {
 
-        if (entries == null || entries.isEmpty()) {
-            return 0.0;
-        }
-
-        double penalty = 0.0;
-
-        for (int i = 0; i < entries.size(); i++) {
-            var entry1 = entries.get(i);
-            for (int j = i + 1; j < entries.size(); j++) {
-                var entry2 = entries.get(j);
-                penalty += checkTimeSlotConflicts(
-                        entry1.getKey(),
-                        entry2.getKey(),
-                        entry1.getValue(),
-                        entry2.getValue()
-                );
-            }
-        }
-
-        return penalty;
-    }
 
     /**
      * 计算与已排课程的冲突
@@ -407,22 +315,13 @@ public final class ScheduleFitnessCalculator {
     public static double calculateExistingScheduleConflicts(
             List<Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO>> currentEntries,
             List<CourseScheduleDTO> dataCourseScheduleList) {
-
         double penalty = 0.0;
-
-        if (currentEntries == null || dataCourseScheduleList == null ||
-                currentEntries.isEmpty() || dataCourseScheduleList.isEmpty()) {
+        if (dataCourseScheduleList == null || dataCourseScheduleList.isEmpty()) {
             return penalty;
         }
-
         // 遍历所有已排课程表
         for (CourseScheduleDTO existingSchedule : dataCourseScheduleList) {
-            if (existingSchedule == null || existingSchedule.getAssignments() == null) {
-                continue;
-            }
-
             var existingEntries = existingSchedule.getAssignments().entrySet();
-
             // 检查当前课程与已排课程的冲突
             for (var currentEntry : currentEntries) {
                 for (var existingEntry : existingEntries) {
@@ -435,7 +334,6 @@ public final class ScheduleFitnessCalculator {
                 }
             }
         }
-
         return penalty;
     }
 
@@ -443,133 +341,141 @@ public final class ScheduleFitnessCalculator {
      * 检查时间槽冲突并计算惩罚值
      */
     public static double checkTimeSlotConflicts(
-            List<TimeSlotDTO> slots1,
-            List<TimeSlotDTO> slots2,
-            CourseScheduleItemDTO item1,
-            CourseScheduleItemDTO item2) {
-
-        if (slots1 == null || slots2 == null || item1 == null || item2 == null) {
-            return 0.0;
-        }
-
+            @NotNull List<TimeSlotDTO> slots1,
+            @NotNull List<TimeSlotDTO> slots2,
+            @NotNull CourseScheduleItemDTO item1,
+            @NotNull CourseScheduleItemDTO item2) {
         // 如果没有时间重叠，直接返回0
         if (!hasTimeOverlap(slots1, slots2)) {
             return 0.0;
         }
-
         return calculateResourceConflicts(item1, item2);
     }
 
     /**
      * 检查是否存在时间重叠
      */
-    public static boolean hasTimeOverlap(List<TimeSlotDTO> slots1, List<TimeSlotDTO> slots2) {
-        if (slots1 == null || slots2 == null || slots1.isEmpty() || slots2.isEmpty()) {
-            return false;
-        }
-
+    public static boolean hasTimeOverlap(
+            @NotNull List<TimeSlotDTO> slots1,
+            @NotNull List<TimeSlotDTO> slots2) {
         return slots1.stream()
-                .filter(Objects::nonNull)
                 .anyMatch(slot1 -> slots2.stream()
-                        .filter(Objects::nonNull)
                         .anyMatch(slot2 -> isSameTimeSlot(slot1, slot2)));
-    }
-
-    /**
-     * 检查是否为同一时间槽
-     */
-    public static boolean isSameTimeSlot(TimeSlotDTO slot1, TimeSlotDTO slot2) {
-        if (slot1 == null || slot2 == null) {
-            return false;
-        }
-        return Objects.equals(slot1.getWeek(), slot2.getWeek())
-                && Objects.equals(slot1.getDay(), slot2.getDay())
-                && Objects.equals(slot1.getPeriod(), slot2.getPeriod());
     }
 
     /**
      * 计算资源冲突的惩罚值
      */
     public static double calculateResourceConflicts(
-            CourseScheduleItemDTO item1,
-            CourseScheduleItemDTO item2) {
+            @NotNull CourseScheduleItemDTO item1,
+            @NotNull CourseScheduleItemDTO item2) {
+        double penalty = 0.0;
+        // 检查教师冲突
+        boolean teacherConflict = isTeacherConflict(item1, item2);
+        if (teacherConflict) {
+            log.info("发现教师冲突 - 教师: {}, 课程1: {}, 课程2: {}",
+                    item1.getTeacher().getTeacher().getName(),
+                    item1.getCourse().getName(),
+                    item2.getCourse().getName());
+            penalty += 100.0;
+        }
+        // 检查教室冲突
+        boolean classroomConflict = isClassroomConflict(item1, item2);
+        if (classroomConflict) {
+            log.info("发现教室冲突 - 教室: {}, 课程1: {}, 课程2: {}",
+                    item1.getClassroom().getClassroom().getName(),
+                    item1.getCourse().getName(),
+                    item2.getCourse().getName());
+            penalty += 100.0;
+        }
+        // 检查班级冲突
+        boolean classConflict = isClassConflict(item1, item2);
+        if (classConflict) {
+            // 获取冲突的班级名称
+            List<String> conflictingClasses = getConflictingClassNames(item1, item2);
+            log.info("发现班级冲突 - 冲突班级: {}, 课程1: {}, 课程2: {}",
+                    String.join("、", conflictingClasses),
+                    item1.getCourse().getName(),
+                    item2.getCourse().getName());
+            penalty += 100.0;
+        }
+        return penalty;
+    }
 
-        if (item1 == null || item2 == null) {
-            return 0.0;
+    /**
+     * 获取冲突的班级名称列表
+     */
+    private static @NotNull List<String> getConflictingClassNames(
+            @NotNull CourseScheduleItemDTO item1,
+            CourseScheduleItemDTO item2) {
+        List<String> conflictingClasses = new ArrayList<>();
+
+        if (item1.getClassGroup() == null || item2.getClassGroup() == null) {
+            return conflictingClasses;
         }
 
-        // 使用Stream API检查所有冲突
-        List<Boolean> conflicts = Arrays.asList(
-                isTeacherConflict(item1, item2),
-                isClassroomConflict(item1, item2),
-                isClassConflict(item1, item2)
-        );
+        for (AdministrativeClassDTO class1 : item1.getClassGroup()) {
+            for (AdministrativeClassDTO class2 : item2.getClassGroup()) {
+                if (class1.getAdministrativeClassUuid()
+                        .equals(class2.getAdministrativeClassUuid())) {
+                    conflictingClasses.add(class1.getClassName());
+                }
+            }
+        }
 
-        // 计算总惩罚值
-        return conflicts.stream()
-                .filter(conflict -> conflict)
-                .count() * 100.0;
+        return conflictingClasses;
+    }
+
+    /**
+     * 检查是否为同一时间槽
+     */
+    public static boolean isSameTimeSlot(@NotNull TimeSlotDTO slot1, @NotNull TimeSlotDTO slot2) {
+        return Objects.equals(slot1.getWeek(), slot2.getWeek())
+                && Objects.equals(slot1.getDay(), slot2.getDay())
+                && Objects.equals(slot1.getPeriod(), slot2.getPeriod());
     }
 
     /**
      * 检查教师冲突
      */
     public static boolean isTeacherConflict(
-            CourseScheduleItemDTO item1,
-            CourseScheduleItemDTO item2) {
-
-        if (item1 == null || item2 == null ||
-                item1.getTeacher() == null || item2.getTeacher() == null ||
-                item1.getTeacher().getTeacher() == null || item2.getTeacher().getTeacher() == null) {
-            return false;
-        }
-
+            @NotNull CourseScheduleItemDTO item1,
+            @NotNull CourseScheduleItemDTO item2) {
         String teacher1Uuid = item1.getTeacher().getTeacher().getTeacherUuid();
         String teacher2Uuid = item2.getTeacher().getTeacher().getTeacherUuid();
-        return teacher1Uuid != null && teacher1Uuid.equals(teacher2Uuid);
+        return teacher1Uuid.equals(teacher2Uuid);
     }
 
     /**
      * 检查教室冲突
      */
     public static boolean isClassroomConflict(
-            CourseScheduleItemDTO item1,
-            CourseScheduleItemDTO item2) {
-
-        if (item1 == null || item2 == null ||
-                item1.getClassroom() == null || item2.getClassroom() == null ||
-                item1.getClassroom().getClassroom() == null || item2.getClassroom().getClassroom() == null) {
-            return false;
-        }
-
+            @NotNull CourseScheduleItemDTO item1,
+            @NotNull CourseScheduleItemDTO item2) {
         String room1Uuid = item1.getClassroom().getClassroom().getClassroomUuid();
         String room2Uuid = item2.getClassroom().getClassroom().getClassroomUuid();
-        return room1Uuid != null && room1Uuid.equals(room2Uuid);
+        return room1Uuid.equals(room2Uuid);
     }
 
     /**
      * 检查行政班级冲突
+     * 如果任一课程没有行政班级信息，则认为不冲突，返回false
      */
     public static boolean isClassConflict(
-            CourseScheduleItemDTO item1,
-            CourseScheduleItemDTO item2) {
-
-        if (item1 == null || item2 == null ||
-                item1.getClassGroup() == null || item2.getClassGroup() == null) {
-            return false;
-        }
-
+            @NotNull CourseScheduleItemDTO item1,
+            @NotNull CourseScheduleItemDTO item2) {
         // 获取两个课程的行政班级列表
         List<AdministrativeClassDTO> classList1 = item1.getClassGroup();
         List<AdministrativeClassDTO> classList2 = item2.getClassGroup();
-
+        // 如果任一班级列表为空，则认为不冲突
+        if (classList1 == null || classList2 == null ||
+                classList1.isEmpty() || classList2.isEmpty()) {
+            return false;
+        }
         // 检查是否有重叠的班级
         return classList1.stream()
-                .filter(Objects::nonNull)
-                .anyMatch(class1 -> class1.getAdministrativeClassUuid() != null &&
-                        classList2.stream()
-                                .filter(Objects::nonNull)
-                                .anyMatch(class2 -> class2.getAdministrativeClassUuid() != null &&
-                                        class1.getAdministrativeClassUuid().equals(class2.getAdministrativeClassUuid())));
+                .anyMatch(class1 -> classList2.stream()
+                        .anyMatch(class2 -> class1.getAdministrativeClassUuid()
+                                .equals(class2.getAdministrativeClassUuid())));
     }
 }

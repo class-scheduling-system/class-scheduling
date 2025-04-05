@@ -107,6 +107,7 @@ private final IterateService iterateService;
                     bestFitness = currentBest.get().getFitness();
                     bestSchedule = deepCopySchedule(currentBest.get());
                 }
+                log.debug("第 {} 代适应度: {}", generation, bestFitness);
                 // 更新进度
                 int progress = (int) ((double) generation / maxGenerations * 100);
                 updateProgress(taskId, progress);
@@ -121,7 +122,6 @@ private final IterateService iterateService;
                 List<ScheduleResultDTO.ClassAssignmentDTO> assignments = convertScheduleToAssignments(bestSchedule);
                 updateProgress(taskId, 100);
                 updateStatus(taskId, "排课完成");
-
                 return new ScheduleResultDTO()
                         .setTaskId(taskId)
                         .setSemesterId(baseDTO.getSemester().getSemesterUuid())
@@ -133,7 +133,6 @@ private final IterateService iterateService;
                         .setResourceUtilization(utilization)
                         .setFitness(bestFitness);
             }
-
             throw new BusinessException("未能生成有效的课程表", ErrorCode.BODY_ERROR);
 
         } catch (Exception e) {

@@ -8,6 +8,7 @@ import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourse
 import com.frontleaves.scheduling.models.dto.scheduling.*;
 import com.frontleaves.scheduling.services.scheduling.IterateService;
 import com.frontleaves.scheduling.utils.ClassroomSelectionUtil;
+import com.frontleaves.scheduling.utils.ScheduleFitnessCalculator;
 import com.frontleaves.scheduling.utils.TimeSlotGeneratorUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Contract;
@@ -18,7 +19,6 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.util.*;
 
-import static com.frontleaves.scheduling.utils.ScheduleFitnessCalculator.calculateFitness;
 
 
 /**
@@ -195,7 +195,8 @@ public class IterateLogic implements IterateService {
             // 创建新的排课项，保持其他属性不变，只替换教师
             CourseScheduleItemDTO newItem = new CourseScheduleItemDTO(
                     currentItem.getCourse(),
-                    newTeacher,  // 替换为新教师
+                    // 替换为新教师
+                    newTeacher,
                     currentItem.getClassroom(),
                     currentItem.getClassGroup(),
                     currentItem.getCourseType(),
@@ -881,10 +882,10 @@ public class IterateLogic implements IterateService {
         List<ScheduleDTO> result = new ArrayList<>();
         // 设置并计算子代1
         children.child1().setSchedule(children.child1Schedules());
-        children.child1().setFitness(calculateFitness(children.child1(), baseDTO));
+        children.child1().setFitness(ScheduleFitnessCalculator.calculateFitness(children.child1(), baseDTO));
         // 设置并计算子代2
         children.child2().setSchedule(children.child2Schedules());
-        children.child2().setFitness(calculateFitness(children.child2(), baseDTO));
+        children.child2().setFitness(ScheduleFitnessCalculator.calculateFitness(children.child2(), baseDTO));
         result.add(children.child1());
         result.add(children.child2());
         return result;

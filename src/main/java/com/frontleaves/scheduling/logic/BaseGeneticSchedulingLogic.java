@@ -360,7 +360,6 @@ class BaseGeneticSchedulingLogic {
                 }
             }
         }
-
         // 计算教室平均利用率
         double classroomUtilization = roomUsage.entrySet().stream()
                 .mapToDouble(entry -> {
@@ -370,20 +369,16 @@ class BaseGeneticSchedulingLogic {
                 })
                 .average()
                 .orElse(0.0);
-
         // 计算教师工作量平均值
         double teacherUtilization = teacherWorkload.values().stream()
                 .mapToDouble(Integer::doubleValue)
                 .average()
                 .orElse(0.0) / (totalTimeSlots > 0 ? totalTimeSlots : 1);
-
         // 计算时间槽利用率
         double timeSlotUtilization = totalTimeSlots > 0 ?
                 (double) usedTimeSlots.size() / totalTimeSlots : 0.0;
-
         // 计算总体利用率
         double overallUtilization = (classroomUtilization + teacherUtilization + timeSlotUtilization) / 3;
-
         return new ScheduleResultDTO.ResourceUtilization()
                 .setOverall(overallUtilization)
                 .setClassroom(classroomUtilization)
