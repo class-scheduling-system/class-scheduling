@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.SchedulingTaskDTO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -19,5 +20,10 @@ public interface SchedulingService {
             @Valid AutomaticClassSchedulingVO automaticClassSchedulingVO,
             HttpServletRequest request);
 
-
+    /**
+     * 获取调度任务DTO
+     * @param request 请求
+     * @return 调度任务DTO
+     */
+    SchedulingTaskDTO getSchedulingTaskDTO(HttpServletRequest request);
 }

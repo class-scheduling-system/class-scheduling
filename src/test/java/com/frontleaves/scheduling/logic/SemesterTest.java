@@ -15,7 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.sql.Date;
+import java.sql.Timestamp;
+
 @SpringBootTest
 @Slf4j
 class SemesterTest {
@@ -39,8 +40,8 @@ class SemesterTest {
         String semesterUuid = UuidUtil.generateUuidNoDash();
         String semesterName = "测试学期";
         String semesterDescription = "这是一个测试学期";
-        Date startDate = Date.valueOf("2024-02-26");
-        Date endDate = Date.valueOf("2024-07-12");
+        Timestamp startDate = Timestamp.valueOf("2024-02-26 00:00:00");
+        Timestamp endDate = Timestamp.valueOf("2024-07-12 23:59:59");
         Boolean isCurrent = true;
         Boolean isEnabled = true;
 

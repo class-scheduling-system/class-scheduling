@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.logic;
 
+import com.frontleaves.scheduling.models.dto.SchedulingTaskDTO;
 import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
@@ -67,6 +68,11 @@ public class SchedulingLogic implements SchedulingService {
         } catch (Exception e) {
             throw new BusinessException("排课失败", ErrorCode.BODY_ERROR, e);
         }
+    }
+
+    @Override
+    public SchedulingTaskDTO getSchedulingTaskDTO(HttpServletRequest request) {
+        return null;
     }
 
 

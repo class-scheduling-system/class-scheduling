@@ -4,6 +4,7 @@ import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.models.dto.SchedulingTaskDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.CourseScheduleDTO;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
@@ -139,7 +140,8 @@ public class SchedulingController {
         }
         // 准备数据并排课
         schedulingService.getAutoClassSchedulingBaseDTO(automaticClassSchedulingVO, request);
-
+        // 获取排课开始信息
+        SchedulingTaskDTO schedulingTaskDTO = schedulingService.getSchedulingTaskDTO(request);
         return ResultUtil.success("开始排课");
     }
 
