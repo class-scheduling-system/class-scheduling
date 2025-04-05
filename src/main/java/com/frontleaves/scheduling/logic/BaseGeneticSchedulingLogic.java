@@ -224,6 +224,7 @@ class BaseGeneticSchedulingLogic {
                 .collect(Collectors.joining("、"));
 
         return new SchedulingConflictDTO()
+                .setCourseScheduleItemUuid(item.getCourseScheduleItemUuid())
                 .setConflictType(3)
                 .setDescription(String.format(
                         "班级 %s 在第%d周星期%d第%d节课有重复安排",
@@ -292,6 +293,7 @@ class BaseGeneticSchedulingLogic {
      */
     private SchedulingConflictDTO createTeacherConflict(@NotNull CourseScheduleItemDTO item, @NotNull TimeSlotDTO slot) {
         return new SchedulingConflictDTO()
+                .setCourseScheduleItemUuid(item.getCourseScheduleItemUuid())
                 .setConflictType(1)
                 .setDescription(String.format(
                         "教师 %s 在第%d周星期%d第%d节课有重复安排",
@@ -307,6 +309,7 @@ class BaseGeneticSchedulingLogic {
      */
     private SchedulingConflictDTO createClassroomConflict(@NotNull CourseScheduleItemDTO item, @NotNull TimeSlotDTO slot) {
         return new SchedulingConflictDTO()
+                .setCourseScheduleItemUuid(item.getCourseScheduleItemUuid())
                 .setConflictType(2)
                 .setDescription(String.format(
                         "教室 %s 在第%d周星期%d第%d节课有重复安排",
@@ -401,22 +404,16 @@ class BaseGeneticSchedulingLogic {
             for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : courseSchedule.getAssignments().entrySet()) {
                 List<TimeSlotDTO> slots = entry.getKey();
                 CourseScheduleItemDTO item = entry.getValue();
-                // 为每个时间槽创建课程安排
-                for (TimeSlotDTO slot : slots) {
-                    ScheduleResultDTO.TimeSlot timeSlot = new ScheduleResultDTO.TimeSlot()
-                            .setWeek(slot.getWeek())
-                            .setDayOfWeek(slot.getDay())
-                            .setPeriod(slot.getPeriod());
-                    ScheduleResultDTO.ClassAssignmentDTO assignment = new ScheduleResultDTO.ClassAssignmentDTO()
-                            .setCourse(item.getCourse())
-                            .setTeacher(item.getTeacher())
-                            .setClassroom(item.getClassroom())
-                            .setClassGroup(item.getClassGroup())
-                            .setTimeSlot(timeSlot)
-                            .setPriority(item.getPriority());
-
-                    assignments.add(assignment);
-                }
+                ScheduleResultDTO.ClassAssignmentDTO assignment = new ScheduleResultDTO.ClassAssignmentDTO()
+                        .setCourse(item.getCourse())
+                        .setTeacher(item.getTeacher())
+                        .setClassroom(item.getClassroom())
+                        .setClassGroup(item.getClassGroup())
+                        .setTimeSlot(slots)
+                        .setPriority(item.getPriority())
+                        .setCourseType(item.getCourseType())
+                                .setNumber(item.getNumber());
+                assignments.add(assignment);
             }
         }
 

@@ -44,6 +44,7 @@ import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.*;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.util.UuidUtil;
 import enums.CourseEnuType;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -227,6 +228,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 log.debug("准备数据库内排课数据");
                 List<CourseScheduleDTO> courseScheduleDTOList = this.buildCourseScheduleList(classAssignmentDTOList);
                 automaticClassSchedulingBaseDTO.setDataCourseScheduleList(courseScheduleDTOList);
+                log.debug("准备的基础上数据为: {}", JSONUtil.toJsonStr(automaticClassSchedulingBaseDTO));
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
                 cacheBaseData.set(automaticClassSchedulingBaseDTO);
                 automaticThread.startUp(userDO);
@@ -516,9 +518,9 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         }
         CreditHourTypeEnuDTO creditHourTypeEnuDTO =
                 creditHourTypeService.getCreditHourTypeByUuid(classAssignment.getCreditHourType());
-        return new CourseScheduleItemDTO(
+        return new CourseScheduleItemDTO(UuidUtil.generateStringUuid(),
                 courseLibraryDTO, teacherCoursePreferencesDTO, classroomDTO, administrativeClassDTOList, creditHourTypeEnuDTO,
-                classAssignment.getSchedulingPriority());
+                classAssignment.getSchedulingPriority(),0);
     }
 
     /**

@@ -26,9 +26,9 @@ public class TeachingClassLogic implements TeachingClassService {
     @Override
     public List<TeachingClassDTO> getTeachingClassListBySemester(String semesterUuid) {
         List<TeachingClassDO> list = teachingClassDAO.getTeachingClassBySemester(semesterUuid);
-        return list.stream().map(teachingClassDO -> {
-            return BeanUtil.toBean(teachingClassDO, TeachingClassDTO.class);
-        }).toList();
+        return list.stream()
+                .map(teachingClassDO -> BeanUtil.toBean(teachingClassDO, TeachingClassDTO.class))
+                .toList();
     }
 
     @Override
@@ -38,5 +38,10 @@ public class TeachingClassLogic implements TeachingClassService {
             throw new BusinessException("教学班不存在", ErrorCode.BODY_ERROR);
         }
         return BeanUtil.toBean(teachingClassDO, TeachingClassDTO.class);
+    }
+
+    @Override
+    public void save(TeachingClassDO teachingClassDO) {
+        teachingClassDAO.save(teachingClassDO);
     }
 }

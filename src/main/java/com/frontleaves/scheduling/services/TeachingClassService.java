@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
+import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -27,4 +28,10 @@ public interface TeachingClassService {
     @NotNull
     TeachingClassDTO getTeachingClassByUuid(
             String teachingClassUuid);
+
+    /**
+     * 保存教学班
+     * @param teachingClassDO
+     */
+    void save(TeachingClassDO teachingClassDO);
 }

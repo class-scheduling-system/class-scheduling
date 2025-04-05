@@ -25,7 +25,12 @@ import java.util.List;
  */
 @Data
 @Accessors(chain = true)
+
 public class CourseScheduleItemDTO {
+    /**
+     * 课程安排项主键
+     */
+    private String courseScheduleItemUuid;
     /**
      * 课程信息
      * <p>
@@ -65,6 +70,7 @@ public class CourseScheduleItemDTO {
      * 课程类型
      */
     private CreditHourTypeEnuDTO courseType;
+
     /**
      * 课程优先级
      * <p>
@@ -73,6 +79,14 @@ public class CourseScheduleItemDTO {
      * </p>
      */
     private final Integer priority;
+    /**
+     * 教学班人数
+     * <p>
+     * 表示该课程安排项对应的教学班级人数。
+     * 该信息在排课过程中用于计算教室容量需求和教师工作负荷。
+     * </p>
+     */
+    private Integer number;
 
     /**
      * 构造方法
@@ -85,14 +99,17 @@ public class CourseScheduleItemDTO {
      * @param classroom 教室信息
      * @param priority  课程优先级
      */
-    public CourseScheduleItemDTO(CourseLibraryDTO course, TeacherCoursePreferencesDTO teacher,
-                                 ClassroomInfoDTO classroom, List<AdministrativeClassDTO> classGroup, CreditHourTypeEnuDTO courseType, Integer priority) {
+    public CourseScheduleItemDTO(String courseScheduleItemUuid ,CourseLibraryDTO course, TeacherCoursePreferencesDTO teacher,
+                                 ClassroomInfoDTO classroom, List<AdministrativeClassDTO> classGroup,
+                                 CreditHourTypeEnuDTO courseType, Integer priority,Integer number) {
+        this.courseScheduleItemUuid = courseScheduleItemUuid;
         this.course = course;
         this.teacher = teacher;
         this.classroom = classroom;
         this.classGroup = classGroup;
         this.courseType = courseType;
         this.priority = priority;
+        this.number = number;
     }
 
     /**
@@ -105,12 +122,14 @@ public class CourseScheduleItemDTO {
      * @param other 原课程安排项
      */
     public CourseScheduleItemDTO(CourseScheduleItemDTO other) {
+        this.courseScheduleItemUuid = other.courseScheduleItemUuid;
         this.course = other.course;
         this.teacher = other.teacher;
         this.classroom = other.classroom;
         this.priority = other.priority;
         this.courseType = other.courseType;
         this.classGroup = other.classGroup;
+        this.number = other.number;
     }
 
 }

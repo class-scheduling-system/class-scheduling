@@ -4,6 +4,7 @@ import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
+import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
 import org.springframework.stereotype.Service;
 
@@ -86,4 +87,9 @@ public interface ClassAssignmentService {
     List<ClassAssignmentDTO> getClassAssignmentListByLimit(
             AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO);
 
+    /**
+     * 保存排课分配
+     * @param classAssignmentDO 排课分配数据对象
+     */
+    void save(ClassAssignmentDO classAssignmentDO);
 }

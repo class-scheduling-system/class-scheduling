@@ -125,6 +125,10 @@ public class ClassAssignmentDO {
      * 排课优先级
      */
     private Integer schedulingPriority;
+    /**
+     * 教学校区
+     */
+    private String teachingCampus;
 
     /**
      * 上课时间，JSON格式

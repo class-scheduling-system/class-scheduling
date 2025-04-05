@@ -5,7 +5,6 @@ import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
-import enums.CourseEnuType;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -71,6 +70,11 @@ public class ScheduleResultDTO {
     @Accessors(chain = true)
     public static class ClassAssignmentDTO {
         /**
+         * 课程安排ID
+         */
+        private String courseScheduleItemUuid;
+
+        /**
          * 课程信息
          */
         private CourseLibraryDTO course;
@@ -93,11 +97,15 @@ public class ScheduleResultDTO {
         /**
          * 时间安排
          */
-        private TimeSlot timeSlot;
+        private List<TimeSlotDTO> timeSlot;
         /**
          * 课程类型
          */
-        private CourseEnuType courseEnuType;
+        private CreditHourTypeEnuDTO courseType;
+        /**
+         * 教学班人数
+         */
+        private Integer number;
 
         /**
          * 优先级
@@ -105,24 +113,6 @@ public class ScheduleResultDTO {
         private Integer priority;
     }
 
-    @Data
-    @Accessors(chain = true)
-    public static class TimeSlot {
-        /**
-         * 周次
-         */
-        private int week;
-
-        /**
-         * 星期（1-7）
-         */
-        private int dayOfWeek;
-
-        /**
-         * 节次
-         */
-        private int period;
-    }
 
     @Data
     @Accessors(chain = true)

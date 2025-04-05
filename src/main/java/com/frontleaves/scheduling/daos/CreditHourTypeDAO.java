@@ -8,11 +8,13 @@ import com.frontleaves.scheduling.models.entity.CreditHourTypeDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 学时类型 DAO 类
@@ -51,5 +53,34 @@ public class CreditHourTypeDAO extends ServiceImpl<CreditHourTypeMapper, CreditH
         }
         // 如果数据库中也找不到该学时类型的信息，返回null
         return null;
+    }
+
+    /**
+     * 获取学时类型列表
+     * 首先尝试从Redis中获取列表，如果不存在，则从数据库中获取，并存入Redis中
+     * 此方法解释了为什么首先从Redis获取数据，以及如果Redis中没有数据时的处理方式
+     *
+     * @return 学时类型列表，如果列表为空或不存在，则返回空列表
+     */
+    public List<CreditHourTypeDO> getList() {
+        // 从Redis中获取学时类型列表
+        RList<CreditHourTypeDO> rList = redisson.getList(StringConstant.Redis.CREDIT_HOUR_TYPE_LIST);
+        // 检查列表在Redis中是否存在
+        if (!rList.isExists()){
+            // 从数据库中获取学时类型列表
+            List<CreditHourTypeDO> creditHourTypeDOList = this.list();
+            // 检查列表是否非空
+            if (creditHourTypeDOList != null && !creditHourTypeDOList.isEmpty()){
+                // 将列表添加到Redis中，并设置过期时间
+                rList.addAll(creditHourTypeDOList);
+                rList.expire(Duration.ofSeconds(3600));
+                // 返回从数据库中获取的列表
+                return creditHourTypeDOList;
+            }
+            // 如果列表为空，返回空列表
+            return List.of();
+        }
+        // 如果Redis中存在列表，读取并返回
+        return rList.readAll();
     }
 }

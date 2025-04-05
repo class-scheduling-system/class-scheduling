@@ -262,6 +262,12 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         }
         return new ArrayList<>(classAssignmentMap.values());
     }
+
+    @Override
+    public void save(ClassAssignmentDO classAssignmentDO) {
+        classAssignmentDAO.save(classAssignmentDO);
+    }
+
     /**
      * 处理排课分配对象
      */

@@ -1,7 +1,6 @@
 package com.frontleaves.scheduling.logic.scheduling;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.json.JSONUtil;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
@@ -93,15 +92,14 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
 
         CourseLibraryDTO course = courseAndTeachers.getCourse();
 
-        // 获取教室和教师分配
+        // 获取教室和班级列表
         Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> classroomAssignments =
                 this.selectClassroomsForCourse(courseAndTeachers, baseData.getClassroomList());
-        log.debug("输出课程 {} 的教室分配: {}", course.getName(), JSONUtil.toJsonStr(classroomAssignments));
         if (classroomAssignments == null) {
             return;
         }
 
-        // 为每个班级分配教师和时间槽
+        // 为每个班级分配教师
         Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> teacherAssignments =
                 this.assignTeachersToClasses(course, courseAndTeachers, classroomAssignments);
 
@@ -169,20 +167,19 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
                 courseAndTeachers,
                 baseData
         );
-
-        if (timeSlot != null) {
-            CourseScheduleItemDTO item = new CourseScheduleItemDTO(
-                    courseAndTeachers.getCourse(),
-                    assignedTeacher,
-                    assignedClassroom,
-                    classGroup,
-                    new CreditHourTypeEnuDTO(),
-                    courseAndTeachers.getPriority()
-            );
-            assignments.put(timeSlot, item);
-        } else {
-            log.warn("无法为课程 {} 找到合适的时间槽", courseAndTeachers.getCourse().getName());
-        }
+        CreditHourTypeEnuDTO creditHourTypeEnuDTO = new CreditHourTypeEnuDTO();
+        creditHourTypeEnuDTO.setCourseEnuType(courseAndTeachers.getCourseEnuType());
+        CourseScheduleItemDTO item = new CourseScheduleItemDTO(
+                UuidUtil.generateUuidNoDash(),
+                courseAndTeachers.getCourse(),
+                assignedTeacher,
+                assignedClassroom,
+                classGroup,
+                creditHourTypeEnuDTO,
+                courseAndTeachers.getPriority(),
+                courseAndTeachers.getNumber()
+        );
+        assignments.put(timeSlot, item);
     }
 
     /**
@@ -445,12 +442,10 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
     }
 
     /**
-     * 分配教学班级
-     * 根据课程资格信息和当前课程资格列表，决定如何分配学生到不同的班级
-     * 如果总人数小于30，只能开一个班；否则，随机决定要分几个班，并随机分配每个班的人数
+     * 分配教学班级并更新课程资质列表中的人数
      *
-     * @param courseQualification        当前课程的资格信息，包括总人数等
-     * @param newCourseQualificationList 新的课程资格列表，用于存储分配班级后的课程资格信息
+     * @param courseQualification 课程资质信息
+     * @param newCourseQualificationList 新的课程资质列表
      */
     private void assignTeachingClasses(
             @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
@@ -459,38 +454,61 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
         Integer number = courseQualification.getNumber();
         if (number <= 30) {
             courseQualification.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
+            // 人数保持不变
             newCourseQualificationList.add(courseQualification);
             return;
         }
+
         // 计算最大可能的班级数，确保至少为1
         int maxClasses = Math.max(1, number / 30);
         int numClasses = 1 + random.nextInt(maxClasses);
+
         // 如果只分一个班，直接返回
         if (numClasses == 1) {
             courseQualification.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
+            // 人数保持不变
             newCourseQualificationList.add(courseQualification);
             return;
         }
+
         // 随机分配每个班的人数
         int remainingStudents = number;
         int remainingClasses = numClasses;
+        List<CourseLibraryAndTeacherCourseQualificationListDTO> tempList = new ArrayList<>();
+
         while (remainingClasses > 0) {
             CourseLibraryAndTeacherCourseQualificationListDTO newClass =
                     BeanUtil.copyProperties(courseQualification, CourseLibraryAndTeacherCourseQualificationListDTO.class);
+
+            int classSize;
             if (remainingClasses == 1) {
-                newClass.setNumber(remainingStudents);
+                // 最后一个班级分配剩余的所有学生
+                classSize = remainingStudents;
             } else {
                 // 确保剩余人数足够分配给剩下的班
                 int maxPossible = Math.min(180, remainingStudents - (remainingClasses - 1) * 30);
                 int minPossible = 30;
-                int classSize = minPossible + random.nextInt(maxPossible - minPossible + 1);
-                newClass.setNumber(classSize);
+                classSize = minPossible + random.nextInt(maxPossible - minPossible + 1);
                 remainingStudents -= classSize;
             }
-            //设置教学班级UUID
+
+            // 设置新班级的人数和UUID
+            newClass.setNumber(classSize);
             newClass.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
-            newCourseQualificationList.add(newClass);
+            tempList.add(newClass);
             remainingClasses--;
+        }
+
+        // 更新原始对象的人数为第一个班级的人数
+        if (!tempList.isEmpty()) {
+            courseQualification.setNumber(tempList.get(0).getNumber());
+            courseQualification.setTeachingClassUuid(tempList.get(0).getTeachingClassUuid());
+            newCourseQualificationList.add(courseQualification);
+
+            // 添加其他班级（从第二个开始）
+            for (int i = 1; i < tempList.size(); i++) {
+                newCourseQualificationList.add(tempList.get(i));
+            }
         }
     }
 

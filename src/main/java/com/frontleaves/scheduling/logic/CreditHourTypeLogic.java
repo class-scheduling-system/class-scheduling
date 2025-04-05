@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * 学时类型逻辑
  * @author FLASHLACK
@@ -28,5 +30,17 @@ public class CreditHourTypeLogic implements CreditHourTypeService {
             throw new BusinessException("学时类型不存在", ErrorCode.BODY_ERROR);
         }
         return BeanUtil.toBean(creditHourTypeDO, CreditHourTypeEnuDTO.class);
+    }
+
+    @Override
+    public List<CreditHourTypeEnuDTO> getList() {
+        List<CreditHourTypeDO> creditHourTypeDOList = creditHourTypeDAO.getList();
+        if (creditHourTypeDOList == null || creditHourTypeDOList.isEmpty()){
+            throw new BusinessException("学时类型不存在", ErrorCode.BODY_ERROR);
+        }
+        return creditHourTypeDOList
+                .stream()
+                .map(creditHourTypeDO
+                        -> BeanUtil.toBean(creditHourTypeDO, CreditHourTypeEnuDTO.class)).toList();
     }
 }

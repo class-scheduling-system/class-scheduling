@@ -194,13 +194,15 @@ public class IterateLogic implements IterateService {
             assignments.remove(timeSlots);
             // 创建新的排课项，保持其他属性不变，只替换教师
             CourseScheduleItemDTO newItem = new CourseScheduleItemDTO(
+                    currentItem.getCourseScheduleItemUuid(),
                     currentItem.getCourse(),
                     // 替换为新教师
                     newTeacher,
                     currentItem.getClassroom(),
                     currentItem.getClassGroup(),
                     currentItem.getCourseType(),
-                    currentItem.getPriority()
+                    currentItem.getPriority(),
+                    currentItem.getNumber()
             );
             // 添加新的课程安排
             assignments.put(timeSlots, newItem);
@@ -245,13 +247,15 @@ public class IterateLogic implements IterateService {
                                 availableClassrooms.get(random.nextInt(availableClassrooms.size()));
                         // 创建新的排课项
                         CourseScheduleItemDTO newItem = new CourseScheduleItemDTO(
+                                currentItem.getCourseScheduleItemUuid(),
                                 course,
                                 currentItem.getTeacher(),
                                 newClassroomEntry.getValue(),
                                 //使用原来的班级
                                 currentItem.getClassGroup(),
                                 currentItem.getCourseType(),
-                                currentItem.getPriority()
+                                currentItem.getPriority(),
+                                currentItem.getNumber()
                         );
                         // 更新课程安排
                         courseSchedule.getAssignments().put(entry.getKey(), newItem);
