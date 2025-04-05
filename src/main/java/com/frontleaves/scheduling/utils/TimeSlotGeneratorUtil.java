@@ -56,7 +56,7 @@ public class TimeSlotGeneratorUtil {
             CourseLibraryAndTeacherCourseQualificationListDTO course,
             boolean eveningCoursesEnabled) {
         return new TimeSlotContext(
-                eveningCoursesEnabled ? 12 : 8,
+                eveningCoursesEnabled ? 8 : 12,
                 course.getExpectedTotalHours().intValue(),
                 course.getStartWeek(),
                 course.getEndWeek(),
@@ -67,14 +67,17 @@ public class TimeSlotGeneratorUtil {
     /**
      * 生成每天可用的时间块
      */
-    private static Map<Integer, List<List<Integer>>> generateAvailableBlocks(int maxPeriodsPerDay) {
+    private static @NotNull Map<Integer, List<List<Integer>>> generateAvailableBlocks(int maxPeriodsPerDay) {
         Map<Integer, List<List<Integer>>> blocks = new HashMap<>();
         for (int day = 1; day <= 5; day++) {
             List<List<Integer>> dayBlocks = new ArrayList<>();
-            dayBlocks.add(Arrays.asList(1, 2, 3, 4));     // 上午
-            dayBlocks.add(Arrays.asList(5, 6, 7, 8));     // 下午
-            if (maxPeriodsPerDay > 8) {
-                dayBlocks.add(Arrays.asList(9, 10, 11, 12)); // 晚上
+            // 上午
+            dayBlocks.add(Arrays.asList(1, 2, 3, 4));
+            // 下午
+            dayBlocks.add(Arrays.asList(5, 6, 7, 8));
+            // 晚上
+            if (maxPeriodsPerDay >= 9) {
+                dayBlocks.add(Arrays.asList(9, 10, 11, 12));
             }
             blocks.put(day, dayBlocks);
         }

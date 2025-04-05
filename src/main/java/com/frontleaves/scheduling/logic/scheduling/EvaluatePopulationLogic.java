@@ -387,6 +387,7 @@ public class EvaluatePopulationLogic implements EvaluatePopulationService {
     }
     /**
      * 检查行政班级冲突
+     * 如果任一课程没有行政班级信息，则认为不冲突，返回false
      */
     private boolean isClassConflict(
             @NotNull CourseScheduleItemDTO item1,
@@ -394,6 +395,11 @@ public class EvaluatePopulationLogic implements EvaluatePopulationService {
         // 获取两个课程的行政班级列表
         List<AdministrativeClassDTO> classList1 = item1.getClassGroup();
         List<AdministrativeClassDTO> classList2 = item2.getClassGroup();
+        // 如果任一班级列表为空，则认为不冲突
+        if (classList1 == null || classList2 == null ||
+                classList1.isEmpty() || classList2.isEmpty()) {
+            return false;
+        }
         // 检查是否有重叠的班级
         return classList1.stream()
                 .anyMatch(class1 -> classList2.stream()

@@ -161,7 +161,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 log.debug("设置课程优先级");
                 this.applyCourseTypePriority(courseQualificationList, courseTypePriorityMap);
                 log.debug(LogConstant.THREAD + "获取教室数据");
-                List<ClassroomInfoDTO> classroomAndTypeDTOList =
+                List<ClassroomInfoDTO> allClassroomInfo =
                         this.getAllClassroomInfo(classSchedulingVO.getScopeSettings().getAllowedBuildingIds());
                 log.debug(LogConstant.THREAD + "获取部门DTO");
                 DepartmentDTO departmentDTO = departmentService.
@@ -175,7 +175,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                         .setDepartment(departmentDTO)
                         .setStrategy(classSchedulingVO.getStrategy())
                         .setCourseList(courseQualificationList)
-                        .setClassroomList(classroomAndTypeDTOList);
+                        .setClassroomList(allClassroomInfo);
                 //设置约束
                 AutomaticClassSchedulingBaseDTO.Constraints constraints =
                         new AutomaticClassSchedulingBaseDTO.Constraints();
@@ -534,12 +534,16 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
         List<ClassroomInfoDTO> classroomAndTypeDTOList = new ArrayList<>();
         // 遍历每个允许访问的建筑ID
         for (String buildingId : allowedBuildingIds) {
-            // 通过建筑ID获取对应的教室信息
-            ClassroomInfoDTO classroomInfoDTO = classroomService.getClassroomByUuid(buildingId);
-            // 确保获取到的教室信息不为空
-            assert classroomInfoDTO != null;
-            // 将获取到的教室信息添加到列表中
-            classroomAndTypeDTOList.add(classroomInfoDTO);
+            //获取教学楼内教室的uuid链表
+            List<ClassroomDTO> classroomUuids = classroomService.getClassroomUuidsByBuildingId(buildingId);
+            for (ClassroomDTO classroomDTO : classroomUuids) {
+                // 通过建筑ID获取对应的教室信息
+                ClassroomInfoDTO classroomInfoDTO = classroomService.getClassroomByUuid(classroomDTO.getClassroomUuid());
+                // 确保获取到的教室信息不为空
+                assert classroomInfoDTO != null;
+                // 将获取到的教室信息添加到列表中
+                classroomAndTypeDTOList.add(classroomInfoDTO);
+            }
         }
         // 返回收集到的教室信息列表
         return classroomAndTypeDTOList;

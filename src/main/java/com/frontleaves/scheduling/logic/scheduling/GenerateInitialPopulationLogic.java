@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.logic.scheduling;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.json.JSONUtil;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
@@ -95,7 +96,7 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
         // 获取教室和教师分配
         Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> classroomAssignments =
                 this.selectClassroomsForCourse(courseAndTeachers, baseData.getClassroomList());
-
+        log.debug("输出课程 {} 的教室分配: {}", course.getName(), JSONUtil.toJsonStr(classroomAssignments));
         if (classroomAssignments == null) {
             return;
         }
@@ -261,7 +262,6 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             this.assignTeachingClassesForAdministrative(courseQualification, newList);
         }
         newList.add(courseQualification);
-
         // 为教学班级分配教室
         return this.assignClassrooms(classrooms, newList);
     }
@@ -458,13 +458,18 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
         // 如果总人数小于30，只能开一个班
         Integer number = courseQualification.getNumber();
         if (number <= 30) {
+            courseQualification.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
             newCourseQualificationList.add(courseQualification);
+            return;
         }
-        int maxClasses = number / 30 + 1;
+        // 计算最大可能的班级数，确保至少为1
+        int maxClasses = Math.max(1, number / 30);
         int numClasses = 1 + random.nextInt(maxClasses);
         // 如果只分一个班，直接返回
         if (numClasses == 1) {
+            courseQualification.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
             newCourseQualificationList.add(courseQualification);
+            return;
         }
         // 随机分配每个班的人数
         int remainingStudents = number;

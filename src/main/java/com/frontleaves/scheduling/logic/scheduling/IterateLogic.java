@@ -391,17 +391,14 @@ public class IterateLogic implements IterateService {
         if (hasTeacherConflict(entry1, entry2)) {
             return false;
         }
-
         // 2. 检查教室冲突
         if (hasClassroomConflict(entry1, entry2)) {
             return false;
         }
-
         // 3. 检查班级冲突
         if (hasClassConflict(entry1, entry2)) {
             return false;
         }
-
         // 4. 检查与其他课程的冲突
         return !hasConflictWithOtherCourses(entry1, entry2, courseSchedule, population);
     }
@@ -428,33 +425,57 @@ public class IterateLogic implements IterateService {
      * 检查教室冲突
      */
     private boolean hasClassroomConflict(
-            Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry1,
-            Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry2) {
-
+            Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry1,
+            Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry2) {
+        // 获取教室信息，如果任一环节为空则返回false
+        if (entry1.getValue().getClassroom() == null ||
+                entry2.getValue().getClassroom() == null ||
+                entry1.getValue().getClassroom().getClassroom() == null ||
+                entry2.getValue().getClassroom().getClassroom() == null) {
+            return false;
+        }
         String room1Uuid = entry1.getValue().getClassroom().getClassroom().getClassroomUuid();
         String room2Uuid = entry2.getValue().getClassroom().getClassroom().getClassroomUuid();
-
+        // 如果教室UUID为空，则不检测冲突
+        if (room1Uuid == null || room2Uuid == null) {
+            return false;
+        }
         // 如果是同一个教室，检查交换后的时间是否冲突
         if (room1Uuid.equals(room2Uuid)) {
             return hasTimeOverlap(entry1.getKey(), entry2.getKey());
         }
-
         return false;
     }
 
     /**
      * 检查班级冲突
+     * 如果任一课程没有班级信息，则认为不冲突，返回false
      */
     private boolean hasClassConflict(
             Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry1,
             Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry2) {
+        // 首先检查entry的value是否为空
+        if (entry1.getValue() == null || entry2.getValue() == null) {
+            return false;
+        }
+        // 检查getClassGroup()的返回值是否为空
         List<AdministrativeClassDTO> classes1 = entry1.getValue().getClassGroup();
         List<AdministrativeClassDTO> classes2 = entry2.getValue().getClassGroup();
+        // 如果任一班级列表为空，则认为不冲突
+        if (classes1 == null || classes2 == null ||
+                classes1.isEmpty() || classes2.isEmpty()) {
+            return false;
+        }
         // 检查是否有相同的班级
         boolean hasCommonClass = classes1.stream()
                 .anyMatch(class1 -> classes2.stream()
-                        .anyMatch(class2 -> class1.getAdministrativeClassUuid()
-                                .equals(class2.getAdministrativeClassUuid())));
+                        .anyMatch(class2 -> {
+                            // 增加对getAdministrativeClassUuid的空值检查
+                            String uuid1 = class1.getAdministrativeClassUuid();
+                            String uuid2 = class2.getAdministrativeClassUuid();
+                            return uuid1 != null && uuid1.equals(uuid2);
+                        }));
+
         // 如果有相同的班级，检查交换后的时间是否冲突
         if (hasCommonClass) {
             return hasTimeOverlap(entry1.getKey(), entry2.getKey());
@@ -510,15 +531,12 @@ public class IterateLogic implements IterateService {
             Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry1,
             Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry2,
             Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> other) {
-
         // 检查时间重叠
         boolean timeConflict1 = hasTimeOverlap(entry2.getKey(), other.getKey());
         boolean timeConflict2 = hasTimeOverlap(entry1.getKey(), other.getKey());
-
         if (!timeConflict1 && !timeConflict2) {
             return false;
         }
-
         // 如果有时间重叠，检查资源冲突
         return hasResourceConflict(entry1.getValue(), other.getValue()) ||
                 hasResourceConflict(entry2.getValue(), other.getValue());
@@ -547,9 +565,16 @@ public class IterateLogic implements IterateService {
                 .equals(item2.getClassroom().getClassroom().getClassroomUuid())) {
             return true;
         }
+        // 如果任一班级列表为空，则不检查班级冲突，直接返回false
+        List<AdministrativeClassDTO> classes1 = item1.getClassGroup();
+        List<AdministrativeClassDTO> classes2 = item2.getClassGroup();
+        if (classes1 == null || classes2 == null ||
+                classes1.isEmpty() || classes2.isEmpty()) {
+            return false;
+        }
         // 检查班级冲突
-        return item1.getClassGroup().stream()
-                .anyMatch(class1 -> item2.getClassGroup().stream()
+        return classes1.stream()
+                .anyMatch(class1 -> classes2.stream()
                         .anyMatch(class2 -> class1.getAdministrativeClassUuid()
                                 .equals(class2.getAdministrativeClassUuid())));
     }
@@ -670,9 +695,16 @@ public class IterateLogic implements IterateService {
                 .equals(item2.getClassroom().getClassroom().getClassroomUuid())) {
             return true;
         }
-        // 检查班级冲突
-        return hasClassConflict(item1.getClassGroup(), item2.getClassGroup());
+        // 检查班级冲突（如果任一为空则跳过检查）
+        List<AdministrativeClassDTO> classes1 = item1 != null ? item1.getClassGroup() : null;
+        List<AdministrativeClassDTO> classes2 = item2.getClassGroup();
+        if (classes1 == null || classes2 == null ||
+                classes1.isEmpty() || classes2.isEmpty()) {
+            return false;
+        }
+        return hasClassConflict(classes1, classes2);
     }
+
 
     /**
      * 检查班级冲突

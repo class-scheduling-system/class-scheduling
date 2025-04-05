@@ -12,6 +12,7 @@ import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
+import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
@@ -232,13 +233,22 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
                         uuid -> uuid,
                         uuid -> Boolean.TRUE,
                         (existing, replacement) -> existing));
-        Map<String, Boolean> classUuidsMap = automaticClassSchedulingBaseDTO.getCourseList().stream()
-                .flatMap(course -> course.getClassList().stream())
-                .map(AdministrativeClassDTO::getAdministrativeClassUuid)
-                .collect(Collectors.toMap(
-                        uuid -> uuid,
-                        uuid -> Boolean.TRUE,
-                        (existing, replacement) -> existing));
+        Map<String, Boolean> classUuidsMap = new HashMap<>();
+        List<CourseLibraryAndTeacherCourseQualificationListDTO> courseList = automaticClassSchedulingBaseDTO.getCourseList();
+        if (courseList != null) {
+            classUuidsMap = courseList.stream()
+                    .filter(Objects::nonNull)
+                    .map(CourseLibraryAndTeacherCourseQualificationListDTO::getClassList)
+                    .filter(Objects::nonNull)
+                    .flatMap(List::stream)
+                    .filter(Objects::nonNull)
+                    .map(AdministrativeClassDTO::getAdministrativeClassUuid)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toMap(
+                            uuid -> uuid,
+                            uuid -> Boolean.TRUE,
+                            (existing, replacement) -> existing));
+        }
         //获取教学班
         List<TeachingClassDTO> teachingClassDTOList = teachingClassService
                 .getTeachingClassListBySemester(automaticClassSchedulingBaseDTO.getSemester().getSemesterUuid());
@@ -254,12 +264,6 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     }
     /**
      * 处理排课分配对象
-     * @param classAssignment 排课分配对象
-     * @param classroomUuidsMap 教室UUID映射
-     * @param teacherUuidsMap 教师UUID映射
-     * @param classUuidsMap 行政班级UUID映射
-     * @param classAssignmentMap 排课分配映射
-     * @param teachingClassDTOList 教学班列表
      */
     private void processClassAssignment(@NotNull ClassAssignmentDO classAssignment,
                                         @NotNull Map<String, Boolean> classroomUuidsMap,
@@ -275,8 +279,10 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         if (teacherUuidsMap.containsKey(classAssignment.getTeacherUuid())) {
             this.addToAssignmentMap(classAssignment, classAssignmentMap);
         }
-        // 检查行政班级匹配
-        this.checkClassGroupMatch(classAssignment, classUuidsMap, classAssignmentMap, teachingClassDTOList);
+        // 只有当classUuidsMap不为空时才检查行政班级匹配
+        if (classUuidsMap != null && !classUuidsMap.isEmpty()) {
+            this.checkClassGroupMatch(classAssignment, classUuidsMap, classAssignmentMap, teachingClassDTOList);
+        }
     }
     /**
      * 将排课分配对象添加到映射中
@@ -290,15 +296,11 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     }
     /**
      * 检查行政班级匹配
-     * @param classAssignment 排课分配对象
-     * @param classUuidsMap 行政班级UUID映射
-     * @param classAssignmentMap 排课分配映射
-     * @param teachingClassDTOList 教学班列表
      */
     private void checkClassGroupMatch(@NotNull ClassAssignmentDO classAssignment,
-                                      Map<String, Boolean> classUuidsMap,
+                                      @NotNull Map<String, Boolean> classUuidsMap,
                                       Map<String, ClassAssignmentDTO> classAssignmentMap,
-                                      List<TeachingClassDTO> teachingClassDTOList) {
+                                      @NotNull List<TeachingClassDTO> teachingClassDTOList) {
         // 在教学班列表中查找匹配的教学班
         TeachingClassDTO teachingClassDTO = teachingClassDTOList.stream()
                 .filter(dto -> dto.getTeachingClassUuid().equals(classAssignment.getTeachingClassUuid()))

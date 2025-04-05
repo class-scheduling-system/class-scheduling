@@ -35,14 +35,12 @@ import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.models.dto.BackAddClassroomDTO;
+import com.frontleaves.scheduling.models.dto.ClassroomImportDTO;
 import com.frontleaves.scheduling.models.dto.base.*;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomLiteDTO;
-import com.frontleaves.scheduling.models.entity.ClassroomDO;
-import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
-import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
-import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.entity.*;
 import com.frontleaves.scheduling.models.vo.BatchAddClassroomVO;
 import com.frontleaves.scheduling.models.vo.ClassroomVO;
@@ -67,11 +65,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -1158,6 +1152,17 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
                 .setSuccessCount(successCount)
                 .setFailedCount(failedDetails.size())
                 .setFailedDetails(failedDetails.isEmpty() ? null : failedDetails);
+    }
+
+    @Override
+    public List<ClassroomDTO> getClassroomUuidsByBuildingId(String buildingId) {
+        List<ClassroomDO> classroomDOList = classroomDAO.getClassroomByBuilding(buildingId);
+        if (classroomDOList == null || classroomDOList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return classroomDOList.stream()
+                .map(classroomDO -> BeanUtil.toBean(classroomDO, ClassroomDTO.class))
+                .collect(Collectors.toList());
     }
 
     /**
