@@ -84,10 +84,13 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
         RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
         try {
             // 更新数据库中的课程库信息
-            this.updateById(courseLibraryDO);
+            if (!this.updateById(courseLibraryDO)) {
+                throw new ServerInternalErrorException(StringConstant.DATABASE_OPERATION_FAILED);
+            }
 
             // 删除Redis中的课程库信息，确保缓存数据与数据库数据保持一致
             transaction.getMap(StringConstant.Redis.COURSE_LIBRARY_UUID + courseLibraryDO.getCourseLibraryUuid()).delete();
+            transaction.getBucket(StringConstant.Redis.COURSE_LIBRARY_ID + courseLibraryDO.getId()).delete();
 
             // 提交Redis事务
             transaction.commit();
@@ -114,6 +117,8 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
 
             // 删除Redis中的课程库信息，确保缓存数据与数据库数据保持一致
             transaction.getMap(StringConstant.Redis.COURSE_LIBRARY_UUID + courseLibraryDO.getCourseLibraryUuid()).delete();
+            transaction.getBucket(StringConstant.Redis.COURSE_LIBRARY_ID + courseLibraryDO.getId()).delete();
+            transaction.commit();
 
         } catch (Exception e) {
             // 如果操作失败，抛出服务器内部错误异常
@@ -135,7 +140,9 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
 
         // 如果名称参数不为空也不为null，则添加模糊查询条件
         if (name != null && !name.isEmpty()) {
-            query.like(CourseLibraryDO::getName, name);
+            query
+                    .or(i -> i.like(CourseLibraryDO::getName, name))
+                    .or(i -> i.like(CourseLibraryDO::getId, name));
         }
 
         // 执行分页查询，并返回结果
@@ -181,7 +188,7 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
                 return courseLibraryList;
             }
             return new ArrayList<>();
-        }else {
+        } else {
             // 如果缓存存在，则直接返回缓存中的数据
             return cacheList.readAll();
         }
@@ -194,7 +201,7 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
      * </p>
      *
      * @param courseLibraryDO 课程库实体对象
-     * @param i 当前处理的行索引
+     * @param i               当前处理的行索引
      * @return 失败详情列表，如果成功则返回空列表
      */
     public List<BackAddCourseDTO.FailedDetail> saveCourseLibraryIgnoreError(CourseLibraryDO courseLibraryDO, int i) {
@@ -265,7 +272,7 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
         // 默认错误信息
         return "数据错误：可能包含错误的值";
     }
-    
+
     /**
      * 保存课程库信息，遇到错误时抛出异常
      * <p>
@@ -273,7 +280,7 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
      * </p>
      *
      * @param courseLibraryDO 课程库实体对象
-     * @param i 行号索引
+     * @param i               行号索引
      * @throws BusinessException 当保存过程中发生异常时抛出，并包含详细的错误信息
      */
     public void saveCourseLibraryBackError(CourseLibraryDO courseLibraryDO, int i) {
@@ -293,6 +300,36 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
             // 其他未预期的异常
             throw new BusinessException("第" + (i + 3) + "行保存失败：" + e.getMessage(), ErrorCode.BODY_ERROR);
         }
+    }
+
+    /**
+     * 根据ID获取课程库信息
+     * 首先尝试从Redis中获取课程库信息，如果不存在，则从数据库中查询，并将结果缓存到Redis中
+     *
+     * @param id 课程库的ID
+     * @return CourseLibraryDO类型的对象，如果找不到则返回null
+     */
+    public CourseLibraryDO getCourseLibraryById(String id) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.COURSE_LIBRARY_ID + id);
+        if (!map.isExists()) {
+            CourseLibraryDO courseLibraryDO = this.lambdaQuery()
+                    .eq(CourseLibraryDO::getId, id)
+                    .one();
+            if (courseLibraryDO != null) {
+                map.putAll(ConvertUtil.convertObjectToMapString(courseLibraryDO));
+                map.expire(Duration.ofSeconds(86400));
+                return courseLibraryDO;
+            }
+        } else {
+            return BeanUtil.toBean(map, CourseLibraryDO.class);
+        }
+        return null;
+    }
+
+    public void saveCourseLibrary(CourseLibraryDO newCourseLibraryDO) {
+        this.save(newCourseLibraryDO);
+        RKeys rKeys = redisson.getKeys();
+        //rKeys.delete(StringConstant.Redis.
     }
 }
 

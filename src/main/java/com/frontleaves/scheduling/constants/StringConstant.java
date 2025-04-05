@@ -184,6 +184,7 @@ public class StringConstant {
         public static final String COURSE_PROPERTY_LIST = "course:property:list";
         public static final String COURSE_TYPE_LIST = "course:type:list";
         public static final String COURSE_NATURE_LIST = "course:nature:list";
+        public static final String COURSE_LIBRARY_ID = "course:library:id:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

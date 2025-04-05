@@ -109,7 +109,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
                 .setNature(rowList.get(5).toString().trim())
                 .setDepartment(rowList.get(6).toString().trim());
 
-        // 处理所有的BigDecimal类型字段
+// 处理所有的BigDecimal类型字段
         try {
 
             // 总课时
@@ -291,6 +291,12 @@ public class CourseLibraryLogic implements CourseLibraryService {
      */
     @Override
     public void addCourseLibrary(@NotNull CourseLibraryVO courseLibraryVO, HttpServletRequest request) {
+        // 检查ID是否重复
+        CourseLibraryDO courseLibraryDO = courseLibraryDAO.getCourseLibraryById(courseLibraryVO.getId());
+        if (courseLibraryDO != null) {
+            throw new BusinessException("课程ID已存在", ErrorCode.PARAMETER_ERROR);
+        }
+
         // 验证课程类别（可为空）
         if (courseLibraryVO.getCategory() != null && !courseLibraryVO.getCategory().isEmpty()) {
             CourseCategoryDO courseCategoryDO = courseCategoryDAO.getCourseCategoryByUuid(courseLibraryVO.getCategory());
@@ -347,11 +353,12 @@ public class CourseLibraryLogic implements CourseLibraryService {
         UserDO getUser = userService.getUserByRequest(request);
 
         // 创建一个新的课程库对象，并从视图对象中复制属性
-        CourseLibraryDO courseLibraryDO = new CourseLibraryDO();
-        BeanUtil.copyProperties(courseLibraryVO, courseLibraryDO, ProjectOption.stringBlankToNull());
-        courseLibraryDO.setEditUser(getUser.getUserUuid());
+        CourseLibraryDO newCourseLibraryDO = new CourseLibraryDO();
+        BeanUtil.copyProperties(courseLibraryVO, newCourseLibraryDO, ProjectOption.stringBlankToNull());
+        newCourseLibraryDO.setEditUser(getUser.getUserUuid());
+        log.debug("课程库对象{}", newCourseLibraryDO);
         // 保存课程库对象到数据库
-        courseLibraryDAO.save(courseLibraryDO);
+        courseLibraryDAO.saveCourseLibrary(newCourseLibraryDO);
     }
 
     /**
@@ -365,10 +372,15 @@ public class CourseLibraryLogic implements CourseLibraryService {
      */
     @Override
     public void updateCourseLibrary(String courseUuid, CourseLibraryVO courseLibraryVO) {
-        // 根据课程UUID获取课程库对象
-        CourseLibraryDO courseLibraryDO = courseLibraryDAO.getCourseLibraryByUuid(courseUuid);
+        CourseLibraryDO courseLibraryDO = courseLibraryDAO.getCourseLibraryById(courseLibraryVO.getId());
+        if (courseLibraryDO != null && !courseLibraryDO.getCourseLibraryUuid().equals(courseUuid)) {
+            throw new BusinessException("课程ID已存在", ErrorCode.PARAMETER_ERROR);
+        }
 
-        if (courseLibraryDO != null) {
+        // 根据课程UUID获取课程库对象
+        CourseLibraryDO updateCourseLibraryDO = courseLibraryDAO.getCourseLibraryByUuid(courseUuid);
+
+        if (updateCourseLibraryDO != null) {
             // 验证课程类别是否存在
             Optional.ofNullable(courseLibraryVO.getCategory())
                     .ifPresent(data -> {
@@ -431,10 +443,10 @@ public class CourseLibraryLogic implements CourseLibraryService {
 
 
             // 将课程库视图对象的属性复制到课程库对象中
-            BeanUtil.copyProperties(courseLibraryVO, courseLibraryDO, ProjectOption.stringBlankToNull());
+            BeanUtil.copyProperties(courseLibraryVO, updateCourseLibraryDO, ProjectOption.stringBlankToNull());
 
             // 更新课程库信息
-            courseLibraryDAO.updateCourseLibrary(courseLibraryDO);
+            courseLibraryDAO.updateCourseLibrary(updateCourseLibraryDO);
         }
     }
 
@@ -452,7 +464,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
         // 根据UUID获取课程库对象
         CourseLibraryDO courseLibraryDO = courseLibraryDAO.getCourseLibraryByUuid(courseUuid);
         // 检查课程库是否存在，如果不存在则抛出异常
-        if (courseLibraryDO == null) {
+        if (courseLibraryDO == null ) {
             throw new BusinessException("课程库不存在", ErrorCode.NOT_EXIST);
         }
         // 删除课程库
@@ -476,25 +488,23 @@ public class CourseLibraryLogic implements CourseLibraryService {
         if (courseLibraryList.getTotal() == 0) {
             return new PageDTO<>();
         } else {
-            // 初始化PageDTO对象，设置总记录数和每页大小
-            PageDTO<CourseLibraryDTO> pageDTO = new PageDTO<>(courseLibraryList.getTotal(), courseLibraryList.getSize());
-            // 设置当前页码
-            pageDTO.setCurrent(courseLibraryList.getCurrent());
-            // 将查询结果转换为CourseLibraryDTO对象列表，并设置到PageDTO中
-            pageDTO.setRecords(
-                    courseLibraryList.getRecords().stream()
-                            .map(courseLibraryDO -> {
-                                CourseLibraryDTO courseLibraryDTO = new CourseLibraryDTO();
-                                // 使用BeanUtil工具类复制属性
-                                BeanUtil.copyProperties(courseLibraryDO, courseLibraryDTO);
-                                return courseLibraryDTO;
-                            }).toList()
-            );
-            // 返回填充了数据的PageDTO对象
-            return pageDTO;
+            return ProjectUtil.convertPageToPageDTO(courseLibraryList, CourseLibraryDTO.class);
         }
     }
 
+    /**
+     * 获取课程库列表
+     * <p>
+     * 此方法用于获取课程库的列表信息
+     * 它会根据传入的参数过滤课程库，并返回一个包含课程库信息的列表
+     *
+     * @param courseCategoryUuid 课程类别UUID
+     * @param coursePropertyUuid 课程属性UUID
+     * @param courseTypeUuid     课程类型UUID
+     * @param courseNatureUuid   课程性质UUID
+     * @param courseDepartmentUuid 课程部门UUID
+     * @return 包含课程库信息的列表
+     */
     @Override
     public List<CourseLiteDTO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid) {
         List<CourseLibraryDO> courseLibraryList = courseLibraryDAO.getCourseLibraryList(courseCategoryUuid, coursePropertyUuid, courseTypeUuid, courseNatureUuid, courseDepartmentUuid);
@@ -563,18 +573,18 @@ public class CourseLibraryLogic implements CourseLibraryService {
             } else {
                 // 资源不存在，返回默认文本
                 return """
-                    注意事项：
-                    1. 请严格按照模板填写信息
-                    2. 所有信息必须准确无误
+                        注意事项：
+                        1. 请严格按照模板填写信息
+                        2. 所有信息必须准确无误
                     3. 请勿修改模板结构
                     4. 总学时必须等于理论课时+实验课时+实践课时+上机课时+其他课时的总和""";
             }
         } catch (IOException e) {
             // 如果读取失败，返回默认文本
             return """
-                注意事项：
-                1. 请严格按照模板填写信息
-                2. 所有信息必须准确无误
+                    注意事项：
+                    1. 请严格按照模板填写信息
+                    2. 所有信息必须准确无误
                 3. 请勿修改模板结构
                 4. 总学时必须等于理论课时+实验课时+实践课时+上机课时+其他课时的总和""";
         }
@@ -691,7 +701,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
         sheet.setColumnWidth(29, 6000); // 状态示例
 
         // 为参考数据值列设置合适宽度
-        for (int i = 2; i <= 30; i++) { // 假设参考数据最多有9个值（从列2到列10）
+        for (int i = 2; i <= 30; i++) {
             sheet.setColumnWidth(i, 6000);
         }
 
@@ -1201,7 +1211,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
                 // 使用DAO层方法保存课程库对象并处理可能的错误
                 List<BackAddCourseDTO.FailedDetail> saveFailedDetails = courseLibraryDAO.saveCourseLibraryIgnoreError(courseLibraryDO, i);
                 if (saveFailedDetails.isEmpty()) {
-                    successCount++;
+                successCount++;
                 } else {
                     failedDetails.addAll(saveFailedDetails);
                 }

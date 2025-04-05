@@ -32,7 +32,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 class DepartmentTest {
     private static final int DEFAULT_PAGE = 1;

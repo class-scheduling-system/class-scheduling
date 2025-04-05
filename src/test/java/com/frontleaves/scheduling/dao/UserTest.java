@@ -23,7 +23,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 class UserTest {
     @Resource

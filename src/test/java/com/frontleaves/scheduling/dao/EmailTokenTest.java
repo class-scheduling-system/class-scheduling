@@ -50,7 +50,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  * @author yourname
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class EmailTokenTest {
     @Resource
     private UserDAO userDAO;

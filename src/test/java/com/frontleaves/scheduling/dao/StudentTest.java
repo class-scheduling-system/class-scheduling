@@ -27,7 +27,7 @@ import java.time.Duration;
 import java.util.List;
 
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class StudentTest {
     @Resource
     private StudentDAO studentDAO;

@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * TeacherTypeDAO 单元测试类
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 class TeacherTypeEnumTest {
     @Resource

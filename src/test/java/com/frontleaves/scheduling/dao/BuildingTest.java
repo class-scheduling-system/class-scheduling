@@ -55,7 +55,7 @@ import java.util.List;
  * @since v1.0.0
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class BuildingTest {
     @Resource
     private BuildingDAO buildingDAO;
@@ -189,6 +189,7 @@ class BuildingTest {
             }
         }
     }
+
 
     @Test
     void testSaveBuildingBackError() {

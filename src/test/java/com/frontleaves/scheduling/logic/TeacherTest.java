@@ -36,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 class TeacherTest {
     @Resource
