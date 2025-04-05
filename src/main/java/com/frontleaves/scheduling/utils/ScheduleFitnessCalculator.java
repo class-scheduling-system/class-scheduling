@@ -28,47 +28,35 @@ public final class ScheduleFitnessCalculator {
         if (schedule == null || schedule.getSchedule() == null || schedule.getSchedule().isEmpty() || baseDTO == null) {
             return 0.0;
         }
-
         double totalFitness = 0.0;
         int courseCount = schedule.getSchedule().size();
-
         // 遍历每个课程计算适应度
         for (CourseScheduleDTO courseSchedule : schedule.getSchedule()) {
             // 基础分数
             double courseFitness = 100.0;
-
             // 减去冲突惩罚
             courseFitness -= calculateConflictPenalty(courseSchedule, baseDTO.getDataCourseScheduleList());
-
             // 连续课程适应度
             if (Boolean.TRUE.equals(baseDTO.getConstraints().getConsecutiveCoursesPreferred())) {
                 courseFitness += calculateConsecutiveCoursesFitness(courseSchedule);
             }
-
             // 时间偏好适应度
             courseFitness += calculateTimePreferenceFitness(courseSchedule, baseDTO.getTimePreferences());
-
             // 教室优化适应度
             if (Boolean.TRUE.equals(baseDTO.getConstraints().getRoomOptimization())) {
                 courseFitness += calculateRoomOptimizationFitness(courseSchedule);
             }
-
             // 确保单个课程的适应度不为负
             courseFitness = Math.max(0.0, courseFitness);
-
             // 将课程适应度添加到总适应度
             totalFitness += courseFitness;
-
             // 更新单个课程的适应度
             courseSchedule.setFitness(courseFitness);
         }
-
         // 计算平均适应度
         double averageFitness = totalFitness / courseCount;
-
         // 更新整个课程表的适应度
         schedule.setFitness(averageFitness);
-
         return averageFitness;
     }
 

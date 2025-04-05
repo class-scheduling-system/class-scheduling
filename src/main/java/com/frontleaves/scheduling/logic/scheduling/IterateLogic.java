@@ -749,7 +749,7 @@ public class IterateLogic implements IterateService {
      * @return 可能为空的子日程安排列表，包含两个子日程安排
      */
     @Contract(pure = true)
-    private @Nullable List<ScheduleDTO> crossoverSchedules(
+    private @NotNull List<ScheduleDTO> crossoverSchedules(
             @NotNull ScheduleDTO parent1,
             @NotNull ScheduleDTO parent2,
             AutomaticClassSchedulingBaseDTO baseDTO) {
