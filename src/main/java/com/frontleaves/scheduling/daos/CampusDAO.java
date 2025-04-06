@@ -272,26 +272,8 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
         // 保存到数据库
         this.save(campusDO);
         
-        // 更新Redis缓存
-        RMap<String, String> campusMap = redisson.getMap(StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid());
-        campusMap.putAll(ConvertUtil.convertObjectToMapString(campusDO));
-        campusMap.expire(Duration.ofSeconds(86400));
-        
-        // 缓存校区名称到UUID的映射
-        RBucket<String> campusNameBucket = redisson.getBucket(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
-        campusNameBucket.set(campusDO.getCampusUuid());
-        campusNameBucket.expire(Duration.ofSeconds(86400));
-        
-        // 缓存校区编码到UUID的映射
-        RBucket<String> campusCodeBucket = redisson.getBucket(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode());
-        campusCodeBucket.set(campusDO.getCampusUuid());
-        campusCodeBucket.expire(Duration.ofSeconds(86400));
-        
         // 删除列表缓存，确保下次查询时能获取到最新数据
-        RKeys keys = redisson.getKeys();
-        keys.delete(StringConstant.Redis.CAMPUS_LIST);
-        keys.delete(StringConstant.Redis.CAMPUS_FULL_LIST);
-        keys.deleteByPattern(StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
+        this.deleteCampusCache();
         
         return campusDO;
     }

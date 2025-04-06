@@ -1,5 +1,18 @@
 server:
   port: 8888
+  servlet:
+    session:
+      timeout: 3600s
+    tomcat:
+      max-http-form-post-size: 500MB
+  tomcat:
+    max-http-form-post-size: 500MB
+    connection-timeout: 300000
+    max-keep-alive-requests: 500
+    websocket:
+      max-text-message-buffer-size: 524288
+      max-binary-message-buffer-size: 524288
+      connection-timeout-millis: 3600000
 spring:
   profiles:
     active: dev

@@ -48,7 +48,6 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.redisson.api.RedissonClient;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -78,7 +77,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CampusLogic implements CampusService {
     private final CampusDAO campusDAO;
-    private final RedissonClient redisson;
 
     /**
      * 添加校园
@@ -91,7 +89,7 @@ public class CampusLogic implements CampusService {
         //数据交换
         CampusDO campusDO = BeanUtil.copyProperties(campusVO, CampusDO.class)
                 .setCampusUuid(UuidUtil.generateUuidNoDash());
-        campusDAO.save(campusDO);
+        campusDAO.saveCampus(campusDO);
         CampusDO newCampusDO = campusDAO.getCampusByUuid(campusDO.getCampusUuid());
         return BeanUtil.copyProperties(newCampusDO, CampusDTO.class);
     }

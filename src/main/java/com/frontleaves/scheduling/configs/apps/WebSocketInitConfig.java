@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -31,8 +31,10 @@ package com.frontleaves.scheduling.configs.apps;
 import com.frontleaves.scheduling.daos.TokenDAO;
 import com.frontleaves.scheduling.services.AiService;
 import com.frontleaves.scheduling.ws.AiFrontWebSocketComponent;
+import jakarta.websocket.server.ServerContainer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.web.embedded.tomcat.TomcatContextCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -71,5 +73,25 @@ public class WebSocketInitConfig {
         AiFrontWebSocketComponent.setTokenDAO(tokenDAO);
         AiFrontWebSocketComponent.setAiService(aiService);
         return webSocket;
+    }
+
+    /**
+     * 自定义 Tomcat 容器，设置 WebSocket 缓冲区大小
+     *
+     * @return TomcatContextCustomizer 实例
+     */
+    @Bean
+    public TomcatContextCustomizer tomcatContextCustomizer() {
+        return context -> {
+            context.addServletContainerInitializer((c, ctx) -> {
+                ServerContainer container = (ServerContainer) ctx.getAttribute(ServerContainer.class.getName());
+                if (container != null) {
+                    // 设置WebSocket缓冲区大小为512KB
+                    container.setDefaultMaxTextMessageBufferSize(524288);
+                    container.setDefaultMaxBinaryMessageBufferSize(524288);
+                    log.info("配置WebSocket消息缓冲区大小为: 512KB");
+                }
+            }, null);
+        };
     }
 }
