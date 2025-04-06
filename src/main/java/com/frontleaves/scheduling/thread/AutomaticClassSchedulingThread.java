@@ -5,7 +5,6 @@ import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.CreditHourTypeEnuDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
@@ -88,9 +87,7 @@ public class AutomaticClassSchedulingThread extends Thread {
                 log.info("开始执行遗传算法排课，任务ID：{}", taskId);
                 ScheduleResultDTO result = geneticSchedulingService.executeGeneticAlgorithm(taskId, baseData);
                 this.getSaveScheduleDTO(result);
-                // 保存排课结果到Redis
-                RBucket<ScheduleResultDTO> resultCache = redisson.getBucket(StringConstant.Redis.SCHEDULE_RESULT + user.getUserUuid());
-                resultCache.set(result);
+
                 // 删除任务有关的缓存数据
                 RKeys rKeys = redisson.getKeys();
                 rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
@@ -111,22 +108,22 @@ public class AutomaticClassSchedulingThread extends Thread {
         log.info("排课线程结束运行");
     }
 
-    private void getSaveScheduleDTO(@NotNull ScheduleResultDTO result) {
+    /**
+     * 保存排课结果到数据库
+     * <p>
+     * 将排课结果中的教学班和课程安排信息保存到数据库
+     * 同时将冲突信息保存到cs_scheduling_conflict表
+     * </p>
 
+     * @param result 排课结果
+     */
+    private void getSaveScheduleDTO(@NotNull ScheduleResultDTO result) {
         List<ScheduleResultDTO.ClassAssignmentDTO> assignments = result.getAssignments();
-        List<SchedulingConflictDTO> conflicts = result.getConflicts();
-        // 获取有冲突的courseScheduleItemUuid集合
-        Set<String> conflictItemUuids = conflicts.stream()
-                .map(SchedulingConflictDTO::getCourseScheduleItemUuid)
-                .collect(Collectors.toSet());
-        // 过滤出没有冲突的assignments
-        List<ScheduleResultDTO.ClassAssignmentDTO> nonConflictAssignments = assignments.stream()
-                .filter(assignment -> !conflictItemUuids.contains(assignment.getCourseScheduleItemUuid()))
-                .toList();
+
         // 获取学时类型list
         List<CreditHourTypeEnuDTO> creditHourTypeList = creditHourTypeService.getList();
         Map<CourseEnuType, String> creditHourTypeUuidMapping = this.getAllCreditHourTypeUuidMapping(creditHourTypeList);
-        for (ScheduleResultDTO.ClassAssignmentDTO assignment : nonConflictAssignments) {
+        for (ScheduleResultDTO.ClassAssignmentDTO assignment : assignments) {
             // 新建教学班
             TeachingClassDO teachingClassDO = new TeachingClassDO();
             teachingClassDO.setTeachingClassUuid(UuidUtil.generateUuidNoDash())

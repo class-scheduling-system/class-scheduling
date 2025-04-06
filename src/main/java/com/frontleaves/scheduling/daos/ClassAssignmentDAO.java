@@ -257,4 +257,16 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
         }
         return rList.readAll();
     }
+
+    /**
+     * 保存排课分配
+     * @param classAssignmentDO 排课分配数据对象
+     */
+    public void saveClassAssignment(ClassAssignmentDO classAssignmentDO) {
+        RKeys keys = redisson.getKeys();
+
+        this.save(classAssignmentDO);
+        keys.deleteByPattern(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
+        keys.deleteByPattern(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
+    }
 }

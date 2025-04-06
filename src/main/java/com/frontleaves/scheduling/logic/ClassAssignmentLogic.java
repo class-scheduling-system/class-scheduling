@@ -265,7 +265,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
 
     @Override
     public void save(ClassAssignmentDO classAssignmentDO) {
-        classAssignmentDAO.save(classAssignmentDO);
+        classAssignmentDAO.saveClassAssignment(classAssignmentDO);
     }
 
     /**
