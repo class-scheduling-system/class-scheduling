@@ -127,7 +127,7 @@ public class AutomaticClassSchedulingThread extends Thread {
             // 新建教学班
             TeachingClassDO teachingClassDO = new TeachingClassDO();
             teachingClassDO
-                    .setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                    .setTeachingClassUuid(assignment.getTeachingClass().getTeachingClassUuid())
                     .setSemesterUuid(result.getSemesterId())
                     .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
                     .setTeachingClassCode(UuidUtil.generateUuidNoDash())

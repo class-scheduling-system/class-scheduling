@@ -1,9 +1,6 @@
 package com.frontleaves.scheduling.models.dto.scheduling;
 
-import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
-import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
-import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
+import com.frontleaves.scheduling.models.dto.base.*;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -56,6 +53,8 @@ public class ScheduleResultDTO {
      */
     private List<ClassAssignmentDTO> assignments;
 
+
+
     /**
      * 冲突信息
      */
@@ -93,7 +92,10 @@ public class ScheduleResultDTO {
          * 班级分组信息
          */
         private List<AdministrativeClassDTO> classGroup;
-
+        /**
+         * 教学班级只有UUID数据
+         */
+        private TeachingClassDTO teachingClass;
         /**
          * 时间安排
          */

@@ -519,7 +519,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 creditHourTypeService.getCreditHourTypeByUuid(classAssignment.getCreditHourType());
         return new CourseScheduleItemDTO(UuidUtil.generateStringUuid(),
                 courseLibraryDTO, teacherCoursePreferencesDTO, classroomDTO, administrativeClassDTOList, creditHourTypeEnuDTO,
-                classAssignment.getSchedulingPriority(),0);
+                classAssignment.getSchedulingPriority(),0,teachingClassDTO);
     }
 
     /**

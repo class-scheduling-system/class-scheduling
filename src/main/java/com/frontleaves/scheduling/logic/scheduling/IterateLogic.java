@@ -202,7 +202,8 @@ public class IterateLogic implements IterateService {
                     currentItem.getClassGroup(),
                     currentItem.getCourseType(),
                     currentItem.getPriority(),
-                    currentItem.getNumber()
+                    currentItem.getNumber(),
+                    currentItem.getTeachingClass()
             );
             // 添加新的课程安排
             assignments.put(timeSlots, newItem);
@@ -255,7 +256,8 @@ public class IterateLogic implements IterateService {
                                 currentItem.getClassGroup(),
                                 currentItem.getCourseType(),
                                 currentItem.getPriority(),
-                                currentItem.getNumber()
+                                currentItem.getNumber(),
+                                currentItem.getTeachingClass()
                         );
                         // 更新课程安排
                         courseSchedule.getAssignments().put(entry.getKey(), newItem);

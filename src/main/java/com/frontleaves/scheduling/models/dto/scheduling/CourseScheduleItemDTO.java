@@ -3,6 +3,7 @@ package com.frontleaves.scheduling.models.dto.scheduling;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
+import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -65,6 +66,10 @@ public class CourseScheduleItemDTO {
      * </p>
      */
     private List<AdministrativeClassDTO> classGroup;
+    /**
+     *教学班级只有UUID数据
+     */
+    private TeachingClassDTO teachingClass;
 
     /**
      * 课程类型
@@ -101,7 +106,9 @@ public class CourseScheduleItemDTO {
      */
     public CourseScheduleItemDTO(String courseScheduleItemUuid ,CourseLibraryDTO course, TeacherCoursePreferencesDTO teacher,
                                  ClassroomInfoDTO classroom, List<AdministrativeClassDTO> classGroup,
-                                 CreditHourTypeEnuDTO courseType, Integer priority,Integer number) {
+                                 CreditHourTypeEnuDTO courseType, Integer priority,Integer number,
+                                 TeachingClassDTO teachingClass
+    ) {
         this.courseScheduleItemUuid = courseScheduleItemUuid;
         this.course = course;
         this.teacher = teacher;
@@ -110,6 +117,7 @@ public class CourseScheduleItemDTO {
         this.courseType = courseType;
         this.priority = priority;
         this.number = number;
+        this.teachingClass = teachingClass;
     }
 
     /**
@@ -130,6 +138,7 @@ public class CourseScheduleItemDTO {
         this.courseType = other.courseType;
         this.classGroup = other.classGroup;
         this.number = other.number;
+        this.teachingClass = other.teachingClass;
     }
 
 }

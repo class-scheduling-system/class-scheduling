@@ -213,15 +213,15 @@ class BaseGeneticSchedulingLogic {
     ) {
         // 检查教师冲突
         if (this.isTeacherConflict(item1, item2)) {
-            conflicts.add(this.createTeacherConflict(item1, slot1,item2));
+            conflicts.add(this.createTeacherConflict(item1, slot1, item2));
         }
         // 检查教室冲突
         if (this.isClassroomConflict(item1, item2)) {
-            conflicts.add(this.createClassroomConflict(item1, slot1,item2));
+            conflicts.add(this.createClassroomConflict(item1, slot1, item2));
         }
         // 检查班级冲突
         if (this.isClassConflict(item1, item2)) {
-            conflicts.add(this.createClassConflict(item1, slot1,item2));
+            conflicts.add(this.createClassConflict(item1, slot1, item2));
         }
     }
 
@@ -255,6 +255,7 @@ class BaseGeneticSchedulingLogic {
                         slot.getPeriod()
                 ));
     }
+
     /**
      * 检查班级组冲突
      */
@@ -359,6 +360,7 @@ class BaseGeneticSchedulingLogic {
                         courseName2
                 ));
     }
+
     /**
      * 计算资源利用率
      * <p>
@@ -452,7 +454,8 @@ class BaseGeneticSchedulingLogic {
                         .setTimeSlot(slots)
                         .setPriority(item.getPriority())
                         .setCourseType(item.getCourseType())
-                        .setNumber(item.getNumber());
+                        .setNumber(item.getNumber())
+                        .setTeachingClass(item.getTeachingClass());
                 assignments.add(assignment);
             }
         }

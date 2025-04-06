@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
+import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.*;
@@ -169,6 +170,8 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
         );
         CreditHourTypeEnuDTO creditHourTypeEnuDTO = new CreditHourTypeEnuDTO();
         creditHourTypeEnuDTO.setCourseEnuType(courseAndTeachers.getCourseEnuType());
+        TeachingClassDTO teachingClassDTO = new TeachingClassDTO();
+        teachingClassDTO.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
         CourseScheduleItemDTO item = new CourseScheduleItemDTO(
                 UuidUtil.generateUuidNoDash(),
                 courseAndTeachers.getCourse(),
@@ -177,7 +180,8 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
                 classGroup,
                 creditHourTypeEnuDTO,
                 courseAndTeachers.getPriority(),
-                courseAndTeachers.getNumber()
+                courseAndTeachers.getNumber(),
+                teachingClassDTO
         );
         assignments.put(timeSlot, item);
     }
