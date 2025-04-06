@@ -223,6 +223,29 @@ class BaseGeneticSchedulingLogic {
         if (this.isClassConflict(item1, item2)) {
             conflicts.add(this.createClassConflict(item1, slot1, item2));
         }
+        // 检查教学班冲突
+        if (this.isTeachingConflict(item1, item2)) {
+            conflicts.add(this.createTeachingConflict(item1, slot1, item2));
+        }
+    }
+
+    private SchedulingConflictDTO createTeachingConflict(@NotNull CourseScheduleItemDTO item1, TimeSlotDTO slot1, @NotNull CourseScheduleItemDTO item2) {
+        // 创建冲突描述
+        return new SchedulingConflictDTO()
+                .setFirstAssignmentUuid(item1.getCourseScheduleItemUuid())
+                .setSecondAssignmentUuid(item2.getCourseScheduleItemUuid())
+                .setConflictTime(slot1)
+                .setConflictType(3)
+                .setDescription("教学班级冲突");
+    }
+
+    private boolean isTeachingConflict(@NotNull CourseScheduleItemDTO item1, @NotNull CourseScheduleItemDTO item2) {
+        // 获取两个课程安排项的教学班 UUID
+        String teachingClassUuid1 = item1.getTeachingClass().getTeachingClassUuid();
+        String teachingClassUuid2 = item2.getTeachingClass().getTeachingClassUuid();
+
+        // 比较两个教学班的 UUID 是否相同
+        return teachingClassUuid1.equals(teachingClassUuid2);
     }
 
     /**
