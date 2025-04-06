@@ -30,7 +30,7 @@ package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.daos.TokenDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.TokenDTO;
+import com.frontleaves.scheduling.models.dto.base.TokenDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

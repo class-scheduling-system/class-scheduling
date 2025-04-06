@@ -28,25 +28,77 @@
 
 package com.frontleaves.scheduling.daos;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeachingClassMapper;
 import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
+import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RList;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
+
+import java.time.Duration;
+import java.util.List;
 
 /**
  * 教学班数据访问对象
- * <p>
- * 此类继承自ServiceImpl，实现IService接口，主要负责对教学班（TeachingClass）数据的操作，
- * 包括但不限于增、删、改、查等数据库操作。通过与TeachingClassMapper的交互，
- * 提供了面向业务的数据库访问方法。
- * </p>
- *
- * @author xiaolfeng
- * @version v1.0.0
- * @since v1.0.0
+ * @author FLASHLACK
  */
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class TeachingClassDAO extends ServiceImpl<TeachingClassMapper, TeachingClassDO> {
+    private final RedissonClient redisson;
+
+/**
+ * 根据学期UUID获取教学班级列表
+ * 首先尝试从Redis中获取缓存的班级列表，如果不存在，则从数据库中查询，并将结果缓存到Redis中
+ *
+ * @param semesterUuid 学期的唯一标识符
+ * @return 教学班级列表，如果找不到则返回空列表
+ */
+public List<TeachingClassDO> getTeachingClassBySemester(String semesterUuid) {
+    // 从Redis中获取缓存的 teachingClass 列表
+    RList<TeachingClassDO> list = redisson.getList(
+            StringConstant.Redis.TEACHING_CLASS_LIST_SEMESTER + semesterUuid);
+
+    // 检查缓存是否存在，如果不存在，则从数据库中查询
+    if (!list.isExists()) {
+        List<TeachingClassDO> teachingClassList = this.lambdaQuery()
+                .eq(TeachingClassDO::getSemesterUuid, semesterUuid)
+                .eq(TeachingClassDO::getIsAdministrative,true)
+                .eq(TeachingClassDO::getIsEnabled,1)
+                .list();
+
+        // 如果查询结果不为空，则将其添加到缓存列表中，并设置过期时间
+        if (teachingClassList != null && !teachingClassList.isEmpty()) {
+            list.addAll(teachingClassList);
+            list.expire(Duration.ofSeconds(3600));
+        }
+        // 返回查询结果，如果为空则返回空列表
+        return List.of();
+    }
+    // 缓存命中，返回所有缓存的 teachingClass
+    return list.readAll();
+}
+
+    public TeachingClassDO getTeachingClassByUuid(String teachingClassUuid) {
+        RMap<String,String> rMap = redisson.getMap(
+                StringConstant.Redis.TEACHING_CLASS_UUID + teachingClassUuid);
+        if (!rMap.isExists()){
+            TeachingClassDO teachingClassDO = this.lambdaQuery()
+                    .eq(TeachingClassDO::getTeachingClassUuid,teachingClassUuid)
+                    .one();
+            if (teachingClassDO != null) {
+                rMap.putAll(ConvertUtil.convertObjectToMapString(teachingClassDO));
+                rMap.expire(Duration.ofSeconds(3600));
+            }
+            return null;
+        }
+        return BeanUtil.toBean(rMap,TeachingClassDO.class);
+    }
 }

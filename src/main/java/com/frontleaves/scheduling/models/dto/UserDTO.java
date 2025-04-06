@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.models.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.frontleaves.scheduling.models.dto.base.RoleDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

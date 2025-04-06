@@ -22,13 +22,21 @@ import java.sql.Timestamp;
 @Data
 @TableName("cs_semester")
 public class SemesterDO {
-
+    /**
+     * 学期名称
+     */
     @TableId(value = "semester_uuid", type = IdType.ASSIGN_UUID)
     private String semesterUuid;
 
+    /**
+     * 学期名称
+     */
     @TableField("name")
     private String name;
 
+    /**
+     * 学期描述
+     */
     @TableField("description")
     private String description;
 
@@ -38,6 +46,15 @@ public class SemesterDO {
     @TableField("end_date")
     private Timestamp endDate;
 
+    /**
+     * 是否当前学期
+     */
+    @TableField("is_current")
+    private Boolean isCurrent;
+
+    /**
+     * 是否启用
+     */
     @TableField("is_enabled")
     private Boolean isEnabled;
 

@@ -174,7 +174,22 @@ public class StringConstant {
         public static final String COURSE_LIBRARY_UUID = "course:library:uuid:";
         public static final String SEMESTER_LIST = "semester:list";
         public static final String SEMESTER_PAGE = "semester:page:";
+        public static final String TEACHER_COURSE_QUALIFICATION_UUID = "teacher:course:qualification:uuid:";
+        public static final String TEACHER_COURSE_QUALIFICATION_COURSE_LIBRARY_UUID = "teacher:course:qualification:course:library:uuid:";
+        public static final String COURSE_TYPE_UUID = "course:type:uuid:";
+        public static final String COURSE_TYPE_LIST = "course:type:list";
+        public static final String CLASSROOM_BUILDING = "classroom:building:";
+        public static final String SCHEDULE_LESSONS = "schedule:lessons:";
+        public static final String COURSE_LIBRARY_LIST = "course:library:list";
+        public static final String SCHEDULE_RESULT = "schedule:result:";
+        public static final String SCHEDULE_EXECUTE_STATUS = "schedule:execute:status:";
+        public static final String SCHEDULE_EXECUTE_PROGRESS = "schedule:execute:progress:";
+        public static final String CREDIT_HOUR_TYPE_UUID = "credit:hour:type:uuid:";
+        public static final String TEACHING_CLASS_LIST_SEMESTER = "teaching:class:list:semester:";
+        public static final String CLASS_ASSIGNMENT_LIST_SEMESTER = "class:assignment:list:semester:";
         public static final String CLASSROOM_LIST = "classroom:list";
+        public static final String TEACHING_CLASS_UUID = "teaching:class:uuid:";
+        public static final String CREDIT_HOUR_TYPE_LIST = "credit:hour:type:list";
 
         private Redis() {
             log.error("Redis 不能被实例化");

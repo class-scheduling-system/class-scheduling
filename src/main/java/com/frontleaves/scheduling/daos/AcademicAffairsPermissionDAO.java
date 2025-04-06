@@ -7,6 +7,7 @@ import com.frontleaves.scheduling.mappers.AcademicAffairsPermissionMapper;
 import com.frontleaves.scheduling.models.entity.AcademicAffairsPermissionDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBucket;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -21,6 +22,7 @@ import java.time.Duration;
  */
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class AcademicAffairsPermissionDAO extends ServiceImpl<AcademicAffairsPermissionMapper, AcademicAffairsPermissionDO> {
     private final RedissonClient redisson;
 

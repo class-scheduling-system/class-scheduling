@@ -33,6 +33,8 @@ import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
+ * 教学班数据访问对象
+ * @author FLASHLACK
  * 教学班Mapper
  *
  * @author xiaolfeng

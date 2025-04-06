@@ -2,8 +2,8 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.UnitCategoryDAO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.UnitCategoryDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.UnitCategoryDTO;
 import com.frontleaves.scheduling.models.dto.UnitCategoryLiteDTO;
 import com.frontleaves.scheduling.models.entity.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.UnitCategoryDO;

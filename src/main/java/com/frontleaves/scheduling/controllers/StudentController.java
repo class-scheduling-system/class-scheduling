@@ -4,6 +4,8 @@ import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.StudentDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.services.StudentService;

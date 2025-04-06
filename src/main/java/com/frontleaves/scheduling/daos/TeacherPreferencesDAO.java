@@ -50,18 +50,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 教师课程偏好数据访问对象
- * <p>
- * 该类扩展了 {@code ServiceImpl}，并实现了 {@code IService<TeacherPreferencesDO>} 接口，
- * 用于对教师课程偏好实体 {@code TeacherPreferencesDO} 进行数据库操作。通过继承自定义的
- * {@code TeacherPreferencesMapper}，提供了对教师课程偏好表的基本 CRUD 操作以及其他业务逻辑方法。
- * </p>
  *
- * @author xiao_lfeng
- * @version v1.0.0
- * @see TeacherPreferencesDO
- * @see TeacherPreferencesMapper
- * @since v1.0.0
+ * @author FLASHLACK
  */
 @Repository
 @RequiredArgsConstructor
@@ -205,5 +195,35 @@ public class TeacherPreferencesDAO extends ServiceImpl<TeacherPreferencesMapper,
             return true;
         }
         return false;
+    }
+
+    /**
+     * 获取教师的所有课程偏好
+     * <p>
+     * 该方法用于获取特定教师的所有课程偏好设置。结果会按照星期和时间段排序。
+     * 如果缓存中存在数据，则直接返回缓存数据；否则从数据库查询并缓存结果。
+     * </p>
+     *
+     * @param teacherUuid 教师UUID
+     * @return 返回教师课程偏好列表 {@code List<TeacherPreferencesDO>}
+     */
+    @Nullable
+    public List<TeacherPreferencesDO> getTeacherPreferencesByTeacherUuid(String teacherUuid) {
+        RList<TeacherPreferencesDO> cacheList = redisson.getList(StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherUuid);
+        if (!cacheList.isExists()) {
+            List<TeacherPreferencesDO> preferences = this.lambdaQuery()
+                    .eq(TeacherPreferencesDO::getTeacherUuid, teacherUuid)
+                    .orderByAsc(TeacherPreferencesDO::getDayOfWeek)
+                    .orderByAsc(TeacherPreferencesDO::getTimeSlot)
+                    .list();
+            if (!preferences.isEmpty()) {
+                cacheList.addAll(preferences);
+                cacheList.expire(Duration.ofSeconds(3600));
+                return preferences;
+            }
+        } else {
+            return cacheList;
+        }
+        return null;
     }
 }

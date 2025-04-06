@@ -28,9 +28,9 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.PermissionDTO;
-import com.frontleaves.scheduling.models.dto.PermissionLiteDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.PermissionDTO;
+import com.frontleaves.scheduling.models.dto.lite.PermissionLiteDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 
 import java.util.List;

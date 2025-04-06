@@ -1,18 +1,20 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.TeacherDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
-import com.frontleaves.scheduling.models.dto.TeacherLiteDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherDTO;
+import com.frontleaves.scheduling.models.dto.lite.TeacherLiteDTO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
-import org.springframework.stereotype.Service;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
-@Service
+
 public interface TeacherService {
     void addTeacher(TeacherVO teacherVO);
 
+
+    @NotNull
     TeacherDTO getTeacher(String teacherUuid);
 
     PageDTO<TeacherDTO> getTeacherList(Integer page, Integer size, Boolean isDesc, String department, String status, String name);

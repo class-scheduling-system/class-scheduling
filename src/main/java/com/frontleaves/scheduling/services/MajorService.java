@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.MajorDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.MajorDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.entity.MajorDO;
 import com.xlf.utility.exception.BusinessException;
 

@@ -31,7 +31,7 @@ package com.frontleaves.scheduling.configs.aspect;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.daos.RoleDAO;
-import com.frontleaves.scheduling.models.dto.RoleDTO;
+import com.frontleaves.scheduling.models.dto.base.RoleDTO;
 import com.frontleaves.scheduling.models.entity.PermissionDO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.services.PermissionService;

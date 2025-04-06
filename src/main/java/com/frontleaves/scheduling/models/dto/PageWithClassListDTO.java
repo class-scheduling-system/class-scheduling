@@ -1,5 +1,7 @@
 package com.frontleaves.scheduling.models.dto;
 
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.StudentDTO;
 import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
 import lombok.AllArgsConstructor;
 import lombok.Data;

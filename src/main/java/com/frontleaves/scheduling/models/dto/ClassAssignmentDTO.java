@@ -16,87 +16,70 @@ import java.sql.Timestamp;
 @Data
 @Accessors(chain = true)
 public class ClassAssignmentDTO {
-    
     /**
      * 排课主键
      */
     private String classAssignmentUuid;
-
     /**
      * 学期主键
      */
     private String semesterUuid;
-
     /**
      * 课程主键
      */
     private String courseUuid;
-
     /**
      * 教师主键
      */
     private String teacherUuid;
-
+    /**
+     * 校区主键
+     */
+    private String campusUuid;
+    /**
+     * 教学楼主键
+     */
+    private String buildingUuid;
     /**
      * 教室主键
      */
     private String classroomUuid;
-
     /**
-     * 教学班组成
+     * 教学班主键
      */
-    private String teachingClassComposition;
-
+    private String teachingClassUuid;
     /**
      * 课程归属
      */
     private String courseOwnership;
-
-    /**
-     * 教学班名称
-     */
-    private String teachingClassName;
-
     /**
      * 学时类型
      */
     private String creditHourType;
-
     /**
-     * 教学学时
+     * 教学学时（指教师实际授课的学时）
      */
     private BigDecimal teachingHours;
-
     /**
-     * 排课学时
+     * 排课学时（指课程安排的学时）
      */
     private BigDecimal scheduledHours;
-
     /**
-     * 总学时
+     * 总需学时
      */
     private BigDecimal totalHours;
-
     /**
      * 排课优先级
      */
     private Integer schedulingPriority;
-
-    /**
-     * 班级规模
-     */
-    private Integer classSize;
-
     /**
      * 教学校区
      */
     private String teachingCampus;
-
     /**
      * 上课时间
      */
     private String classTime;
-
     /**
      * 连堂节数
      */
@@ -106,16 +89,6 @@ public class ClassAssignmentDTO {
      * 教室类型
      */
     private String classroomType;
-
-    /**
-     * 指定教室
-     */
-    private String designatedClassroom;
-
-    /**
-     * 指定教学楼
-     */
-    private String designatedTeachingBuilding;
 
     /**
      * 指定时间

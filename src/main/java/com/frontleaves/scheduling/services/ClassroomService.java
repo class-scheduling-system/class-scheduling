@@ -28,10 +28,18 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.dto.BackAddClassroomDTO;
+import com.frontleaves.scheduling.models.dto.base.ClassroomDTO;
+import com.frontleaves.scheduling.models.dto.base.ClassroomTagDTO;
+import com.frontleaves.scheduling.models.dto.base.ClassroomTypeDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomLiteDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddClassroomVO;
 import com.frontleaves.scheduling.models.vo.ClassroomVO;
 import jakarta.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -188,6 +196,14 @@ public interface ClassroomService {
     List<ClassroomLiteDTO> listClassroomLite(String keyword);
 
     /**
+     * 获取教室详情
+     * @param buildingUuid 教室UUID
+     * @return 教室详情
+     */
+    @NotNull
+    List<ClassroomAndTypeDTO> getClassroomAndTypeByUuidWihError(String buildingUuid);
+
+    /**
      * 获取教室导入模板的字节数组
      * <p>
      * 该方法生成用于批量导入教室信息的Excel模板，返回包含模板数据的字节数组。
@@ -230,4 +246,11 @@ public interface ClassroomService {
      * @return 包含导入结果统计和错误详情的对象
      */
     BackAddClassroomDTO batchImportIgnoreError(byte[] file);
+
+    /**
+     * 根据教学楼uuid获取教室链表
+     * @param buildingId 教学楼uuid
+     * @return 教室列表
+     */
+    List<ClassroomDTO> getClassroomUuidsByBuildingId(String buildingId);
 }

@@ -37,6 +37,7 @@ import java.util.Map;
 
 /**
  * 教学班数据传输对象
+ * @author FLASHLACK
  *
  * @author xiaolfeng
  * @version v1.0.0
@@ -84,6 +85,7 @@ public class TeachingClassDTO {
     /**
      * 包含的行政班级(包含班级UUID和课程性质[必修/选修])
      * 用于JSON序列化/反序列化
+     * 包含的行政班级(包含班级UUID)
      */
     private String administrativeClasses;
 
@@ -100,6 +102,7 @@ public class TeachingClassDTO {
 
     /**
      * 如果是必修课则该字段为true，否则为false
+     * 如果是必修课（区分必修和选修，选修不包含行政班）则该字段为true，否则为false
      */
     private Boolean isAdministrative;
 

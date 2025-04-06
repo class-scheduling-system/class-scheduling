@@ -28,8 +28,8 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.UnitCategoryDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.UnitCategoryDTO;
 import com.frontleaves.scheduling.models.dto.UnitCategoryLiteDTO;
 import com.frontleaves.scheduling.models.entity.UnitCategoryDO;
 import com.frontleaves.scheduling.models.vo.UnitCategoryVO;

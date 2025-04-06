@@ -3,8 +3,8 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.daos.SemesterDAO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.SemesterDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
 import com.frontleaves.scheduling.models.entity.SemesterDO;
 import com.frontleaves.scheduling.models.vo.SemesterVO;
 import com.frontleaves.scheduling.services.SemesterService;
@@ -33,7 +33,6 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class SemesterLogic implements SemesterService {
-
     private final SemesterDAO semesterDAO;
 
     @Override
@@ -105,5 +104,26 @@ public class SemesterLogic implements SemesterService {
                         .map(entity -> BeanUtil.toBean(entity, SemesterDTO.class))
                         .toList())
                 .orElse(List.of());
+    }
+
+    /**
+     * 根据学期的UUID获取学期信息，并检查学期是否启用
+     * 如果学期不存在，则抛出异常
+     * 如果学期未启用，则抛出异常
+     * 否则返回学期信息
+     * @param semesterUuid 学期的UUID
+     * @return 学期信息
+     * @throws BusinessException 如果学期不存在或未启用
+     */
+    @Override
+    public SemesterDTO getSemesterByUuidCheckEnabled(String semesterUuid) {
+        SemesterDO semesterDO = semesterDAO.getSemesterByUuid(semesterUuid);
+        if (semesterDO == null) {
+            throw new BusinessException("学期不存在", ErrorCode.OPERATION_ERROR);
+        }
+        if (Boolean.FALSE.equals(semesterDO.getIsEnabled())) {
+            throw new BusinessException("学期未启用", ErrorCode.OPERATION_ERROR);
+        }
+        return BeanUtil.toBean(semesterDO, SemesterDTO.class);
     }
 }

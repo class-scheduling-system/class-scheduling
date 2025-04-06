@@ -31,7 +31,7 @@ package com.frontleaves.scheduling.daos;
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.EmailVerificationTokenDTO;
-import com.frontleaves.scheduling.models.dto.TokenDTO;
+import com.frontleaves.scheduling.models.dto.base.TokenDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;

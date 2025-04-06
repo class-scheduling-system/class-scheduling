@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.TeacherTypeDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherTypeDTO;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,7 +19,7 @@ import java.util.List;
  */
 @Service
 public interface TeacherTypeService {
-    
+
     /**
      * 根据UUID获取教师类型信息
      *
@@ -45,7 +45,7 @@ public interface TeacherTypeService {
      * @return 教师类型DTO列表
      */
     List<TeacherTypeDTO> getTeacherTypeList();
-    
+
     /**
      * 添加教师类型
      *
@@ -55,7 +55,7 @@ public interface TeacherTypeService {
      * @return 添加成功的教师类型DTO
      */
     TeacherTypeDTO addTeacherType(String typeName, String typeEnglishName, String typeDesc);
-    
+
     /**
      * 更新教师类型
      *
@@ -66,7 +66,7 @@ public interface TeacherTypeService {
      * @return 更新后的教师类型DTO
      */
     TeacherTypeDTO updateTeacherType(String teacherTypeUuid, String typeName, String typeEnglishName, String typeDesc);
-    
+
     /**
      * 删除教师类型
      *

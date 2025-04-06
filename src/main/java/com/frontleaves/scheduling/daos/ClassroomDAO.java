@@ -244,6 +244,34 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> {
     }
 
     /**
+     * 根据建筑UUID获取教室列表
+     * 首先尝试从Redis中获取缓存数据，如果缓存不存在，则从数据库中查询数据，
+     * 并将查询结果缓存到Redis中，以提高下次查询效率
+     * @param buildingUuid 建筑的唯一标识符
+     * @return 返回教室列表，如果找不到则返回空列表
+     */
+    @Nullable
+    public List<ClassroomDO> getClassroomByBuilding(String buildingUuid) {
+        // 从Redis中获取缓存的教室列表
+        RList<ClassroomDO> rList = redisson.getList(StringConstant.Redis.CLASSROOM_BUILDING + buildingUuid);
+        if (!rList.isExists()){
+            // 如果缓存不存在，从数据库中查询教室列表
+            List<ClassroomDO> classroomDOList = this.lambdaQuery().eq(ClassroomDO::getBuildingUuid, buildingUuid).list();
+            if (!classroomDOList.isEmpty()){
+                // 如果查询结果不为空，将其添加到Redis缓存中，并设置过期时间
+                rList.addAll(classroomDOList);
+                rList.expire(Duration.ofSeconds(3600));
+                return classroomDOList;
+            }
+            // 如果查询结果为空，返回空列表
+            return null;
+        }
+        // 如果缓存存在，读取并返回缓存中的教室列表
+        return rList.readAll();
+    }
+
+
+    /**
      * 删除教室相关的所有缓存
      * <p>
      * 该方法用于在教室数据发生批量变更后，清除所有与教室相关的Redis缓存，

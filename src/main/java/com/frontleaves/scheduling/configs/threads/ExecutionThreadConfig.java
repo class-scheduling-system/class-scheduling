@@ -28,8 +28,8 @@
 
 package com.frontleaves.scheduling.configs.threads;
 
-import com.frontleaves.scheduling.thread.ConditionThread;
-import com.frontleaves.scheduling.thread.WaitNotifyThread;
+import com.frontleaves.scheduling.thread.AutomaticClassSchedulingThread;
+import com.frontleaves.scheduling.thread.ScheduleLessonsDataPreparationThread;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -39,31 +39,28 @@ import org.springframework.context.annotation.Configuration;
  * 该类主要用于配置线程执行的相关配置，如线程池、线程等。
  * <p>
  * <ul>
- * <li>通过 {@link WaitNotifyThread} 注解标注该方法为等待唤醒线程。</li>
- * <li>通过 {@link ConditionThread} 注解标注该方法为等待唤醒线程。</li>
- * <li>通过 {@link WaitNotifyThread#start()} 方法启动等待唤醒线程。</li>
- * <li>通过 {@link ConditionThread#start()} 方法启动等待唤醒线程。</li>
+ * <li>通过 {@link ScheduleLessonsDataPreparationThread} 注解标注该方法为等待唤醒线程。</li>
+ * <li>通过 {@link ScheduleLessonsDataPreparationThread#start()} 方法启动等待唤醒线程。</li>
  * </ul>
  *
  * @author xiao_lfeng
  * @version v1.0.0
- * @see WaitNotifyThread
- * @see ConditionThread
+ * @see ScheduleLessonsDataPreparationThread
  * @since v1.0.0
  */
 @Configuration
 public class ExecutionThreadConfig {
 
     @Bean
-    public WaitNotifyThread waitNotifyThread() {
-        WaitNotifyThread thread = new WaitNotifyThread("等待唤醒线程-WaitNotify");
+    public ScheduleLessonsDataPreparationThread scheduleLessonsDataPreparationThread() {
+        ScheduleLessonsDataPreparationThread thread = new ScheduleLessonsDataPreparationThread("自动排课数据准备");
         thread.start();
         return thread;
     }
 
     @Bean
-    public ConditionThread conditionThread() {
-        ConditionThread thread = new ConditionThread("等待唤醒线程-Condition");
+    public AutomaticClassSchedulingThread automaticClassSchedulingThread() {
+        AutomaticClassSchedulingThread thread = new AutomaticClassSchedulingThread("自动排课线程");
         thread.start();
         return thread;
     }

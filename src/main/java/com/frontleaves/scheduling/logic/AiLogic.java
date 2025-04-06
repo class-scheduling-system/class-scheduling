@@ -36,7 +36,7 @@ import cn.hutool.json.JSONConfig;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.frontleaves.scheduling.daos.SystemDAO;
-import com.frontleaves.scheduling.models.dto.RoleDTO;
+import com.frontleaves.scheduling.models.dto.base.RoleDTO;
 import com.frontleaves.scheduling.models.dto.UserDTO;
 import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.services.AiService;

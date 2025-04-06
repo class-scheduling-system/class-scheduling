@@ -1,7 +1,9 @@
 package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
+import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
@@ -26,4 +28,19 @@ public interface AdministrativeClassService {
      * @return 行政班级列表
      */
     List<AdministrativeClassDO> getAdministrativeClassList();
+
+    /**
+     * 根据行政班级UUID获取行政班级信息
+     * @param classGroup 行政班级UUID列表
+     * @return 行政班级信息列表
+     */
+    List<String> getClassNameByGroup(List<AdministrativeClassDTO> classGroup);
+
+    /**
+     * 根据UUID获取行政班级信息
+     * @param uuid 行政班级UUID
+     * @return 行政班级信息
+     */
+    @NotNull
+    AdministrativeClassDTO getClassByUuid(String uuid);
 }
