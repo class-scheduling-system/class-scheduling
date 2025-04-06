@@ -32,7 +32,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.annotations.IgnoreLog;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.RequestLogMapper;
-import com.frontleaves.scheduling.models.entity.RequestLogDO;
+import com.frontleaves.scheduling.models.entity.base.RequestLogDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RList;

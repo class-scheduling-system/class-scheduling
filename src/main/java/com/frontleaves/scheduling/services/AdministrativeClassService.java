@@ -1,8 +1,8 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
-import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+import com.frontleaves.scheduling.models.dto.lite.ClassLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.AdministrativeClassDO;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
@@ -20,7 +20,7 @@ public interface AdministrativeClassService {
      * @param clazz 行政班级UUID
      * @return 班级映射 DTO 对象
      */
-    ClassMappingDTO getClassMappingByClazz(String clazz);
+    ClassLiteDTO getClassMappingByClazz(String clazz);
 
     /**
      * 获取行政班级列表，用于下拉框显示

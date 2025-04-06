@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.mappers;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.CreditHourTypeDO;
+import com.frontleaves.scheduling.models.entity.base.CreditHourTypeDO;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

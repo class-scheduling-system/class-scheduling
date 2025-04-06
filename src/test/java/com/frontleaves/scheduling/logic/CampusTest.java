@@ -2,7 +2,7 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.daos.CampusDAO;
 import com.frontleaves.scheduling.models.dto.base.CampusDTO;
-import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.entity.base.CampusDO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import com.frontleaves.scheduling.services.CampusService;
 import com.xlf.utility.exception.BusinessException;

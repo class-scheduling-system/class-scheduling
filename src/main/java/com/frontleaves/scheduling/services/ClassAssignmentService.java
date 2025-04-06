@@ -1,6 +1,6 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
+import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;

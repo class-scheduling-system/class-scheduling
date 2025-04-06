@@ -4,7 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CreditHourTypeMapper;
-import com.frontleaves.scheduling.models.entity.CreditHourTypeDO;
+import com.frontleaves.scheduling.models.entity.base.CreditHourTypeDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

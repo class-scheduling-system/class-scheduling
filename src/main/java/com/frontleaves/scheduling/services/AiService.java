@@ -28,7 +28,7 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

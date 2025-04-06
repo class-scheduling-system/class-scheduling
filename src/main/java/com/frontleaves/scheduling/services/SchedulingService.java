@@ -1,6 +1,6 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.SchedulingTaskDTO;
+import com.frontleaves.scheduling.models.dto.base.SchedulingTaskDTO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;

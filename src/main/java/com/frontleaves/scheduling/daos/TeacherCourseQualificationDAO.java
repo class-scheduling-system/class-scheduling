@@ -4,7 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherCourseQualificationMapper;
-import com.frontleaves.scheduling.models.entity.TeacherCourseQualificationDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherCourseQualificationDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

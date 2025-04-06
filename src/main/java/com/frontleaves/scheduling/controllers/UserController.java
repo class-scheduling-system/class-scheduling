@@ -33,7 +33,7 @@ import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.merge.UserAddInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.UserInfoDTO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.services.UserService;

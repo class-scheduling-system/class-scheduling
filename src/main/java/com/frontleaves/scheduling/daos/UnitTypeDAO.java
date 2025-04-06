@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UnitTypeMapper;
 import com.frontleaves.scheduling.models.dto.lite.UnitTypeLiteDTO;
-import com.frontleaves.scheduling.models.entity.UnitTypeDO;
+import com.frontleaves.scheduling.models.entity.base.UnitTypeDO;
 import com.frontleaves.scheduling.utils.ProjectOption;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;

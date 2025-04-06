@@ -10,9 +10,9 @@ import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassScheduling
 import com.frontleaves.scheduling.models.dto.scheduling.CreditHourTypeEnuDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.TimeSlotDTO;
-import com.frontleaves.scheduling.models.entity.UserDO;
 import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
 import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.frontleaves.scheduling.services.ClassAssignmentService;
 import com.frontleaves.scheduling.services.CreditHourTypeService;
 import com.frontleaves.scheduling.services.TeachingClassService;

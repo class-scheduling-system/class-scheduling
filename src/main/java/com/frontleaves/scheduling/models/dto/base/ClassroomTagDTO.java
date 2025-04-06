@@ -29,7 +29,7 @@
 package com.frontleaves.scheduling.models.dto.base;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
+import com.frontleaves.scheduling.models.entity.base.ClassroomTagDO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

@@ -38,14 +38,15 @@ import com.frontleaves.scheduling.daos.BuildingDAO;
 import com.frontleaves.scheduling.daos.CampusDAO;
 import com.frontleaves.scheduling.exceptions.lib.DataInvalidException;
 import com.frontleaves.scheduling.exceptions.lib.DataNotFoundException;
-import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.dto.base.BuildingDTO;
 import com.frontleaves.scheduling.models.dto.base.CampusDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddBuildingDTO;
+import com.frontleaves.scheduling.models.dto.excel.BuildingImportDTO;
 import com.frontleaves.scheduling.models.dto.lite.BuildingLiteDTO;
-import com.frontleaves.scheduling.models.dto.merge.PrepareBuildingDTO;
-import com.frontleaves.scheduling.models.entity.BuildingDO;
-import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.BuildingDO;
+import com.frontleaves.scheduling.models.entity.base.CampusDO;
 import com.frontleaves.scheduling.models.vo.BatchAddBuildingVO;
 import com.frontleaves.scheduling.services.BuildingService;
 import com.frontleaves.scheduling.utils.ProjectUtil;
@@ -382,10 +383,10 @@ public class BuildingLogic implements BuildingService {
      * @return List<CampusDTO> 包含所有转换后的校园数据的传输对象
      */
     @Override
-    public List<ListOfCampusDTO> prepareCampusData() {
+    public List<CampusLiteDTO> prepareCampusData() {
         return Optional.ofNullable(campusDAO.getCampusList())
                 .map(list -> list.stream()
-                        .map(campus -> BeanUtil.toBean(campus, ListOfCampusDTO.class))
+                        .map(campus -> BeanUtil.toBean(campus, CampusLiteDTO.class))
                         .toList())
                 .orElse(List.of());
     }
@@ -398,7 +399,7 @@ public class BuildingLogic implements BuildingService {
      */
     //生成模板
     @Override
-    public byte[] getBuildingImportTemplate(List<ListOfCampusDTO> prepareBuildingExampleDTO) {
+    public byte[] getBuildingImportTemplate(List<CampusLiteDTO> prepareBuildingExampleDTO) {
         // 创建ExcelWriter对象
         ExcelWriter writer = ExcelUtil.getWriter(true);
 

@@ -34,7 +34,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherPreferencesMapper;
-import com.frontleaves.scheduling.models.entity.TeacherPreferencesDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherPreferencesDO;
 import com.frontleaves.scheduling.utils.ProjectOption;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.util.ConvertUtil;

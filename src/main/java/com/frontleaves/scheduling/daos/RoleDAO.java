@@ -39,7 +39,7 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.RoleMapper;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.RoleDTO;
-import com.frontleaves.scheduling.models.entity.RoleDO;
+import com.frontleaves.scheduling.models.entity.base.RoleDO;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;

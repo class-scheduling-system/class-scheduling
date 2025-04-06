@@ -2,7 +2,7 @@ package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
+import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
 import com.frontleaves.scheduling.services.ClassAssignmentService;

@@ -4,7 +4,7 @@ package com.frontleaves.scheduling.logic;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.SemesterDAO;
 import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
-import com.frontleaves.scheduling.models.entity.SemesterDO;
+import com.frontleaves.scheduling.models.entity.base.SemesterDO;
 import com.frontleaves.scheduling.services.SemesterService;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;

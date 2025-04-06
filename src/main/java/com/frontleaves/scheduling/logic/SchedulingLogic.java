@@ -1,6 +1,6 @@
 package com.frontleaves.scheduling.logic;
 
-import com.frontleaves.scheduling.models.dto.SchedulingTaskDTO;
+import com.frontleaves.scheduling.models.dto.base.SchedulingTaskDTO;
 import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;

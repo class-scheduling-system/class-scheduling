@@ -28,7 +28,7 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.JvmStackDTO;
+import com.frontleaves.scheduling.models.dto.base.JvmStackDTO;
 import com.frontleaves.scheduling.models.dto.base.SiteDTO;
 import com.frontleaves.scheduling.models.dto.base.SystemDTO;
 

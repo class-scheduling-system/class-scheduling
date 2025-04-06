@@ -2,7 +2,7 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.daos.AcademicAffairsPermissionDAO;
 import com.frontleaves.scheduling.models.dto.base.AcademicAffairsPermissionDTO;
-import com.frontleaves.scheduling.models.entity.AcademicAffairsPermissionDO;
+import com.frontleaves.scheduling.models.entity.base.AcademicAffairsPermissionDO;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;

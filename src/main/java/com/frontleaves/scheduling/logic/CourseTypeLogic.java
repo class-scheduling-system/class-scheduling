@@ -3,7 +3,7 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.CourseTypeDAO;
 import com.frontleaves.scheduling.models.dto.base.CourseTypeDTO;
-import com.frontleaves.scheduling.models.entity.CourseTypeDO;
+import com.frontleaves.scheduling.models.entity.base.CourseTypeDO;
 import com.frontleaves.scheduling.services.CourseTypeService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;

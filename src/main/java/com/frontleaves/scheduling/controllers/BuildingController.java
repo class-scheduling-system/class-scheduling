@@ -32,11 +32,12 @@ import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.dto.base.BuildingDTO;
+import com.frontleaves.scheduling.models.dto.base.FileDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddBuildingDTO;
 import com.frontleaves.scheduling.models.dto.lite.BuildingLiteDTO;
-import com.frontleaves.scheduling.models.dto.merge.PrepareBuildingDTO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddBuildingVO;
 import com.frontleaves.scheduling.models.vo.BuildingOperateVO;
 import com.frontleaves.scheduling.services.BuildingService;
@@ -263,7 +264,7 @@ public class BuildingController {
     @GetMapping("/get-template")
     public ResponseEntity<BaseResponse<FileDTO>> getBuildingImportTemplate() {
         // 准备建筑物示例数据，用于生成导入模板
-        List<ListOfCampusDTO> prepareBuildingExampleDTO = buildingService.prepareCampusData();
+        List<CampusLiteDTO> prepareBuildingExampleDTO = buildingService.prepareCampusData();
         // 获取建筑物导入模板的字节数组
         byte[] bytes = buildingService.getBuildingImportTemplate(prepareBuildingExampleDTO);
 

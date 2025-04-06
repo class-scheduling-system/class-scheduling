@@ -32,7 +32,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.AdministrativeClassMapper;
-import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+import com.frontleaves.scheduling.models.entity.base.AdministrativeClassDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RList;

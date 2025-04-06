@@ -35,7 +35,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherMapper;
-import com.frontleaves.scheduling.models.entity.TeacherDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherDO;
 import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;

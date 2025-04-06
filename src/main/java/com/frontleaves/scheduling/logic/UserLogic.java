@@ -39,7 +39,7 @@ import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.base.*;
 import com.frontleaves.scheduling.models.dto.merge.UserAddInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.UserInfoDTO;
-import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.services.UserService;

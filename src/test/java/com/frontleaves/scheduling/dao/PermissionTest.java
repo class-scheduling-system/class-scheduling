@@ -32,7 +32,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.PermissionDAO;
-import com.frontleaves.scheduling.models.entity.PermissionDO;
+import com.frontleaves.scheduling.models.entity.base.PermissionDO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;

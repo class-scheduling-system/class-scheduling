@@ -6,7 +6,7 @@ import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.RoleDTO;
 import com.frontleaves.scheduling.models.dto.lite.RoleLiteDTO;
-import com.frontleaves.scheduling.models.entity.RoleDO;
+import com.frontleaves.scheduling.models.entity.base.RoleDO;
 import com.frontleaves.scheduling.services.RoleService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;

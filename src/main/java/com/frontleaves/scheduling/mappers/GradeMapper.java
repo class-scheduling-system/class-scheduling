@@ -29,12 +29,12 @@
 package com.frontleaves.scheduling.mappers;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.GradeDO;
+import com.frontleaves.scheduling.models.entity.base.GradeDO;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
  * 年级Mapper
- * 
+ *
  * @author FLASHLACK
  * @version v1.0.0
  * @since v1.0.0

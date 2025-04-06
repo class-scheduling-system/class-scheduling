@@ -3,7 +3,7 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.CreditHourTypeDAO;
 import com.frontleaves.scheduling.models.dto.scheduling.CreditHourTypeEnuDTO;
-import com.frontleaves.scheduling.models.entity.CreditHourTypeDO;
+import com.frontleaves.scheduling.models.entity.base.CreditHourTypeDO;
 import com.frontleaves.scheduling.services.CreditHourTypeService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;

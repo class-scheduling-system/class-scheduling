@@ -31,7 +31,7 @@ package com.frontleaves.scheduling.configs.init;
 import cn.hutool.core.date.DateUtil;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.PostConstruct;

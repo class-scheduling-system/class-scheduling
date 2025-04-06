@@ -5,7 +5,7 @@
     <!-- 结果映射：关联 student 与 user -->
     <resultMap id="userAndStudentResultMap" type="com.frontleaves.scheduling.models.entity.multiple.UserAndStudentDO">
         <!-- User 映射 -->
-        <association property="user" javaType="com.frontleaves.scheduling.models.entity.UserDO">
+        <association property="user" javaType="com.frontleaves.scheduling.models.entity.base.UserDO">
             <id property="userUuid" column="user_uuid"/>
             <result property="name" column="user_name"/>
             <result property="password" column="password"/>
@@ -19,7 +19,7 @@
             <result property="updatedAt" column="user_updated_at"/>
         </association>
         <!-- Student 映射 -->
-        <association property="student" javaType="com.frontleaves.scheduling.models.entity.StudentDO">
+        <association property="student" javaType="com.frontleaves.scheduling.models.entity.base.StudentDO">
             <id property="studentUuid" column="student_uuid"/>
             <result property="id" column="student_id"/>
             <result property="name" column="student_name"/>
@@ -108,7 +108,7 @@
     </select>
 
     <!-- 查询未注册学生（user_uuid 为 null）降序 -->
-    <select id="getStudentNoRegisterUserQueryDesc" resultType="com.frontleaves.scheduling.models.entity.StudentDO">
+    <select id="getStudentNoRegisterUserQueryDesc" resultType="com.frontleaves.scheduling.models.entity.base.StudentDO">
         SELECT
         s.*,
         0 AS status
@@ -133,7 +133,7 @@
     </select>
 
     <!-- 查询未注册学生（user_uuid 为 null）升序 -->
-    <select id="getStudentNoRegisterUserQueryAsc" resultType="com.frontleaves.scheduling.models.entity.StudentDO">
+    <select id="getStudentNoRegisterUserQueryAsc" resultType="com.frontleaves.scheduling.models.entity.base.StudentDO">
         SELECT
         s.*,
         0 AS status

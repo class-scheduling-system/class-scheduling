@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.UnitTypeDAO;
 import com.frontleaves.scheduling.models.dto.lite.UnitTypeLiteDTO;
-import com.frontleaves.scheduling.models.entity.UnitTypeDO;
+import com.frontleaves.scheduling.models.entity.base.UnitTypeDO;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

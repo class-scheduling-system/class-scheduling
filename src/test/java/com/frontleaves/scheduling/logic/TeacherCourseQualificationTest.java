@@ -2,9 +2,8 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.daos.CourseLibraryDAO;
 import com.frontleaves.scheduling.daos.TeacherCourseQualificationDAO;
-import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
-import com.frontleaves.scheduling.models.entity.TeacherCourseQualificationDO;
+import com.frontleaves.scheduling.models.entity.base.CourseLibraryDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherCourseQualificationDO;
 import com.frontleaves.scheduling.services.TeacherCourseQualificationService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

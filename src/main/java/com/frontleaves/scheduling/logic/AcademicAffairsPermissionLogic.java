@@ -3,7 +3,7 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.AcademicAffairsPermissionDAO;
 import com.frontleaves.scheduling.models.dto.base.AcademicAffairsPermissionDTO;
-import com.frontleaves.scheduling.models.entity.AcademicAffairsPermissionDO;
+import com.frontleaves.scheduling.models.entity.base.AcademicAffairsPermissionDO;
 import com.frontleaves.scheduling.services.AcademicAffairsPermissionService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;

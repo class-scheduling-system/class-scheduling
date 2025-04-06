@@ -30,7 +30,7 @@ package com.frontleaves.scheduling.configs.init;
 
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.entity.base.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RedissonClient;

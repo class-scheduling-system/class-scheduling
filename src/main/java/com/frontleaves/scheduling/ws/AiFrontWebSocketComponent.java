@@ -33,7 +33,7 @@ import com.frontleaves.scheduling.configs.apps.WebSocketConfig;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.TokenDAO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.frontleaves.scheduling.services.AiService;
 import com.frontleaves.scheduling.utils.WsResponseUtil;
 import jakarta.websocket.OnClose;
@@ -80,12 +80,12 @@ public class AiFrontWebSocketComponent {
      * 用来存在线连接用户信息
      */
     private static final ConcurrentHashMap<String, Session> SESSION_POOL = new ConcurrentHashMap<>();
-    
+
     /**
      * WebSocket消息接收大小限制（字节）【最大】
      */
     private static final int MAX_RECEIVE_MESSAGE_SIZE = 512 * 1024 * 1024;
-    
+
     @Setter
     private static TokenDAO tokenDAO;
     @Setter
@@ -147,7 +147,7 @@ public class AiFrontWebSocketComponent {
         this.userUuid = user.getUserUuid();
         SESSION_MANAGER.add(this);
         SESSION_POOL.put(userUuid, session);
-        
+
         // 配置WebSocket会话参数
         session.setMaxTextMessageBufferSize(512 * 1024); // 设置为512KB
         session.setMaxBinaryMessageBufferSize(512 * 1024);
@@ -186,7 +186,7 @@ public class AiFrontWebSocketComponent {
             // 检查消息大小
             byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
             int messageSize = messageBytes.length;
-            
+
             if (messageSize > MAX_RECEIVE_MESSAGE_SIZE) {
                 log.warn("{}接收到的消息大小超过限制：{} 字节", LogConstant.WS, messageSize);
                 sendMessage(userUuid, WsResponseUtil.error("Failed", "消息大小超过限制", Map.of(
@@ -196,7 +196,7 @@ public class AiFrontWebSocketComponent {
                 )));
                 return;
             }
-            
+
             log.debug("{}接收到消息: [{}]", LogConstant.WS, message);
             JSONObject getJson = new JSONObject(message);
             log.debug("{}接收到消息: [{}]", LogConstant.WS, getJson);

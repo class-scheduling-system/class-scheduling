@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
-import com.frontleaves.scheduling.models.dto.JvmStackDTO;
+import com.frontleaves.scheduling.models.dto.base.JvmStackDTO;
 import com.frontleaves.scheduling.models.dto.base.SiteDTO;
 import com.frontleaves.scheduling.models.dto.base.SystemDTO;
 import com.frontleaves.scheduling.services.PublicService;

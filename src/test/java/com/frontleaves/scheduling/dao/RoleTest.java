@@ -31,7 +31,7 @@ package com.frontleaves.scheduling.dao;
 import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.RoleDTO;
-import com.frontleaves.scheduling.models.entity.RoleDO;
+import com.frontleaves.scheduling.models.entity.base.RoleDO;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Assertions;

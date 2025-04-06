@@ -1,8 +1,8 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.TeacherDTO;
+import com.frontleaves.scheduling.models.dto.lite.TeacherDisableDTO;
 import com.frontleaves.scheduling.models.dto.lite.TeacherLiteDTO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
 import jakarta.validation.constraints.NotNull;

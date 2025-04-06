@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.mappers;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.TeacherCourseQualificationDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherCourseQualificationDO;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

@@ -28,10 +28,10 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.BackProfileDTO;
-import com.frontleaves.scheduling.models.dto.ForgetPasswordResponseDTO;
+import com.frontleaves.scheduling.models.dto.base.ForgetPasswordResponseDTO;
+import com.frontleaves.scheduling.models.dto.lite.BackProfileDTO;
 import com.frontleaves.scheduling.models.dto.merge.UserLoginDTO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.xlf.utility.exception.BusinessException;

@@ -29,7 +29,7 @@
 package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.daos.SystemDAO;
-import com.frontleaves.scheduling.models.dto.JvmStackDTO;
+import com.frontleaves.scheduling.models.dto.base.JvmStackDTO;
 import com.frontleaves.scheduling.models.dto.base.SiteDTO;
 import com.frontleaves.scheduling.models.dto.base.SystemDTO;
 import com.frontleaves.scheduling.services.PublicService;

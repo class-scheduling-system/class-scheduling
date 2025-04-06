@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.daos.SemesterDAO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
-import com.frontleaves.scheduling.models.entity.SemesterDO;
+import com.frontleaves.scheduling.models.entity.base.SemesterDO;
 import com.frontleaves.scheduling.models.vo.SemesterVO;
 import com.frontleaves.scheduling.services.SemesterService;
 import com.frontleaves.scheduling.utils.ProjectOption;

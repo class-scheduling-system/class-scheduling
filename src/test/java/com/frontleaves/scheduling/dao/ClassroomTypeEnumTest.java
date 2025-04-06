@@ -31,7 +31,7 @@ package com.frontleaves.scheduling.dao;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.ClassroomTypeDAO;
-import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
+import com.frontleaves.scheduling.models.entity.base.ClassroomTypeDO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;

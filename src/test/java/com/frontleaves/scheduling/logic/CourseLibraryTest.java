@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.daos.CourseLibraryDAO;
-import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
+import com.frontleaves.scheduling.models.entity.base.CourseLibraryDO;
 import com.frontleaves.scheduling.services.CourseLibraryService;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;

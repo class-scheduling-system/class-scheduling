@@ -32,7 +32,7 @@ import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.UnitTypeDTO;
 import com.frontleaves.scheduling.models.dto.lite.UnitTypeLiteDTO;
-import com.frontleaves.scheduling.models.entity.UnitTypeDO;
+import com.frontleaves.scheduling.models.entity.base.UnitTypeDO;
 import com.frontleaves.scheduling.models.vo.UnitTypeVO;
 import com.frontleaves.scheduling.services.UnitTypeService;
 import com.xlf.utility.BaseResponse;

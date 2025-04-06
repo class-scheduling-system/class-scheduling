@@ -1,12 +1,12 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
-import com.frontleaves.scheduling.models.dto.BackAddCampusDTO;
-import com.frontleaves.scheduling.models.dto.FileDTO;
-import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
 import com.frontleaves.scheduling.models.dto.base.CampusDTO;
+import com.frontleaves.scheduling.models.dto.base.FileDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
-import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddCampusDTO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.CampusDO;
 import com.frontleaves.scheduling.models.vo.BatchAddCampusVO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import com.frontleaves.scheduling.services.CampusService;
@@ -139,14 +139,14 @@ public class CampusController {
     /**
      * 获取校区列表
      * <p>
-     * 该方法用于从系统中获取所有校区的列表，并将其封装为 {@code List<ListOfCampusDTO>} 对象返回。此操作需要管理员权限。
+     * 该方法用于从系统中获取所有校区的列表，并将其封装为 {@code List<CampusLiteDTO>} 对象返回。此操作需要管理员权限。
      *
-     * @return 包含校区列表的 {@code ResponseEntity<BaseResponse<List<ListOfCampusDTO>>>} 对象，其中 {@code BaseResponse} 封装了操作结果和消息
+     * @return 包含校区列表的 {@code ResponseEntity<BaseResponse<List<CampusLiteDTO>>>} 对象，其中 {@code BaseResponse} 封装了操作结果和消息
      */
     @RequestRole({"管理员"})
     @GetMapping("/list")
-    public ResponseEntity<BaseResponse<List<ListOfCampusDTO>>> getCampusList() {
-        List<ListOfCampusDTO> campusList = campusService.getCampusList();
+    public ResponseEntity<BaseResponse<List<CampusLiteDTO>>> getCampusList() {
+        List<CampusLiteDTO> campusList = campusService.getCampusList();
         return ResultUtil.success("获取校区列表成功", campusList);
     }
 

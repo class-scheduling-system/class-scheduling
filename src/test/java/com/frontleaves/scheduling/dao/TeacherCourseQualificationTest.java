@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.daos.TeacherCourseQualificationDAO;
-import com.frontleaves.scheduling.models.entity.TeacherCourseQualificationDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherCourseQualificationDO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;

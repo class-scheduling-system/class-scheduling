@@ -4,14 +4,14 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CourseLibraryMapper;
-import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
+import com.frontleaves.scheduling.models.entity.base.CourseLibraryDO;
+import com.xlf.utility.util.ConvertUtil;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RList;
-import org.redisson.api.RedissonClient;
-import com.xlf.utility.util.ConvertUtil;
-import jakarta.annotation.Nullable;
 import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;

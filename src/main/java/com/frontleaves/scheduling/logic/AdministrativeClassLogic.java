@@ -3,9 +3,9 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.AdministrativeClassDAO;
-import com.frontleaves.scheduling.models.dto.ClassMappingDTO;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
-import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+import com.frontleaves.scheduling.models.dto.lite.ClassLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.AdministrativeClassDO;
 import com.frontleaves.scheduling.services.AdministrativeClassService;
 import com.frontleaves.scheduling.services.CourseLibraryService;
 import com.xlf.utility.ErrorCode;
@@ -40,11 +40,11 @@ public class AdministrativeClassLogic implements AdministrativeClassService {
      * </p>
      *
      * @param clazz 班级标识，用于查询班级映射信息
-     * @return ClassMappingDTO 包含班级映射信息的DTO对象
+     * @return ClassLiteDTO 包含班级映射信息的DTO对象
      * @throws BusinessException 当行政班级信息不存在时抛出的业务异常
      */
     @Override
-    public ClassMappingDTO getClassMappingByClazz(String clazz) {
+    public ClassLiteDTO getClassMappingByClazz(String clazz) {
         // 从DAO层获取行政班数据
         AdministrativeClassDO administrativeClassDO = administrativeClassDAO.getAdministrativeClassMappingByClazz(clazz);
         // 判断对应班级信息是否存在
@@ -52,7 +52,7 @@ public class AdministrativeClassLogic implements AdministrativeClassService {
             throw new BusinessException("行政班级信息不存在", ErrorCode.NOT_EXIST);
         }
         // 构建并返回班级映射信息对象
-        return new ClassMappingDTO()
+        return new ClassLiteDTO()
                 .setGradeUuid(administrativeClassDO.getGradeUuid())
                 .setDepartmentUuid(administrativeClassDO.getDepartmentUuid())
                 .setMajorUuid(administrativeClassDO.getMajorUuid());

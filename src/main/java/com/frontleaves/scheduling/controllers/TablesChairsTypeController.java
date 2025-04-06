@@ -30,9 +30,9 @@ package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
-import com.frontleaves.scheduling.models.dto.TablesChairsTypeLiteDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.TablesChairsTypeDTO;
+import com.frontleaves.scheduling.models.dto.lite.TablesChairsTypeLiteDTO;
 import com.frontleaves.scheduling.models.vo.TablesChairsTypeVO;
 import com.frontleaves.scheduling.services.TablesChairsTypeService;
 import com.xlf.utility.BaseResponse;
