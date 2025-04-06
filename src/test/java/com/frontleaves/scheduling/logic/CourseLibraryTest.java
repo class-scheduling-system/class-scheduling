@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.Collections;
+
 @Slf4j
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class CourseLibraryTest {
@@ -27,7 +29,8 @@ class CourseLibraryTest {
         // 调用方法
         Assertions.assertFalse(
                 courseLibraryService.listCourseLibraryByDepartmentAndSpecifyWithThrow(
-                        courseLibraryDO.getDepartment(), null).isEmpty());
+                        courseLibraryDO.getDepartment(),
+                        Collections.singletonList(courseLibraryDO.getCourseLibraryUuid())).isEmpty());
         //报错
         String departmentUuid = UuidUtil.generateUuidNoDash();
         Assertions.assertThrows(BusinessException.class,() ->
