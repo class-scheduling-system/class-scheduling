@@ -229,24 +229,32 @@ class BaseGeneticSchedulingLogic {
      * 创建班级冲突记录
      */
     private SchedulingConflictDTO createClassConflict(@NotNull CourseScheduleItemDTO item, @NotNull TimeSlotDTO slot, @NotNull CourseScheduleItemDTO item2) {
-        // 获取班级组名称列表
-        String classGroupNames = item.getClassGroup().stream()
+        // 获取第一个班级组名称列表
+        String classGroupNames1 = item.getClassGroup().stream()
                 .map(AdministrativeClassDTO::getClassName)
                 .collect(Collectors.joining("、"));
+        // 获取第二个班级组名称列表
+        String classGroupNames2 = item2.getClassGroup().stream()
+                .map(AdministrativeClassDTO::getClassName)
+                .collect(Collectors.joining("、"));
+        // 创建冲突描述
         return new SchedulingConflictDTO()
                 .setFirstAssignmentUuid(item.getCourseScheduleItemUuid())
                 .setSecondAssignmentUuid(item2.getCourseScheduleItemUuid())
                 .setConflictTime(slot)
-                .setConflictType(3)
+                .setConflictType(3) // 冲突类型：3 表示班级冲突
                 .setDescription(String.format(
-                        "班级 %s 在第%d周星期%d第%d节课有重复安排",
-                        classGroupNames,
+                        "班级组 [%s] 在第%d周星期%d第%d节课 与 班级组 [%s] 在第%d周星期%d第%d节课 发生冲突",
+                        classGroupNames1,
+                        slot.getWeek(),
+                        slot.getDay(),
+                        slot.getPeriod(),
+                        classGroupNames2,
                         slot.getWeek(),
                         slot.getDay(),
                         slot.getPeriod()
                 ));
     }
-
     /**
      * 检查班级组冲突
      */
@@ -304,17 +312,25 @@ class BaseGeneticSchedulingLogic {
      */
     private SchedulingConflictDTO createTeacherConflict(
             @NotNull CourseScheduleItemDTO item, @NotNull TimeSlotDTO slot, @NotNull CourseScheduleItemDTO item2) {
+        // 获取教师的名称
+        String teacherName = item.getTeacher().getTeacher().getName();
+        // 获取两个课程的名称
+        String courseName1 = item.getCourse().getName();
+        String courseName2 = item2.getCourse().getName();
+        // 创建冲突描述
         return new SchedulingConflictDTO()
                 .setFirstAssignmentUuid(item.getCourseScheduleItemUuid())
                 .setSecondAssignmentUuid(item2.getCourseScheduleItemUuid())
                 .setConflictTime(slot)
-                .setConflictType(1)
+                .setConflictType(1) // 冲突类型：1 表示教师冲突
                 .setDescription(String.format(
-                        "教师 %s 在第%d周星期%d第%d节课有重复安排",
-                        item.getTeacher().getTeacher().getName(),
+                        "教师 %s 在第%d周星期%d第%d节课被安排了两门课程 [%s] 和 [%s]，发生时间冲突",
+                        teacherName,
                         slot.getWeek(),
                         slot.getDay(),
-                        slot.getPeriod()
+                        slot.getPeriod(),
+                        courseName1,
+                        courseName2
                 ));
     }
 
@@ -322,20 +338,27 @@ class BaseGeneticSchedulingLogic {
      * 创建教室冲突记录
      */
     private SchedulingConflictDTO createClassroomConflict(@NotNull CourseScheduleItemDTO item, @NotNull TimeSlotDTO slot, CourseScheduleItemDTO item2) {
+        // 获取教室名称
+        String classroomName = item.getClassroom().getClassroom().getName();
+        // 获取两门课程的名称
+        String courseName1 = item.getCourse().getName();
+        String courseName2 = item2.getCourse().getName();
+        // 创建冲突描述
         return new SchedulingConflictDTO()
                 .setFirstAssignmentUuid(item.getCourseScheduleItemUuid())
                 .setSecondAssignmentUuid(item2.getCourseScheduleItemUuid())
                 .setConflictTime(slot)
-                .setConflictType(2)
+                .setConflictType(2) // 冲突类型：2 表示教室冲突
                 .setDescription(String.format(
-                        "教室 %s 在第%d周星期%d第%d节课有重复安排",
-                        item.getClassroom().getClassroom().getName(),
+                        "教室 %s 在第%d周星期%d第%d节课被安排了两门课程 [%s] 和 [%s]，发生时间冲突",
+                        classroomName,
                         slot.getWeek(),
                         slot.getDay(),
-                        slot.getPeriod()
+                        slot.getPeriod(),
+                        courseName1,
+                        courseName2
                 ));
     }
-
     /**
      * 计算资源利用率
      * <p>
