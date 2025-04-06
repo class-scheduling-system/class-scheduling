@@ -6,8 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CampusMapper;
-import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
-import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.CampusDO;
 import com.frontleaves.scheduling.utils.ProjectOption;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
@@ -225,16 +225,16 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
      * 获取校区列表
      * <p>
      * 该方法用于从Redis缓存或数据库中获取所有校区的列表。如果在Redis缓存中没有找到相应的数据，则从数据库中查询，并将结果缓存到Redis中以提高后续查询效率。
-     * 如果缓存中存在，则直接从缓存中读取校区列表。返回的校区列表以 {@code ListOfCampusDTO} 对象的形式表示，每个对象包含校区主键、校区名称和校区编码。
+     * 如果缓存中存在，则直接从缓存中读取校区列表。返回的校区列表以 {@code CampusLiteDTO} 对象的形式表示，每个对象包含校区主键、校区名称和校区编码。
      * </p>
      *
-     * @return 返回包含所有校区信息的列表，每个校区信息由 {@code ListOfCampusDTO} 对象表示
+     * @return 返回包含所有校区信息的列表，每个校区信息由 {@code CampusLiteDTO} 对象表示
      */
-    public List<ListOfCampusDTO> getCampusList() {
-        RList<ListOfCampusDTO> campusList = redisson.getList(StringConstant.Redis.CAMPUS_LIST);
+    public List<CampusLiteDTO> getCampusList() {
+        RList<CampusLiteDTO> campusList = redisson.getList(StringConstant.Redis.CAMPUS_LIST);
         if (!campusList.isExists()) {
             this.lambdaQuery().list().stream()
-                    .map(campusDO -> BeanUtil.toBean(campusDO, ListOfCampusDTO.class, ProjectOption.stringBlankToNull()))
+                    .map(campusDO -> BeanUtil.toBean(campusDO, CampusLiteDTO.class, ProjectOption.stringBlankToNull()))
                     .forEach(campusList::add);
             campusList.expire(Duration.ofSeconds(43200));
         }
@@ -247,7 +247,7 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
      * 该方法用于从Redis缓存或数据库中获取所有校区的列表。如果在Redis缓存中没有找到相应的数据，则从数据库中查询，并将结果缓存到Redis中以提高后续查询效率。
      * 如果缓存中存在，则直接从缓存中读取校区列表。
      * </p>
-     * 
+     *
      * @return 返回包含所有校区信息的列表，每个校区信息由 {@code CampusDO} 对象表示
      */
     public List<CampusDO> getAllCampus() {
@@ -271,13 +271,13 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
     public CampusDO saveCampus(CampusDO campusDO) {
         // 保存到数据库
         this.save(campusDO);
-        
+
         // 删除列表缓存，确保下次查询时能获取到最新数据
         this.deleteCampusCache();
-        
+
         return campusDO;
     }
-    
+
     /**
      * 删除校区相关的所有缓存
      * <p>

@@ -28,11 +28,11 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.BackAddCampusDTO;
-import com.frontleaves.scheduling.models.dto.CampusDTO;
-import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.dto.base.CampusDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddCampusDTO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.CampusDO;
 import com.frontleaves.scheduling.models.vo.BatchAddCampusVO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import jakarta.annotation.Nullable;
@@ -142,12 +142,12 @@ public interface CampusService {
     /**
      * 获取校区列表
      * <p>
-     * 该方法用于获取系统中所有校区的简要信息列表。返回的数据为 {@link ListOfCampusDTO} 对象的列表，每个对象包含校区的主键、名称和编码。
+     * 该方法用于获取系统中所有校区的简要信息列表。返回的数据为 {@link CampusLiteDTO} 对象的列表，每个对象包含校区的主键、名称和编码。
      * </p>
      *
-     * @return 返回一个包含所有校区简要信息的 {@code List<ListOfCampusDTO>} 列表
+     * @return 返回一个包含所有校区简要信息的 {@code List<CampusLiteDTO>} 列表
      */
-    List<ListOfCampusDTO> getCampusList();
+    List<CampusLiteDTO> getCampusList();
 
     /**
      * 获取校区导入模板的字节数组

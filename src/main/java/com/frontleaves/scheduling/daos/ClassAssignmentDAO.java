@@ -235,4 +235,26 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
             return ProjectUtil.convertMapToPage(cacheMap, ClassAssignmentDO.class);
         }
     }
+
+    /**
+     * 根据学期UUID获取排课分配列表
+     * @param semesterUuid 学期UUID
+     * @return 排课分配列表
+     */
+    public List<ClassAssignmentDO> getClassAssignmentListBySemester(String semesterUuid) {
+        RList<ClassAssignmentDO> rList = redisson.getList(
+                StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + semesterUuid);
+        if (!rList.isExists()) {
+            List<ClassAssignmentDO> list = this.lambdaQuery()
+                    .eq(ClassAssignmentDO::getSemesterUuid, semesterUuid)
+                    .list();
+            if (!list.isEmpty()){
+                rList.addAll(list);
+                rList.expire(Duration.ofHours(1));
+                return list;
+            }
+            return List.of();
+        }
+        return rList.readAll();
+    }
 }

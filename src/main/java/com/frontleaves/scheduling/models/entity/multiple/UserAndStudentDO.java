@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.models.entity.multiple;
 
-import com.frontleaves.scheduling.models.entity.StudentDO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.base.StudentDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;

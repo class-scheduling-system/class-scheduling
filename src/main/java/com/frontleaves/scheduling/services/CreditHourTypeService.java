@@ -1,0 +1,28 @@
+package com.frontleaves.scheduling.services;
+
+import com.frontleaves.scheduling.models.dto.scheduling.CreditHourTypeEnuDTO;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
+
+/**
+ * 学时类型服务接口
+ * @author FLASHLACK
+ */
+public interface CreditHourTypeService {
+    /**
+     * 根据学时类型UUID获取学时类型
+     * @param creditHourType 学时类型UUID
+     * @return 学时类型
+     */
+    @NotNull
+    CreditHourTypeEnuDTO getCreditHourTypeByUuid(String creditHourType);
+
+    /**
+     * 获取所有学时类型
+     * @return 学时类型列表
+     */
+    List<CreditHourTypeEnuDTO> getList();
+
+
+}

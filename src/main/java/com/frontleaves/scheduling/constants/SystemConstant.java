@@ -123,6 +123,12 @@ public class SystemConstant {
     @Getter
     @Setter
     private static String teacherTypeCounselor;
+    /**
+     * 普通教室
+     */
+    @Getter
+    @Setter
+    private static String classroomTypeCommon;
     @Getter
     private static final String SYSTEM_VERSION = "v1.0.0";
     @Getter

@@ -31,7 +31,13 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.dto.base.ClassroomTagDTO;
+import com.frontleaves.scheduling.models.dto.base.ClassroomTypeDTO;
+import com.frontleaves.scheduling.models.dto.base.FileDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddClassroomDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomLiteDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddClassroomVO;
 import com.frontleaves.scheduling.models.vo.ClassroomVO;
 import com.frontleaves.scheduling.services.*;
@@ -301,15 +307,15 @@ public class ClassroomController {
     @GetMapping("/get-template")
     public ResponseEntity<BaseResponse<FileDTO>> getClassroomImportTemplate() {
         byte[] templateBytes = classroomService.getClassroomImportTemplate();
-        
+
         // 将字节数组转换为Base64编码字符串
         FileDTO fileDTO = new FileDTO(
                 "教室导入模板.xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + 
+                "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," +
                         java.util.Base64.getEncoder().encodeToString(templateBytes)
         );
-        
+
         return ResultUtil.success("获取教室导入模板成功", fileDTO);
     }
 
@@ -331,18 +337,18 @@ public class ClassroomController {
     ) {
         // 验证并获取处理后的文件
         byte[] file = classroomService.verifyClassroomBatchAndBackFile(batchAddClassroomVO);
-        
+
         // 根据ignoreError参数决定导入方式
         BackAddClassroomDTO result = Optional.ofNullable(batchAddClassroomVO.getIgnoreError())
                 .filter(Boolean.TRUE::equals)
                 .map(ignoreError -> classroomService.batchImportIgnoreError(file))
                 .orElseGet(() -> classroomService.batchImportNoIgnoreError(file));
-        
+
         // 检查是否有教室导入失败
         if (result.getFailedCount() > 0) {
             return ResultUtil.success("存在添加失败的教室", result);
         }
-        
+
         return ResultUtil.success("批量添加教室成功", result);
     }
 }

@@ -31,8 +31,8 @@ package com.frontleaves.scheduling.dao;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.CampusDAO;
-import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
-import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.CampusDO;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -102,14 +102,14 @@ class CampusTest {
     @Test
     void testCampusList() {
         // 获取校区列表数据
-        List<ListOfCampusDTO> campusList = campusDAO.getCampusList();
+        List<CampusLiteDTO> campusList = campusDAO.getCampusList();
 
         // 验证返回的列表不为空
         Assertions.assertNotNull(campusList, "校区列表不应为null");
         Assertions.assertFalse(campusList.isEmpty(), "校区列表不应为空");
 
         // 验证返回的校区数据是否包含必要字段
-        ListOfCampusDTO firstCampus = campusList.get(0);
+        CampusLiteDTO firstCampus = campusList.get(0);
         Assertions.assertNotNull(firstCampus.getCampusCode(), "校区ID不应为空");
         Assertions.assertNotNull(firstCampus.getCampusName(), "校区名称不应为空");
     }
@@ -142,7 +142,7 @@ class CampusTest {
                 StringConstant.Redis.CAMPUS_CODE + fakeCampus.getCampusCode());
         RBucket<String> rBucket1 = redisson.getBucket(
                 StringConstant.Redis.CAMPUS_NAME + fakeCampus.getCampusName());
-        RList<ListOfCampusDTO> rList = redisson.getList(StringConstant.Redis.CAMPUS_LIST + "*");
+        RList<CampusLiteDTO> rList = redisson.getList(StringConstant.Redis.CAMPUS_LIST + "*");
         RMap<String, String> rPage = redisson.getMap(
                 StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
         // 5. 断言 Redis 缓存中的数据不存在

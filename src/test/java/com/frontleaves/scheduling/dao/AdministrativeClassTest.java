@@ -2,7 +2,7 @@ package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.AdministrativeClassDAO;
-import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+import com.frontleaves.scheduling.models.entity.base.AdministrativeClassDO;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

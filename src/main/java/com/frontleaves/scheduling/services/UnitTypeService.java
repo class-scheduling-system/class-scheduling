@@ -9,10 +9,10 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.UnitTypeDTO;
-import com.frontleaves.scheduling.models.dto.UnitTypeLiteDTO;
-import com.frontleaves.scheduling.models.entity.UnitTypeDO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.UnitTypeDTO;
+import com.frontleaves.scheduling.models.dto.lite.UnitTypeLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.UnitTypeDO;
 import com.frontleaves.scheduling.models.vo.UnitTypeVO;
 
 import java.util.List;

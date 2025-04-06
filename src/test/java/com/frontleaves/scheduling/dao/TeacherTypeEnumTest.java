@@ -3,7 +3,7 @@ package com.frontleaves.scheduling.dao;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.TeacherTypeDAO;
-import com.frontleaves.scheduling.models.entity.TeacherTypeDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherTypeDO;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

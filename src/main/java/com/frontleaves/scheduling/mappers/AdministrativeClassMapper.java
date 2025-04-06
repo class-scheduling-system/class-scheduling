@@ -29,12 +29,12 @@
 package com.frontleaves.scheduling.mappers;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+import com.frontleaves.scheduling.models.entity.base.AdministrativeClassDO;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
  * 行政班Mapper
- * 
+ *
  * @author FLASHLACK
  * @version v1.0.0
  * @since v1.0.0

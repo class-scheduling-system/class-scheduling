@@ -5,11 +5,11 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.UnitCategoryDAO;
 import com.frontleaves.scheduling.daos.UnitTypeDAO;
-import com.frontleaves.scheduling.models.dto.DepartmentDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.entity.DepartmentDO;
-import com.frontleaves.scheduling.models.entity.UnitCategoryDO;
-import com.frontleaves.scheduling.models.entity.UnitTypeDO;
+import com.frontleaves.scheduling.models.dto.base.DepartmentDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.entity.base.DepartmentDO;
+import com.frontleaves.scheduling.models.entity.base.UnitCategoryDO;
+import com.frontleaves.scheduling.models.entity.base.UnitTypeDO;
 import com.frontleaves.scheduling.models.vo.DepartmentVO;
 import com.frontleaves.scheduling.services.DepartmentService;
 import com.xlf.utility.ErrorCode;
@@ -1127,5 +1127,18 @@ class DepartmentTest {
 
         // 验证结果为null（或其他预期行为，取决于实现）
         Assertions.assertNull(departmentDTO, "超长UUID应返回null");
+    }
+
+
+
+    @Test
+    void testGetDepartmentByUuidWithThrows (){
+        log.debug("测试通过UUID获取部门信息会传出报错");
+        DepartmentDO departmentDO = departmentDAO.lambdaQuery().list().get(0);
+        Assertions.assertNotNull(
+                departmentService.getDepartmentByUuidWithThrows(departmentDO.getDepartmentUuid()));
+        String departmentUuid = UuidUtil.generateUuidNoDash();
+        Assertions.assertThrows(BusinessException.class,() ->
+                departmentService.getDepartmentByUuidWithThrows(departmentUuid));
     }
 }

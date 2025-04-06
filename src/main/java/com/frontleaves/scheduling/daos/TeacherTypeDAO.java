@@ -35,7 +35,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherTypeMapper;
-import com.frontleaves.scheduling.models.entity.TeacherTypeDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherTypeDO;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;

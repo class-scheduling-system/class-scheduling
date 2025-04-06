@@ -60,7 +60,7 @@ import java.util.List;
  */
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
- class CourseLibraryTest {
+class CourseLibraryTest {
 
     @Resource
     private CourseLibraryDAO courseLibraryDAO;
@@ -81,7 +81,7 @@ import java.util.List;
     private CourseLibraryDO testCourseLibrary;
     private final String testId = "TEST_COURSE_" + System.currentTimeMillis();
     private final String testName = "测试课程库" + System.currentTimeMillis();
-    
+
     /**
      * 在每个测试方法执行前准备测试数据
      */
@@ -111,15 +111,15 @@ import java.util.List;
         testCourseLibrary.setCredit(BigDecimal.valueOf(2.5));
         testCourseLibrary.setCreatedAt(Timestamp.from(Instant.now()));
         testCourseLibrary.setUpdatedAt(Timestamp.from(Instant.now()));
-        
+
         // 保存测试数据到数据库
         boolean isSaved = courseLibraryDAO.save(testCourseLibrary);
         Assertions.assertTrue(isSaved, "保存测试数据失败");
-        
+
         // 确保缓存为空初始状态
         clearCourseLibraryCache(testCourseLibrary);
     }
-    
+
     /**
      * 在每个测试方法执行后清理测试数据
      */
@@ -127,14 +127,14 @@ import java.util.List;
     void tearDown() {
         // 清理测试数据
         courseLibraryDAO.removeById(testCourseLibrary.getCourseLibraryUuid());
-        
+
         // 清理缓存
         clearCourseLibraryCache(testCourseLibrary);
     }
-    
+
     /**
      * 清理课程库相关的缓存
-     * 
+     *
      * @param courseLibraryDO 课程库对象
      */
     private void clearCourseLibraryCache(CourseLibraryDO courseLibraryDO) {
@@ -146,43 +146,44 @@ import java.util.List;
                 redisson.getMap(StringConstant.Redis.COURSE_LIBRARY_ID + courseLibraryDO.getId()).delete();
             }
         }
-        
+
         // 清理课程列表缓存
         String cacheKey = StringConstant.Redis.COURSE_LIBRARY_LITE_LIST + "all:all:all:all:all";
         redisson.getKeys().delete(cacheKey);
     }
-    
+
     /**
      * 测试根据UUID获取课程库信息
      */
+
     @Test
     void testGetCourseLibraryByUuid() {
         log.debug("测试获取课程库信息(UUID)");
         String courseLibraryUuid = testCourseLibrary.getCourseLibraryUuid();
-        
+
         // 从缓存中获取课程库信息（首次应从数据库获取并缓存）
         CourseLibraryDO courseData = courseLibraryDAO.getCourseLibraryByUuid(courseLibraryUuid);
-        
+
         // 验证能成功获取数据
         Assertions.assertNotNull(courseData);
         Assertions.assertEquals(testId, courseData.getId());
         Assertions.assertEquals(testName, courseData.getName());
-        
+
         // 验证Redis缓存已创建
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.COURSE_LIBRARY_UUID + courseLibraryUuid);
         Assertions.assertTrue(map.isExists());
-        
+
         log.debug("删除缓存并再次获取");
         // 删除Redis缓存
         map.delete();
-        
+
         // 再次获取，这次应该从数据库获取并重新缓存
         CourseLibraryDO courseData2 = courseLibraryDAO.getCourseLibraryByUuid(courseLibraryUuid);
-        
+
         // 验证仍然能获到正确数据
         Assertions.assertNotNull(courseData2);
         Assertions.assertEquals(testId, courseData2.getId());
-        
+
         // 验证Redis缓存已重新创建
         Assertions.assertTrue(map.isExists());
     }
@@ -193,13 +194,13 @@ import java.util.List;
     @Test
     void testGetNonExistingCourseLibrary() {
         log.debug("测试获取不存在的课程库");
-        
+
         // 使用一个肯定不存在的UUID
         String nonExistingUuid = UuidUtil.generateUuidNoDash();
-        
+
         // 尝试获取不存在的课程库
         CourseLibraryDO courseData = courseLibraryDAO.getCourseLibraryByUuid(nonExistingUuid);
-        
+
         // 应该返回null
         Assertions.assertNull(courseData);
     }
@@ -211,29 +212,29 @@ import java.util.List;
     void testUpdateCourseLibrary() {
         String originalName = testCourseLibrary.getName();
         String newName = "测试更新课程库" + System.currentTimeMillis();
-        
+
         try {
             // 更新课程库名称
             testCourseLibrary.setName(newName);
-            
+
             // 更新课程库信息
             courseLibraryDAO.updateCourseLibrary(testCourseLibrary);
-            
+
             // 验证Redis缓存已被删除
             RMap<String, String> uuidCache = redisson.getMap(StringConstant.Redis.COURSE_LIBRARY_UUID + testCourseLibrary.getCourseLibraryUuid());
             Assertions.assertFalse(uuidCache.isExists());
-            
+
             // 从数据库重新获取，验证更新是否成功
             CourseLibraryDO updatedCourse = courseLibraryDAO.getCourseLibraryByUuid(testCourseLibrary.getCourseLibraryUuid());
             Assertions.assertEquals(newName, updatedCourse.getName());
-            
+
         } finally {
             // 恢复原始数据
             testCourseLibrary.setName(originalName);
             courseLibraryDAO.updateById(testCourseLibrary);
         }
     }
-    
+
     /**
      * 测试更新课程库信息异常情况
      */
@@ -243,7 +244,7 @@ import java.util.List;
         CourseLibraryDO nonExistingCourse = new CourseLibraryDO();
         nonExistingCourse.setCourseLibraryUuid(UuidUtil.generateUuidNoDash());
         nonExistingCourse.setName("不存在的课程");
-        
+
         // 尝试更新不存在的课程库，应抛出异常
         Assertions.assertThrows(ServerInternalErrorException.class, () -> {
             courseLibraryDAO.updateCourseLibrary(nonExistingCourse);
@@ -267,31 +268,31 @@ import java.util.List;
         courseToDelete.setIsEnabled(true);
         courseToDelete.setTotalHours(BigDecimal.valueOf(40));
         courseToDelete.setCredit(BigDecimal.valueOf(2));
-        
+
         // 保存测试数据
         boolean saved = courseLibraryDAO.save(courseToDelete);
         Assertions.assertTrue(saved);
-        
+
         String courseLibraryUuid = courseToDelete.getCourseLibraryUuid();
-        
+
         try {
             // 删除课程库
             courseLibraryDAO.deleteCourseLibrary(courseToDelete);
-            
+
             // 验证Redis缓存已被删除
             RMap<String, String> uuidCache = redisson.getMap(StringConstant.Redis.COURSE_LIBRARY_UUID + courseLibraryUuid);
             Assertions.assertFalse(uuidCache.isExists());
-            
+
             // 从数据库验证课程库已被删除
             CourseLibraryDO deletedCourse = courseLibraryDAO.getById(courseLibraryUuid);
             Assertions.assertNull(deletedCourse);
-            
+
         } finally {
             // 确保测试数据被清理
             courseLibraryDAO.removeById(courseLibraryUuid);
         }
     }
-    
+
     /**
      * 测试获取课程库分页信息
      */
@@ -301,21 +302,21 @@ import java.util.List;
         Page<CourseLibraryDO> page1 = courseLibraryDAO.getCourseLibraryPage(1, 10, null);
         Assertions.assertNotNull(page1);
         Assertions.assertFalse(page1.getRecords().isEmpty());
-        
+
         // 测试带具体名称条件的分页查询
         Page<CourseLibraryDO> page2 = courseLibraryDAO.getCourseLibraryPage(1, 10, testName);
         Assertions.assertNotNull(page2);
         Assertions.assertFalse(page2.getRecords().isEmpty());
-        Assertions.assertTrue(page2.getRecords().stream().anyMatch(course -> 
+        Assertions.assertTrue(page2.getRecords().stream().anyMatch(course ->
                 course.getName().equals(testName)));
-        
+
         // 测试一个不存在的名称
         String nonExistingName = "ThisCourseNameShouldNotExist" + System.currentTimeMillis();
         Page<CourseLibraryDO> page3 = courseLibraryDAO.getCourseLibraryPage(1, 10, nonExistingName);
         Assertions.assertNotNull(page3);
         Assertions.assertTrue(page3.getRecords().isEmpty());
     }
-    
+
     /**
      * 测试根据条件获取课程库列表
      */
@@ -325,68 +326,83 @@ import java.util.List;
         List<CourseLibraryDO> allCourses = courseLibraryDAO.getCourseLibraryList(null, null, null, null, null);
         Assertions.assertNotNull(allCourses);
         Assertions.assertFalse(allCourses.isEmpty());
-        
+
         // 验证Redis缓存已创建
         String cacheKey = StringConstant.Redis.COURSE_LIBRARY_LITE_LIST + "all:all:all:all:all";
         RList<CourseLibraryDO> cachedList = redisson.getList(cacheKey);
         Assertions.assertTrue(cachedList.isExists());
-        
+
         // 清除Redis缓存后再次获取
         redisson.getKeys().delete(cacheKey);
-        
+
         List<CourseLibraryDO> allCoursesAgain = courseLibraryDAO.getCourseLibraryList(null, null, null, null, null);
         Assertions.assertNotNull(allCoursesAgain);
         Assertions.assertFalse(allCoursesAgain.isEmpty());
-        
+
         // 验证Redis缓存已重新创建
         Assertions.assertTrue(cachedList.isExists());
-        
+
         // 测试带类别条件的查询（假设testCourseLibrary有category字段）
         if (testCourseLibrary.getCategory() != null) {
             List<CourseLibraryDO> categoryCourses = courseLibraryDAO.getCourseLibraryList(
                     testCourseLibrary.getCategory(), null, null, null, null);
             Assertions.assertNotNull(categoryCourses);
-            Assertions.assertTrue(categoryCourses.stream().allMatch(course -> 
+            Assertions.assertTrue(categoryCourses.stream().allMatch(course ->
                     testCourseLibrary.getCategory().equals(course.getCategory())));
         }
     }
-    
+
     /**
      * 测试根据ID获取课程库
      */
     @Test
     void testGetCourseLibraryById() {
         String existingId = testCourseLibrary.getId();
-        
+
         log.debug("测试获取课程库信息(ID)");
         CourseLibraryDO courseData = courseLibraryDAO.getCourseLibraryById(existingId);
-        
+
         // 验证能成功获取数据
         Assertions.assertNotNull(courseData);
         Assertions.assertEquals(testName, courseData.getName());
-        
+
         // 验证Redis缓存已创建
         RMap<String, String> map = redisson.getMap(StringConstant.Redis.COURSE_LIBRARY_ID + existingId);
         Assertions.assertTrue(map.isExists());
-        
+
         log.debug("删除缓存并再次获取");
         // 删除Redis缓存
         map.delete();
-        
+
         // 再次获取，这次应该从数据库获取并重新缓存
         CourseLibraryDO courseData2 = courseLibraryDAO.getCourseLibraryById(existingId);
-        
+
         // 验证仍然能获到正确数据
         Assertions.assertNotNull(courseData2);
         Assertions.assertEquals(testName, courseData2.getName());
-        
+
         // 验证Redis缓存已重新创建
         Assertions.assertTrue(map.isExists());
-        
+
         // 测试获取不存在的ID
         String nonExistingId = "NONEXIST_" + System.currentTimeMillis();
         CourseLibraryDO nonExistingCourse = courseLibraryDAO.getCourseLibraryById(nonExistingId);
         Assertions.assertNull(nonExistingCourse);
     }
 
+    void testGetListCourseLibraryByDepartmentAndSpecify() {
+        //准备数据
+        CourseLibraryDO courseLibraryDO = courseLibraryDAO.lambdaQuery().list().get(0);
+        List<String> courseLibraryUuids = List.of(courseLibraryDO.getCourseLibraryUuid());
+        //执行
+        log.debug("只获取这个部门的课程");
+        List<CourseLibraryDO> courseLibraryDOS =
+                courseLibraryDAO.getListCourseLibraryByDepartmentAndSpecify(
+                        courseLibraryDO.getDepartment(), courseLibraryUuids);
+        Assertions.assertFalse(courseLibraryDOS.isEmpty());
+        log.debug("测试获取这一个课程");
+        List<CourseLibraryDO> courseLibraryDOS1 = courseLibraryDAO.getListCourseLibraryByDepartmentAndSpecify(courseLibraryDO.getDepartment(),
+                List.of(courseLibraryDO.getCourseLibraryUuid()));
+        Assertions.assertFalse(courseLibraryDOS1.isEmpty());
+    }
 }

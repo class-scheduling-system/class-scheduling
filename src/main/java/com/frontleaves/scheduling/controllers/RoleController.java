@@ -1,9 +1,9 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestLogin;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.RoleDTO;
-import com.frontleaves.scheduling.models.dto.RoleLiteDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.RoleDTO;
+import com.frontleaves.scheduling.models.dto.lite.RoleLiteDTO;
 import com.frontleaves.scheduling.services.RoleService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;

@@ -31,7 +31,7 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.SystemDAO;
-import com.frontleaves.scheduling.models.dto.RoleDTO;
+import com.frontleaves.scheduling.models.dto.base.RoleDTO;
 import com.frontleaves.scheduling.models.vo.InitVO;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.exception.BusinessException;

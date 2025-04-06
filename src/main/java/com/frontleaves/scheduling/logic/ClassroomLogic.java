@@ -35,8 +35,13 @@ import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.dto.base.*;
+import com.frontleaves.scheduling.models.dto.excel.BackAddClassroomDTO;
+import com.frontleaves.scheduling.models.dto.excel.ClassroomImportDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomAndTypeDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.vo.BatchAddClassroomVO;
 import com.frontleaves.scheduling.models.vo.ClassroomVO;
 import com.frontleaves.scheduling.services.ClassroomService;
@@ -60,10 +65,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 教室逻辑处理类，实现了 {@code ClassroomService} 接口。
@@ -500,22 +503,22 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
 
         // 读取注意事项文本
         String noticeText = this.readClassroomNoticeFile();
-        
+
         // 合并注意事项单元格
         writer.getSheet().addMergedRegion(new CellRangeAddress(1, 20, 17, 20));
-        
+
         // 写入注意事项，并应用自动换行和红色样式
         Cell noticeCell = writer.getOrCreateRow(1).createCell(17);
         noticeCell.setCellValue(noticeText);
         noticeCell.setCellStyle(redWrapStyle);
-        
+
         // 添加参考数据标题
         writer.writeCellValue(21, 2, "校区模板");
         writer.writeCellValue(22, 2, "楼栋模板");
         writer.writeCellValue(23, 2, "教室类型模板");
         writer.writeCellValue(24, 2, "教室标签模板");
         writer.writeCellValue(25, 2, "桌椅类型模板");
-        
+
         // 获取并写入校区列表
         List<CampusDO> campusList = campusDAO.getAllCampus();
         if (campusList != null && !campusList.isEmpty()) {
@@ -523,7 +526,7 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
                 writer.writeCellValue(21, i + 3, campusList.get(i).getCampusName());
             }
         }
-        
+
         // 获取并写入楼栋列表
         List<BuildingDO> buildingList = buildingDAO.getBuildingListByKey("");
         if (buildingList != null && !buildingList.isEmpty()) {
@@ -531,7 +534,7 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
                 writer.writeCellValue(22, i + 3, buildingList.get(i).getBuildingName());
             }
         }
-        
+
         // 获取并写入教室类型列表
         List<ClassroomTypeDO> typeList = classroomTypeDAO.getTypes();
         if (typeList != null && !typeList.isEmpty()) {
@@ -539,7 +542,7 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
                 writer.writeCellValue(23, i + 3, typeList.get(i).getName());
             }
         }
-        
+
         // 获取并写入教室标签列表
         List<ClassroomTagDO> tagList = classroomTagDAO.getTags();
         if (tagList != null && !tagList.isEmpty()) {
@@ -549,11 +552,11 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
                     tagExample.append(",");
                 }
                 tagExample.append(tagList.get(i).getName());
-                
+
                 // 单独写入每个标签，方便查看
                 writer.writeCellValue(24, i + 3, tagList.get(i).getName());
             }
-            
+
             // 写入标签组合示例
             if (tagList.size() > 1) {
                 // 靠左不是居中
@@ -563,7 +566,7 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
                 writer.getSheet().getRow(1).getCell(17).setCellStyle(leftStyle);
             }
         }
-        
+
         // 写入桌椅类型示例
         List<TablesChairsTypeDO> chairsTypeList = tablesChairsTypeDAO.getTablesChairsTypeList();
         if (chairsTypeList != null && !chairsTypeList.isEmpty()) {
@@ -571,7 +574,7 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
                 writer.writeCellValue(25, i + 3, chairsTypeList.get(i).getName());
             }
         }
-        
+
         // 写入示例数据（第2行）
         writer.writeCellValue(0, 2, "示例校区");
         writer.writeCellValue(1, 2, "示例楼栋");
@@ -1150,4 +1153,50 @@ public class ClassroomLogic extends BaseClassroomLogic implements ClassroomServi
                 .setFailedCount(failedDetails.size())
                 .setFailedDetails(failedDetails.isEmpty() ? null : failedDetails);
     }
+
+    @Override
+    public List<ClassroomDTO> getClassroomUuidsByBuildingId(String buildingId) {
+        List<ClassroomDO> classroomDOList = classroomDAO.getClassroomByBuilding(buildingId);
+        if (classroomDOList == null || classroomDOList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return classroomDOList.stream()
+                .map(classroomDO -> BeanUtil.toBean(classroomDO, ClassroomDTO.class))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据UUID获取教室及其类型信息，如果教室不存在或类型信息获取失败，则抛出相应异常
+     * @param buildingUuid 教室的唯一标识符
+     * @return 返回包含教室及其类型信息的DTO对象
+     * @throws BusinessException 如果教室不存在或获取教室类型时发生错误，则抛出此异常
+     */
+    @Override
+    public @NotNull List<ClassroomAndTypeDTO> getClassroomAndTypeByUuidWihError(String buildingUuid) {
+        //根据UUID查询教室信息
+        List<ClassroomDO> classroomDOList = classroomDAO.getClassroomByBuilding(buildingUuid);
+        //如果教室信息为空，则抛出不存在的异常
+        if (classroomDOList != null && classroomDOList.isEmpty()) {
+            throw new BusinessException("教室不存在", ErrorCode.NOT_EXIST);
+        }
+        // 获取所有教室类型信息并缓存到Map中
+        Map<String, ClassroomTypeDO> classroomTypeDoMap = classroomTypeDAO.getTypes().stream()
+                .collect(Collectors.toMap(ClassroomTypeDO::getClassTypeUuid, type -> type));
+        List<ClassroomAndTypeDTO> classroomAndTypeDTOList = new ArrayList<>();
+        if (classroomDOList != null) {
+            for (ClassroomDO classroomDO : classroomDOList) {
+                // 从Map中获取对应的教室类型信息
+                ClassroomTypeDO classroomTypeDO = classroomTypeDoMap.get(classroomDO.getType());
+                if (classroomTypeDO == null) {
+                    throw new BusinessException("教室类型不存在", ErrorCode.NOT_EXIST);
+                }
+                ClassroomAndTypeDTO classroomAndTypeDTO = new ClassroomAndTypeDTO();
+                classroomAndTypeDTO.setClassroom(BeanUtil.toBean(classroomDO, ClassroomDTO.class))
+                        .setClassroomType(BeanUtil.toBean(classroomTypeDO, ClassroomTypeDTO.class));
+                classroomAndTypeDTOList.add(classroomAndTypeDTO);
+            }
+        }
+        return classroomAndTypeDTOList;
+    }
+
 }

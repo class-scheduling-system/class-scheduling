@@ -38,8 +38,10 @@ import org.apache.ibatis.annotations.Mapper;
  * 该类用于定义课程类型表的数据库操作映射器。
  * 通过继承 {@code BaseMapper} 接口，提供了对 {@code CourseTypeDO} 实体类的基本增删改查功能。
  * </p>
+ * 课程类型 Mapper 接口
+ * 对应数据库表：cs_course_type
  *
- * @author Claude AI
+ * @author FLASHLACK
  * @version v1.0.0
  * @see CourseTypeDO
  * @since v1.0.0

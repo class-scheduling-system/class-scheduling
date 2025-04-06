@@ -51,7 +51,7 @@ import java.util.List;
  * 通过该类可以方便地操作课程类型数据。
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
@@ -105,7 +105,7 @@ public class CourseTypeDAO extends ServiceImpl<CourseTypeMapper, CourseTypeDO> {
      * 该方法首先尝试从Redis缓存中获取课程类型列表，如果不存在，则从数据库中获取，
      * 并将查询结果缓存到Redis中以提高后续查询效率。缓存过期时间为24小时。
      * </p>
-     * 
+     *
      * @return 课程类型列表
      */
     public List<CourseTypeDO> getCourseTypeList() {
@@ -120,5 +120,33 @@ public class CourseTypeDAO extends ServiceImpl<CourseTypeMapper, CourseTypeDO> {
             return courseTypeList;
         }
         return cacheList.readAll();
+    }
+
+    /**
+     * 获取课程类型列表
+     * 首先尝试从Redis中获取课程类型列表如果Redis中不存在，则从数据库中获取，并存入Redis中
+     * 此方法解释了为什么要在Redis中缓存课程类型列表：提高访问速度，减轻数据库压力
+     *
+     * @return 课程类型列表
+     */
+    public List<CourseTypeDO> listCourseType() {
+        // 从Redis中获取课程类型列表
+        RList<CourseTypeDO> rList = redisson.getList(StringConstant.Redis.COURSE_TYPE_LIST);
+        // 检查Redis中是否存在课程类型列表
+        if (!rList.isExists()) {
+            // 从数据库中获取课程类型列表
+            List<CourseTypeDO> courseTypeDOList = this.list();
+            // 检查获取的课程类型列表是否为空
+            if (courseTypeDOList != null) {
+                // 将课程类型列表添加到Redis中，并设置过期时间
+                rList.addAll(courseTypeDOList);
+                rList.expire(Duration.ofSeconds(3600));
+                return courseTypeDOList;
+            }
+            // 如果数据库中获取的数据为空，则直接返回数据库查询结果
+            return list();
+        }
+        // 如果Redis中存在课程类型列表，则直接读取并返回
+        return rList.readAll();
     }
 }

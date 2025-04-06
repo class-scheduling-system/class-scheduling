@@ -29,7 +29,7 @@
 package com.frontleaves.scheduling.mappers;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.PermissionDO;
+import com.frontleaves.scheduling.models.entity.base.PermissionDO;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

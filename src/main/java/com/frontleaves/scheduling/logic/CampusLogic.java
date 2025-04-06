@@ -33,8 +33,12 @@ import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.daos.CampusDAO;
-import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.dto.base.CampusDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddCampusDTO;
+import com.frontleaves.scheduling.models.dto.excel.CampusImportDTO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.CampusDO;
 import com.frontleaves.scheduling.models.vo.BatchAddCampusVO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import com.frontleaves.scheduling.services.CampusService;
@@ -289,13 +293,13 @@ public class CampusLogic implements CampusService {
     /**
      * 获取校区列表
      * <p>
-     * 该方法用于获取系统中所有校区的简要信息列表。返回的数据为 {@link ListOfCampusDTO} 对象的列表，每个对象包含校区的主键、名称和编码。
+     * 该方法用于获取系统中所有校区的简要信息列表。返回的数据为 {@link CampusLiteDTO} 对象的列表，每个对象包含校区的主键、名称和编码。
      * </p>
      *
-     * @return 返回一个包含所有校区简要信息的 {@code List<ListOfCampusDTO>} 列表
+     * @return 返回一个包含所有校区简要信息的 {@code List<CampusLiteDTO>} 列表
      */
     @Override
-    public List<ListOfCampusDTO> getCampusList() {
+    public List<CampusLiteDTO> getCampusList() {
         return campusDAO.getCampusList();
     }
 

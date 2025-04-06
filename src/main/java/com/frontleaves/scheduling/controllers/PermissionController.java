@@ -29,9 +29,9 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.PermissionDTO;
-import com.frontleaves.scheduling.models.dto.PermissionLiteDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.PermissionDTO;
+import com.frontleaves.scheduling.models.dto.lite.PermissionLiteDTO;
 import com.frontleaves.scheduling.services.PermissionService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ResultUtil;

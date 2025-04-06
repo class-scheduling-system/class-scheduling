@@ -1,8 +1,8 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.RoleDTO;
-import com.frontleaves.scheduling.models.dto.RoleLiteDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.RoleDTO;
+import com.frontleaves.scheduling.models.dto.lite.RoleLiteDTO;
 
 import java.util.List;
 
