@@ -5,7 +5,7 @@ import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.TokenDTO;
-import com.frontleaves.scheduling.models.dto.lite.CourseLiteDTO;
+import com.frontleaves.scheduling.models.dto.lite.CourseLibraryLiteDTO;
 import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.vo.CourseLibraryVO;
 import com.frontleaves.scheduling.services.CourseLibraryService;
@@ -1029,7 +1029,7 @@ class CourseLibraryLogicTest {
         Assertions.assertDoesNotThrow(() -> courseLibraryService.addCourseLibrary(validCourseLibraryVO, request));
 
         // 无条件查询，获取所有课程库
-        List<CourseLiteDTO> courseList = courseLibraryService.getCourseLibraryList(null, null, null, null, null);
+        List<CourseLibraryLiteDTO> courseList = courseLibraryService.getCourseLibraryList(null, null, null, null, null);
 
         // 验证查询结果
         Assertions.assertNotNull(courseList, "课程库列表不应为空");
@@ -1055,7 +1055,7 @@ class CourseLibraryLogicTest {
         Assertions.assertDoesNotThrow(() -> courseLibraryService.addCourseLibrary(validCourseLibraryVO, request));
 
         // 使用已知的课程类型UUID进行查询
-        List<CourseLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
+        List<CourseLibraryLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
                 null, null, validCourseLibraryVO.getType(), null, null);
 
         // 验证查询结果
@@ -1089,7 +1089,7 @@ class CourseLibraryLogicTest {
         Assertions.assertDoesNotThrow(() -> courseLibraryService.addCourseLibrary(validCourseLibraryVO, request));
 
         // 使用已知的部门UUID进行查询
-        List<CourseLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
+        List<CourseLibraryLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
                 null, null, null, null, validCourseLibraryVO.getDepartment());
 
         // 验证查询结果
@@ -1125,7 +1125,7 @@ class CourseLibraryLogicTest {
         // 只有当课程类别和课程性质不为null时才进行测试
         if (validCourseLibraryVO.getCategory() != null && validCourseLibraryVO.getNature() != null) {
             // 使用多个条件进行查询
-            List<CourseLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
+            List<CourseLibraryLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
                     validCourseLibraryVO.getCategory(),
                     validCourseLibraryVO.getProperty(),
                     validCourseLibraryVO.getType(),
@@ -1172,7 +1172,7 @@ class CourseLibraryLogicTest {
 
         // 使用一个不太可能存在的UUID进行查询
         String nonExistentUuid = UuidUtil.generateUuidNoDash();
-        List<CourseLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
+        List<CourseLibraryLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
                 nonExistentUuid, null, null, null, null);
 
         // 验证查询结果

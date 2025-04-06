@@ -502,7 +502,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
      * @return 返回一个课程时间表项DTO，包含所有准备好的信息
      */
     private @NotNull CourseScheduleItemDTO prepareTheCourseSchedule(@NotNull ClassAssignmentDTO classAssignment) {
-        CourseLibraryDTO courseLibraryDTO = courseLibraryService.getCourseByUuid(classAssignment.getCourseUuid());
+        CourseLibraryDTO courseLibraryDTO = courseLibraryService.getCourseLibraryByUuid(classAssignment.getCourseUuid());
         TeacherDTO teacherDTO = teacherService.getTeacher(classAssignment.getTeacherUuid());
         TeacherCoursePreferencesDTO teacherCoursePreferencesDTO = new TeacherCoursePreferencesDTO();
         teacherCoursePreferencesDTO.setTeacher(teacherDTO);

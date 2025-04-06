@@ -26,7 +26,7 @@ public class TimeSlotDTO {
     private Integer day;
 
     /**
-     * 第几节课 (1-8)
+     * 第几节课 (1-12)
      */
     private Integer period;
 }

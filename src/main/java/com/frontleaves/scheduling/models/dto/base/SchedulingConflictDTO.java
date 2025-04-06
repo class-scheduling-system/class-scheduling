@@ -58,10 +58,7 @@ public class SchedulingConflictDTO {
      * 冲突主键
      */
     private String conflictUuid;
-    /**
-     * 课程安排主键DTO
-     */
-    private String courseScheduleItemUuid;
+    
     /**
      * 学期主键
      */

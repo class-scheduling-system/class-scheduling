@@ -118,12 +118,12 @@ public class AutomaticClassSchedulingThread extends Thread {
      * @param result 排课结果
      */
     private void getSaveScheduleDTO(@NotNull ScheduleResultDTO result) {
-        List<ScheduleResultDTO.ClassAssignmentDTO> assignments = result.getAssignments();
+        List<ScheduleResultDTO.CourseTeachingClassDTO> assignments = result.getAssignments();
 
         // 获取学时类型list
         List<CreditHourTypeEnuDTO> creditHourTypeList = creditHourTypeService.getList();
         Map<CourseEnuType, String> creditHourTypeUuidMapping = this.getAllCreditHourTypeUuidMapping(creditHourTypeList);
-        for (ScheduleResultDTO.ClassAssignmentDTO assignment : assignments) {
+        for (ScheduleResultDTO.CourseTeachingClassDTO assignment : assignments) {
             // 新建教学班
             TeachingClassDO teachingClassDO = new TeachingClassDO();
             teachingClassDO

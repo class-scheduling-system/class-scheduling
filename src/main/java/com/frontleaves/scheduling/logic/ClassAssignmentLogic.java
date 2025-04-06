@@ -20,7 +20,6 @@ import com.frontleaves.scheduling.models.entity.base.CourseLibraryDO;
 import com.frontleaves.scheduling.models.entity.base.SemesterDO;
 import com.frontleaves.scheduling.models.entity.base.TeacherDO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
-import com.frontleaves.scheduling.services.AdministrativeClassService;
 import com.frontleaves.scheduling.services.ClassAssignmentService;
 import com.frontleaves.scheduling.services.TeachingClassService;
 import com.frontleaves.scheduling.utils.ProjectOption;
@@ -54,7 +53,6 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     private final SemesterDAO semesterDAO;
     private final CourseLibraryDAO courseLibraryDAO;
     private final TeacherDAO teacherDAO;
-    private final AdministrativeClassService administrativeClassService;
     private final TeachingClassService teachingClassService;
 
     @Override
@@ -197,12 +195,12 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     @Override
     public void saveClassAssignment(@NotNull ScheduleResultDTO result) {
         // 获取排课结果
-        List<ScheduleResultDTO.ClassAssignmentDTO> classAssignments = result.getAssignments();
+        List<ScheduleResultDTO.CourseTeachingClassDTO> classAssignments = result.getAssignments();
         if (classAssignments == null || classAssignments.isEmpty()) {
             throw new BusinessException("排课结果为空", ErrorCode.PARAMETER_ERROR);
         }
         // 遍历排课结果，保存到数据库
-        for (ScheduleResultDTO.ClassAssignmentDTO assignment : classAssignments) {
+        for (ScheduleResultDTO.CourseTeachingClassDTO assignment : classAssignments) {
             ClassAssignmentDO assignmentDO = new ClassAssignmentDO();
             //交换数据
             assignmentDO.setSemesterUuid(result.getSemesterId())

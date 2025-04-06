@@ -51,7 +51,7 @@ public class ScheduleResultDTO {
     /**
      * 课程安排列表
      */
-    private List<ClassAssignmentDTO> assignments;
+    private List<CourseTeachingClassDTO> assignments;
 
 
 
@@ -67,7 +67,7 @@ public class ScheduleResultDTO {
 
     @Data
     @Accessors(chain = true)
-    public static class ClassAssignmentDTO {
+    public static class CourseTeachingClassDTO {
         /**
          * 课程安排ID
          */

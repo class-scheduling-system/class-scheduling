@@ -5,9 +5,10 @@ import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.PrepareCourseDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.base.FileDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.excel.BackAddCourseDTO;
-import com.frontleaves.scheduling.models.dto.lite.CourseLiteDTO;
+import com.frontleaves.scheduling.models.dto.lite.CourseLibraryLiteDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddCourseVO;
 import com.frontleaves.scheduling.models.vo.CourseLibraryVO;
 import com.frontleaves.scheduling.services.CourseLibraryService;
@@ -19,15 +20,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -115,21 +112,36 @@ public class CourseLibraryController {
     }
 
     /**
-     * 获取课程库列表
+     * 获取课程库
+     *
+     * @param courseUuid 课程UUID
+     * @return 返回包含课程库信息的响应实体
+     */
+    @RequestLogin
+    @GetMapping("/{course_uuid}")
+    public ResponseEntity<BaseResponse<CourseLibraryDTO>> getCourseLibrary(
+        @PathVariable("course_uuid") String courseUuid
+    ) {
+        CourseLibraryDTO courseLibraryDTO = courseLibraryService.getCourseLibraryByUuid(courseUuid);
+        return ResultUtil.success("课程库获取成功", courseLibraryDTO);
+    }
+
+    /**
+     * 获取课程库分页
      *
      * @param page 当前页数，默认为1
      * @param size 每页显示数量，默认为10
-     * @param name 搜索关键字（课程名称），可选参数
+     * @param keyword 搜索关键字（课程名称），可选参数
      * @return 返回包含课程库分页信息的响应实体
      */
     @RequestLogin
-    @GetMapping("")
-    public ResponseEntity<BaseResponse<PageDTO<CourseLibraryDTO>>> getCourseLibrary(
+    @GetMapping("/page")
+    public ResponseEntity<BaseResponse<PageDTO<CourseLibraryDTO>>> getCourseLibraryPage(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
-            @RequestParam(value = "size", defaultValue = "10") Integer size,
-            @RequestParam(value = "name", required = false) String name
+            @RequestParam(value = "size", defaultValue = "20") Integer size,
+            @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        PageDTO<CourseLibraryDTO> courseLibraryPage = courseLibraryService.getCourseLibrary(page, size, name);
+        PageDTO<CourseLibraryDTO> courseLibraryPage = courseLibraryService.getCourseLibrary(page, size, keyword);
         return ResultUtil.success("课程库获取成功", courseLibraryPage);
     }
 
@@ -145,7 +157,7 @@ public class CourseLibraryController {
      */
     @RequestLogin
     @GetMapping("/list")
-    public ResponseEntity<BaseResponse<List<CourseLiteDTO>>> getCourseLibraryList(
+    public ResponseEntity<BaseResponse<List<CourseLibraryLiteDTO>>> getCourseLibraryList(
             @RequestParam(value = "course_category_uuid", required = false) String courseCategoryUuid,
             @RequestParam(value = "course_property_uuid", required = false) String coursePropertyUuid,
             @RequestParam(value = "course_type_uuid", required = false) String courseTypeUuid,
@@ -169,7 +181,7 @@ public class CourseLibraryController {
             throw new BusinessException("课程部门UUID格式不正确", ErrorCode.PARAMETER_ERROR);
         }
 
-        List<CourseLiteDTO> courseLibraryList = courseLibraryService.getCourseLibraryList(
+        List<CourseLibraryLiteDTO> courseLibraryList = courseLibraryService.getCourseLibraryList(
                 courseCategoryUuid,
                 coursePropertyUuid,
                 courseTypeUuid,
@@ -188,31 +200,23 @@ public class CourseLibraryController {
      * 此方法用于获取课程导入模板，返回一个包含模板文件的字节数组和HTTP响应头的响应实体。
      * </p>
      */
+    @RequestRole({"管理员"})
     @GetMapping("/get-template")
-    public ResponseEntity<byte[]> getCourseImportTemplate() {
+    public ResponseEntity<BaseResponse<FileDTO>> getCourseImportTemplate() {
         // 准备课程库示例数据，用于生成导入模板
         PrepareCourseDTO prepareCourseExampleDTO = courseLibraryService.prepareCourseData();
         // 获取课程库导入模板的字节数组
         byte[] bytes = courseLibraryService.getCourseImportTemplate(prepareCourseExampleDTO);
-        // 初始化HTTP响应头，用于设置模板文件的下载信息
-        HttpHeaders headers = Optional.of(new HttpHeaders())
-                .map(header -> {
-                    // 设置内容类型为二进制流
-                    header.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-                    // 设置内容长度
-                    header.setContentLength(bytes.length);
-                    // 对文件名进行URL编码，确保文件名在不同浏览器中正确显示
-                    String fileName = URLEncoder.encode("课程库导入模板.xlsx", StandardCharsets.UTF_8)
-                            .replace("+", "%20");
-                    // 设置内容处置，以附件形式下载文件，并处理文件名的UTF-8编码
-                    header.add(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"" + fileName + "\"; filename*=UTF-8''" + fileName);
-                    return header;
-                })
-                // 如果生成响应头失败，则抛出业务异常
-                .orElseThrow(() -> new BusinessException("获取响应头失败", ErrorCode.SERVER_INTERNAL_ERROR));
-        // 返回包含模板文件的响应实体，状态码为HTTP 200 OK
-        return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+
+        // 将字节数组转换为Base64编码字符串
+        FileDTO getFile = new FileDTO(
+                "课程库导入模板.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + Base64.getEncoder().encodeToString(bytes)
+        );
+
+        // 使用ResultUtil返回Base64编码的文件内容和文件信息
+        return ResultUtil.success("获取课程导入模板成功", getFile);
     }
 
     /**

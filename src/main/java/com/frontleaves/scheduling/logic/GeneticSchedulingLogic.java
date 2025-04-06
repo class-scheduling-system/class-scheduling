@@ -119,7 +119,7 @@ private final IterateService iterateService;
                 log.debug("最终排课方案: {}", bestSchedule);
                 List<SchedulingConflictDTO> conflicts = this.findConflicts(bestSchedule);
                 ScheduleResultDTO.ResourceUtilization utilization = calculateResourceUtilization(bestSchedule);
-                List<ScheduleResultDTO.ClassAssignmentDTO> assignments = convertScheduleToAssignments(bestSchedule);
+                List<ScheduleResultDTO.CourseTeachingClassDTO> assignments = convertScheduleToAssignments(bestSchedule);
                 updateProgress(taskId, 100);
                 updateStatus(taskId, "排课完成");
                 return new ScheduleResultDTO()

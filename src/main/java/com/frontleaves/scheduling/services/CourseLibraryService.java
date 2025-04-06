@@ -5,7 +5,7 @@ import com.frontleaves.scheduling.models.dto.PrepareCourseDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.excel.BackAddCourseDTO;
-import com.frontleaves.scheduling.models.dto.lite.CourseLiteDTO;
+import com.frontleaves.scheduling.models.dto.lite.CourseLibraryLiteDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddCourseVO;
 import com.frontleaves.scheduling.models.vo.CourseLibraryVO;
@@ -30,7 +30,7 @@ public interface CourseLibraryService {
 
     PageDTO<CourseLibraryDTO> getCourseLibrary(Integer page, Integer size, String name);
 
-    List<CourseLiteDTO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid);
+    List<CourseLibraryLiteDTO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid);
 
     PrepareCourseDTO prepareCourseData();
 
@@ -66,7 +66,7 @@ public interface CourseLibraryService {
      * @return 课程库信息
      */
     @NotNull
-    CourseLibraryDTO getCourseByUuid(@NotBlank String courseUuid);
+    CourseLibraryDTO getCourseLibraryByUuid(@NotBlank String courseUuid);
 
     byte[] verifyCourseBatchAndBackFile(BatchAddCourseVO batchAddCourseVO);
 

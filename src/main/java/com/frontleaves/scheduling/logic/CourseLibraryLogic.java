@@ -43,7 +43,7 @@ import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.excel.BackAddCourseDTO;
-import com.frontleaves.scheduling.models.dto.lite.CourseLiteDTO;
+import com.frontleaves.scheduling.models.dto.lite.CourseLibraryLiteDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.vo.BatchAddCourseVO;
@@ -525,7 +525,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
      * @return 包含课程库信息的列表
      */
     @Override
-    public List<CourseLiteDTO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid) {
+    public List<CourseLibraryLiteDTO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid) {
         List<CourseLibraryDO> courseLibraryList = courseLibraryDAO.getCourseLibraryList(courseCategoryUuid, coursePropertyUuid, courseTypeUuid, courseNatureUuid, courseDepartmentUuid);
         if (courseLibraryList.isEmpty()) {
             return new ArrayList<>();
@@ -537,8 +537,8 @@ public class CourseLibraryLogic implements CourseLibraryService {
         List<CourseNatureDO> getCourseNatureList = courseNatureDAO.getCourseNatureList();
         List<DepartmentDO> getDepartmentList = departmentDAO.getDepartmentList();
 
-        // 转换为 CourseLiteDTO
-        return courseLibraryList.stream().map(courseLibrary -> new CourseLiteDTO()
+        // 转换为 CourseLibraryLiteDTO
+        return courseLibraryList.stream().map(courseLibrary -> new CourseLibraryLiteDTO()
                 .setCourseLibraryUuid(courseLibrary.getCourseLibraryUuid())
                 .setName(courseLibrary.getName())
                 .setCategory(getCourseCategoryList.stream()
@@ -1493,7 +1493,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
      * @throws BusinessException 如果课程不存在，则抛出此异常
      */
     @Override
-    public @NotNull CourseLibraryDTO getCourseByUuid(String courseUuid) {
+    public @NotNull CourseLibraryDTO getCourseLibraryByUuid(String courseUuid) {
         CourseLibraryDO courseLibraryDO = courseLibraryDAO.getCourseLibraryByUuid(courseUuid);
         if (courseLibraryDO == null) {
             throw new BusinessException("课程不存在", ErrorCode.NOT_EXIST);

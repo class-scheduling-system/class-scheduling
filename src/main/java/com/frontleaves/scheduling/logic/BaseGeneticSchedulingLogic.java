@@ -460,15 +460,15 @@ class BaseGeneticSchedulingLogic {
      * @param schedule 内部课程表模型
      * @return 课程安排列表
      */
-    List<ScheduleResultDTO.ClassAssignmentDTO> convertScheduleToAssignments(@NotNull ScheduleDTO schedule) {
-        List<ScheduleResultDTO.ClassAssignmentDTO> assignments = new ArrayList<>();
+    List<ScheduleResultDTO.CourseTeachingClassDTO> convertScheduleToAssignments(@NotNull ScheduleDTO schedule) {
+        List<ScheduleResultDTO.CourseTeachingClassDTO> assignments = new ArrayList<>();
         // 遍历所有课程安排
         for (CourseScheduleDTO courseSchedule : schedule.getSchedule()) {
             // 遍历每个课程的时间槽和排课项
             for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : courseSchedule.getAssignments().entrySet()) {
                 List<TimeSlotDTO> slots = entry.getKey();
                 CourseScheduleItemDTO item = entry.getValue();
-                ScheduleResultDTO.ClassAssignmentDTO assignment = new ScheduleResultDTO.ClassAssignmentDTO()
+                ScheduleResultDTO.CourseTeachingClassDTO assignment = new ScheduleResultDTO.CourseTeachingClassDTO()
                         .setCourseScheduleItemUuid(item.getCourseScheduleItemUuid())
                         .setCourse(item.getCourse())
                         .setTeacher(item.getTeacher())

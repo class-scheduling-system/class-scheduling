@@ -33,7 +33,7 @@ import lombok.experimental.Accessors;
 
 @Data
 @Accessors(chain = true)
-public class CourseLiteDTO {
+public class CourseLibraryLiteDTO {
     /**
      * 课程库UUID
      */

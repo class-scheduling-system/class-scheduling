@@ -91,7 +91,7 @@ public class AdministrativeClassLogic implements AdministrativeClassService {
                 throw new BusinessException("行政班级信息格式错误", ErrorCode.NOT_EXIST);
             }
             if (!isValidUuid(uuid)) {
-                return List.of(courseLibraryService.getCourseByUuid(uuid).getName()) ;
+                return List.of(courseLibraryService.getCourseLibraryByUuid(uuid).getName()) ;
             }else {
                 // 如果是UUID格式，则查询对应的班级名称
                 AdministrativeClassDO administrativeClassDO = administrativeClassDAO.getAdministrativeClassByUuid(uuid);
