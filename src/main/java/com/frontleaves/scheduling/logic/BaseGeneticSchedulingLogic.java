@@ -90,8 +90,11 @@ class BaseGeneticSchedulingLogic {
     /**
      * 检查课程安排列表中的冲突
      */
-    private void checkCourseSchedulesConflicts(@NotNull List<CourseScheduleDTO> courseSchedules,
-                                               List<CourseScheduleDTO> dataSchedules, List<SchedulingConflictDTO> conflicts) {
+    private void checkCourseSchedulesConflicts(
+            @NotNull List<CourseScheduleDTO> courseSchedules,
+            List<CourseScheduleDTO> dataSchedules,
+            List<SchedulingConflictDTO> conflicts
+    ) {
         for (int i = 0; i < courseSchedules.size(); i++) {
             CourseScheduleDTO courseSchedule = courseSchedules.get(i);
             this.checkSingleCourseScheduleConflicts(courseSchedule, courseSchedules.subList(i + 1, courseSchedules.size()),
@@ -102,9 +105,12 @@ class BaseGeneticSchedulingLogic {
     /**
      * 检查单个课程安排的冲突
      */
-    private void checkSingleCourseScheduleConflicts(@NotNull CourseScheduleDTO courseSchedule,
-                                                    List<CourseScheduleDTO> remainingSchedules, List<CourseScheduleDTO> dataSchedules,
-                                                    List<SchedulingConflictDTO> conflicts) {
+    private void checkSingleCourseScheduleConflicts(
+            @NotNull CourseScheduleDTO courseSchedule,
+            List<CourseScheduleDTO> remainingSchedules,
+            List<CourseScheduleDTO> dataSchedules,
+            List<SchedulingConflictDTO> conflicts
+    ) {
         List<Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO>> entries =
                 new ArrayList<>(courseSchedule.getAssignments().entrySet());
 
@@ -118,15 +124,17 @@ class BaseGeneticSchedulingLogic {
     /**
      * 检查时间槽的冲突
      */
-    private void checkTimeSlotConflicts(Map.@NotNull Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry,
-                                        @NotNull List<Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO>> remainingEntries,
-                                        List<CourseScheduleDTO> remainingSchedules, List<CourseScheduleDTO> dataSchedules,
-                                        List<SchedulingConflictDTO> conflicts) {
+    private void checkTimeSlotConflicts(
+            @NotNull Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry,
+            @NotNull List<Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO>> remainingEntries,
+            List<CourseScheduleDTO> remainingSchedules, List<CourseScheduleDTO> dataSchedules,
+            List<SchedulingConflictDTO> conflicts
+    ) {
         List<TimeSlotDTO> slots = entry.getKey();
         CourseScheduleItemDTO item = entry.getValue();
         // 检查同一课程内的其他时间槽
         for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> otherEntry : remainingEntries) {
-            checkConflicts(conflicts, slots, item, otherEntry);
+            this.checkConflicts(conflicts, slots, item, otherEntry);
         }
         // 检查其他课程安排
         this.checkConflictsWithOtherSchedules(slots, item, remainingSchedules, conflicts);
@@ -177,10 +185,11 @@ class BaseGeneticSchedulingLogic {
         for (TimeSlotDTO slot1 : slots1) {
             if (hasTimeOverlap(slot1, slots2)) {
                 // 如果时间有重叠，检查资源冲突
-                checkResourceConflicts(conflicts, item1, item2, slot1);
+                this.checkResourceConflicts(conflicts, item1, item2, slot1);
             }
         }
     }
+
     /**
      * 检查时间是否重叠
      */
@@ -192,6 +201,7 @@ class BaseGeneticSchedulingLogic {
         }
         return false;
     }
+
     /**
      * 检查资源冲突（教师、教室、班级）
      */
@@ -214,6 +224,7 @@ class BaseGeneticSchedulingLogic {
             conflicts.add(this.createClassConflict(item1, slot1));
         }
     }
+
     /**
      * 创建班级冲突记录
      */
@@ -237,7 +248,6 @@ class BaseGeneticSchedulingLogic {
 
     /**
      * 检查班级组冲突
-
      */
     private boolean isClassConflict(CourseScheduleItemDTO item1, CourseScheduleItemDTO item2) {
         // 如果任一项为空或其班级组链表为空，则不存在冲突
@@ -405,6 +415,7 @@ class BaseGeneticSchedulingLogic {
                 List<TimeSlotDTO> slots = entry.getKey();
                 CourseScheduleItemDTO item = entry.getValue();
                 ScheduleResultDTO.ClassAssignmentDTO assignment = new ScheduleResultDTO.ClassAssignmentDTO()
+                        .setCourseScheduleItemUuid(item.getCourseScheduleItemUuid())
                         .setCourse(item.getCourse())
                         .setTeacher(item.getTeacher())
                         .setClassroom(item.getClassroom())
@@ -412,7 +423,7 @@ class BaseGeneticSchedulingLogic {
                         .setTimeSlot(slots)
                         .setPriority(item.getPriority())
                         .setCourseType(item.getCourseType())
-                                .setNumber(item.getNumber());
+                        .setNumber(item.getNumber());
                 assignments.add(assignment);
             }
         }

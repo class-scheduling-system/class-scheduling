@@ -126,7 +126,8 @@ public class AutomaticClassSchedulingThread extends Thread {
         for (ScheduleResultDTO.ClassAssignmentDTO assignment : assignments) {
             // 新建教学班
             TeachingClassDO teachingClassDO = new TeachingClassDO();
-            teachingClassDO.setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+            teachingClassDO
+                    .setTeachingClassUuid(UuidUtil.generateUuidNoDash())
                     .setSemesterUuid(result.getSemesterId())
                     .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
                     .setTeachingClassCode(UuidUtil.generateUuidNoDash())
@@ -139,7 +140,9 @@ public class AutomaticClassSchedulingThread extends Thread {
                     .setIsEnabled(true);
             teachingClassService.save(teachingClassDO);
             ClassAssignmentDO classAssignmentDO = new ClassAssignmentDO();
-            classAssignmentDO.setSemesterUuid(result.getSemesterId())
+            classAssignmentDO
+                    .setClassAssignmentUuid(assignment.getCourseScheduleItemUuid())
+                    .setSemesterUuid(result.getSemesterId())
                     .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
                     .setTeacherUuid(assignment.getTeacher().getTeacher().getTeacherUuid())
                     .setCampusUuid(assignment.getClassroom().getCampus().getCampusUuid())

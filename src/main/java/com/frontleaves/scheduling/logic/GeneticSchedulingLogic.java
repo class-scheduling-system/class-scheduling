@@ -117,7 +117,7 @@ private final IterateService iterateService;
             // 构建结果
             if (bestSchedule != null) {
                 log.debug("最终排课方案: {}", bestSchedule);
-                List<SchedulingConflictDTO> conflicts = findConflicts(bestSchedule);
+                List<SchedulingConflictDTO> conflicts = this.findConflicts(bestSchedule);
                 ScheduleResultDTO.ResourceUtilization utilization = calculateResourceUtilization(bestSchedule);
                 List<ScheduleResultDTO.ClassAssignmentDTO> assignments = convertScheduleToAssignments(bestSchedule);
                 updateProgress(taskId, 100);
