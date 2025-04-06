@@ -1,19 +1,38 @@
 package com.frontleaves.scheduling.services;
 
+
+import com.frontleaves.scheduling.models.dto.PrepareCourseDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddCourseDTO;
+import com.frontleaves.scheduling.models.dto.lite.CourseLiteDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
+import com.frontleaves.scheduling.models.vo.BatchAddCourseVO;
+import com.frontleaves.scheduling.models.vo.CourseLibraryVO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
-import org.jetbrains.annotations.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
 /**
  * 课程库服务接口，定义了课程库相关的操作。
  *
- * @author FLASHLACK
+ * @author FLASHLACK | qiyu
  */
 public interface CourseLibraryService {
+    void addCourseLibrary(CourseLibraryVO courseLibraryVO, HttpServletRequest request);
+
+    void updateCourseLibrary(String courseUuid, CourseLibraryVO courseLibraryVO);
+
+    void deleteCourseLibrary(String courseUuid);
+
+    PageDTO<CourseLibraryDTO> getCourseLibrary(Integer page, Integer size, String name);
+
+    List<CourseLiteDTO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid);
+
+    PrepareCourseDTO prepareCourseData();
 
     /**
      * 根据部门uuid获取课程库,若查询出来为空则报错
@@ -27,6 +46,8 @@ public interface CourseLibraryService {
             List<String> specificCourseIds
     );
 
+    byte[] getCourseImportTemplate(PrepareCourseDTO prepareCourseExampleDTO);
+
     /**
      * 获取课程库和班级DTO列表
      *
@@ -37,13 +58,19 @@ public interface CourseLibraryService {
             List<SpecificCourseIdVO> specificCourseIds,
             String departmentUuid
     );
-   /**
+
+    /**
      * 根据课程UUID获取课程库信息
      *
      * @param courseUuid 课程UUID
      * @return 课程库信息
      */
-   @NotNull
+    @NotNull
     CourseLibraryDTO getCourseByUuid(@NotBlank String courseUuid);
 
+    byte[] verifyCourseBatchAndBackFile(BatchAddCourseVO batchAddCourseVO);
+
+    BackAddCourseDTO batchImportIgnoreError(byte[] file);
+
+    BackAddCourseDTO batchImportNoIgnoreError(byte[] file);
 }

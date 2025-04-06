@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UnitCategoryLogicTest {
     @Mock
     private UnitCategoryDAO unitCategoryDAO;

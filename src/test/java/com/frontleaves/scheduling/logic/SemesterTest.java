@@ -17,7 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.sql.Timestamp;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 class SemesterTest {
     @Resource

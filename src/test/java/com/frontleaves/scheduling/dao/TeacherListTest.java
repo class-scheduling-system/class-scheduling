@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class TeacherListTest {
     private static final int DEFAULT_PAGE = 1;
     private static final int DEFAULT_SIZE = 10;

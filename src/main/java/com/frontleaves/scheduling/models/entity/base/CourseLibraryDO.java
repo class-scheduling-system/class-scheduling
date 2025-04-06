@@ -99,6 +99,18 @@ public class CourseLibraryDO {
     @TableField("credit")
     private BigDecimal credit;
 
+    @TableField("theory_classroom_type")
+    private String theoryClassroomType;
+
+    @TableField("experiment_classroom_type")
+    private String experimentClassroomType;
+
+    @TableField("practice_classroom_type")
+    private String practiceClassroomType;
+
+    @TableField("computer_classroom_type")
+    private String computerClassroomType;
+
     @TableField("description")
     private String description;
 

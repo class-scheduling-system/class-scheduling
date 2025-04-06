@@ -22,7 +22,7 @@ import java.time.Duration;
  * @author FLASHLACK
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class SemesterTest {
 
     @Resource

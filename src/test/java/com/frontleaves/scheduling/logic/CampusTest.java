@@ -19,7 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 class CampusTest {
 

@@ -50,7 +50,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 class TeacherPreferencesDAOTest {
 

@@ -43,6 +43,8 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -111,6 +113,30 @@ public class ClassroomTypeDAO extends ServiceImpl<ClassroomTypeMapper, Classroom
             return BeanUtil.toBean(map, ClassroomTypeDO.class, ProjectOption.stringBlankToNull());
         }
         return null;
+    }
+
+    /**
+     * 获取所有教室类型列表
+     * <p>
+     * 该方法是getTypes的替代方法，提供与其他DAO一致的方法命名，功能与getTypes相同。
+     * 从Redis缓存中获取所有的教室类型列表，如果缓存中不存在，则从数据库中查询并加载到缓存中。
+     * </p>
+     *
+     * @return 返回一个包含所有教室类型的 {@code List<ClassroomTypeDO>}，如果没有找到任何类型则返回空列表
+     */
+    public List<ClassroomTypeDO> getClassroomTypeList() {
+        RList<ClassroomTypeDO> types = redisson.getList(StringConstant.Redis.CLASSROOM_TYPE_LIST);
+        if (!types.isExists()) {
+            List<ClassroomTypeDO> getList = this.lambdaQuery().list();
+            if (getList !=null &&!getList.isEmpty()) {
+                types.addAll(getList);
+                types.expire(Duration.ofSeconds(3600));
+                return getList;
+            }
+        } else {
+            return types.readAll();
+        }
+        return Collections.emptyList();
     }
 
     /**

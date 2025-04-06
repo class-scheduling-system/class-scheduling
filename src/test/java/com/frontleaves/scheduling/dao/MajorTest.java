@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since v1.0.0
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class MajorTest {
     @Resource
     private MajorDAO majorDAO;

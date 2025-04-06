@@ -51,7 +51,7 @@ import java.util.List;
  * @version v1.0.0
  * @since v1.0.0
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @RequiredArgsConstructor
 class RoleTest {
     @Resource
