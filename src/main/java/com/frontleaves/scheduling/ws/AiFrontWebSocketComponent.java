@@ -49,6 +49,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -79,6 +80,12 @@ public class AiFrontWebSocketComponent {
      * 用来存在线连接用户信息
      */
     private static final ConcurrentHashMap<String, Session> SESSION_POOL = new ConcurrentHashMap<>();
+    
+    /**
+     * WebSocket消息接收大小限制（字节）【最大】
+     */
+    private static final int MAX_RECEIVE_MESSAGE_SIZE = 512 * 1024 * 1024;
+    
     @Setter
     private static TokenDAO tokenDAO;
     @Setter
@@ -140,6 +147,10 @@ public class AiFrontWebSocketComponent {
         this.userUuid = user.getUserUuid();
         SESSION_MANAGER.add(this);
         SESSION_POOL.put(userUuid, session);
+        
+        // 配置WebSocket会话参数
+        session.setMaxTextMessageBufferSize(512 * 1024); // 设置为512KB
+        session.setMaxBinaryMessageBufferSize(512 * 1024);
 
         // 发送连接成功消息
         session.getAsyncRemote().sendText(WsResponseUtil.success("Success", "connected", Map.of(
@@ -172,6 +183,20 @@ public class AiFrontWebSocketComponent {
     public void onMessage(String message) {
         String userAgent = SESSION_POOL.get(userUuid).getUserProperties().get("user-agent").toString();
         try {
+            // 检查消息大小
+            byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+            int messageSize = messageBytes.length;
+            
+            if (messageSize > MAX_RECEIVE_MESSAGE_SIZE) {
+                log.warn("{}接收到的消息大小超过限制：{} 字节", LogConstant.WS, messageSize);
+                sendMessage(userUuid, WsResponseUtil.error("Failed", "消息大小超过限制", Map.of(
+                        "message", "消息大小超过服务器限制（" + MAX_RECEIVE_MESSAGE_SIZE + " 字节），请减小消息大小。",
+                        "size", messageSize,
+                        "limit", MAX_RECEIVE_MESSAGE_SIZE
+                )));
+                return;
+            }
+            
             log.debug("{}接收到消息: [{}]", LogConstant.WS, message);
             JSONObject getJson = new JSONObject(message);
             log.debug("{}接收到消息: [{}]", LogConstant.WS, getJson);
