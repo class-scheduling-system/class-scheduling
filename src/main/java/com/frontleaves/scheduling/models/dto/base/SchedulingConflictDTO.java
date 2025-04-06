@@ -29,13 +29,13 @@
 package com.frontleaves.scheduling.models.dto.base;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.frontleaves.scheduling.models.dto.scheduling.TimeSlotDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
-import java.util.Map;
 
 /**
  * 排课冲突数据传输对象
@@ -85,7 +85,7 @@ public class SchedulingConflictDTO {
     /**
      * 冲突时间
      */
-    private Map<String, Object> conflictTime;
+    private TimeSlotDTO conflictTime;
 
     /**
      * 冲突描述

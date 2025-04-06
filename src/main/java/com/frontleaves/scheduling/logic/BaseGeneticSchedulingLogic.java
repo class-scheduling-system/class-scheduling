@@ -236,6 +236,7 @@ class BaseGeneticSchedulingLogic {
         return new SchedulingConflictDTO()
                 .setFirstAssignmentUuid(item.getCourseScheduleItemUuid())
                 .setSecondAssignmentUuid(item2.getCourseScheduleItemUuid())
+                .setConflictTime(slot)
                 .setConflictType(3)
                 .setDescription(String.format(
                         "班级 %s 在第%d周星期%d第%d节课有重复安排",
@@ -301,10 +302,12 @@ class BaseGeneticSchedulingLogic {
     /**
      * 创建教师冲突记录
      */
-    private SchedulingConflictDTO createTeacherConflict(@NotNull CourseScheduleItemDTO item, @NotNull TimeSlotDTO slot, CourseScheduleItemDTO item2) {
+    private SchedulingConflictDTO createTeacherConflict(
+            @NotNull CourseScheduleItemDTO item, @NotNull TimeSlotDTO slot, @NotNull CourseScheduleItemDTO item2) {
         return new SchedulingConflictDTO()
                 .setFirstAssignmentUuid(item.getCourseScheduleItemUuid())
                 .setSecondAssignmentUuid(item2.getCourseScheduleItemUuid())
+                .setConflictTime(slot)
                 .setConflictType(1)
                 .setDescription(String.format(
                         "教师 %s 在第%d周星期%d第%d节课有重复安排",
@@ -322,6 +325,7 @@ class BaseGeneticSchedulingLogic {
         return new SchedulingConflictDTO()
                 .setFirstAssignmentUuid(item.getCourseScheduleItemUuid())
                 .setSecondAssignmentUuid(item2.getCourseScheduleItemUuid())
+                .setConflictTime(slot)
                 .setConflictType(2)
                 .setDescription(String.format(
                         "教室 %s 在第%d周星期%d第%d节课有重复安排",
