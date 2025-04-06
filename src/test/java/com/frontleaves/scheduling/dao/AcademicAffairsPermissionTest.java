@@ -53,7 +53,7 @@ import java.util.UUID;
  * @since v1.0.0
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class AcademicAffairsPermissionTest {
     @Resource
     private AcademicAffairsPermissionDAO academicAffairsPermissionDAO;

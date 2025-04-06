@@ -15,7 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  *
  * @author FLASHLACK
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class AcademicAffairsPermissionTest {
 
     @Resource
