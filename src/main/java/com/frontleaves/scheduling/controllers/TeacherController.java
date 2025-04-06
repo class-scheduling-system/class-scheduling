@@ -4,6 +4,10 @@ import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherDTO;
+import com.frontleaves.scheduling.models.dto.lite.TeacherDisableDTO;
+import com.frontleaves.scheduling.models.dto.lite.TeacherLiteDTO;
 import com.frontleaves.scheduling.models.vo.TeacherBatchImportVO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
 import com.frontleaves.scheduling.services.TeacherService;
@@ -208,7 +212,7 @@ public class TeacherController {
     }
 
     /**
-     * 获取教师导入模板.
+     * 获取教师导入模板
      * <p>
      * 该控制器方法用于处理教务角色获取教师导入模板的请求
      * 它准备部门数据并生成一个Excel模板文件，供用户下载

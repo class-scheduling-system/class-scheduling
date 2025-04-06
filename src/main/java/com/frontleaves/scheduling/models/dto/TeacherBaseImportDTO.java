@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.models.dto;
 
-import com.frontleaves.scheduling.models.entity.DepartmentDO;
-import com.frontleaves.scheduling.models.entity.TeacherTypeDO;
+import com.frontleaves.scheduling.models.entity.base.DepartmentDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherTypeDO;
 import lombok.Data;
 import lombok.experimental.Accessors;
 

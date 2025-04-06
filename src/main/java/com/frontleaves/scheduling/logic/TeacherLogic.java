@@ -38,13 +38,14 @@ import com.frontleaves.scheduling.daos.TeacherTypeDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
 import com.frontleaves.scheduling.exceptions.lib.DataInvalidException;
 import com.frontleaves.scheduling.exceptions.lib.DataNotFoundException;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.TeacherDTO;
-import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
-import com.frontleaves.scheduling.models.dto.TeacherLiteDTO;
-import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherTypeDTO;
+import com.frontleaves.scheduling.models.dto.lite.TeacherDisableDTO;
+import com.frontleaves.scheduling.models.dto.lite.TeacherLiteDTO;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO;
 import com.frontleaves.scheduling.models.vo.TeacherBatchImportVO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
@@ -71,6 +72,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -182,7 +184,7 @@ public class TeacherLogic implements TeacherService {
      * @throws BusinessException 当教师不存在时抛出的业务异常
      */
     @Override
-    public TeacherDTO getTeacher(String teacherUuid) {
+    public @NotNull TeacherDTO getTeacher(String teacherUuid) {
         TeacherDO teacherDTO = null;
         // 验证教师UUID是否符合无连字符的UUID正则表达式
         if (teacherUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
@@ -384,7 +386,7 @@ public class TeacherLogic implements TeacherService {
             // 设置列宽（循环所有列，宽度为当前宽度的两倍，若是默认宽则赋初始值）
             Sheet sheet = writer.getSheet();
             int defaultWidth = sheet.getDefaultColumnWidth();
-            for (int i = 0; i < headers.length; i++) {
+            for (int i = 0; i < 14; i++) {
                 int currentWidth = sheet.getColumnWidth(i);
                 if (currentWidth == defaultWidth * 256) {
                     currentWidth = 2048;
@@ -465,6 +467,33 @@ public class TeacherLogic implements TeacherService {
             dataRow.createCell(9).setCellValue("副教授");
             dataRow.createCell(10).setCellValue("示例描述");
 
+            // 存入数据库数据（模板数据）
+            writer.writeCellValue(12, 0, "教师类型模板");
+            writer.writeCellValue(13, 0, "单位模板");
+
+            // 存入教师类型名称
+            if (prepareTeacherExampleDTO != null && prepareTeacherExampleDTO.getTeacherTypeList() != null) {
+                Set<String> writtenTypes = new HashSet<>();
+                int colIndex = 1;
+                for (TeacherTypeDTO typeDTO : prepareTeacherExampleDTO.getTeacherTypeList()) {
+                    if (typeDTO != null && !writtenTypes.contains(typeDTO.getTypeName())) {
+                        writer.writeCellValue(12, colIndex, typeDTO.getTypeName());
+                        writtenTypes.add(typeDTO.getTypeName());
+                        colIndex++;
+                    }
+                }
+            }
+            // 存入单位名称
+            if (prepareTeacherExampleDTO != null && prepareTeacherExampleDTO.getUnitList() != null) {
+                List<PrepareTeacherExampleDTO.UnitDTO> units = prepareTeacherExampleDTO.getUnitList();
+                for (int i = 0; i < units.size(); i++) {
+                    PrepareTeacherExampleDTO.UnitDTO unitDTO = units.get(i);
+                    if (unitDTO != null && unitDTO.getUnitName() != null) {
+                        // i+2 表示从第2行开始写入
+                        writer.writeCellValue(13, i + 1, unitDTO.getUnitName());
+                    }
+                }
+            }
             // 将生成的工作簿写入字节流
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             writer.flush(outputStream, true);
@@ -779,42 +808,64 @@ public class TeacherLogic implements TeacherService {
      */
     @Override
     public PrepareTeacherExampleDTO prepareDepartmentData(HttpServletRequest request) {
-        // 根据请求获取用户信息
+            // 根据请求获取当前用户
         UserDO userDO = userService.getUserByRequest(request);
-        assert userDO != null;
-
-        // 根据用户UUID获取教务事务权限信息
+            if (userDO == null) {
+                throw new BusinessException("用户不存在", ErrorCode.OPERATION_ERROR);
+            }
+            // 获取教务权限信息
         AcademicAffairsPermissionDO academicAffairsPermissionDO =
                 academicAffairsPermissionDAO.getAcademicAffairsPermissionByUserUuid(userDO.getUserUuid());
-        // 检查教务事务权限信息是否存在，如果不存在则抛出异常
         if (academicAffairsPermissionDO == null) {
-            throw new BusinessException("系统错误，意料之外的错误", ErrorCode.OPERATION_ERROR);
+            throw new BusinessException("教务权限不存在", ErrorCode.OPERATION_ERROR);
         }
 
-        // 根据教务事务权限中的部门 UUID 获取部门信息
-        DepartmentDO departmentDO = departmentDAO.getDepartmentByUuidLastUpdate(academicAffairsPermissionDO.getDepartment());
-        assert departmentDO != null;
+            // 通过 DepartmentDAO 获取所有部门记录
+            List<DepartmentDO> departmentDOList = departmentDAO.getDepartmentList();
+
+            // 将所有部门转换为 PrepareTeacherExampleDTO.UnitDTO 列表
+            List<PrepareTeacherExampleDTO.UnitDTO> unitDTOList = departmentDOList.stream()
+                    .map(departmentDO -> {
+                        PrepareTeacherExampleDTO.UnitDTO unitDTO = new PrepareTeacherExampleDTO.UnitDTO();
+                        unitDTO.setUnitUuid(departmentDO.getDepartmentUuid());
+                        unitDTO.setUnitName(departmentDO.getDepartmentName());
+                        return unitDTO;
+                    })
+                    .collect(Collectors.toList());
 
         // 查询教师类型列表
         List<TeacherTypeDO> teacherTypeDOList = teacherTypeDAO.getAllTeacherTypes();
-        // DO -> DTO
-        List<TeacherTypeDTO> teacherTypeDTOList = teacherTypeDOList.stream().map(teacherTypeDO -> {
-            TeacherTypeDTO dto = new TeacherTypeDTO();
-            dto.setTeacherTypeUuid(teacherTypeDO.getTeacherTypeUuid());
-            dto.setTypeName(teacherTypeDO.getTypeName());
-            return dto;
-        }).toList();
+            // 转换为 TeacherTypeDTO 列表，确保 TeacherTypeDTO 类已导入
+            List<TeacherTypeDTO> teacherTypeDTOList = teacherTypeDOList.stream()
+                    .map(teacherTypeDO -> {
+                        TeacherTypeDTO dto = new TeacherTypeDTO();
+                        dto.setTeacherTypeUuid(teacherTypeDO.getTeacherTypeUuid());
+                        dto.setTypeName(teacherTypeDO.getTypeName());
+                        return dto;
+                    })
+                    .collect(Collectors.toList());
 
-        return getPrepareTeacherExampleDTO(departmentDO, teacherTypeDTOList);
+            // 获取当前用户所属的部门名称作为默认值
+            DepartmentDO currentDepartment = departmentDAO.getDepartmentByUuidLastUpdate(academicAffairsPermissionDO.getDepartment());
+            String defaultDepartmentName = currentDepartment != null ? currentDepartment.getDepartmentName() : "";
+
+            // 构造 PrepareTeacherExampleDTO 对象，并设置所有部门、教师类型和默认部门名称
+            PrepareTeacherExampleDTO prepareTeacherExampleDTO = new PrepareTeacherExampleDTO();
+            prepareTeacherExampleDTO.setUnitList(unitDTOList)
+                    .setTeacherTypeList(teacherTypeDTOList)
+                    .setDepartmentName(defaultDepartmentName);
+
+            return prepareTeacherExampleDTO;
     }
 
-    /**
-     * 从给定的列表中提取教师信息，并将其封装到TeacherImportDTO对象中
-     * 此方法确保列表中的每个元素都对应于TeacherImportDTO中的一个字段
-     *
-     * @param rowlist 包含教师信息的列表，不能为空
-     * @return 填充了从列表中提取的教师信息的TeacherImportDTO对象
-     */
+
+        /**
+         * 从给定的列表中提取教师信息，并将其封装到TeacherImportDTO对象中
+         * 此方法确保列表中的每个元素都对应于TeacherImportDTO中的一个字段
+         *
+         * @param rowlist 包含教师信息的列表，不能为空
+         * @return 填充了从列表中提取的教师信息的TeacherImportDTO对象
+         */
     private static @NotNull TeacherImportDTO getTeacherImportDTO(
             @NotNull List<Object> rowlist
     ) {
@@ -862,31 +913,6 @@ public class TeacherLogic implements TeacherService {
             }
         }
         return teacherList;
-    }
-
-    /**
-     * 根据部门和教师类型列表构建PrepareTeacherExampleDTO对象
-     * <p>
-     * 此方法用于准备教师示例数据传输对象（DTO），该对象包含部门信息和教师类型列表
-     * 它主要用于将部门视为一个单元，并结合教师类型列表，用于后续的处理或传输
-     * </p>
-     *
-     * @param departmentDO       部门数据对象，包含部门的详细信息
-     * @param teacherTypeDTOList 教师类型数据传输对象列表，表示不同类型的教师
-     * @return PrepareTeacherExampleDTO 返回准备好的教师示例DTO，包含单位和教师类型信息
-     */
-    private static PrepareTeacherExampleDTO getPrepareTeacherExampleDTO(
-            DepartmentDO departmentDO, List<TeacherTypeDTO> teacherTypeDTOList
-    ) {
-        PrepareTeacherExampleDTO.UnitDTO unitDTO = new PrepareTeacherExampleDTO.UnitDTO();
-        unitDTO.setUnitUuid(departmentDO.getDepartmentUuid());
-        unitDTO.setUnitName(departmentDO.getDepartmentName());
-
-        // 构建并返回 PrepareTeacherExampleDTO，将单位和教师类型数据封装到 DTO 中
-        PrepareTeacherExampleDTO prepareTeacherExampleDTO = new PrepareTeacherExampleDTO();
-        prepareTeacherExampleDTO.setUnitList(Collections.singletonList(unitDTO));
-        prepareTeacherExampleDTO.setTeacherTypeList(teacherTypeDTOList);
-        return prepareTeacherExampleDTO;
     }
 
     /**

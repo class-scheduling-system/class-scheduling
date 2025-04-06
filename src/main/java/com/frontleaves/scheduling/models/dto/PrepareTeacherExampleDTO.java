@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.models.dto;
 
+import com.frontleaves.scheduling.models.dto.base.TeacherTypeDTO;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -25,6 +26,11 @@ public class PrepareTeacherExampleDTO {
      * 教师类型数据
      */
     private List<TeacherTypeDTO> teacherTypeList;
+
+    /**
+     * 教师部门数据
+     */
+    private String departmentName;
 
     /**
      * 单位DTO
