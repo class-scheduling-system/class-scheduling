@@ -7,13 +7,13 @@ import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
 import com.frontleaves.scheduling.daos.TeacherTypeDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.TeacherDTO;
-import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
-import com.frontleaves.scheduling.models.entity.DepartmentDO;
-import com.frontleaves.scheduling.models.entity.TeacherDO;
-import com.frontleaves.scheduling.models.entity.TeacherTypeDO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherDTO;
+import com.frontleaves.scheduling.models.dto.lite.TeacherDisableDTO;
+import com.frontleaves.scheduling.models.entity.base.DepartmentDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherTypeDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
 import com.frontleaves.scheduling.services.TeacherService;
 import com.xlf.utility.ErrorCode;
@@ -36,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 class TeacherTest {
     @Resource

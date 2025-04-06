@@ -28,7 +28,7 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,7 +51,6 @@ public interface AiService {
      * </p>
      *
      * @param userInput 用户输入的路由路径
-     * @param html      HTML 内容
      * @param role      用户角色
      * @param form      表单数据
      * @param otherData 其他数据
@@ -63,7 +62,6 @@ public interface AiService {
      */
     void sendRouteJump(
             @NotNull String userInput,
-            @Nullable String html,
             @Nullable String role,
             @Nullable String form,
             @Nullable String otherData,
@@ -73,4 +71,17 @@ public interface AiService {
             @NotNull UserDO user,
             @NotNull String userAgent
     );
+
+    /**
+     * 发送 AI 聊天消息
+     * <p>
+     * 该方法用于处理 AI 聊天消息请求。
+     * </p>
+     *
+     * @param userInput      用户输入的消息
+     * @param chat          聊天记录
+     * @param user          用户对象
+     * @param userAgent     用户代理信息
+     */
+    void sendAiChat(String userInput, String chat, UserDO user, String userAgent);
 }

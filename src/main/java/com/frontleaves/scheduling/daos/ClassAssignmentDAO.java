@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassAssignmentMapper;
-import com.frontleaves.scheduling.models.entity.ClassAssignmentDO;
+import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
@@ -234,5 +234,27 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
         } else {
             return ProjectUtil.convertMapToPage(cacheMap, ClassAssignmentDO.class);
         }
+    }
+
+    /**
+     * 根据学期UUID获取排课分配列表
+     * @param semesterUuid 学期UUID
+     * @return 排课分配列表
+     */
+    public List<ClassAssignmentDO> getClassAssignmentListBySemester(String semesterUuid) {
+        RList<ClassAssignmentDO> rList = redisson.getList(
+                StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + semesterUuid);
+        if (!rList.isExists()) {
+            List<ClassAssignmentDO> list = this.lambdaQuery()
+                    .eq(ClassAssignmentDO::getSemesterUuid, semesterUuid)
+                    .list();
+            if (!list.isEmpty()){
+                rList.addAll(list);
+                rList.expire(Duration.ofHours(1));
+                return list;
+            }
+            return List.of();
+        }
+        return rList.readAll();
     }
 }

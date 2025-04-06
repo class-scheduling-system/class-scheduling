@@ -33,7 +33,7 @@ import com.frontleaves.scheduling.configs.apps.WebSocketConfig;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.TokenDAO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.frontleaves.scheduling.services.AiService;
 import com.frontleaves.scheduling.utils.WsResponseUtil;
 import jakarta.websocket.OnClose;
@@ -49,6 +49,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -70,11 +71,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
 @NoArgsConstructor
 @ServerEndpoint(value = "/ws/ai/response/front", configurator = WebSocketConfig.class)
 public class AiFrontWebSocketComponent {
-    @Setter
-    private static TokenDAO tokenDAO;
-    @Setter
-    private static AiService aiService;
-
     /**
      * concurrent包的线程安全Set，用来存放每个客户端对应的MyWebSocket对象。
      * 虽然@Component默认是单例模式的，但springboot还是会为每个websocket连接初始化一个bean，所以可以用一个静态set保存起来。
@@ -85,6 +81,15 @@ public class AiFrontWebSocketComponent {
      */
     private static final ConcurrentHashMap<String, Session> SESSION_POOL = new ConcurrentHashMap<>();
 
+    /**
+     * WebSocket消息接收大小限制（字节）【最大】
+     */
+    private static final int MAX_RECEIVE_MESSAGE_SIZE = 512 * 1024 * 1024;
+
+    @Setter
+    private static TokenDAO tokenDAO;
+    @Setter
+    private static AiService aiService;
     /**
      * 与某个客户端的连接会话，需要通过它来给客户端发送数据
      */
@@ -128,7 +133,7 @@ public class AiFrontWebSocketComponent {
             }
             UserDO getUser = tokenDAO.getTokenUser(getToken);
             if (getUser == null || getUser.getUserUuid() == null || getUser.getUserUuid().isEmpty()) {
-                session.getAsyncRemote().sendText(WsResponseUtil.error("Failed", "用户不存在", Map.of()));
+                session.getAsyncRemote().sendText(WsResponseUtil.error("Failed", "用户未登录", Map.of()));
                 log.info("{}关闭连接: [{}]", LogConstant.WS, "用户不存在");
                 session.close();
                 return;
@@ -143,9 +148,13 @@ public class AiFrontWebSocketComponent {
         SESSION_MANAGER.add(this);
         SESSION_POOL.put(userUuid, session);
 
+        // 配置WebSocket会话参数
+        session.setMaxTextMessageBufferSize(512 * 1024); // 设置为512KB
+        session.setMaxBinaryMessageBufferSize(512 * 1024);
+
         // 发送连接成功消息
         session.getAsyncRemote().sendText(WsResponseUtil.success("Success", "connected", Map.of(
-            "message", "连接成功"
+                "message", "连接成功"
         )));
         log.debug("{}建立与[{}]的消息提醒计数连接", LogConstant.WS, user.getName());
     }
@@ -174,26 +183,48 @@ public class AiFrontWebSocketComponent {
     public void onMessage(String message) {
         String userAgent = SESSION_POOL.get(userUuid).getUserProperties().get("user-agent").toString();
         try {
+            // 检查消息大小
+            byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+            int messageSize = messageBytes.length;
+
+            if (messageSize > MAX_RECEIVE_MESSAGE_SIZE) {
+                log.warn("{}接收到的消息大小超过限制：{} 字节", LogConstant.WS, messageSize);
+                sendMessage(userUuid, WsResponseUtil.error("Failed", "消息大小超过限制", Map.of(
+                        "message", "消息大小超过服务器限制（" + MAX_RECEIVE_MESSAGE_SIZE + " 字节），请减小消息大小。",
+                        "size", messageSize,
+                        "limit", MAX_RECEIVE_MESSAGE_SIZE
+                )));
+                return;
+            }
+
             log.debug("{}接收到消息: [{}]", LogConstant.WS, message);
             JSONObject getJson = new JSONObject(message);
             log.debug("{}接收到消息: [{}]", LogConstant.WS, getJson);
-            aiService.sendRouteJump(
-                getJson.getStr("user_input"),
-                getJson.getStr("html"),
-                getJson.getStr("role"),
-                getJson.getStr("form"),
-                getJson.getStr("other_data"),
-                getJson.getStr("record"),
-                getJson.getStr("this_page"),
-                getJson.getStr("chat"),
-                user,
-                userAgent
-            );
+            if ("chat".equals(getJson.getStr("type"))) {
+                aiService.sendAiChat(
+                        getJson.getStr("user_input"),
+                        getJson.getStr("chat"),
+                        user,
+                        userAgent
+                );
+            } else {
+                aiService.sendRouteJump(
+                        getJson.getStr("user_input"),
+                        getJson.getStr("role"),
+                        getJson.getStr("form"),
+                        getJson.getStr("other_data"),
+                        getJson.getStr("record"),
+                        getJson.getStr("this_page"),
+                        getJson.getStr("chat"),
+                        user,
+                        userAgent
+                );
+            }
         } catch (Exception e) {
             this.sendMessage(userUuid, WsResponseUtil.error("Failed", "消息处理失败", Map.of(
-                "message", e.getMessage()
+                    "message", e.getMessage()
             )));
-            log.error("{}处理消息时发生错误: {}", LogConstant.WS, e.getMessage());
+            log.error("{}处理消息时发生错误: {}", LogConstant.WS, e.getMessage(), e);
         }
     }
 
@@ -206,7 +237,16 @@ public class AiFrontWebSocketComponent {
     public void sendMessage(String userUuid, String message) {
         Session session = SESSION_POOL.get(userUuid);
         if (session != null && session.isOpen()) {
-            session.getAsyncRemote().sendText(message);
+            synchronized (session) {
+                try {
+                    // 使用Future来等待消息发送完成
+                    session.getAsyncRemote().sendText(message).get();
+                    // 添加小延迟确保消息有时间被处理
+                    Thread.sleep(10);
+                } catch (Exception e) {
+                    log.error("{}发送消息时发生错误: {}", LogConstant.WS, e.getMessage(), e);
+                }
+            }
         }
     }
 }

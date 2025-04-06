@@ -28,9 +28,9 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.JvmStackDTO;
-import com.frontleaves.scheduling.models.dto.SiteDTO;
-import com.frontleaves.scheduling.models.dto.SystemDTO;
+import com.frontleaves.scheduling.models.dto.base.JvmStackDTO;
+import com.frontleaves.scheduling.models.dto.base.SiteDTO;
+import com.frontleaves.scheduling.models.dto.base.SystemDTO;
 
 /**
  * 公共服务接口，提供站点信息的获取功能。

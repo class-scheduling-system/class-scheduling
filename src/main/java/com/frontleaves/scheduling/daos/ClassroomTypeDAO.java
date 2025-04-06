@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -32,7 +32,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassroomTypeMapper;
-import com.frontleaves.scheduling.models.entity.ClassroomTypeDO;
+import com.frontleaves.scheduling.models.entity.base.ClassroomTypeDO;
 import com.frontleaves.scheduling.utils.ProjectOption;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
@@ -43,6 +43,8 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -111,5 +113,50 @@ public class ClassroomTypeDAO extends ServiceImpl<ClassroomTypeMapper, Classroom
             return BeanUtil.toBean(map, ClassroomTypeDO.class, ProjectOption.stringBlankToNull());
         }
         return null;
+    }
+
+    /**
+     * 获取所有教室类型列表
+     * <p>
+     * 该方法是getTypes的替代方法，提供与其他DAO一致的方法命名，功能与getTypes相同。
+     * 从Redis缓存中获取所有的教室类型列表，如果缓存中不存在，则从数据库中查询并加载到缓存中。
+     * </p>
+     *
+     * @return 返回一个包含所有教室类型的 {@code List<ClassroomTypeDO>}，如果没有找到任何类型则返回空列表
+     */
+    public List<ClassroomTypeDO> getClassroomTypeList() {
+        RList<ClassroomTypeDO> types = redisson.getList(StringConstant.Redis.CLASSROOM_TYPE_LIST);
+        if (!types.isExists()) {
+            List<ClassroomTypeDO> getList = this.lambdaQuery().list();
+            if (getList !=null &&!getList.isEmpty()) {
+                types.addAll(getList);
+                types.expire(Duration.ofSeconds(3600));
+                return getList;
+            }
+        } else {
+            return types.readAll();
+        }
+        return Collections.emptyList();
+    }
+
+    /**
+     * 根据类型名称获取类型实体
+     * <p>
+     * 该方法用于通过教室类型名称查询对应的类型实体。如果缓存中存在，则直接从缓存获取；
+     * 否则从数据库中查询，并将结果缓存。这对于批量导入操作中的类型匹配特别有用。
+     * </p>
+     *
+     * @param name 类型名称
+     * @return 返回与指定名称匹配的类型实体对象，如果不存在则返回null
+     */
+    @Nullable
+    public ClassroomTypeDO getTypeByName(String name) {
+        // 先从缓存中获取所有类型
+        List<ClassroomTypeDO> allTypes = getTypes();
+        // 在列表中查找匹配名称的类型
+        return allTypes.stream()
+                .filter(type -> type.getName().equals(name))
+                .findFirst()
+                .orElse(null);
     }
 }

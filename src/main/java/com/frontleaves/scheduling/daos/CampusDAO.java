@@ -6,8 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CampusMapper;
-import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
-import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.CampusDO;
 import com.frontleaves.scheduling.utils.ProjectOption;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
@@ -139,7 +139,7 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
         try {
             // 更新数据库中的校园信息
             this.updateById(campusDO);
-            this.deleteUserRedis(campusDO, transaction);
+            this.deleteUserRedis(campusDO);
         } catch (Exception e) {
             // 如果发生异常，回滚事务，确保数据一致性
             transaction.rollback();
@@ -155,11 +155,14 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
      * @param campusDO    校园实体对象，包含校园的UUID、代码和名称
      * @param transaction Redis事务对象，用于执行删除操作
      */
-    private void deleteUserRedis(@NotNull CampusDO campusDO, @NotNull RTransaction transaction) {
-        transaction.getMap(StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid()).delete();
-        transaction.getBucket(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode()).delete();
-        transaction.getBucket(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName()).delete();
-        transaction.commit();
+    private void deleteUserRedis(@NotNull CampusDO campusDO) {
+        RKeys keys = redisson.getKeys();
+
+        keys.delete(StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid());
+        keys.delete(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode());
+        keys.delete(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
+        keys.delete(StringConstant.Redis.CAMPUS_LIST);
+        keys.delete(StringConstant.Redis.CAMPUS_FULL_LIST);
     }
 
     /**
@@ -173,12 +176,15 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
      */
     public void deleteCampus(CampusDO campusDO) {
         RKeys keys = redisson.getKeys();
+        this.removeById(campusDO.getCampusUuid());
+
         keys.deleteByPattern(StringConstant.Redis.CLASSROOM_PAGE + "*");
         keys.deleteByPattern(StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
-        keys.deleteByPattern(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode());
-        keys.deleteByPattern(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
-        keys.deleteByPattern(StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid());
-        this.removeById(campusDO.getCampusUuid());
+        keys.delete(StringConstant.Redis.CAMPUS_CODE + campusDO.getCampusCode());
+        keys.delete(StringConstant.Redis.CAMPUS_NAME + campusDO.getCampusName());
+        keys.delete(StringConstant.Redis.CAMPUS_UUID + campusDO.getCampusUuid());
+        keys.delete(StringConstant.Redis.CAMPUS_LIST);
+        keys.delete(StringConstant.Redis.CAMPUS_FULL_LIST);
     }
 
     /**
@@ -219,43 +225,72 @@ public class CampusDAO extends ServiceImpl<CampusMapper, CampusDO> {
      * 获取校区列表
      * <p>
      * 该方法用于从Redis缓存或数据库中获取所有校区的列表。如果在Redis缓存中没有找到相应的数据，则从数据库中查询，并将结果缓存到Redis中以提高后续查询效率。
-     * 如果缓存中存在，则直接从缓存中读取校区列表。返回的校区列表以 {@code ListOfCampusDTO} 对象的形式表示，每个对象包含校区主键、校区名称和校区编码。
+     * 如果缓存中存在，则直接从缓存中读取校区列表。返回的校区列表以 {@code CampusLiteDTO} 对象的形式表示，每个对象包含校区主键、校区名称和校区编码。
      * </p>
      *
-     * @return 返回包含所有校区信息的列表，每个校区信息由 {@code ListOfCampusDTO} 对象表示
+     * @return 返回包含所有校区信息的列表，每个校区信息由 {@code CampusLiteDTO} 对象表示
      */
-    public List<ListOfCampusDTO> getCampusList() {
-        RList<ListOfCampusDTO> campusList = redisson.getList(StringConstant.Redis.CAMPUS_LIST);
+    public List<CampusLiteDTO> getCampusList() {
+        RList<CampusLiteDTO> campusList = redisson.getList(StringConstant.Redis.CAMPUS_LIST);
         if (!campusList.isExists()) {
             this.lambdaQuery().list().stream()
-                    .map(campusDO -> BeanUtil.toBean(campusDO, ListOfCampusDTO.class, ProjectOption.stringBlankToNull()))
+                    .map(campusDO -> BeanUtil.toBean(campusDO, CampusLiteDTO.class, ProjectOption.stringBlankToNull()))
                     .forEach(campusList::add);
             campusList.expire(Duration.ofSeconds(43200));
         }
         return campusList.readAll();
     }
 
-
     /**
      * 获取所有校区信息
      * <p>
-     * 该方法用于从Redis缓存或数据库中获取所有校区的完整信息。
-     * 如果在Redis缓存中没有找到相应的数据，则从数据库中查询，并将结果缓存到Redis中以提高后续查询效率。
-     * 与getCampusList方法不同，此方法返回校区的完整实体对象（CampusDO），包含所有字段信息。
+     * 该方法用于从Redis缓存或数据库中获取所有校区的列表。如果在Redis缓存中没有找到相应的数据，则从数据库中查询，并将结果缓存到Redis中以提高后续查询效率。
+     * 如果缓存中存在，则直接从缓存中读取校区列表。
      * </p>
      *
-     * @return 返回包含所有校区完整信息的列表
+     * @return 返回包含所有校区信息的列表，每个校区信息由 {@code CampusDO} 对象表示
      */
     public List<CampusDO> getAllCampus() {
-        RList<CampusDO> campusList = redisson.getList(StringConstant.Redis.CAMPUS_LIST);
+        RList<CampusDO> campusList = redisson.getList(StringConstant.Redis.CAMPUS_FULL_LIST);
         if (!campusList.isExists()) {
-            List<CampusDO> campusDOList = this.lambdaQuery().list();
-            if (!campusDOList.isEmpty()) {
-                campusList.addAll(campusDOList);
-                campusList.expire(Duration.ofSeconds(43200));
-            }
-            return campusDOList;
+            this.lambdaQuery().list().forEach(campusList::add);
+            campusList.expire(Duration.ofSeconds(43200));
         }
         return campusList.readAll();
+    }
+
+    /**
+     * 保存校区信息
+     * <p>
+     * 该方法用于保存新的校区信息到数据库，并同时更新相关的缓存。
+     * </p>
+     *
+     * @param campusDO 要保存的校区信息对象
+     * @return 返回保存后的校区信息对象
+     */
+    public CampusDO saveCampus(CampusDO campusDO) {
+        // 保存到数据库
+        this.save(campusDO);
+
+        // 删除列表缓存，确保下次查询时能获取到最新数据
+        this.deleteCampusCache();
+
+        return campusDO;
+    }
+
+    /**
+     * 删除校区相关的所有缓存
+     * <p>
+     * 该方法用于删除与校区相关的所有Redis缓存，包括分页缓存、列表缓存等。
+     * 通常在批量操作后调用，以确保缓存数据的一致性。
+     * </p>
+     */
+    public void deleteCampusCache() {
+        RKeys keys = redisson.getKeys();
+        keys.deleteByPattern(StringConstant.Redis.CAMPUS_PAGE_OF_LIST + "*");
+        keys.deleteByPattern(StringConstant.Redis.CLASSROOM_PAGE + "*");
+        keys.delete(StringConstant.Redis.CAMPUS_LIST);
+        keys.delete(StringConstant.Redis.CAMPUS_FULL_LIST);
+        log.debug("删除校区缓存数据成功");
     }
 }

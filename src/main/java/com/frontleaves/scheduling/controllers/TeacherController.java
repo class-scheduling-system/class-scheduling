@@ -5,7 +5,6 @@ import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.*;
 import com.frontleaves.scheduling.models.vo.TeacherBatchImportVO;
-import com.frontleaves.scheduling.models.dto.TeacherLiteDTO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
 import com.frontleaves.scheduling.services.TeacherService;
 import com.xlf.utility.BaseResponse;

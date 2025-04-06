@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.mappers;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.UnitCategoryDO;
+import com.frontleaves.scheduling.models.entity.base.UnitCategoryDO;
 import org.apache.ibatis.annotations.Mapper;
 
 

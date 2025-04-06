@@ -2,9 +2,9 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.TeacherTypeDAO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.TeacherTypeDTO;
-import com.frontleaves.scheduling.models.entity.TeacherTypeDO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherTypeDTO;
+import com.frontleaves.scheduling.models.entity.base.TeacherTypeDO;
 import com.frontleaves.scheduling.services.TeacherTypeService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * TeacherTypeLogic 单元测试类
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 class TeacherTypeEnumTest {
     @Resource

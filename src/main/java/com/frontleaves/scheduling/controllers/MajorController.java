@@ -1,9 +1,9 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.MajorDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.entity.MajorDO;
+import com.frontleaves.scheduling.models.dto.base.MajorDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.entity.base.MajorDO;
 import com.frontleaves.scheduling.models.vo.MajorVO;
 import com.frontleaves.scheduling.services.MajorService;
 import com.xlf.utility.BaseResponse;

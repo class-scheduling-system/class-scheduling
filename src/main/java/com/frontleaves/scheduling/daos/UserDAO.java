@@ -34,7 +34,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.UserMapper;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;

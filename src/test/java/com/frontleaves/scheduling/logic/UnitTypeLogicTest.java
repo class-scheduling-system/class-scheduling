@@ -3,11 +3,11 @@ package com.frontleaves.scheduling.logic;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.UnitCategoryDAO;
 import com.frontleaves.scheduling.daos.UnitTypeDAO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.UnitTypeDTO;
-import com.frontleaves.scheduling.models.dto.UnitTypeLiteDTO;
-import com.frontleaves.scheduling.models.entity.DepartmentDO;
-import com.frontleaves.scheduling.models.entity.UnitTypeDO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.UnitTypeDTO;
+import com.frontleaves.scheduling.models.dto.lite.UnitTypeLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.DepartmentDO;
+import com.frontleaves.scheduling.models.entity.base.UnitTypeDO;
 import com.frontleaves.scheduling.models.vo.UnitTypeVO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Transactional
 class UnitTypeLogicTest {
     @Autowired

@@ -4,12 +4,11 @@ import com.frontleaves.scheduling.models.dto.PageDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDTO;
 import com.frontleaves.scheduling.models.dto.TeacherDisableDTO;
 import com.frontleaves.scheduling.models.dto.TeacherLiteDTO;
-import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.vo.TeacherBatchImportVO;
 import com.frontleaves.scheduling.models.vo.TeacherVO;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
@@ -17,6 +16,8 @@ import java.util.List;
 public interface TeacherService {
     void addTeacher(TeacherVO teacherVO);
 
+
+    @NotNull
     TeacherDTO getTeacher(String teacherUuid);
 
     PageDTO<TeacherDTO> getTeacherList(Integer page, Integer size, Boolean isDesc, String department, String status, String name);

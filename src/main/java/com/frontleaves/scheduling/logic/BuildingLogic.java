@@ -38,9 +38,15 @@ import com.frontleaves.scheduling.daos.BuildingDAO;
 import com.frontleaves.scheduling.daos.CampusDAO;
 import com.frontleaves.scheduling.exceptions.lib.DataInvalidException;
 import com.frontleaves.scheduling.exceptions.lib.DataNotFoundException;
-import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.BuildingDO;
-import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.dto.base.BuildingDTO;
+import com.frontleaves.scheduling.models.dto.base.CampusDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddBuildingDTO;
+import com.frontleaves.scheduling.models.dto.excel.BuildingImportDTO;
+import com.frontleaves.scheduling.models.dto.lite.BuildingLiteDTO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.BuildingDO;
+import com.frontleaves.scheduling.models.entity.base.CampusDO;
 import com.frontleaves.scheduling.models.vo.BatchAddBuildingVO;
 import com.frontleaves.scheduling.services.BuildingService;
 import com.frontleaves.scheduling.utils.ProjectUtil;
@@ -66,7 +72,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * 教学楼逻辑处理类
@@ -85,6 +90,93 @@ import java.util.stream.Collectors;
 public class BuildingLogic implements BuildingService {
     private final BuildingDAO buildingDAO;
     private final CampusDAO campusDAO;
+
+    /**
+     * 从给定的列表中提取教学楼信息并创建一个BuildingImportDTO对象
+     * 该方法主要用于从导入的列表数据中解析出教学楼的相关信息，并将其封装到DTO对象中
+     *
+     * @param rowlist 包含教学楼信息的列表，不能为空
+     * @return 返回一个填充了教学楼信息的BuildingImportDTO对象，不能为空
+     */
+    private static @NotNull BuildingImportDTO getBuildingImportDTO(@NotNull List<Object> rowlist) {
+        // 创建一个新的BuildingImportDTO对象
+        BuildingImportDTO building = new BuildingImportDTO();
+
+        // 从列表中提取教学楼信息并设置到DTO对象中
+        building.setCampusName(rowlist.get(0).toString().trim())
+                .setBuildingName(rowlist.get(1).toString().trim());
+
+        // 处理状态字段 - 可以是数字(1/0)或文本(启用/禁用)
+        String status = rowlist.get(2).toString().trim();
+        // 默认为启用状态
+        if ("1".equals(status) || "启用".equals(status)) {
+            building.setStatus(true);
+        } else {
+            building.setStatus(!"0".equals(status) && !"禁用".equals(status));
+        }
+
+        // 返回填充了教学楼信息的DTO对象
+        return building;
+    }
+
+    /**
+     * 解析Excel字节流为BuildingImportDTO对象列表
+     * 该方法负责读取Excel文件的内容，从指定的起始行开始，检查一定数量的列，并将每行数据转换为BuildingImportDTO对象
+     *
+     * @param excelBytes Excel文件的字节流，用于读取Excel文件内容
+     * @return 解析后的BuildingImportDTO对象列表，包含Excel中解析出的建筑信息
+     */
+    //解析文件
+    private static List<BuildingImportDTO> parseExcelToBuildingList(byte[] excelBytes) {
+        // 解析Excel文件获取行数据列表
+        List<List<Object>> rowList = ProjectUtil.parseExcelToRowList(excelBytes, 2, 3);
+        log.debug("原生列表{}", rowList);
+        // 创建结果列表
+        List<BuildingImportDTO> buildingList = new ArrayList<>();
+        // 处理每一行数据，即使数据不完整也创建对象
+        for (List<Object> row : rowList) {
+            try {
+                // 确保行数据至少有一个元素，避免处理完全空的行
+                if (!row.isEmpty() && row.size() >= 3) {
+                    // 转换为BuildingImportDTO对象并添加到结果列表
+                    BuildingImportDTO building = getBuildingImportDTO(row);
+                    buildingList.add(building);
+                }
+            } catch (Exception e) {
+                // 记录异常并继续处理下一行
+                log.error("解析教学楼数据时出错: {}", e.getMessage());
+            }
+        }
+        return buildingList;
+    }
+
+    /**
+     * 获取失败的详细信息
+     * 当添加建筑的过程中遇到错误时，此方法用于生成包含失败详情的对象
+     *
+     * @param e 异常对象，表示添加建筑过程中遇到的错误
+     * @param i 表示失败的行号，用于追踪问题所在位置
+     * @return 返回一个FailedDetail对象，包含失败的行号和原因
+     */
+    private static BackAddBuildingDTO.@NotNull FailedDetail getFailedDetail(RuntimeException e, int i) {
+        // 创建一个FailedDetail对象来存储失败的详细信息
+        BackAddBuildingDTO.FailedDetail failedDetail = new BackAddBuildingDTO.FailedDetail();
+        // 设置失败的行号，+3是因为数据开始于第4行
+        failedDetail.setRow(i + 3);
+        // 根据异常类型设置失败的原因
+        if (e instanceof DataNotFoundException error) {
+            // 如果是数据不存在异常，设置具体原因
+            failedDetail.setReason("数据不存在：" + error.getReason());
+        } else if (e instanceof DataInvalidException error) {
+            // 如果是数据无效异常，设置具体原因
+            failedDetail.setReason("数据无效：" + error.getReason());
+        } else {
+            // 如果是其他未知异常，设置通用错误信息
+            failedDetail.setReason("未知错误：" + e.getMessage());
+        }
+        // 返回包含失败信息的对象
+        return failedDetail;
+    }
 
     /**
      * 获取包含关键词的教学楼列表
@@ -307,36 +399,6 @@ public class BuildingLogic implements BuildingService {
         return BeanUtil.copyToList(buildingList, BuildingLiteDTO.class);
     }
 
-
-    /**
-     * 从给定的列表中提取教学楼信息并创建一个BuildingImportDTO对象
-     * 该方法主要用于从导入的列表数据中解析出教学楼的相关信息，并将其封装到DTO对象中
-     *
-     * @param rowlist 包含教学楼信息的列表，不能为空
-     * @return 返回一个填充了教学楼信息的BuildingImportDTO对象，不能为空
-     */
-    private static @NotNull BuildingImportDTO getBuildingImportDTO(@NotNull List<Object> rowlist) {
-        // 创建一个新的BuildingImportDTO对象
-        BuildingImportDTO building = new BuildingImportDTO();
-
-        // 从列表中提取教学楼信息并设置到DTO对象中
-        building.setCampusName(rowlist.get(0).toString().trim())
-                .setBuildingName(rowlist.get(1).toString().trim());
-
-        // 处理状态字段 - 可以是数字(1/0)或文本(启用/禁用)
-        String status = rowlist.get(2).toString().trim();
-        // 默认为启用状态
-        if ("1".equals(status) || "启用".equals(status)) {
-            building.setStatus(true);
-        } else {
-            building.setStatus(!"0".equals(status) && !"禁用".equals(status));
-        }
-
-        // 返回填充了教学楼信息的DTO对象
-        return building;
-    }
-
-
     /**
      * 读取建筑导入通知文件的内容
      * <p>
@@ -357,15 +419,9 @@ public class BuildingLogic implements BuildingService {
                     return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
                 }
             } else {
-                // 资源不存在，返回默认文本
-                return """
-                        注意事项：
-                        1. 请严格按照模板填写信息
-                        2. 所有信息必须准确无误
-                        3. 请勿修改模板结构""";
+                throw new IOException("文件不存在");
             }
         } catch (IOException e) {
-            // 如果读取失败，返回默认文本
             return """
                     注意事项：
                     1. 请严格按照模板填写信息
@@ -374,30 +430,21 @@ public class BuildingLogic implements BuildingService {
         }
     }
 
-
     /**
      * 准备校园数据
      * <p>
      * 本方法用于准备校园的相关数据，通过访问数据库获取所有校园信息，并将其转换为所需的DTO格式
      * 主要包括从数据库模型对象（DAO）到传输对象（DTO）的转换，以及数据的收集和封装
      *
-     * @return PrepareBuildingDTO 包含所有转换后的校园数据的传输对象
+     * @return List<CampusDTO> 包含所有转换后的校园数据的传输对象
      */
     @Override
-    public PrepareBuildingDTO prepareCampusData() {
-        // 从数据库获取所有校园信息，并转换为CampusDTO列表
-        List<CampusDTO> campusList = campusDAO.getAllCampus().stream()
-                .map(campusDO -> {
-                    CampusDTO campusDTO = new CampusDTO();
-                    // 设置校区属性
-                    campusDTO.setCampusUuid(campusDO.getCampusUuid())
-                            .setCampusName(campusDO.getCampusName());
-                    return campusDTO;
-                })
-                .collect(Collectors.toList());
-
-        // 创建PrepareBuildingDTO对象并设置校园列表
-        return new PrepareBuildingDTO().setCampus(campusList);
+    public List<CampusLiteDTO> prepareCampusData() {
+        return Optional.ofNullable(campusDAO.getCampusList())
+                .map(list -> list.stream()
+                        .map(campus -> BeanUtil.toBean(campus, CampusLiteDTO.class))
+                        .toList())
+                .orElse(List.of());
     }
 
     /**
@@ -408,7 +455,7 @@ public class BuildingLogic implements BuildingService {
      */
     //生成模板
     @Override
-    public byte[] getBuildingImportTemplate(PrepareBuildingDTO prepareBuildingExampleDTO) {
+    public byte[] getBuildingImportTemplate(List<CampusLiteDTO> prepareBuildingExampleDTO) {
         // 创建ExcelWriter对象
         ExcelWriter writer = ExcelUtil.getWriter(true);
 
@@ -465,9 +512,9 @@ public class BuildingLogic implements BuildingService {
         writer.writeCellValue(6, 1, "校区名称列表");
 
         // 填充校区数据
-        if (prepareBuildingExampleDTO.getCampus() != null) {
-            for (int i = 0; i < prepareBuildingExampleDTO.getCampus().size(); i++) {
-                writer.writeCellValue(6, i + 2, prepareBuildingExampleDTO.getCampus().get(i).getCampusName());
+        if (prepareBuildingExampleDTO != null) {
+            for (int i = 0; i < prepareBuildingExampleDTO.size(); i++) {
+                writer.writeCellValue(6, i + 2, prepareBuildingExampleDTO.get(i).getCampusName());
             }
         }
 
@@ -484,7 +531,6 @@ public class BuildingLogic implements BuildingService {
         // 返回模板的字节数组
         return outputStream.toByteArray();
     }
-
 
     /**
      * 验证批量添加教学楼信息的请求体和Excel文件
@@ -546,39 +592,6 @@ public class BuildingLogic implements BuildingService {
         return fileBytes;
     }
 
-
-    /**
-     * 解析Excel字节流为BuildingImportDTO对象列表
-     * 该方法负责读取Excel文件的内容，从指定的起始行开始，检查一定数量的列，并将每行数据转换为BuildingImportDTO对象
-     *
-     * @param excelBytes Excel文件的字节流，用于读取Excel文件内容
-     * @return 解析后的BuildingImportDTO对象列表，包含Excel中解析出的建筑信息
-     */
-    //解析文件
-    private static List<BuildingImportDTO> parseExcelToBuildingList(byte[] excelBytes) {
-        // 解析Excel文件获取行数据列表
-        List<List<Object>> rowList = ProjectUtil.parseExcelToRowList(excelBytes, 2, 3);
-        log.debug("原生列表{}", rowList);
-        // 创建结果列表
-        List<BuildingImportDTO> buildingList = new ArrayList<>();
-        // 处理每一行数据，即使数据不完整也创建对象
-        for (List<Object> row : rowList) {
-            try {
-                // 确保行数据至少有一个元素，避免处理完全空的行
-                if (!row.isEmpty() && row.size() >= 3) {
-                    // 转换为BuildingImportDTO对象并添加到结果列表
-                    BuildingImportDTO building = getBuildingImportDTO(row);
-                    buildingList.add(building);
-                }
-            } catch (Exception e) {
-                // 记录异常并继续处理下一行
-                log.error("解析教学楼数据时出错: {}", e.getMessage());
-            }
-        }
-        return buildingList;
-    }
-
-
     /**
      * 获取导入教学楼所需的基础数据
      * <p>
@@ -625,9 +638,9 @@ public class BuildingLogic implements BuildingService {
      * 该方法用于验证导入的教学楼信息是否符合系统要求，包括校区名称是否存在、教学楼名称是否为空等。
      * </p>
      *
-     * @param buildingList    教学楼导入列表，包含待验证的教学楼信息
-     * @param campusList      系统中的校区列表，用于校验校区名称
-     * @param i               当前验证的教学楼在列表中的索引
+     * @param buildingList 教学楼导入列表，包含待验证的教学楼信息
+     * @param campusList   系统中的校区列表，用于校验校区名称
+     * @param i            当前验证的教学楼在列表中的索引
      * @return 验证通过的校区对象
      * @throws BusinessException 当教学楼信息中的校区名称不存在，或教学楼名称为空时抛出
      */
@@ -665,7 +678,6 @@ public class BuildingLogic implements BuildingService {
 
         return campusDO;
     }
-
 
     /**
      * 批量导入教学楼信息，忽略错误
@@ -724,13 +736,14 @@ public class BuildingLogic implements BuildingService {
             }
         }
 
+        // 删除分页和列表缓存
+        buildingDAO.deleteBuildingCache();
+
         // 设置统计结果
-        backAddBuildingDTO.setTotalCount(buildingList.size())
+        return backAddBuildingDTO.setTotalCount(buildingList.size())
                 .setSuccessCount(successCount)
                 .setFailedCount(failedDetails.size())
                 .setFailedDetails(failedDetails.isEmpty() ? null : failedDetails);
-
-        return backAddBuildingDTO;
     }
 
     /**
@@ -768,40 +781,14 @@ public class BuildingLogic implements BuildingService {
             buildingDAO.saveBuildingBackError(buildingDO, i);
         }
 
+        // 删除分页和列表缓存
+        buildingDAO.deleteBuildingCache();
+
         //成功
         return new BackAddBuildingDTO()
                 .setTotalCount(buildingList.size())
                 .setFailedCount(0)
                 .setSuccessCount(buildingList.size())
                 .setFailedDetails(null);
-    }
-
-
-    /**
-     * 获取失败的详细信息
-     * 当添加建筑的过程中遇到错误时，此方法用于生成包含失败详情的对象
-     *
-     * @param e 异常对象，表示添加建筑过程中遇到的错误
-     * @param i 表示失败的行号，用于追踪问题所在位置
-     * @return 返回一个FailedDetail对象，包含失败的行号和原因
-     */
-    private static BackAddBuildingDTO.@NotNull FailedDetail getFailedDetail(RuntimeException e, int i) {
-        // 创建一个FailedDetail对象来存储失败的详细信息
-        BackAddBuildingDTO.FailedDetail failedDetail = new BackAddBuildingDTO.FailedDetail();
-        // 设置失败的行号，+3是因为数据开始于第4行
-        failedDetail.setRow(i + 3);
-        // 根据异常类型设置失败的原因
-        if (e instanceof DataNotFoundException error) {
-            // 如果是数据不存在异常，设置具体原因
-            failedDetail.setReason("数据不存在：" + error.getReason());
-        } else if (e instanceof DataInvalidException error) {
-            // 如果是数据无效异常，设置具体原因
-            failedDetail.setReason("数据无效：" + error.getReason());
-        } else {
-            // 如果是其他未知异常，设置通用错误信息
-            failedDetail.setReason("未知错误：" + e.getMessage());
-        }
-        // 返回包含失败信息的对象
-        return failedDetail;
     }
 }

@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -32,7 +32,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassroomTagMapper;
-import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
+import com.frontleaves.scheduling.models.entity.base.ClassroomTagDO;
 import com.frontleaves.scheduling.utils.ProjectOption;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
@@ -111,5 +111,26 @@ public class ClassroomTagDAO extends ServiceImpl<ClassroomTagMapper, ClassroomTa
             return BeanUtil.toBean(map, ClassroomTagDO.class, ProjectOption.stringBlankToNull());
         }
         return null;
+    }
+
+    /**
+     * 根据标签名称获取标签实体
+     * <p>
+     * 该方法用于通过教室标签名称查询对应的标签实体。如果缓存中存在，则直接从缓存获取；
+     * 否则从数据库中查询，并将结果缓存。这对于批量导入操作中的标签匹配特别有用。
+     * </p>
+     *
+     * @param name 标签名称
+     * @return 返回与指定名称匹配的标签实体对象，如果不存在则返回null
+     */
+    @Nullable
+    public ClassroomTagDO getTagByName(String name) {
+        // 先从缓存中获取所有标签
+        List<ClassroomTagDO> allTags = getTags();
+        // 在列表中查找匹配名称的标签
+        return allTags.stream()
+                .filter(tag -> tag.getName().equals(name))
+                .findFirst()
+                .orElse(null);
     }
 }

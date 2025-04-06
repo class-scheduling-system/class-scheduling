@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -32,7 +32,12 @@ import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.dto.base.BuildingDTO;
+import com.frontleaves.scheduling.models.dto.base.FileDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddBuildingDTO;
+import com.frontleaves.scheduling.models.dto.lite.BuildingLiteDTO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddBuildingVO;
 import com.frontleaves.scheduling.models.vo.BuildingOperateVO;
 import com.frontleaves.scheduling.services.BuildingService;
@@ -42,15 +47,11 @@ import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -110,7 +111,7 @@ public class BuildingController {
      * 获取教学楼信息
      * <p>
      * 该方法用于根据教学楼的 UUID 或名称获取教学楼的详细信息。如果提供的 {@code building} 参数为空或空白，
-     * 则会抛出一个业务异常，提示“教学楼UUID/名称不能为空”。成功获取后，将以 JSON 格式返回教学楼的信息。
+     * 则会抛出一个业务异常，提示"教学楼UUID/名称不能为空"。成功获取后，将以 JSON 格式返回教学楼的信息。
      *
      * @param building 教学楼的 UUID 或名称
      * @return 包含教学楼信息的响应实体
@@ -254,39 +255,28 @@ public class BuildingController {
 
     /**
      * 获取教学楼导入模板
-     * 该方法用于提供用户下载建筑物信息导入的Excel模板，特别适用于管理员角色
-     * 使用了RequestRole注解来限制只有具有"管理员"角色的用户才能访问此端点
+     * 该方法用于提供教学楼导入模板的Base64编码数据
+     * 适用于管理员角色获取Excel导入模板
      *
-     * @return ResponseEntity<byte[]> 返回包含模板文件的响应实体，设置为附件形式，文件名为"教学楼导入模板.xlsx"
+     * @return 返回包含Base64编码的模板文件数据和文件信息的响应实体
      */
     @RequestRole({"管理员"})
     @GetMapping("/get-template")
-    public ResponseEntity<byte[]> getBuildingImportTemplate() {
+    public ResponseEntity<BaseResponse<FileDTO>> getBuildingImportTemplate() {
         // 准备建筑物示例数据，用于生成导入模板
-        PrepareBuildingDTO prepareBuildingExampleDTO = buildingService.prepareCampusData();
+        List<CampusLiteDTO> prepareBuildingExampleDTO = buildingService.prepareCampusData();
         // 获取建筑物导入模板的字节数组
         byte[] bytes = buildingService.getBuildingImportTemplate(prepareBuildingExampleDTO);
 
-        // 初始化HTTP响应头，用于设置模板文件的下载信息
-        HttpHeaders headers = Optional.of(new HttpHeaders())
-                .map(header -> {
-                    // 设置内容类型为二进制流
-                    header.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-                    // 设置内容长度
-                    header.setContentLength(bytes.length);
-                    // 对文件名进行URL编码，确保文件名在不同浏览器中正确显示
-                    String fileName = URLEncoder.encode("教学楼导入模板.xlsx", StandardCharsets.UTF_8)
-                            .replace("+", "%20");
-                    // 设置内容处置，以附件形式下载文件，并处理文件名的UTF-8编码
-                    header.add(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"" + fileName + "\"; filename*=UTF-8''" + fileName);
-                    return header;
-                })
-                // 如果生成响应头失败，则抛出业务异常
-                .orElseThrow(() -> new BusinessException("获取响应头失败", ErrorCode.SERVER_INTERNAL_ERROR));
+        // 将字节数组转换为Base64编码字符串
+        FileDTO getFile = new FileDTO(
+                "教学楼导入模板.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + Base64.getEncoder().encodeToString(bytes)
+        );
 
-        // 返回包含模板文件的响应实体，状态码为HTTP 200 OK
-        return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+        // 使用ResultUtil返回Base64编码的文件内容和文件信息
+        return ResultUtil.success("获取教学楼导入模板成功", getFile);
     }
 
     /**

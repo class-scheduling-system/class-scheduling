@@ -33,7 +33,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.GradeMapper;
-import com.frontleaves.scheduling.models.entity.GradeDO;
+import com.frontleaves.scheduling.models.entity.base.GradeDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RList;

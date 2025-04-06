@@ -31,8 +31,8 @@ package com.frontleaves.scheduling.dao;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.BuildingDAO;
 import com.frontleaves.scheduling.daos.CampusDAO;
-import com.frontleaves.scheduling.models.dto.BackAddBuildingDTO;
-import com.frontleaves.scheduling.models.entity.BuildingDO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddBuildingDTO;
+import com.frontleaves.scheduling.models.entity.base.BuildingDO;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
@@ -55,7 +55,7 @@ import java.util.List;
  * @since v1.0.0
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class BuildingTest {
     @Resource
     private BuildingDAO buildingDAO;
@@ -189,6 +189,7 @@ class BuildingTest {
             }
         }
     }
+
 
     @Test
     void testSaveBuildingBackError() {
