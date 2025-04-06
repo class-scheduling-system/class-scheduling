@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -26,59 +26,58 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.models.dto.base;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.frontleaves.scheduling.models.entity.base.CourseNatureDO;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.sql.Timestamp;
 
 /**
- * 课程类型实体类
+ * 课程性质数据传输对象
  * <p>
- * 该类对应数据库中的课程类型表，用于存储和管理不同类型的课程信息。
- * 主键采用 UUID 自动生成。
+ * 该类是 {@code CourseNatureDO} 实体类的 DTO，用于在数据传输过程中传递课程性质信息。
  * </p>
  *
  * @author Claude AI
  * @version v1.0.0
+ * @see CourseNatureDO
  * @since v1.0.0
  */
 @Data
-@TableName("cs_course_type")
+@NoArgsConstructor
+@AllArgsConstructor
 @Accessors(chain = true)
-public class CourseTypeDO {
-    /**
-     * 课程类型主键
-     */
-    @TableId(value = "course_type_uuid", type = IdType.ASSIGN_UUID)
-    private String courseTypeUuid;
+public class CourseNatureDTO {
 
     /**
-     * 课程类型名称
+     * 课程性质主键
      */
-    @TableField("name")
+    private String courseNatureUuid;
+
+    /**
+     * 课程性质名称
+     */
     private String name;
 
     /**
-     * 课程类型描述
+     * 课程性质描述
      */
-    @TableField("description")
     private String description;
 
     /**
-     * 创建时间
+     * 创建时间，时间戳以数字格式返回
      */
-    @TableField("created_at")
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp createdAt;
 
     /**
-     * 更新时间
+     * 更新时间，时间戳以数字格式返回
      */
-    @TableField("updated_at")
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp updatedAt;
 }

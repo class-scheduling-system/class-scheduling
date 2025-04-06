@@ -35,10 +35,20 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.exceptions.lib.DataInvalidException;
 import com.frontleaves.scheduling.exceptions.lib.DataNotFoundException;
-import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.dto.CourseImportDTO;
+import com.frontleaves.scheduling.models.dto.ImportBaseCourseDTO;
+import com.frontleaves.scheduling.models.dto.PrepareCourseDTO;
+import com.frontleaves.scheduling.models.dto.ValidateCourseReturnDTO;
+import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
+import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddCourseDTO;
+import com.frontleaves.scheduling.models.dto.lite.CourseLiteDTO;
+import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
+import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.vo.BatchAddCourseVO;
 import com.frontleaves.scheduling.models.vo.CourseLibraryVO;
+import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.CourseLibraryService;
 import com.frontleaves.scheduling.services.UserService;
 import com.frontleaves.scheduling.utils.ProjectOption;
@@ -1483,8 +1493,8 @@ public class CourseLibraryLogic implements CourseLibraryService {
      * @throws BusinessException 如果课程不存在，则抛出此异常
      */
     @Override
-    public @org.jetbrains.annotations.NotNull CourseLibraryDTO getCourseByUuid(String courseUuid) {
-        CourseLibraryDO courseLibraryDO = courseLibraryDAO.getCourseByUuid(courseUuid);
+    public @NotNull CourseLibraryDTO getCourseByUuid(String courseUuid) {
+        CourseLibraryDO courseLibraryDO = courseLibraryDAO.getCourseLibraryByUuid(courseUuid);
         if (courseLibraryDO == null) {
             throw new BusinessException("课程不存在", ErrorCode.NOT_EXIST);
         }

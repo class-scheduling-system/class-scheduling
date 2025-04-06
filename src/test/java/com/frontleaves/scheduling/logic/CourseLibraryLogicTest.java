@@ -2,11 +2,11 @@ package com.frontleaves.scheduling.logic;
 
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.CourseLibraryDTO;
-import com.frontleaves.scheduling.models.dto.CourseLiteDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.TokenDTO;
-import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.TokenDTO;
+import com.frontleaves.scheduling.models.dto.lite.CourseLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.vo.CourseLibraryVO;
 import com.frontleaves.scheduling.services.CourseLibraryService;
 import com.frontleaves.scheduling.services.UserService;
@@ -464,9 +464,9 @@ class CourseLibraryLogicTest {
         CourseLibraryDO savedCourse = courseLibraryDAO.lambdaQuery()
                 .eq(CourseLibraryDO::getId, validCourseLibraryVO.getId())
                 .one();
-        
+
         Assertions.assertNotNull(savedCourse, "保存的课程不应为空");
-        
+
         // 创建更新后的课程信息
         CourseLibraryVO updatedVO = new CourseLibraryVO(
                 validCourseLibraryVO.getId(),
@@ -494,12 +494,12 @@ class CourseLibraryLogicTest {
         );
 
         // 执行更新操作
-        Assertions.assertDoesNotThrow(() -> 
+        Assertions.assertDoesNotThrow(() ->
             courseLibraryService.updateCourseLibrary(savedCourse.getCourseLibraryUuid(), updatedVO));
 
         // 验证是否成功更新
         CourseLibraryDO updatedCourse = courseLibraryDAO.getCourseLibraryByUuid(savedCourse.getCourseLibraryUuid());
-        
+
         // 验证更新后的信息是否正确
         Assertions.assertNotNull(updatedCourse, "更新后的课程不应为空");
         Assertions.assertEquals(updatedVO.getName(), updatedCourse.getName(), "课程名称应已更新");
@@ -528,7 +528,7 @@ class CourseLibraryLogicTest {
         CourseLibraryDO savedCourse = courseLibraryDAO.lambdaQuery()
                 .eq(CourseLibraryDO::getId, validCourseLibraryVO.getId())
                 .one();
-        
+
         Assertions.assertNotNull(savedCourse, "保存的课程不应为空");
 
         // 创建一个包含无效课程类型的更新VO
@@ -556,7 +556,7 @@ class CourseLibraryLogicTest {
                 validCourseLibraryVO.getCredit(),
                 validCourseLibraryVO.getDescription()
         );
-        
+
         // 执行更新操作，预期会抛出异常
         BusinessException exception = Assertions.assertThrows(BusinessException.class,
                 () -> courseLibraryService.updateCourseLibrary(savedCourse.getCourseLibraryUuid(), invalidTypeVO));
@@ -564,7 +564,7 @@ class CourseLibraryLogicTest {
         // 验证异常信息
         Assertions.assertEquals(ErrorCode.NOT_EXIST, exception.getErrorCode());
         Assertions.assertEquals("课程类型不存在", exception.getMessage());
-        
+
         // 验证课程信息未被更新
         CourseLibraryDO unchangedCourse = courseLibraryDAO.getCourseLibraryByUuid(savedCourse.getCourseLibraryUuid());
         Assertions.assertEquals(validCourseLibraryVO.getName(), unchangedCourse.getName(), "课程名称不应被更新");
@@ -586,7 +586,7 @@ class CourseLibraryLogicTest {
         CourseLibraryDO savedCourse = courseLibraryDAO.lambdaQuery()
                 .eq(CourseLibraryDO::getId, validCourseLibraryVO.getId())
                 .one();
-        
+
         Assertions.assertNotNull(savedCourse, "保存的课程不应为空");
 
         // 创建一个包含无效部门的更新VO
@@ -614,7 +614,7 @@ class CourseLibraryLogicTest {
                 validCourseLibraryVO.getCredit(),
                 validCourseLibraryVO.getDescription()
         );
-        
+
         // 执行更新操作，预期会抛出异常
         BusinessException exception = Assertions.assertThrows(BusinessException.class,
                 () -> courseLibraryService.updateCourseLibrary(savedCourse.getCourseLibraryUuid(), invalidDeptVO));
@@ -622,7 +622,7 @@ class CourseLibraryLogicTest {
         // 验证异常信息
         Assertions.assertEquals(ErrorCode.NOT_EXIST, exception.getErrorCode());
         Assertions.assertEquals("部门不存在", exception.getMessage());
-        
+
         // 验证课程信息未被更新
         CourseLibraryDO unchangedCourse = courseLibraryDAO.getCourseLibraryByUuid(savedCourse.getCourseLibraryUuid());
         Assertions.assertEquals(validCourseLibraryVO.getName(), unchangedCourse.getName(), "课程名称不应被更新");
@@ -646,7 +646,7 @@ class CourseLibraryLogicTest {
             CourseLibraryDO savedCourse = courseLibraryDAO.lambdaQuery()
                     .eq(CourseLibraryDO::getId, validCourseLibraryVO.getId())
                     .one();
-            
+
             Assertions.assertNotNull(savedCourse, "保存的课程不应为空");
 
             // 创建一个包含无效教室类型的更新VO
@@ -674,7 +674,7 @@ class CourseLibraryLogicTest {
                     validCourseLibraryVO.getCredit(),
                     validCourseLibraryVO.getDescription()
             );
-            
+
             // 执行更新操作，预期会抛出异常
             BusinessException exception = Assertions.assertThrows(BusinessException.class,
                     () -> courseLibraryService.updateCourseLibrary(savedCourse.getCourseLibraryUuid(), invalidClassroomTypeVO));
@@ -682,7 +682,7 @@ class CourseLibraryLogicTest {
             // 验证异常信息
             Assertions.assertEquals(ErrorCode.NOT_EXIST, exception.getErrorCode());
             Assertions.assertEquals("教室类型不存在", exception.getMessage());
-            
+
             // 验证课程信息未被更新
             CourseLibraryDO unchangedCourse = courseLibraryDAO.getCourseLibraryByUuid(savedCourse.getCourseLibraryUuid());
             Assertions.assertEquals(validCourseLibraryVO.getName(), unchangedCourse.getName(), "课程名称不应被更新");
@@ -705,9 +705,9 @@ class CourseLibraryLogicTest {
         CourseLibraryDO savedCourse = courseLibraryDAO.lambdaQuery()
                 .eq(CourseLibraryDO::getId, validCourseLibraryVO.getId())
                 .one();
-        
+
         Assertions.assertNotNull(savedCourse, "保存的课程不应为空");
-        
+
         // 创建一个带有新ID的更新VO
         String newId = "CS999";
         CourseLibraryVO newIdVO = new CourseLibraryVO(
@@ -734,16 +734,16 @@ class CourseLibraryLogicTest {
                 validCourseLibraryVO.getCredit(),
                 validCourseLibraryVO.getDescription()
         );
-        
+
         try {
             // 执行更新操作
-            Assertions.assertDoesNotThrow(() -> 
+            Assertions.assertDoesNotThrow(() ->
                 courseLibraryService.updateCourseLibrary(savedCourse.getCourseLibraryUuid(), newIdVO));
-            
+
             // 验证ID是否已更新成功
             CourseLibraryDO updatedCourse = courseLibraryDAO.getCourseLibraryByUuid(savedCourse.getCourseLibraryUuid());
             Assertions.assertEquals(newId, updatedCourse.getId(), "课程ID应已更新");
-            
+
             // 验证旧ID不存在了
             CourseLibraryDO oldIdCourse = courseLibraryDAO.lambdaQuery()
                     .eq(CourseLibraryDO::getId, validCourseLibraryVO.getId())
@@ -793,18 +793,18 @@ class CourseLibraryLogicTest {
                 validCourseLibraryVO.getCredit(),
                 validCourseLibraryVO.getDescription()
         );
-        
+
         try {
             // 添加第二个课程
             Assertions.assertDoesNotThrow(() -> courseLibraryService.addCourseLibrary(secondCourseVO, request));
-            
+
             // 获取第二个课程
             CourseLibraryDO secondCourse = courseLibraryDAO.lambdaQuery()
                     .eq(CourseLibraryDO::getId, secondId)
                     .one();
-            
+
             Assertions.assertNotNull(secondCourse, "第二个课程不应为空");
-            
+
             // 创建更新VO，尝试将第二个课程的ID更新为第一个课程的ID
             CourseLibraryVO updateToDuplicateIdVO = new CourseLibraryVO(
                     validCourseLibraryVO.getId(), // 使用第一个课程的ID
@@ -830,7 +830,7 @@ class CourseLibraryLogicTest {
                     secondCourseVO.getCredit(),
                     secondCourseVO.getDescription()
             );
-            
+
             // 执行更新操作，预期会抛出异常
             BusinessException exception = Assertions.assertThrows(BusinessException.class,
                     () -> courseLibraryService.updateCourseLibrary(secondCourse.getCourseLibraryUuid(), updateToDuplicateIdVO));
@@ -838,7 +838,7 @@ class CourseLibraryLogicTest {
             // 验证异常信息
             Assertions.assertEquals(ErrorCode.PARAMETER_ERROR, exception.getErrorCode());
             Assertions.assertEquals("课程ID已存在", exception.getMessage());
-            
+
         } finally {
             // 清理第二个课程的测试数据
             courseLibraryDAO.lambdaUpdate().eq(CourseLibraryDO::getId, secondId).remove();
@@ -940,19 +940,19 @@ class CourseLibraryLogicTest {
 
     /**
      * 测试获取课程库分页信息 - 成功场景
-     * 
+     *
      * 验证是否能成功获取课程库分页信息
      */
     @Test
     void testGetCourseLibrary_Success() {
         log.debug("测试获取课程库分页信息 - 成功场景");
-        
+
         // 先添加一个测试课程库
         Assertions.assertDoesNotThrow(() -> courseLibraryService.addCourseLibrary(validCourseLibraryVO, request));
-        
+
         // 获取第一页，每页10条数据
         PageDTO<CourseLibraryDTO> pageDTO = courseLibraryService.getCourseLibrary(1, 10, "001");
-        
+
         // 验证分页信息
         Assertions.assertNotNull(pageDTO, "分页信息不应为空");
         Assertions.assertTrue(pageDTO.getTotal() > 0, "总记录数应大于0");
@@ -962,219 +962,219 @@ class CourseLibraryLogicTest {
         Assertions.assertFalse(pageDTO.getRecords().isEmpty(), "记录列表不应为空");
 
         log.debug("分页信息: {}", pageDTO);
-        
+
         // 找到我们刚刚添加的课程库
         boolean foundAddedCourse = pageDTO.getRecords().stream()
                 .anyMatch(course -> course.getId().equals(validCourseLibraryVO.getId()));
-        
+
         Assertions.assertTrue(foundAddedCourse, "应该能找到刚添加的课程库");
     }
-    
+
     /**
      * 测试获取课程库分页信息 - 按名称搜索
-     * 
+     *
      * 验证是否能按名称成功搜索课程库
      */
     @Test
     void testGetCourseLibrary_SearchByName() {
         log.debug("测试获取课程库分页信息 - 按名称搜索");
-        
+
         // 先添加一个测试课程库
         Assertions.assertDoesNotThrow(() -> courseLibraryService.addCourseLibrary(validCourseLibraryVO, request));
-        
+
         // 使用课程名称的一部分进行搜索
         String searchKeyword = validCourseLibraryVO.getName().substring(0, 4);
         PageDTO<CourseLibraryDTO> pageDTO = courseLibraryService.getCourseLibrary(1, 10, searchKeyword);
-        
+
         // 验证搜索结果
         Assertions.assertNotNull(pageDTO, "分页信息不应为空");
         Assertions.assertTrue(pageDTO.getTotal() > 0, "搜索结果总记录数应大于0");
-        
+
         // 找到我们刚刚添加的课程库
         boolean foundAddedCourse = pageDTO.getRecords().stream()
                  .anyMatch(course -> course.getId().equals(validCourseLibraryVO.getId()));
-        
+
         Assertions.assertTrue(foundAddedCourse, "应该能找到刚添加的课程库");
     }
-    
+
     /**
      * 测试获取课程库分页信息 - 不存在的名称
-     * 
+     *
      * 验证搜索不存在的课程名称时返回空结果
      */
     @Test
     void testGetCourseLibrary_NonExistentName() {
         log.debug("测试获取课程库分页信息 - 不存在的名称");
-        
+
         // 使用一个不太可能存在的课程名称进行搜索
         String nonExistentName = "ThisCourseNameShouldNotExist" + System.currentTimeMillis();
         PageDTO<CourseLibraryDTO> pageDTO = courseLibraryService.getCourseLibrary(1, 10, nonExistentName);
-        
+
         // 验证搜索结果
         Assertions.assertNotNull(pageDTO, "分页信息不应为空");
         Assertions.assertEquals(0, pageDTO.getTotal(), "搜索结果总记录数应为0");
         Assertions.assertTrue(pageDTO.getRecords().isEmpty(), "记录列表应为空");
     }
-    
+
     /**
      * 测试获取课程库列表 - 无条件查询
-     * 
+     *
      * 验证是否能成功获取所有课程库列表
      */
     @Test
     void testGetCourseLibraryList_NoConditions() {
         log.debug("测试获取课程库列表 - 无条件查询");
-        
+
         // 先添加一个测试课程库
         Assertions.assertDoesNotThrow(() -> courseLibraryService.addCourseLibrary(validCourseLibraryVO, request));
-        
+
         // 无条件查询，获取所有课程库
         List<CourseLiteDTO> courseList = courseLibraryService.getCourseLibraryList(null, null, null, null, null);
-        
+
         // 验证查询结果
         Assertions.assertNotNull(courseList, "课程库列表不应为空");
         Assertions.assertFalse(courseList.isEmpty(), "课程库列表不应为空");
-        
+
         // 找到我们刚刚添加的课程库
         boolean foundAddedCourse = courseList.stream()
                 .anyMatch(course -> course.getName().equals(validCourseLibraryVO.getName()));
-        
+
         Assertions.assertTrue(foundAddedCourse, "应该能找到刚添加的课程库");
     }
-    
+
     /**
      * 测试获取课程库列表 - 按类型查询
-     * 
+     *
      * 验证是否能按课程类型成功筛选课程库
      */
     @Test
     void testGetCourseLibraryList_ByType() {
         log.debug("测试获取课程库列表 - 按类型查询");
-        
+
         // 先添加一个测试课程库
         Assertions.assertDoesNotThrow(() -> courseLibraryService.addCourseLibrary(validCourseLibraryVO, request));
-        
+
         // 使用已知的课程类型UUID进行查询
         List<CourseLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
                 null, null, validCourseLibraryVO.getType(), null, null);
-        
+
         // 验证查询结果
         Assertions.assertNotNull(courseList, "课程库列表不应为空");
         Assertions.assertFalse(courseList.isEmpty(), "课程库列表不应为空");
-        
+
         // 找到我们刚刚添加的课程库
         boolean foundAddedCourse = courseList.stream()
                 .anyMatch(course -> course.getName().equals(validCourseLibraryVO.getName()));
-        
+
         Assertions.assertTrue(foundAddedCourse, "应该能找到刚添加的课程库");
-        
+
         // 验证所有结果的课程类型都是我们指定的类型
         String expectedTypeName = courseTypeDAO.getCourseTypeByUuid(validCourseLibraryVO.getType()).getName();
         boolean allMatchType = courseList.stream()
                 .allMatch(course -> expectedTypeName.equals(course.getType()));
-        
+
         Assertions.assertTrue(allMatchType, "所有查询结果的课程类型应匹配");
     }
-    
+
     /**
      * 测试获取课程库列表 - 按部门查询
-     * 
+     *
      * 验证是否能按部门成功筛选课程库
      */
     @Test
     void testGetCourseLibraryList_ByDepartment() {
         log.debug("测试获取课程库列表 - 按部门查询");
-        
+
         // 先添加一个测试课程库
         Assertions.assertDoesNotThrow(() -> courseLibraryService.addCourseLibrary(validCourseLibraryVO, request));
-        
+
         // 使用已知的部门UUID进行查询
         List<CourseLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
                 null, null, null, null, validCourseLibraryVO.getDepartment());
-        
+
         // 验证查询结果
         Assertions.assertNotNull(courseList, "课程库列表不应为空");
         Assertions.assertFalse(courseList.isEmpty(), "课程库列表不应为空");
-        
+
         // 找到我们刚刚添加的课程库
         boolean foundAddedCourse = courseList.stream()
                 .anyMatch(course -> course.getName().equals(validCourseLibraryVO.getName()));
-        
+
         Assertions.assertTrue(foundAddedCourse, "应该能找到刚添加的课程库");
-        
+
         // 验证所有结果的部门都是我们指定的部门
         String expectedDeptName = departmentDAO.getDepartmentByUuid(validCourseLibraryVO.getDepartment()).getDepartmentName();
         boolean allMatchDepartment = courseList.stream()
                 .allMatch(course -> expectedDeptName.equals(course.getDepartment()));
-        
+
         Assertions.assertTrue(allMatchDepartment, "所有查询结果的部门应匹配");
     }
-    
+
     /**
      * 测试获取课程库列表 - 组合条件查询
-     * 
+     *
      * 验证是否能使用多个条件成功筛选课程库
      */
     @Test
     void testGetCourseLibraryList_CombinedConditions() {
         log.debug("测试获取课程库列表 - 组合条件查询");
-        
+
         // 先添加一个测试课程库
         Assertions.assertDoesNotThrow(() -> courseLibraryService.addCourseLibrary(validCourseLibraryVO, request));
-        
+
         // 只有当课程类别和课程性质不为null时才进行测试
         if (validCourseLibraryVO.getCategory() != null && validCourseLibraryVO.getNature() != null) {
             // 使用多个条件进行查询
             List<CourseLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
-                    validCourseLibraryVO.getCategory(), 
-                    validCourseLibraryVO.getProperty(), 
-                    validCourseLibraryVO.getType(), 
-                    validCourseLibraryVO.getNature(), 
+                    validCourseLibraryVO.getCategory(),
+                    validCourseLibraryVO.getProperty(),
+                    validCourseLibraryVO.getType(),
+                    validCourseLibraryVO.getNature(),
                     validCourseLibraryVO.getDepartment());
-            
+
             // 验证查询结果
             Assertions.assertNotNull(courseList, "课程库列表不应为空");
             Assertions.assertFalse(courseList.isEmpty(), "课程库列表不应为空");
-            
+
             // 找到我们刚刚添加的课程库
             boolean foundAddedCourse = courseList.stream()
                     .anyMatch(course -> course.getName().equals(validCourseLibraryVO.getName()));
-            
+
             Assertions.assertTrue(foundAddedCourse, "应该能找到刚添加的课程库");
-            
+
             // 验证所有查询结果是否符合所有条件
             // 获取期望的名称
             String expectedCategoryName = Objects.requireNonNull(courseCategoryDAO.getCourseCategoryByUuid(validCourseLibraryVO.getCategory())).getName();
             String expectedTypeName = Objects.requireNonNull(courseTypeDAO.getCourseTypeByUuid(validCourseLibraryVO.getType())).getName();
             String expectedNatureName = Objects.requireNonNull(courseNatureDAO.getCourseNatureByUuid(validCourseLibraryVO.getNature())).getName();
             String expectedDeptName = departmentDAO.getDepartmentByUuid(validCourseLibraryVO.getDepartment()).getDepartmentName();
-            
+
             // 验证所有结果是否匹配所有条件
             boolean allMatchConditions = courseList.stream()
-                    .allMatch(course -> 
+                    .allMatch(course ->
                             expectedCategoryName.equals(course.getCategory()) &&
                             expectedTypeName.equals(course.getType()) &&
                             expectedNatureName.equals(course.getNature()) &&
                             expectedDeptName.equals(course.getDepartment()));
-            
+
             Assertions.assertTrue(allMatchConditions, "所有查询结果应匹配所有条件");
         }
     }
-    
+
     /**
      * 测试获取课程库列表 - 不存在的条件
-     * 
+     *
      * 验证使用不存在的条件进行查询时返回空列表
      */
     @Test
     void testGetCourseLibraryList_NonExistentCondition() {
         log.debug("测试获取课程库列表 - 不存在的条件");
-        
+
         // 使用一个不太可能存在的UUID进行查询
         String nonExistentUuid = UuidUtil.generateUuidNoDash();
         List<CourseLiteDTO> courseList = courseLibraryService.getCourseLibraryList(
                 nonExistentUuid, null, null, null, null);
-        
+
         // 验证查询结果
         Assertions.assertNotNull(courseList, "课程库列表不应为null");
         Assertions.assertTrue(courseList.isEmpty(), "使用不存在的条件查询应返回空列表");

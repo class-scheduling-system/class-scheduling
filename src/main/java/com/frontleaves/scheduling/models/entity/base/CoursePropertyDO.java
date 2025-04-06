@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -26,7 +26,7 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.models.entity.base;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -38,9 +38,9 @@ import lombok.experimental.Accessors;
 import java.sql.Timestamp;
 
 /**
- * 课程类别实体类
+ * 课程属性实体类
  * <p>
- * 该类对应数据库中的课程类别表，用于存储和管理不同类别的课程信息。
+ * 该类对应数据库中的课程属性表，用于存储和管理不同属性的课程信息。
  * 主键采用 UUID 自动生成。
  * </p>
  *
@@ -49,23 +49,23 @@ import java.sql.Timestamp;
  * @since v1.0.0
  */
 @Data
-@TableName("cs_course_category")
+@TableName("cs_course_property")
 @Accessors(chain = true)
-public class CourseCategoryDO {
+public class CoursePropertyDO {
     /**
-     * 课程类别主键
+     * 课程属性主键
      */
-    @TableId(value = "course_category_uuid", type = IdType.ASSIGN_UUID)
-    private String courseCategoryUuid;
+    @TableId(value = "course_property_uuid", type = IdType.ASSIGN_UUID)
+    private String coursePropertyUuid;
 
     /**
-     * 课程类别名称
+     * 课程属性名称
      */
     @TableField("name")
     private String name;
 
     /**
-     * 课程类别描述
+     * 课程属性描述
      */
     @TableField("description")
     private String description;

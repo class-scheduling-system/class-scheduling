@@ -1,6 +1,6 @@
 package com.frontleaves.scheduling.models.dto;
 
-import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.entity.base.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,27 +25,27 @@ public class ImportBaseCourseDTO {
      * 课程类别列表
      */
     private List<CourseCategoryDO> categoryList;
-    
+
     /**
      * 课程属性列表
      */
     private List<CoursePropertyDO> propertyList;
-    
+
     /**
      * 课程类型列表
      */
     private List<CourseTypeDO> typeList;
-    
+
     /**
      * 课程性质列表
      */
     private List<CourseNatureDO> natureList;
-    
+
     /**
      * 部门列表
      */
     private List<DepartmentDO> departmentList;
-    
+
     /**
      * 教室类型列表
      */

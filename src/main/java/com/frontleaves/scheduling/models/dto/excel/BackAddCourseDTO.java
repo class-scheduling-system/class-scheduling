@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -26,59 +26,49 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.entity;
+package com.frontleaves.scheduling.models.dto.excel;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.sql.Timestamp;
+import java.util.List;
 
-/**
- * 课程属性实体类
- * <p>
- * 该类对应数据库中的课程属性表，用于存储和管理不同属性的课程信息。
- * 主键采用 UUID 自动生成。
- * </p>
- *
- * @author Claude AI
- * @version v1.0.0
- * @since v1.0.0
- */
 @Data
-@TableName("cs_course_property")
 @Accessors(chain = true)
-public class CoursePropertyDO {
+public class BackAddCourseDTO {
     /**
-     * 课程属性主键
+     * 总记录数
      */
-    @TableId(value = "course_property_uuid", type = IdType.ASSIGN_UUID)
-    private String coursePropertyUuid;
+    private int totalCount;
 
     /**
-     * 课程属性名称
+     * 成功记录数
      */
-    @TableField("name")
-    private String name;
+    private int successCount;
 
     /**
-     * 课程属性描述
+     * 失败记录数
      */
-    @TableField("description")
-    private String description;
+    private int failedCount;
 
     /**
-     * 创建时间
+     * 失败详情列表
      */
-    @TableField("created_at")
-    private Timestamp createdAt;
+    private List<BackAddCourseDTO.FailedDetail> failedDetails;
 
     /**
-     * 更新时间
+     * 失败详情内部类
      */
-    @TableField("updated_at")
-    private Timestamp updatedAt;
+    @Data
+    public static class FailedDetail {
+        /**
+         * 失败行号
+         */
+        private int row;
+
+        /**
+         * 失败原因
+         */
+        private String reason;
+    }
 }

@@ -1,18 +1,30 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CourseLibraryMapper;
-import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddCourseDTO;
+import com.frontleaves.scheduling.models.entity.base.CourseLibraryDO;
+import com.xlf.utility.ErrorCode;
+import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
-import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
-import org.redisson.api.RMap;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 课程库数据访问对象

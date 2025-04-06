@@ -1,7 +1,7 @@
 package com.frontleaves.scheduling.models.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.frontleaves.scheduling.models.entity.CourseCategoryDO;
+import com.frontleaves.scheduling.models.entity.base.CourseCategoryDO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

@@ -32,7 +32,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CourseCategoryMapper;
-import com.frontleaves.scheduling.models.entity.CourseCategoryDO;
+import com.frontleaves.scheduling.models.entity.base.CourseCategoryDO;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
@@ -105,7 +105,7 @@ public class CourseCategoryDAO extends ServiceImpl<CourseCategoryMapper, CourseC
      * 该方法首先尝试从Redis缓存中获取课程类别列表，如果不存在，则从数据库中获取，
      * 并将查询结果缓存到Redis中以提高后续查询效率。缓存过期时间为24小时。
      * </p>
-     * 
+     *
      * @return 课程类别列表
      */
     public List<CourseCategoryDO> getCourseCategoryList() {

@@ -32,7 +32,7 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CourseTypeMapper;
-import com.frontleaves.scheduling.models.entity.CourseTypeDO;
+import com.frontleaves.scheduling.models.entity.base.CourseTypeDO;
 import com.xlf.utility.util.ConvertUtil;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
