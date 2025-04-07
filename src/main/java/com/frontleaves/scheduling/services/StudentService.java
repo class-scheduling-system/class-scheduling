@@ -6,11 +6,14 @@ import com.frontleaves.scheduling.models.dto.base.StudentDTO;
 import com.frontleaves.scheduling.models.dto.excel.BackAddStudentDTO;
 import com.frontleaves.scheduling.models.dto.excel.PrepareStudentExampleDTO;
 import com.frontleaves.scheduling.models.dto.lite.StudentDisableDTO;
+import com.frontleaves.scheduling.models.dto.lite.StudentLiteDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.List;
 
 /**
  * 学生服务接口
@@ -115,4 +118,13 @@ public interface StudentService {
      * 编辑学生
      */
     StudentDTO editStudent(String studentUuid, StudentVO studentVO);
+
+    /**
+     * 获取学生列表（根据部门和行政班进行筛选）
+     * 
+     * @param departmentUuid 部门UUID，可选参数
+     * @param administrativeClassUuid 行政班UUID，可选参数
+     * @return 返回学生轻量级列表
+     */
+    List<StudentLiteDTO> getStudentLiteList(@Nullable String departmentUuid, @Nullable String administrativeClassUuid);
 }

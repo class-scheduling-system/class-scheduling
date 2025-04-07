@@ -106,6 +106,7 @@ public class StringConstant {
         public static final String STUDENT_ID = "stu:id:";
         public static final String STUDENT_UUID = "stu:uuid:";
         public static final String STUDENT_LIST = "stu:list";
+        public static final String STUDENT_LIST_BY_DEPARTMENT_AND_CLASS = "stu:list:department:class:";
         public static final String STUDENT_USER_UUID = "stu:user:uuid:";
         public static final String TEACHER_ID = "tea:id:";
         public static final String TEACHER_UUID = "tea:uuid:";

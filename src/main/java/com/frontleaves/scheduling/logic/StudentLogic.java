@@ -14,6 +14,7 @@ import com.frontleaves.scheduling.models.dto.excel.BackAddStudentDTO;
 import com.frontleaves.scheduling.models.dto.excel.PrepareStudentExampleDTO;
 import com.frontleaves.scheduling.models.dto.excel.StudentImportDTO;
 import com.frontleaves.scheduling.models.dto.lite.StudentDisableDTO;
+import com.frontleaves.scheduling.models.dto.lite.StudentLiteDTO;
 import com.frontleaves.scheduling.models.dto.merge.ImportBaseStudentDTO;
 import com.frontleaves.scheduling.models.dto.merge.ValidateStudentReturnDTO;
 import com.frontleaves.scheduling.models.entity.base.*;
@@ -979,4 +980,22 @@ public class StudentLogic implements StudentService {
         // 返回部门UUID
         return academicAffairsPermissionDO.getDepartment();
     }
+
+    /**
+     * 获取学生列表（根据部门和行政班进行筛选）
+     * 
+     * @param departmentUuid 部门UUID，可选参数
+     * @param administrativeClassUuid 行政班UUID，可选参数
+     * @return 返回学生轻量级列表
+     */
+    @Override
+    public List<StudentLiteDTO> getStudentLiteList(@Nullable String departmentUuid, @Nullable String administrativeClassUuid) {
+        // 调用DAO层方法获取学生列表
+        List<StudentDO> studentList = studentDAO.getStudentListByDepartmentAndClass(departmentUuid, administrativeClassUuid);
+        if (studentList == null) {
+            return List.of();
+        }
+        return BeanUtil.copyToList(studentList, StudentLiteDTO.class);
+    }
+    
 }
