@@ -275,7 +275,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
      */
     private void validateUserDepartmentPermission(String userUuid, String departmentUuid) {
         AcademicAffairsPermissionDTO academicAffairsPermissionDTO =
-                academicAffairsPermissionService.getAcademicAffairsPermission(userUuid);
+                academicAffairsPermissionService.getAcademicPermissionByUserUuid(userUuid);
         assert academicAffairsPermissionDTO != null;
         if (!academicAffairsPermissionDTO.getDepartment().equals(departmentUuid)) {
             throw new BusinessException("用户所属部门与所填写部门不一致", ErrorCode.BODY_ERROR);

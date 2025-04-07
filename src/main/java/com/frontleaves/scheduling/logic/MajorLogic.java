@@ -4,10 +4,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.daos.MajorDAO;
 import com.frontleaves.scheduling.models.dto.base.MajorDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.lite.MajorLiteDTO;
 import com.frontleaves.scheduling.models.entity.base.MajorDO;
 import com.frontleaves.scheduling.services.MajorService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+
+import cn.hutool.core.bean.BeanUtil;
+import io.micrometer.common.lang.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -195,5 +199,41 @@ public class MajorLogic implements MajorService {
             return majorDTO;
         }).toList();
         return new PageDTO<>(dtoList, resultPage.getTotal(), resultPage.getSize(), resultPage.getCurrent());
+    }
+
+    /**
+     * 获取专业简单列表
+     * <p>
+     * 该方法用于获取专业的简单列表,支持分页查询和排序,
+     * 可以根据部门和专业名称进行筛选.
+     * </p>
+     *
+     * @param department 部门名称
+     * @param name       专业名称
+     * @return 返回一个PageDTO对象, 其中包含查询到的专业信息列表和分页相关数据
+     */
+    @Override
+    public List<MajorLiteDTO> majorLiteList(@Nullable String department, @Nullable String name) {
+        List<MajorDO> getList = majorDAO.getMajorList();
+        if (getList != null) {
+            return getList
+                .stream()
+                .filter(majorDO -> {
+                    if (department == null || department.isEmpty()) {
+                        return true;
+                    }
+                    return majorDO.getDepartmentUuid().equals(department);
+                })
+                .filter(majorDO -> {
+                    if (name == null || name.isEmpty()) {
+                        return true;
+                    }
+                    return majorDO.getMajorName().contains(name);
+                })
+                .map(data -> BeanUtil.toBean(data, MajorLiteDTO.class))
+                .toList();
+        } else {
+            return List.of();
+        }
     }
 }

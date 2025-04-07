@@ -1,9 +1,16 @@
 package com.frontleaves.scheduling.services;
 
+import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
+
 import com.frontleaves.scheduling.models.dto.base.MajorDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.lite.MajorLiteDTO;
 import com.frontleaves.scheduling.models.entity.base.MajorDO;
 import com.xlf.utility.exception.BusinessException;
+
+import io.micrometer.common.lang.Nullable;
 
 /**
  * 专业服务接口
@@ -75,6 +82,10 @@ public interface MajorService {
 
     /**
      * 查询专业列表(学生)
+     * <p>
+     * 该接口用于获取学生的专业列表,支持分页查询和排序,
+     * 可以根据部门和专业名称进行筛选.
+     * </p>
      *
      * @param page       页码（必填）
      * @param size       每页记录数（必填）
@@ -84,4 +95,17 @@ public interface MajorService {
      * @return 分页后的 MajorStudentDTO 列表
      */
     PageDTO<MajorDTO> listMajorsForStudent(int page, int size, Boolean isDesc, String department, String name);
+
+    /**
+     * 获取专业简单列表
+     * <p>
+     * 该接口用于获取专业的简单列表,支持分页查询和排序,
+     * 可以根据部门和专业名称进行筛选.
+     * </p>
+     *
+     * @param department 部门名称（可选）
+     * @param name 专业名称（可选）
+     * @return 返回一个PageDTO对象，包含分页查询结果和成功消息
+     */
+    List<MajorLiteDTO> majorLiteList(@Nullable String department, @Nullable String name);
 }

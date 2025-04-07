@@ -3,6 +3,7 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.base.MajorDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.lite.MajorLiteDTO;
 import com.frontleaves.scheduling.models.entity.base.MajorDO;
 import com.frontleaves.scheduling.models.vo.MajorVO;
 import com.frontleaves.scheduling.services.MajorService;
@@ -16,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import static com.frontleaves.scheduling.constants.StringConstant.Major.MAJOR_UUID_FORMAT_ERROR;
+
+import java.util.List;
 
 /**
  * 专业控制器
@@ -146,6 +149,26 @@ public class MajorController {
     }
 
     /**
+     * 获取专业简单列表
+     * <p>
+     * 该接口用于获取专业的简单列表,支持分页查询和排序,
+     * 可以根据部门和专业名称进行筛选.
+     * </p>
+     *
+     * @param department 部门名称（可选），用于筛选特定部门下的专业信息。如果为空，则不进行部门筛选。
+     * @param name 专业名称（可选），用于模糊匹配专业名称。如果为空，则不进行名称筛选。
+     * @return 返回一个ResponseEntity对象，包含分页查询结果和成功消息。
+     */
+    @GetMapping("/list")
+    public ResponseEntity<BaseResponse<List<MajorLiteDTO>>> listMajor(
+            @RequestParam(value = "department", required = false) String department,
+            @RequestParam(value = "name", required = false) String name
+    ) {
+        List<MajorLiteDTO> result = majorService.majorLiteList(department, name);
+        return ResultUtil.success("查询成功", result);
+    }
+
+    /**
      * 获取专业列表(管理员)
      * <p>
      * 此接口允许管理员根据分页参数和可选的排序、部门和名称筛选条件来获取专业信息列表
@@ -158,7 +181,7 @@ public class MajorController {
      * @param name 专业名称，用于模糊匹配专业名称，此参数为可选
      * @return 返回一个ResponseEntity对象，其中包含BaseResponse对象，该对象中包含分页的专业信息
      */
-    @GetMapping("/list/admin")
+    @GetMapping("/page/admin")
     public ResponseEntity<BaseResponse<PageDTO<MajorDTO>>> listMajorForAdmin(
             @RequestParam("page") int page,
             @RequestParam("size") int size,
@@ -188,7 +211,7 @@ public class MajorController {
      * @param name 专业名称（可选），用于模糊匹配专业名称。如果为空，则不进行名称筛选。
      * @return 返回一个ResponseEntity对象，包含分页查询结果和成功消息。
      */
-    @GetMapping("/list/academic")
+    @GetMapping("/page/academic")
     public @NotNull ResponseEntity<BaseResponse<PageDTO<MajorDTO>>> listMajorForAcademic(
             @RequestParam("page") int page,
             @RequestParam("size") int size,
@@ -216,7 +239,7 @@ public class MajorController {
      * @param name 专业名称，用于模糊匹配专业名称，可选参数
      * @return 返回包含专业列表的ResponseEntity对象
      */
-    @GetMapping("/list/student")
+    @GetMapping("/page/student")
     public @NotNull ResponseEntity<BaseResponse<PageDTO<MajorDTO>>> listMajorForStudent(
             @RequestParam("page") int page,
             @RequestParam("size") int size,

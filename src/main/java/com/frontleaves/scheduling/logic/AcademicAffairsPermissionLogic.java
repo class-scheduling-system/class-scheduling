@@ -1,45 +1,95 @@
+/*
+ * --------------------------------------------------------------------------------
+ * Copyright (c) 2022-NOW(至今) 锋楪技术团队
+ * Author: 锋楪技术团队 (https://www.frontleaves.com)
+ *
+ * 本文件包含锋楪技术团队项目的源代码，项目的所有源代码均遵循 MIT 开源许可证协议。
+ * --------------------------------------------------------------------------------
+ * 许可证声明：
+ *
+ * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
+ *
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
+ * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
+ * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
+ *
+ * 使用本软件即表示您了解此声明并同意其条款。
+ *
+ * 有关 MIT 许可证的更多信息，请查看项目根目录下的 LICENSE 文件或访问：
+ * https://opensource.org/licenses/MIT
+ * --------------------------------------------------------------------------------
+ * 免责声明：
+ *
+ * 使用本软件的风险由用户自担。作者或版权持有人在法律允许的最大范围内，
+ * 对因使用本软件内容而导致的任何直接或间接的损失不承担任何责任。
+ * --------------------------------------------------------------------------------
+ */
+
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.frontleaves.scheduling.daos.AcademicAffairsPermissionDAO;
 import com.frontleaves.scheduling.models.dto.base.AcademicAffairsPermissionDTO;
 import com.frontleaves.scheduling.models.entity.base.AcademicAffairsPermissionDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.frontleaves.scheduling.services.AcademicAffairsPermissionService;
-import com.xlf.utility.ErrorCode;
-import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * 教务权限逻辑
- * @author FLASHLACK
+ * 教务权限服务实现类
+ * <p>
+ * 该类实现了 {@link AcademicAffairsPermissionService} 接口，提供教务权限相关的具体业务逻辑。
+ * </p>
+ *
+ * @author Claude
+ * @version v1.0.0
+ * @since v1.0.0
  */
 @Service
-@Slf4j
 @RequiredArgsConstructor
+@Slf4j
 public class AcademicAffairsPermissionLogic implements AcademicAffairsPermissionService {
+
     private final AcademicAffairsPermissionDAO academicAffairsPermissionDAO;
+
     /**
-     * 根据用户UUID获取教务权限信息
-     * 当通过用户的UUID无法找到对应的教务权限信息时，抛出业务异常，指示权限未设置
-     * 这个方法主要用于验证用户是否有教务管理的权限
-     * @param userUuid 用户的唯一标识符，用于查询教务权限
-     * @return 返回用户的教务权限信息对象，包含具体的权限详情
-     * @throws BusinessException 当用户没有设置教务权限时抛出此异常
+     * 获取当前登录用户的教务权限信息
+     * <p>
+     * 该方法根据当前登录用户信息获取其教务权限。如果用户具有教务权限，
+     * 则返回对应的权限信息；如果用户没有教务权限，则返回null。
+     * </p>
+     *
+     * @param userDO 当前登录用户信息
+     * @return 教务权限信息数据传输对象，如果用户没有教务权限则返回null
      */
     @Override
-    public AcademicAffairsPermissionDTO getAcademicAffairsPermission(String userUuid) {
-        // 根据用户UUID从数据库中获取教务权限信息
+    public AcademicAffairsPermissionDTO getCurrentUserAcademicPermission(UserDO userDO) {
+        if (userDO == null) {
+            return null;
+        }
+        return this.getAcademicPermissionByUserUuid(userDO.getUserUuid());
+    }
+
+    /**
+     * 根据用户UUID获取教务权限信息
+     * <p>
+     * 该方法根据指定的用户UUID获取其教务权限。如果用户具有教务权限，
+     * 则返回对应的权限信息；如果用户没有教务权限，则返回null。
+     * </p>
+     *
+     * @param userUuid 用户UUID
+     * @return 教务权限信息数据传输对象，如果用户没有教务权限则返回null
+     */
+    @Override
+    public AcademicAffairsPermissionDTO getAcademicPermissionByUserUuid(String userUuid) {
         AcademicAffairsPermissionDO academicAffairsPermissionDO =
                 academicAffairsPermissionDAO.getAcademicAffairsPermissionByUserUuid(userUuid);
-
-        // 检查获取的教务权限信息是否为空，如果为空则抛出异常
         if (academicAffairsPermissionDO == null) {
-            throw new BusinessException("此用户教务权限并未设置", ErrorCode.OPERATION_ERROR);
+            return null;
         }
-
-        // 返回获取的教务权限信息
-        return BeanUtil.toBean(academicAffairsPermissionDO,AcademicAffairsPermissionDTO.class);
+        return BeanUtil.copyProperties(academicAffairsPermissionDO, AcademicAffairsPermissionDTO.class);
     }
 }
