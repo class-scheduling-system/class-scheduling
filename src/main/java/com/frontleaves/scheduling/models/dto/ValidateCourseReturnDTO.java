@@ -10,7 +10,7 @@ import lombok.experimental.Accessors;
  * 此类用于在验证课程信息后返回验证结果和对应的实体对象
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */

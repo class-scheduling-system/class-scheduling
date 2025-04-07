@@ -26,24 +26,72 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.mappers;
+package com.frontleaves.scheduling.models.dto.base;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.base.CoursePropertyDO;
-import org.apache.ibatis.annotations.Mapper;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+
+import java.sql.Date;
+import java.sql.Timestamp;
 
 /**
- * 课程属性映射器
+ * 年级数据传输对象
  * <p>
- * 该类用于定义课程属性表的数据库操作映射器。
- * 通过继承 {@code BaseMapper} 接口，提供了对 {@code CoursePropertyDO} 实体类的基本增删改查功能。
+ * 用于在不同层之间传输年级信息。该 DTO 包含年级主键、年级名称、入学年份、
+ * 年级开始日期、年级结束日期、年级描述、创建时间及更新时间等字段。
  * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
- * @see CoursePropertyDO
  * @since v1.0.0
  */
-@Mapper
-public interface CoursePropertyMapper extends BaseMapper<CoursePropertyDO> {
-}
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+public class GradeDTO {
+    /**
+     * 年级主键
+     */
+    private String gradeUuid;
+
+    /**
+     * 年级名称（如：2020级、2021级）
+     */
+    private String name;
+
+    /**
+     * 入学年份
+     */
+    private Short year;
+
+    /**
+     * 年级开始日期
+     */
+    private Date startDate;
+
+    /**
+     * 年级结束日期
+     */
+    private Date endDate;
+
+    /**
+     * 年级描述
+     */
+    private String description;
+
+    /**
+     * 创建时间
+     */
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
+    private Timestamp createdAt;
+
+    /**
+     * 更新时间
+     */
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
+    private Timestamp updatedAt;
+} 

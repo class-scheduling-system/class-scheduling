@@ -48,7 +48,7 @@ import java.util.List;
  * 该类用于处理与课程属性相关的 HTTP 请求，提供查询课程属性列表和单个课程属性信息的接口。
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */

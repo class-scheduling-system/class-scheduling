@@ -44,7 +44,7 @@ import java.util.List;
  * 排课冲突数据访问对象
  * 使用MybatisPlus处理排课冲突的数据库操作
  *
- * @author AI Assistant
+ * @author xiao_lfeng
  */
 @Slf4j
 @Repository

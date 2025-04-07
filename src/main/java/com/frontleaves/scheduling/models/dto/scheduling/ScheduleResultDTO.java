@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 排课结果数据传输对象
  *
- * @author AI Assistant
+ * @author xiao_lfeng
  */
 @Data
 @Accessors(chain = true)

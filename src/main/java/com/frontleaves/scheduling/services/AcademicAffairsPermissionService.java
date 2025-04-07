@@ -37,7 +37,7 @@ import com.frontleaves.scheduling.models.entity.base.UserDO;
  * 该接口定义了教务权限相关的操作方法，包括获取当前用户的教务权限信息。
  * </p>
  *
- * @author Claude
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */

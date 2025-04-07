@@ -34,6 +34,8 @@ import lombok.experimental.Accessors;
 import java.sql.Timestamp;
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 /**
  * 学期数据传输对象
  *
@@ -62,11 +64,13 @@ public class SemesterDTO {
     /**
      * 学期开始日期
      */
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date startDate;
 
     /**
      * 学期结束日期
      */
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private Date endDate;
 
     /**
@@ -82,10 +86,12 @@ public class SemesterDTO {
     /**
      * 创建时间
      */
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp createdAt;
 
     /**
      * 更新时间
      */
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp updatedAt;
 }

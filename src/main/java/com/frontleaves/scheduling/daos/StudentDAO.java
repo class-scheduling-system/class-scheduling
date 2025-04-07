@@ -455,45 +455,38 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> {
      * @throws ServerInternalErrorException 当学生信息更新失败时抛出的服务器内部错误异常
      */
     public StudentDO editStudent(String studentUuid, StudentVO studentVO) {
-        RTransaction transaction = redisson.createTransaction(TransactionOptions.defaults());
-        try {
-            // 先查询学生,如果不存在则抛出异常
-            StudentDO studentDO = this.getStudentByUuid(studentUuid);
-            if (studentDO == null) {
-                throw new BusinessException("未找到该学生信息", ErrorCode.NOT_EXIST);
-            }
+        // 先查询学生,如果不存在则抛出异常
+        StudentDO studentDO = this.getStudentByUuid(studentUuid);
+        if (studentDO == null) {
+            throw new BusinessException("未找到该学生信息", ErrorCode.NOT_EXIST);
+        }
 
-            // 通过班级 UUID 获取班级映射信息
-            AdministrativeClassDO classMapping = administrativeClassDAO
-                    .getAdministrativeClassMappingByClazz(studentVO.getClazz());
+        // 通过班级 UUID 获取班级映射信息
+        AdministrativeClassDO classMapping = administrativeClassDAO
+                .getAdministrativeClassMappingByClazz(studentVO.getClazz());
 
-            // 复制非空属性到 studentDO
-            BeanUtil.copyProperties(studentVO, studentDO, CopyOptions.create().ignoreNullValue());
+        // 复制非空属性到 studentDO
+        BeanUtil.copyProperties(studentVO, studentDO, CopyOptions.create().ignoreNullValue());
 
-            // 设置外键字段
-            studentDO.setGradeUuid(classMapping.getGradeUuid())
-                    .setDepartment(classMapping.getDepartmentUuid())
-                    .setMajor(classMapping.getMajorUuid());
+        // 设置外键字段
+        studentDO.setGradeUuid(classMapping.getGradeUuid())
+                .setDepartment(classMapping.getDepartmentUuid())
+                .setMajor(classMapping.getMajorUuid());
 
-            // 更新数据库
-            boolean success = this.updateById(studentDO);
-            if (!success) {
-                transaction.rollback();
-                throw new ServerInternalErrorException("学生信息更新失败");
-            }
-
-            // 更新缓存
-            RMap<String, String> studentMap = transaction.getMap(StringConstant.Redis.STUDENT_UUID + studentUuid);
-            studentMap.putAll(ConvertUtil.convertObjectToMapString(studentDO));
-            studentMap.expire(Duration.ofSeconds(86400));
-
-            transaction.commit();
-            return studentDO;
-        } catch (Exception e) {
-            transaction.rollback();
-            log.error(LogConstant.DAO + "编辑学生信息失败", e);
+        RKeys rKeys = redisson.getKeys();
+        rKeys.delete(StringConstant.Redis.STUDENT_LIST);
+        rKeys.deleteByPattern(StringConstant.Redis.STUDENT_LIST_BY_DEPARTMENT_AND_CLASS + "*");
+        rKeys.delete(StringConstant.Redis.STUDENT_UUID + studentUuid);
+        rKeys.delete(StringConstant.Redis.STUDENT_USER_UUID + studentDO.getUserUuid());
+        rKeys.delete(StringConstant.Redis.STUDENT_ID + studentDO.getId());
+        
+        // 更新数据库
+        boolean success = this.updateById(studentDO);
+        if (!success) {
             throw new ServerInternalErrorException("学生信息更新失败");
         }
+
+        return studentDO;
     }
 
     /**

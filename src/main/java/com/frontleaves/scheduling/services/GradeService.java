@@ -26,24 +26,72 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.mappers;
+package com.frontleaves.scheduling.services;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.frontleaves.scheduling.models.entity.base.CoursePropertyDO;
-import org.apache.ibatis.annotations.Mapper;
+import com.frontleaves.scheduling.models.dto.base.GradeDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+
+import java.util.List;
 
 /**
- * 课程属性映射器
+ * 年级服务接口
  * <p>
- * 该类用于定义课程属性表的数据库操作映射器。
- * 通过继承 {@code BaseMapper} 接口，提供了对 {@code CoursePropertyDO} 实体类的基本增删改查功能。
+ * 定义了年级相关的服务方法，包括增删改查操作。
  * </p>
  *
  * @author xiao_lfeng
  * @version v1.0.0
- * @see CoursePropertyDO
  * @since v1.0.0
  */
-@Mapper
-public interface CoursePropertyMapper extends BaseMapper<CoursePropertyDO> {
-}
+public interface GradeService {
+
+    /**
+     * 创建年级
+     *
+     * @param gradeDTO 年级信息
+     * @return 创建后的年级信息，包含主键
+     */
+    GradeDTO createGrade(GradeDTO gradeDTO);
+
+    /**
+     * 更新年级信息
+     *
+     * @param gradeDTO 年级信息
+     * @return 更新后的年级信息
+     */
+    GradeDTO updateGrade(GradeDTO gradeDTO);
+
+    /**
+     * 根据UUID删除年级
+     *
+     * @param gradeUuid 年级UUID
+     * @return 是否删除成功
+     */
+    boolean deleteGrade(String gradeUuid);
+
+    /**
+     * 获取年级详情
+     *
+     * @param gradeUuid 年级UUID
+     * @return 年级详情
+     */
+    GradeDTO getGradeDetail(String gradeUuid);
+
+    /**
+     * 分页查询年级列表
+     *
+     * @param page 页码
+     * @param size 每页大小
+     * @param name 年级名称，可选，用于模糊查询
+     * @param year 入学年份，可选
+     * @return 分页数据
+     */
+    PageDTO<GradeDTO> page(Integer page, Integer size, String name, Short year);
+
+    /**
+     * 获取简单年级列表
+     *
+     * @return 年级列表
+     */
+    List<GradeDTO> listSimple();
+} 

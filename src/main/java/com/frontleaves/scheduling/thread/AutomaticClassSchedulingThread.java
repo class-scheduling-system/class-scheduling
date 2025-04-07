@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
  * 自动排课线程
  * 使用遗传算法进行智能排课
  *
- * @author AI Assistant
+ * @author xiao_lfeng
  */
 @Slf4j
 public class AutomaticClassSchedulingThread extends Thread {

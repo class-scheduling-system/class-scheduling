@@ -47,7 +47,7 @@ import java.util.List;
  * 该类实现了 {@link CourseNatureService} 接口，提供课程性质相关的业务逻辑处理。
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */

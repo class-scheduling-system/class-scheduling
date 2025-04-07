@@ -44,7 +44,7 @@ import org.springframework.stereotype.Service;
  * 该类实现了 {@link AcademicAffairsPermissionService} 接口，提供教务权限相关的具体业务逻辑。
  * </p>
  *
- * @author Claude
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */

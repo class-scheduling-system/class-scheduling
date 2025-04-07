@@ -15,7 +15,7 @@ import java.sql.Timestamp;
  * 该类是 {@code CourseCategoryDO} 实体类的 DTO，用于在数据传输过程中传递课程类别信息。
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @see CourseCategoryDO
  * @since v1.0.0

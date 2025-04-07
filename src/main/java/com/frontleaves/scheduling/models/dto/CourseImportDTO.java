@@ -11,7 +11,7 @@ import java.math.BigDecimal;
  * 该类用于从Excel导入的课程数据的封装，包含了课程的基本信息
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */

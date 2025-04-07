@@ -44,7 +44,7 @@ import java.sql.Timestamp;
  * 主键采用 UUID 自动生成。
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */

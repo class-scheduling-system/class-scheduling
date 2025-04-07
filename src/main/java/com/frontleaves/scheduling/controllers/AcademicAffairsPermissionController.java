@@ -47,7 +47,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 该控制器类负责处理与教务权限相关的 HTTP 请求。通过 {@code /api/v1/academic-affairs} 路径，
  * 提供了对教务权限资源的访问和管理功能。
  *
- * @author Claude
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */

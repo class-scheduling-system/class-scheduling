@@ -39,7 +39,7 @@ import org.apache.ibatis.annotations.Mapper;
  * 通过继承 {@code BaseMapper} 接口，提供了对 {@code CourseCategoryDO} 实体类的基本增删改查功能。
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @see CourseCategoryDO
  * @since v1.0.0

@@ -38,7 +38,7 @@ import java.util.List;
  * 该接口定义了课程属性相关的业务操作方法，包括获取课程属性列表和单个课程属性信息。
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */

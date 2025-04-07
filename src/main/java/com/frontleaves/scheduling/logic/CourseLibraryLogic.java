@@ -84,7 +84,7 @@ import java.util.stream.Stream;
  * 通过依赖注入的方式获取所需的其他服务或组件。
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */

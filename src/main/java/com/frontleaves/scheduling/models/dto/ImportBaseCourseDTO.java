@@ -13,7 +13,7 @@ import java.util.List;
  * 该类用于封装批量导入课程库时所需的基础数据，包括课程类别、属性、类型、性质、部门和教室类型
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */

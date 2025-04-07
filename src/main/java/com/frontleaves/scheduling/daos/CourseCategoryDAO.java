@@ -51,7 +51,7 @@ import java.util.List;
  * 通过该类可以方便地操作课程类别数据。
  * </p>
  *
- * @author Claude AI
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
