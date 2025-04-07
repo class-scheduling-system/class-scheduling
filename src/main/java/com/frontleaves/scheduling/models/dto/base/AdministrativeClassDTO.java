@@ -28,6 +28,7 @@
 
 package com.frontleaves.scheduling.models.dto.base;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -88,9 +89,11 @@ public class AdministrativeClassDTO {
     /**
      * 创建时间
      */
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp createdAt;
     /**
      * 更新时间
      */
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Timestamp updatedAt;
 }

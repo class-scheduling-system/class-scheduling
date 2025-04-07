@@ -157,6 +157,7 @@ public class StringConstant {
         public static final String GRADE_LIST = "grade:list";
         public static final String ADMINISTRATIVE_CLASS_LIST = "ait:class:list";
         public static final String ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT = "ait:class:list:department:";
+        public static final String ADMINISTRATIVE_CLASS_LIST_BY_MAJOR = "ait:class:list:major:";
         public static final String ADMINISTRATIVE_CLASS_MAPPING_BY_CALZZ = "ait:class:mapping:class:";
         public static final String ACADEMIC_AFFAIRS_PERMISSION_USER_UUID = "aca:affairs:per:user:uuid:";
         public static final String ACADEMIC_AFFAIRS_PERMISSION_UUID = "aca:affairs:per:uuid:";
@@ -280,6 +281,20 @@ public class StringConstant {
 
         private Major() {
             log.error("不能被实例化");
+        }
+    }
+
+    /**
+     * 行政班级常量
+     */
+    public static class AdministrativeClass {
+        public static final String ADMINISTRATIVE_CLASS_NOT_FOUND = "行政班级不存在";
+        public static final String ADMINISTRATIVE_CLASS_UUID_FORMAT_ERROR = "行政班级UUID格式无效";
+        public static final String ADMINISTRATIVE_CLASS_CODE_EXISTS = "班级编号已存在";
+        public static final String ADMINISTRATIVE_CLASS_NAME_EXISTS = "班级名称已存在";
+
+        private AdministrativeClass() {
+            log.error("AdministrativeClass 不能被实例化");
         }
     }
 
