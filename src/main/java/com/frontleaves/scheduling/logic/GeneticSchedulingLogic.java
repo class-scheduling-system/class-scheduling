@@ -124,7 +124,7 @@ private final IterateService iterateService;
                 updateStatus(taskId, "排课完成");
                 return new ScheduleResultDTO()
                         .setTaskId(taskId)
-                        .setSemesterId(baseDTO.getSemester().getSemesterUuid())
+                        .setSemesterUuid(baseDTO.getSemester().getSemesterUuid())
                         .setDepartmentId(baseDTO.getDepartment().getDepartmentUuid())
                         .setStatus("completed")
                         .setProgress(100)

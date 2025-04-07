@@ -23,7 +23,7 @@ public class ScheduleResultDTO {
     /**
      * 学期ID
      */
-    private String semesterId;
+    private String semesterUuid;
 
     /**
      * 部门ID

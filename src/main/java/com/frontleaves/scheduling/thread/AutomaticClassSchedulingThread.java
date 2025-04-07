@@ -3,8 +3,10 @@ package com.frontleaves.scheduling.thread;
 import cn.hutool.json.JSONUtil;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.daos.SchedulingConflictDAO;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.CreditHourTypeEnuDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
@@ -55,6 +57,8 @@ public class AutomaticClassSchedulingThread extends Thread {
     private ClassAssignmentService classAssignmentService;
     @Resource
     private TeachingClassService teachingClassService;
+    @Resource
+    private SchedulingConflictDAO schedulingConflictDAO;
     private boolean hasTask = false;
 
     private UserDO user;
@@ -75,8 +79,8 @@ public class AutomaticClassSchedulingThread extends Thread {
                     condition.await();
                 }
                 // 从Redis获取排课基础数据
-                RBucket<AutomaticClassSchedulingBaseDTO> cacheData =
-                        redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
+                RBucket<AutomaticClassSchedulingBaseDTO> cacheData = redisson
+                        .getBucket(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
                 if (!cacheData.isExists()) {
                     throw new BusinessException("缓存数据不存在", ErrorCode.BODY_ERROR);
                 }
@@ -87,6 +91,9 @@ public class AutomaticClassSchedulingThread extends Thread {
                 log.info("开始执行遗传算法排课，任务ID：{}", taskId);
                 ScheduleResultDTO result = geneticSchedulingService.executeGeneticAlgorithm(taskId, baseData);
                 this.getSaveScheduleDTO(result);
+
+                // 保存排课冲突信息
+                this.saveSchedulingConflicts(result);
 
                 // 删除任务有关的缓存数据
                 RKeys rKeys = redisson.getKeys();
@@ -109,12 +116,38 @@ public class AutomaticClassSchedulingThread extends Thread {
     }
 
     /**
+     * 保存排课冲突信息到数据库
+     *
+     * @param result 排课结果，包含冲突信息列表
+     */
+    private void saveSchedulingConflicts(@NotNull ScheduleResultDTO result) {
+        List<SchedulingConflictDTO> conflicts = result.getConflicts();
+        if (conflicts == null || conflicts.isEmpty()) {
+            log.info("没有检测到排课冲突，无需保存冲突信息");
+            return;
+        }
+
+        log.info("检测到{}个排课冲突，开始保存冲突信息", conflicts.size());
+
+        // 设置学期ID
+        for (SchedulingConflictDTO conflict : conflicts) {
+            conflict
+                    .setSemesterUuid(result.getSemesterUuid())
+                    .setResolutionStatus(0); // 设置为未解决状态
+        }
+
+        // 批量保存冲突信息
+        int savedCount = schedulingConflictDAO.batchSaveConflicts(conflicts, result.getSemesterUuid());
+        log.info("成功保存{}个排课冲突信息", savedCount);
+    }
+
+    /**
      * 保存排课结果到数据库
      * <p>
      * 将排课结果中的教学班和课程安排信息保存到数据库
      * 同时将冲突信息保存到cs_scheduling_conflict表
      * </p>
-
+     * 
      * @param result 排课结果
      */
     private void getSaveScheduleDTO(@NotNull ScheduleResultDTO result) {
@@ -128,7 +161,7 @@ public class AutomaticClassSchedulingThread extends Thread {
             TeachingClassDO teachingClassDO = new TeachingClassDO();
             teachingClassDO
                     .setTeachingClassUuid(assignment.getTeachingClass().getTeachingClassUuid())
-                    .setSemesterUuid(result.getSemesterId())
+                    .setSemesterUuid(result.getSemesterUuid())
                     .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
                     .setTeachingClassCode(UuidUtil.generateUuidNoDash())
                     .setTeachingClassName(assignment.getCourse().getName() + "(系统生成)")
@@ -142,7 +175,7 @@ public class AutomaticClassSchedulingThread extends Thread {
             ClassAssignmentDO classAssignmentDO = new ClassAssignmentDO();
             classAssignmentDO
                     .setClassAssignmentUuid(assignment.getCourseScheduleItemUuid())
-                    .setSemesterUuid(result.getSemesterId())
+                    .setSemesterUuid(result.getSemesterUuid())
                     .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
                     .setTeacherUuid(assignment.getTeacher().getTeacher().getTeacherUuid())
                     .setCampusUuid(assignment.getClassroom().getCampus().getCampusUuid())
@@ -152,7 +185,8 @@ public class AutomaticClassSchedulingThread extends Thread {
                     .setCourseOwnership("未定义")
                     .setCreditHourType(creditHourTypeUuidMapping.get(assignment.getCourseType().getCourseEnuType()))
                     .setScheduledHours(this.getscheduleClassHours(assignment.getTimeSlot()))
-                    .setTotalHours(this.getHoursByCourseType(assignment.getCourseType().getCourseEnuType(), assignment.getCourse()))
+                    .setTotalHours(this.getHoursByCourseType(assignment.getCourseType().getCourseEnuType(),
+                            assignment.getCourse()))
                     .setSchedulingPriority(assignment.getPriority())
                     .setTeachingCampus(assignment.getClassroom().getCampus().getCampusUuid())
                     .setClassTime(JSONUtil.toJsonStr(assignment.getTimeSlot()))
@@ -207,8 +241,7 @@ public class AutomaticClassSchedulingThread extends Thread {
         // 按周和天分组
         Map<String, List<TimeSlotDTO>> groupedSlots = timeSlots.stream()
                 .filter(Objects::nonNull)
-                .collect(Collectors.groupingBy(slot ->
-                        slot.getWeek() + "-" + slot.getDay()));
+                .collect(Collectors.groupingBy(slot -> slot.getWeek() + "-" + slot.getDay()));
         // 计算每组中连续的课时数
         BigDecimal totalHours = BigDecimal.ZERO;
         for (List<TimeSlotDTO> daySlots : groupedSlots.values()) {
@@ -270,11 +303,11 @@ public class AutomaticClassSchedulingThread extends Thread {
         return new BigDecimal(timeSlot.size());
     }
 
-
     /**
      * 获取所有课程类型与UUID的映射关系
      */
-    private @NotNull Map<CourseEnuType, String> getAllCreditHourTypeUuidMapping(List<CreditHourTypeEnuDTO> creditHourTypeList) {
+    private @NotNull Map<CourseEnuType, String> getAllCreditHourTypeUuidMapping(
+            List<CreditHourTypeEnuDTO> creditHourTypeList) {
         Map<CourseEnuType, String> mapping = new EnumMap<>(CourseEnuType.class);
         for (CourseEnuType type : CourseEnuType.values()) {
             // 排除混排课程
@@ -321,7 +354,6 @@ public class AutomaticClassSchedulingThread extends Thread {
             default -> false;
         };
     }
-
 
     /**
      * 启动排课任务

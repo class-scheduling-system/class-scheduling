@@ -203,7 +203,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         for (ScheduleResultDTO.CourseTeachingClassDTO assignment : classAssignments) {
             ClassAssignmentDO assignmentDO = new ClassAssignmentDO();
             //交换数据
-            assignmentDO.setSemesterUuid(result.getSemesterId())
+            assignmentDO.setSemesterUuid(result.getSemesterUuid())
                     .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
                     .setTeacherUuid(assignment.getTeacher().getTeacher().getTeacherUuid())
                     .setClassroomUuid(assignment.getClassroom().getClassroom().getClassroomUuid());
