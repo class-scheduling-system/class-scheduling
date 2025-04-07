@@ -37,6 +37,7 @@ import com.frontleaves.scheduling.daos.GradeDAO;
 import com.frontleaves.scheduling.models.dto.base.GradeDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.entity.base.GradeDO;
+import com.frontleaves.scheduling.models.vo.GradeVO;
 import com.frontleaves.scheduling.services.GradeService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -76,9 +77,7 @@ public class GradeLogic implements GradeService {
      * @param gradeDTO 年级信息
      * @return 创建后的年级信息，包含主键
      */
-    @Override
-    @Transactional
-    public GradeDTO createGrade(GradeDTO gradeDTO) {
+    private GradeDTO createGradeInternal(GradeDTO gradeDTO) {
         log.debug("创建年级: {}", gradeDTO.getName());
         // 参数校验
         this.validateGradeParams(gradeDTO);
@@ -94,6 +93,14 @@ public class GradeLogic implements GradeService {
             GradeDO existingGradeByYear = gradeDAO.getGradeByYear(gradeDTO.getYear());
             if (existingGradeByYear != null) {
                 throw new BusinessException(String.format("入学年份 %s 已存在", gradeDTO.getYear()), ErrorCode.BODY_ERROR);
+            }
+        }
+        
+        // 检查相同开始日期是否存在
+        if (gradeDTO.getStartDate() != null) {
+            GradeDO existingGradeByStartDate = gradeDAO.getGradeByStartDate(gradeDTO.getStartDate());
+            if (existingGradeByStartDate != null) {
+                throw new BusinessException(String.format("开始日期 %s 已存在", gradeDTO.getStartDate()), ErrorCode.BODY_ERROR);
             }
         }
 
@@ -113,6 +120,29 @@ public class GradeLogic implements GradeService {
         // 返回结果
         return BeanUtil.toBean(gradeDO, GradeDTO.class);
     }
+    
+    /**
+     * 创建年级
+     *
+     * @param gradeVO 年级信息视图对象
+     * @return 创建后的年级信息，包含主键
+     */
+    @Override
+    @Transactional
+    public GradeDTO createGrade(GradeVO gradeVO) {
+        log.debug("从VO创建年级: {}", gradeVO.getName());
+        
+        // VO转为DTO
+        GradeDTO gradeDTO = new GradeDTO()
+            .setName(gradeVO.getName())
+            .setYear(gradeVO.getYear())
+            .setStartDate(gradeVO.getStartDate())
+            .setEndDate(gradeVO.getEndDate())
+            .setDescription(gradeVO.getDescription());
+        
+        // 调用内部方法创建年级
+        return this.createGradeInternal(gradeDTO);
+    }
 
     /**
      * 更新年级信息
@@ -120,9 +150,7 @@ public class GradeLogic implements GradeService {
      * @param gradeDTO 年级信息
      * @return 更新后的年级信息
      */
-    @Override
-    @Transactional
-    public GradeDTO updateGrade(GradeDTO gradeDTO) {
+    private GradeDTO updateGradeInternal(GradeDTO gradeDTO) {
         log.debug("更新年级: {}", gradeDTO.getGradeUuid());
         // 检查必要参数
         if (gradeDTO == null || StrUtil.isBlank(gradeDTO.getGradeUuid())) {
@@ -148,6 +176,14 @@ public class GradeLogic implements GradeService {
             GradeDO existingGradeByYear = gradeDAO.getGradeByYear(gradeDTO.getYear());
             if (existingGradeByYear != null && !existingGradeByYear.getGradeUuid().equals(gradeDTO.getGradeUuid())) {
                 throw new BusinessException(String.format("入学年份 %s 已存在", gradeDTO.getYear()), ErrorCode.BODY_ERROR);
+            }
+        }
+        
+        // 检查相同开始日期是否存在（排除自身）
+        if (gradeDTO.getStartDate() != null && !Objects.equals(gradeDTO.getStartDate(), existingGrade.getStartDate())) {
+            GradeDO existingGradeByStartDate = gradeDAO.getGradeByStartDate(gradeDTO.getStartDate());
+            if (existingGradeByStartDate != null && !existingGradeByStartDate.getGradeUuid().equals(gradeDTO.getGradeUuid())) {
+                throw new BusinessException(String.format("开始日期 %s 已存在", gradeDTO.getStartDate()), ErrorCode.BODY_ERROR);
             }
         }
         
@@ -180,6 +216,31 @@ public class GradeLogic implements GradeService {
         
         // 返回结果
         return BeanUtil.toBean(existingGrade, GradeDTO.class);
+    }
+    
+    /**
+     * 更新年级信息
+     *
+     * @param gradeUuid 年级UUID
+     * @param gradeVO   年级信息视图对象
+     * @return 更新后的年级信息
+     */
+    @Override
+    @Transactional
+    public GradeDTO updateGrade(String gradeUuid, GradeVO gradeVO) {
+        log.debug("从VO更新年级: {} (uuid: {})", gradeVO.getName(), gradeUuid);
+        
+        // VO转为DTO
+        GradeDTO gradeDTO = new GradeDTO()
+            .setGradeUuid(gradeUuid)
+            .setName(gradeVO.getName())
+            .setYear(gradeVO.getYear())
+            .setStartDate(gradeVO.getStartDate())
+            .setEndDate(gradeVO.getEndDate())
+            .setDescription(gradeVO.getDescription());
+        
+        // 调用内部方法更新年级
+        return this.updateGradeInternal(gradeDTO);
     }
 
     /**

@@ -26,74 +26,67 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.services;
+package com.frontleaves.scheduling.models.vo;
 
-import com.frontleaves.scheduling.models.dto.base.GradeDTO;
-import com.frontleaves.scheduling.models.dto.base.PageDTO;
-import com.frontleaves.scheduling.models.vo.GradeVO;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
-import java.util.List;
+import java.sql.Date;
 
 /**
- * 年级服务接口
+ * 年级视图对象
  * <p>
- * 定义了年级相关的服务方法，包括增删改查操作。
+ * 该类用于接收前端传递的年级信息，封装年级相关的请求参数。
+ * 包含年级名称、入学年份、年级开始日期、年级结束日期和年级描述等字段。
  * </p>
  *
- * @author xiao_lfeng
+ * @author AI Assistant
  * @version v1.0.0
  * @since v1.0.0
  */
-public interface GradeService {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+public class GradeVO {
     
     /**
-     * 创建年级
-     *
-     * @param gradeVO 年级信息视图对象
-     * @return 创建后的年级信息，包含主键
+     * 年级名称（如：2020级、2021级）
      */
-    GradeDTO createGrade(GradeVO gradeVO);
-    
-    /**
-     * 更新年级信息
-     *
-     * @param gradeUuid 年级UUID
-     * @param gradeVO   年级信息视图对象
-     * @return 更新后的年级信息
-     */
-    GradeDTO updateGrade(String gradeUuid, GradeVO gradeVO);
+    @NotBlank(message = "年级名称不能为空")
+    @Size(min = 2, max = 32, message = "年级名称长度必须在2-32个字符之间")
+    private String name;
 
     /**
-     * 根据UUID删除年级
-     *
-     * @param gradeUuid 年级UUID
-     * @return 是否删除成功
+     * 入学年份
      */
-    boolean deleteGrade(String gradeUuid);
+    @NotNull(message = "入学年份不能为空")
+    private Short year;
 
     /**
-     * 获取年级详情
-     *
-     * @param gradeUuid 年级UUID
-     * @return 年级详情
+     * 年级开始日期
      */
-    GradeDTO getGradeDetail(String gradeUuid);
+    @NotNull(message = "年级开始日期不能为空")
+    @PastOrPresent(message = "年级开始日期不能是未来日期")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private Date startDate;
 
     /**
-     * 分页查询年级列表
-     *
-     * @param page 页码
-     * @param size 每页大小
-     * @param name 年级名称，可选，用于模糊查询
-     * @param year 入学年份，可选
-     * @return 分页数据
+     * 年级结束日期
      */
-    PageDTO<GradeDTO> page(Integer page, Integer size, String name, Short year);
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private Date endDate;
 
     /**
-     * 获取简单年级列表
-     *
-     * @return 年级列表
+     * 年级描述
      */
-    List<GradeDTO> listSimple();
+    @Size(max = 255, message = "年级描述不能超过255个字符")
+    private String description;
 } 

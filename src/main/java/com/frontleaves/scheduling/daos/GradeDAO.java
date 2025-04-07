@@ -330,6 +330,30 @@ public class GradeDAO extends ServiceImpl<GradeMapper, GradeDO> {
     }
 
     /**
+     * 根据开始日期查询年级
+     * <p>
+     * 从数据库中查询指定开始日期的年级信息
+     * </p>
+     *
+     * @param startDate 开始日期
+     * @return 年级对象，如果找不到则返回null
+     */
+    @Nullable
+    public GradeDO getGradeByStartDate(java.util.Date startDate) {
+        log.debug("根据开始日期查询年级: {}", startDate);
+        if (startDate == null) {
+            return null;
+        }
+        
+        // 构建查询条件
+        QueryWrapper<GradeDO> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("start_date", startDate);
+        
+        // 执行查询
+        return this.getOne(queryWrapper);
+    }
+
+    /**
      * 获取所有年级列表（按入学年份降序排序）
      * <p>
      * 从数据库中获取所有年级记录，并按入学年份降序排序

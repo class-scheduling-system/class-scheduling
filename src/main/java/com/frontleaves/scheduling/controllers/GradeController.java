@@ -32,11 +32,13 @@ import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.base.GradeDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.vo.GradeVO;
 import com.frontleaves.scheduling.services.GradeService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -50,7 +52,7 @@ import java.util.List;
  * 提供年级相关的接口，包括创建、更新、删除、查询等功能。
  * </p>
  *
- * @author xiao_lfeng
+ * @author AI Assistant
  * @version v1.0.0
  * @since v1.0.0
  */
@@ -65,17 +67,21 @@ public class GradeController {
     /**
      * 创建年级
      * <p>
-     * 该方法通过POST请求接收一个GradeDTO对象，用于创建新的年级信息。
+     * 该方法通过POST请求接收一个GradeVO对象，用于创建新的年级信息。
      * 主要功能包括验证传入的年级信息是否有效，以及将新年级信息保存到数据库中。
      * </p>
      *
-     * @param gradeDTO 年级信息
+     * @param gradeVO 年级信息视图对象
      * @return 创建结果
      */
     @RequestRole({"管理员"})
     @PostMapping
-    public ResponseEntity<BaseResponse<GradeDTO>> createGrade(@RequestBody GradeDTO gradeDTO) {
-        GradeDTO result = gradeService.createGrade(gradeDTO);
+    public ResponseEntity<BaseResponse<GradeDTO>> createGrade(@RequestBody @Valid GradeVO gradeVO) {
+        log.debug("创建年级: {}", gradeVO.getName());
+        
+        // 直接调用service层创建年级，传入VO对象
+        GradeDTO result = gradeService.createGrade(gradeVO);
+        
         return ResultUtil.success("年级创建成功", result);
     }
 
@@ -87,19 +93,19 @@ public class GradeController {
      * </p>
      *
      * @param gradeUuid 年级UUID
-     * @param gradeDTO  年级信息
+     * @param gradeVO  年级信息视图对象
      * @return 更新结果
      */
     @RequestRole({"管理员"})
     @PutMapping("/{gradeUuid}")
     public ResponseEntity<BaseResponse<GradeDTO>> updateGrade(
             @PathVariable String gradeUuid,
-            @RequestBody GradeDTO gradeDTO) {
-        if (gradeDTO == null) {
-            throw new BusinessException("年级信息不能为空", ErrorCode.BODY_ERROR);
-        }
-        gradeDTO.setGradeUuid(gradeUuid);
-        GradeDTO result = gradeService.updateGrade(gradeDTO);
+            @RequestBody @Valid GradeVO gradeVO) {
+        log.debug("更新年级: {}", gradeUuid);
+        
+        // 直接调用service层更新年级，传入UUID和VO对象
+        GradeDTO result = gradeService.updateGrade(gradeUuid, gradeVO);
+        
         return ResultUtil.success("年级修改成功", result);
     }
 
@@ -117,7 +123,10 @@ public class GradeController {
     @DeleteMapping("/{gradeUuid}")
     public ResponseEntity<BaseResponse<Boolean>> deleteGrade(
             @PathVariable String gradeUuid) {
+        log.debug("删除年级: {}", gradeUuid);
+        
         boolean result = gradeService.deleteGrade(gradeUuid);
+        
         return ResultUtil.success("年级删除成功", result);
     }
 
@@ -135,7 +144,10 @@ public class GradeController {
     @GetMapping("/{gradeUuid}")
     public ResponseEntity<BaseResponse<GradeDTO>> getGradeDetail(
             @PathVariable String gradeUuid) {
+        log.debug("查询年级详情: {}", gradeUuid);
+        
         GradeDTO result = gradeService.getGradeDetail(gradeUuid);
+        
         return ResultUtil.success("查询成功", result);
     }
 
@@ -155,16 +167,18 @@ public class GradeController {
     @RequestRole({"管理员"})
     @GetMapping("/page")
     public ResponseEntity<BaseResponse<PageDTO<GradeDTO>>> page(
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Short year) {
+        log.debug("分页查询年级列表: page={}, size={}, name={}, year={}", page, size, name, year);
         
         if (size != null && size > 100) {
             throw new BusinessException("每页大小不能超过100", ErrorCode.PARAMETER_INVALID);
         }
         
         PageDTO<GradeDTO> result = gradeService.page(page, size, name, year);
+        
         return ResultUtil.success("查询成功", result);
     }
 
@@ -179,7 +193,10 @@ public class GradeController {
     @RequestLogin
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<List<GradeDTO>>> listSimple() {
+        log.debug("查询年级简单列表");
+        
         List<GradeDTO> result = gradeService.listSimple();
+        
         return ResultUtil.success("查询成功", result);
     }
 } 
