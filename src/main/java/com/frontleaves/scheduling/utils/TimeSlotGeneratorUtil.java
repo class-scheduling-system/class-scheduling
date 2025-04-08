@@ -2,12 +2,14 @@ package com.frontleaves.scheduling.utils;
 
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.TimeSlotDTO;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
 /**
  * 时间槽生成工具类
+ * @author  FLASHLACK
  */
 public class TimeSlotGeneratorUtil {
 
@@ -52,8 +54,9 @@ public class TimeSlotGeneratorUtil {
     /**
      * 初始化上下文
      */
-    private static TimeSlotContext initializeContext(
-            CourseLibraryAndTeacherCourseQualificationListDTO course,
+    @Contract("_, _ -> new")
+    private static @NotNull TimeSlotContext initializeContext(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO course,
             boolean eveningCoursesEnabled) {
         return new TimeSlotContext(
                 eveningCoursesEnabled ? 8 : 12,
@@ -87,7 +90,7 @@ public class TimeSlotGeneratorUtil {
     /**
      * 确定课时分配策略
      */
-    private static List<Integer> determineDistribution(int weeklyHours) {
+    private static @NotNull List<Integer> determineDistribution(int weeklyHours) {
         List<Integer> distribution = new ArrayList<>();
 
         // 优先分配2节连续课
@@ -108,16 +111,17 @@ public class TimeSlotGeneratorUtil {
     /**
      * 分配时间块到具体天数
      */
-    private static Map<Integer, List<Integer>> assignTimeBlocksToDays(
-            List<Integer> distribution,
+    private static @NotNull Map<Integer, List<Integer>> assignTimeBlocksToDays(
+            @NotNull List<Integer> distribution,
             Map<Integer, List<List<Integer>>> availableBlocks) {
         Map<Integer, List<Integer>> dayTimeSlots = new HashMap<>();
         List<Integer> days = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5));
         Collections.shuffle(days);
 
         for (Integer blockSize : distribution) {
-            if (days.isEmpty()) break;
-
+            if (days.isEmpty()) {
+                break;
+            }
             int day = days.remove(0);
             List<List<Integer>> possibleSlots = generatePossibleTimeSlots(
                     availableBlocks.get(day),
@@ -134,8 +138,8 @@ public class TimeSlotGeneratorUtil {
     /**
      * 生成可能的时间段
      */
-    private static List<List<Integer>> generatePossibleTimeSlots(
-            List<List<Integer>> dayBlocks,
+    private static @NotNull List<List<Integer>> generatePossibleTimeSlots(
+            @NotNull List<List<Integer>> dayBlocks,
             int blockSize) {
         List<List<Integer>> possibleSlots = new ArrayList<>();
 
@@ -155,9 +159,9 @@ public class TimeSlotGeneratorUtil {
     /**
      * 生成最终时间槽
      */
-    private static List<TimeSlotDTO> generateFinalTimeSlots(
+    private static @NotNull List<TimeSlotDTO> generateFinalTimeSlots(
             Map<Integer, List<Integer>> dayTimeSlots,
-            TimeSlotContext context) {
+            @NotNull TimeSlotContext context) {
         List<TimeSlotDTO> slots = new ArrayList<>();
         int totalHours = 0;
 
