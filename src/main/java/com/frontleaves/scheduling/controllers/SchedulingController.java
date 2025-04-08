@@ -93,7 +93,7 @@ public class SchedulingController {
 
     @RequestRole("教务")
     @PostMapping("/auto")
-    public ResponseEntity<BaseResponse<Void>> automaticClassScheduling(
+    public ResponseEntity<BaseResponse<SchedulingTaskDTO>> automaticClassScheduling(
             @RequestBody @Valid AutomaticClassSchedulingVO automaticClassSchedulingVO,
             HttpServletRequest request
     ) {
@@ -139,10 +139,8 @@ public class SchedulingController {
                     });
         }
         // 准备数据并排课
-        schedulingService.getAutoClassSchedulingBaseDTO(automaticClassSchedulingVO, request);
-        // 获取排课开始信息
-        SchedulingTaskDTO schedulingTaskDTO = schedulingService.getSchedulingTaskDTO(request);
-        return ResultUtil.success("开始排课");
+        SchedulingTaskDTO schedulingTaskDTO = schedulingService.getAutoClassSchedulingBaseDTO(automaticClassSchedulingVO, request);
+        return ResultUtil.success("开始排课", schedulingTaskDTO);
     }
 
     @GetMapping("/debug")

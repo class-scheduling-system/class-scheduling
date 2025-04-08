@@ -16,7 +16,7 @@ public interface SchedulingService {
      * @param request 请求
      * @return 自动排课基础DTO
      */
-    void getAutoClassSchedulingBaseDTO(
+    SchedulingTaskDTO getAutoClassSchedulingBaseDTO(
             @Valid AutomaticClassSchedulingVO automaticClassSchedulingVO,
             HttpServletRequest request);
 

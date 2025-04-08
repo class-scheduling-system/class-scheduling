@@ -63,7 +63,7 @@ public class AutomaticClassSchedulingThread extends Thread {
     private boolean hasTask = false;
 
     private UserDO user;
-
+    private String taskId;
     public AutomaticClassSchedulingThread(String name) {
         super(name);
     }
@@ -86,8 +86,6 @@ public class AutomaticClassSchedulingThread extends Thread {
                     throw new BusinessException("缓存数据不存在", ErrorCode.BODY_ERROR);
                 }
                 AutomaticClassSchedulingBaseDTO baseData = cacheData.get();
-                // 生成任务ID
-                String taskId = user.getUserUuid() + "_" + System.currentTimeMillis();
                 // 执行遗传算法排课
                 log.info("开始执行遗传算法排课，任务ID：{}", taskId);
                 ScheduleResultDTO result = geneticSchedulingService.executeGeneticAlgorithm(taskId, baseData);
@@ -366,10 +364,11 @@ public class AutomaticClassSchedulingThread extends Thread {
     /**
      * 启动排课任务
      */
-    public void startUp(UserDO user) {
+    public void startUp(UserDO user, String taskId) {
         lock.lock();
         try {
             this.user = user;
+            this.taskId = taskId;
             condition.signal();
             hasTask = true;
             log.info("已通知线程执行排课任务");

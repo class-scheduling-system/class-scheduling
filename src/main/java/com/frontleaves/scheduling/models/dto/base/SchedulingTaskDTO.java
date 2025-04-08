@@ -31,7 +31,9 @@ package com.frontleaves.scheduling.models.dto.base;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.time.LocalDateTime;
+import java.sql.Timestamp;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * 排课任务DTO
@@ -45,13 +47,13 @@ public class SchedulingTaskDTO {
      */
     private String taskId;
     /**
-     * 学期ID
+     * 学期主键
      */
-    private String semesterId;
+    private String semesterUuid;
     /**
-     * 部门ID
+     * 部门主键
      */
-    private String departmentId;
+    private String departmentUuid;
     /**
      * 任务状态
      * processing: 处理中
@@ -64,11 +66,12 @@ public class SchedulingTaskDTO {
      */
     private Integer estimatedTime;
     /**
-     * 任务创建时间
+     * 任务创建时间（时间戳）
      */
-    private LocalDateTime createdAt;
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
+    private Timestamp createdAt;
     /**
-     * 创建用户ID
+     * 创建用户UUID
      */
     private String createdBy;
 }

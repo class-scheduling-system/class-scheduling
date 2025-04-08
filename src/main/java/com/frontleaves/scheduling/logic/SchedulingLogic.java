@@ -1,10 +1,15 @@
 package com.frontleaves.scheduling.logic;
 
+import com.frontleaves.scheduling.constants.StringConstant;
+import com.frontleaves.scheduling.daos.AcademicAffairsPermissionDAO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingTaskDTO;
 import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
+import com.frontleaves.scheduling.models.entity.base.AcademicAffairsPermissionDO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.services.SchedulingService;
+import com.frontleaves.scheduling.services.UserService;
 import com.frontleaves.scheduling.thread.ScheduleLessonsDataPreparationThread;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -13,9 +18,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.Calendar;
 
 /**
@@ -28,6 +35,9 @@ import java.util.Calendar;
 @RequiredArgsConstructor
 public class SchedulingLogic implements SchedulingService {
     private final ScheduleLessonsDataPreparationThread scheduleLessonsDataPreparationThread;
+    private final UserService userService;
+    private final AcademicAffairsPermissionDAO academicAffairsPermissionDAO;
+    private final RedissonClient redisson;
 
     /**
      * 检查结束周是否超过学期周
@@ -51,7 +61,6 @@ public class SchedulingLogic implements SchedulingService {
         }
     }
 
-
     /**
      * 获取自动排课基础DTO
      *
@@ -59,22 +68,39 @@ public class SchedulingLogic implements SchedulingService {
      * @param request                    HTTP请求对象，用于获取当前用户信息
      */
     @Override
-    public void getAutoClassSchedulingBaseDTO(
+    public SchedulingTaskDTO getAutoClassSchedulingBaseDTO(
             @NotNull AutomaticClassSchedulingVO automaticClassSchedulingVO,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
+        UserDO getUser = userService.getUserByRequest(request);
+        AcademicAffairsPermissionDO academicAffairsPermission = academicAffairsPermissionDAO.getAcademicAffairsPermissionByUserUuid(getUser.getUserUuid()); 
+
+        // 生成任务ID
+        String taskId = getUser.getUserUuid() + "_" + System.currentTimeMillis();
+
+        SchedulingTaskDTO schedulingTask = new SchedulingTaskDTO()
+                        .setTaskId(taskId)
+                        .setSemesterUuid(automaticClassSchedulingVO.getSemesterUuid())
+                        .setDepartmentUuid(academicAffairsPermission.getDepartment())
+                        .setStatus("processing")
+                        .setEstimatedTime(1000)
+                        .setCreatedAt(new Timestamp(System.currentTimeMillis()))
+                        .setCreatedBy(getUser.getUserUuid());
+
         try {
-            scheduleLessonsDataPreparationThread.startUp(automaticClassSchedulingVO, request);
+            scheduleLessonsDataPreparationThread.startUp(automaticClassSchedulingVO, taskId, request);
         } catch (Exception e) {
+            schedulingTask.setStatus("failed");
             throw new BusinessException("排课失败", ErrorCode.BODY_ERROR, e);
         }
+
+        redisson.getBucket(StringConstant.Redis.SCHEDULING_TASK + taskId).set(schedulingTask);
+        return schedulingTask;
     }
 
     @Override
     public SchedulingTaskDTO getSchedulingTaskDTO(HttpServletRequest request) {
         return null;
     }
-
 
     public static @NotNull CourseLibraryAndTeacherCourseQualificationListDTO copyAndSet(
             @NotNull CourseLibraryAndTeacherCourseQualificationListDTO originalDto,

@@ -106,7 +106,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
     private HttpServletRequest request;
     private AutomaticClassSchedulingVO classSchedulingVO;
     private boolean hasTask = false;
-
+    private String taskId;
     public ScheduleLessonsDataPreparationThread(String name) {
         super(name);
     }
@@ -230,18 +230,17 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 log.debug("准备的基础上数据为: {}", JSONUtil.toJsonStr(automaticClassSchedulingBaseDTO));
                 RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
                 cacheBaseData.set(automaticClassSchedulingBaseDTO);
-                automaticThread.startUp(userDO);
+                automaticThread.startUp(userDO, taskId);
                 hasTask = false;
             } catch (Exception e) {
                 Thread.currentThread().interrupt();
                 log.error("{}获取报错信息：{}", LogConstant.THREAD, e.getMessage(), e);
-                break;
+                hasTask = false;
+                lock.unlock();
             } finally {
                 lock.unlock();
             }
         }
-
-        log.debug(LogConstant.THREAD + "线程结束运行");
     }
 
 
@@ -252,12 +251,14 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
      */
     public void startUp(
             @NotNull AutomaticClassSchedulingVO automaticClassSchedulingVO,
+            String taskId,
             HttpServletRequest request
     ) {
         lock.lock();
         try {
             this.classSchedulingVO = automaticClassSchedulingVO;
             this.request = request;
+            this.taskId = taskId;
             hasTask = true;
             condition.signal();
             log.info(LogConstant.THREAD + "已通知线程执行任务");
