@@ -94,37 +94,54 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
         CourseLibraryDTO course = courseAndTeachers.getCourse();
 
         // 获取教室和班级列表
-        Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> classroomAssignments =
+        Map<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> classroomAssignments =
                 this.selectClassroomsForCourse(courseAndTeachers, baseData.getClassroomList());
         if (classroomAssignments == null) {
             return;
         }
-
         // 为每个班级分配教师
-        Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> teacherAssignments =
+        List<CourseScheduleItemDTO> teacherAssignments =
                 this.assignTeachersToClasses(course, courseAndTeachers, classroomAssignments);
 
         // 分配时间槽
-        this.assignTimeSlots(courseAndTeachers, baseData, assignments, teacherAssignments, classroomAssignments);
+        this.assignTimeSlots(courseAndTeachers, baseData, assignments,teacherAssignments);
     }
 
     /**
      * 为班级分配教师
      */
-    private @NotNull Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> assignTeachersToClasses(
+    private @NotNull List<CourseScheduleItemDTO> assignTeachersToClasses(
             CourseLibraryDTO course,
             CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers,
-            @NotNull Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> classroomAssignments) {
-        Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> teacherAssignments = new HashMap<>();
-        for (List<AdministrativeClassDTO> classGroup : classroomAssignments.keySet()) {
+            @NotNull Map<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> classroomAssignments) {
+        List<CourseScheduleItemDTO> courseScheduleItem = new ArrayList<>();
+        // 使用entrySet()来同时获取key和value
+        for (Map.Entry<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> entry :
+                classroomAssignments.entrySet()) {
+            CourseLibraryAndTeacherCourseQualificationListDTO classGroup = entry.getKey();
+            ClassroomInfoDTO classroom = entry.getValue();
             TeacherCoursePreferencesDTO teacher = this.selectTeacherForCourse(
                     course, courseAndTeachers.getTeacherList());
             if (teacher != null) {
-                teacherAssignments.put(classGroup, teacher);
+                CreditHourTypeEnuDTO creditHourTypeEnuDTO = new CreditHourTypeEnuDTO();
+                creditHourTypeEnuDTO.setCourseEnuType(courseAndTeachers.getCourseEnuType());
+                TeachingClassDTO teachingClassDTO = new TeachingClassDTO();
+                teachingClassDTO.setTeachingClassUuid(classGroup.getTeachingClassUuid());
+                // 分配教师
+                courseScheduleItem.add(new CourseScheduleItemDTO(
+                        UuidUtil.generateUuidNoDash(),
+                        course,
+                        teacher,
+                        classroom,
+                        classGroup.getClassList(),
+                        creditHourTypeEnuDTO,
+                        courseAndTeachers.getPriority(),
+                        classGroup.getNumber(),
+                        teachingClassDTO
+                ));
             }
         }
-
-        return teacherAssignments;
+        return courseScheduleItem;
     }
 
     /**
@@ -134,21 +151,19 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers,
             AutomaticClassSchedulingBaseDTO baseData,
             Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments,
-            @NotNull Map<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> teacherAssignments,
-            Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> classroomAssignments) {
-
-        for (Map.Entry<List<AdministrativeClassDTO>, TeacherCoursePreferencesDTO> entry : teacherAssignments.entrySet()) {
-            List<AdministrativeClassDTO> classGroup = entry.getKey();
-            TeacherCoursePreferencesDTO assignedTeacher = entry.getValue();
-            ClassroomInfoDTO assignedClassroom = classroomAssignments.get(classGroup);
-
+            @NotNull List<CourseScheduleItemDTO> teacherAssignments) {
+        for (CourseScheduleItemDTO courseSchedule : teacherAssignments) {
+            List<AdministrativeClassDTO> classGroup = courseSchedule.getClassGroup();
+            TeacherCoursePreferencesDTO assignedTeacher =courseSchedule.getTeacher();
+            ClassroomInfoDTO assignedClassroom = courseSchedule.getClassroom();
             this.createAndAssignTimeSlot(
                     courseAndTeachers,
                     baseData,
                     assignments,
                     classGroup,
                     assignedTeacher,
-                    assignedClassroom
+                    assignedClassroom,
+                    courseSchedule
             );
         }
     }
@@ -159,11 +174,10 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
     private void createAndAssignTimeSlot(
             CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers,
             AutomaticClassSchedulingBaseDTO baseData,
-            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments,
+            @NotNull Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments,
             List<AdministrativeClassDTO> classGroup,
             TeacherCoursePreferencesDTO assignedTeacher,
-            ClassroomInfoDTO assignedClassroom) {
-
+            ClassroomInfoDTO assignedClassroom, @NotNull CourseScheduleItemDTO courseSchedule) {
         List<TimeSlotDTO> timeSlot = this.findSuitableTimeSlot(
                 courseAndTeachers,
                 baseData
@@ -171,7 +185,7 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
         CreditHourTypeEnuDTO creditHourTypeEnuDTO = new CreditHourTypeEnuDTO();
         creditHourTypeEnuDTO.setCourseEnuType(courseAndTeachers.getCourseEnuType());
         TeachingClassDTO teachingClassDTO = new TeachingClassDTO();
-        teachingClassDTO.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
+        teachingClassDTO.setTeachingClassUuid(courseSchedule.getTeachingClass().getTeachingClassUuid());
         CourseScheduleItemDTO item = new CourseScheduleItemDTO(
                 UuidUtil.generateUuidNoDash(),
                 courseAndTeachers.getCourse(),
@@ -180,7 +194,7 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
                 classGroup,
                 creditHourTypeEnuDTO,
                 courseAndTeachers.getPriority(),
-                courseAndTeachers.getNumber(),
+                courseSchedule.getNumber(),
                 teachingClassDTO
         );
         assignments.put(timeSlot, item);
@@ -192,11 +206,9 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
     private @NotNull ScheduleDTO createScheduleDTO(CourseScheduleDTO schedule, @NotNull AutomaticClassSchedulingBaseDTO baseData) {
         List<CourseScheduleDTO> population = new ArrayList<>();
         population.add(schedule);
-
         ScheduleDTO scheduleDTO = new ScheduleDTO();
         scheduleDTO.setSchedule(population);
         scheduleDTO.setData(baseData.getDataCourseScheduleList());
-
         return scheduleDTO;
     }
 
@@ -249,7 +261,7 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
     /**
      * 为课程选择合适的教室
      */
-    Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> selectClassroomsForCourse(
+    Map<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> selectClassroomsForCourse(
             @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
             @Nonnull List<ClassroomInfoDTO> classrooms) {
 
@@ -262,7 +274,11 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             // 为行政班级分配教学班级
             this.assignTeachingClassesForAdministrative(courseQualification, newList);
         }
-        newList.add(courseQualification);
+        for (CourseLibraryAndTeacherCourseQualificationListDTO c : newList) {
+            log.debug("教学班uuid: {}", c.getTeachingClassUuid());
+            log.debug("课程名称: {}", c.getCourse().getName());
+            log.debug("教学班人数: {}", c.getNumber());
+        }
         // 为教学班级分配教室
         return this.assignClassrooms(classrooms, newList);
     }
@@ -271,11 +287,11 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
      * 随机分配教室给课程
      */
     @Contract(pure = true)
-    private @NotNull Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> assignClassrooms(
+    private @NotNull Map<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> assignClassrooms(
             List<ClassroomInfoDTO> classrooms,
             @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
         // 初始化结果映射
-        Map<List<AdministrativeClassDTO>, ClassroomInfoDTO> result = new HashMap<>();
+        Map<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> result = new HashMap<>();
         // 遍历课程列表
         for (CourseLibraryAndTeacherCourseQualificationListDTO course : newList) {
             // 查找适合当前课程的教室
@@ -286,7 +302,7 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
                 ClassroomInfoDTO selectedClassroom =
                         ClassroomSelectionUtil.selectRandomClassroom(matchingClassrooms, random);
                 // 将课程的班级列表和选定的教室信息存入结果映射中
-                result.put(course.getClassList(), selectedClassroom);
+                result.put(course, selectedClassroom);
             }
         }
         // 返回分配结果
@@ -448,73 +464,53 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
     /**
      * 分配教学班级并更新课程资质列表中的人数
      *
-     * @param courseQualification 课程资质信息
+     * @param courseQualification        课程资质信息
      * @param newCourseQualificationList 新的课程资质列表
      */
     private void assignTeachingClasses(
             @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
             List<CourseLibraryAndTeacherCourseQualificationListDTO> newCourseQualificationList) {
-        // 如果总人数小于30，只能开一个班
         Integer number = courseQualification.getNumber();
-        if (number <= 30) {
+        // 如果总人数小于等于120，可以只开一个班
+        if (number <= 120) {
             courseQualification.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
-            // 人数保持不变
             newCourseQualificationList.add(courseQualification);
             return;
         }
-
-        // 计算最大可能的班级数，确保至少为1
-        int maxClasses = Math.max(1, number / 30);
-        int numClasses = 1 + random.nextInt(maxClasses);
-
-        // 如果只分一个班，直接返回
-        if (numClasses == 1) {
-            courseQualification.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
-            // 人数保持不变
-            newCourseQualificationList.add(courseQualification);
-            return;
-        }
-
-        // 随机分配每个班的人数
+        // 计算最小需要的班级数（以确保每班不超过120人）
+        int minRequiredClasses = (int) Math.ceil(number / 120.0);
+        // 可以多分1-2个班，增加随机性
+        int maxPossibleClasses = minRequiredClasses + 2;
+        // 随机选择实际班级数，但不少于最小需要的班级数
+        // 随机增加0-2个班
+        int numClasses = minRequiredClasses + random.nextInt(3);
+        numClasses = Math.min(numClasses, maxPossibleClasses);
         int remainingStudents = number;
-        int remainingClasses = numClasses;
-        List<CourseLibraryAndTeacherCourseQualificationListDTO> tempList = new ArrayList<>();
-
-        while (remainingClasses > 0) {
-            CourseLibraryAndTeacherCourseQualificationListDTO newClass =
-                    BeanUtil.copyProperties(courseQualification, CourseLibraryAndTeacherCourseQualificationListDTO.class);
-
+        List<Integer> classSizes = new ArrayList<>();
+        // 随机分配每个班的人数
+        for (int i = 0; i < numClasses; i++) {
+            // 确保每个班至少30人，且剩余班级也至少能分到30人
+            int minSize = Math.max(30, remainingStudents / (numClasses - i));
+            // 确保每个班最多120人，且为后续班级预留足够人数
+            int maxSize = Math.min(120, remainingStudents - ((numClasses - i - 1) * 30));
             int classSize;
-            if (remainingClasses == 1) {
-                // 最后一个班级分配剩余的所有学生
+            if (i == numClasses - 1) {
+                // 最后一个班级分配所有剩余学生
                 classSize = remainingStudents;
             } else {
-                // 确保剩余人数足够分配给剩下的班
-                int maxPossible = Math.min(180, remainingStudents - (remainingClasses - 1) * 30);
-                int minPossible = 30;
-                classSize = minPossible + random.nextInt(maxPossible - minPossible + 1);
-                remainingStudents -= classSize;
+                // 随机分配人数，但确保在合理范围内
+                classSize = minSize + random.nextInt(maxSize - minSize + 1);
             }
-
-            // 设置新班级的人数和UUID
+            classSizes.add(classSize);
+            remainingStudents -= classSize;
+        }
+        // 创建班级并分配人数
+        for (int classSize : classSizes) {
+            CourseLibraryAndTeacherCourseQualificationListDTO newClass =
+                    BeanUtil.copyProperties(courseQualification, CourseLibraryAndTeacherCourseQualificationListDTO.class);
             newClass.setNumber(classSize);
             newClass.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
-            tempList.add(newClass);
-            remainingClasses--;
-        }
-
-        // 更新原始对象的人数为第一个班级的人数
-        if (!tempList.isEmpty()) {
-            courseQualification.setNumber(tempList.get(0).getNumber());
-            courseQualification.setTeachingClassUuid(tempList.get(0).getTeachingClassUuid());
-            newCourseQualificationList.add(courseQualification);
-
-            // 添加其他班级（从第二个开始）
-            for (int i = 1; i < tempList.size(); i++) {
-                newCourseQualificationList.add(tempList.get(i));
-            }
+            newCourseQualificationList.add(newClass);
         }
     }
-
-
 }

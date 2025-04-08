@@ -90,14 +90,12 @@ public List<TeachingClassDO> getTeachingClassBySemester(String semesterUuid) {
         RMap<String,String> rMap = redisson.getMap(
                 StringConstant.Redis.TEACHING_CLASS_UUID + teachingClassUuid);
         if (!rMap.isExists()){
-            TeachingClassDO teachingClassDO = this.lambdaQuery()
-                    .eq(TeachingClassDO::getTeachingClassUuid,teachingClassUuid)
-                    .one();
+            TeachingClassDO teachingClassDO = this.getById(teachingClassUuid);
             if (teachingClassDO != null) {
                 rMap.putAll(ConvertUtil.convertObjectToMapString(teachingClassDO));
                 rMap.expire(Duration.ofSeconds(3600));
             }
-            return null;
+            return teachingClassDO;
         }
         return BeanUtil.toBean(rMap,TeachingClassDO.class);
     }

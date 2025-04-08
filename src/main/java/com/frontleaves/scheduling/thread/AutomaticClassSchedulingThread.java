@@ -7,6 +7,7 @@ import com.frontleaves.scheduling.daos.SchedulingConflictDAO;
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
+import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.CreditHourTypeEnuDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
@@ -157,21 +158,28 @@ public class AutomaticClassSchedulingThread extends Thread {
         List<CreditHourTypeEnuDTO> creditHourTypeList = creditHourTypeService.getList();
         Map<CourseEnuType, String> creditHourTypeUuidMapping = this.getAllCreditHourTypeUuidMapping(creditHourTypeList);
         for (ScheduleResultDTO.CourseTeachingClassDTO assignment : assignments) {
+            log.debug("教学班UUID：{}", assignment.getTeachingClass().getTeachingClassUuid());
             // 新建教学班
             TeachingClassDO teachingClassDO = new TeachingClassDO();
-            teachingClassDO
-                    .setTeachingClassUuid(assignment.getTeachingClass().getTeachingClassUuid())
-                    .setSemesterUuid(result.getSemesterUuid())
-                    .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
-                    .setTeachingClassCode(UuidUtil.generateUuidNoDash())
-                    .setTeachingClassName(assignment.getCourse().getName() + "(系统生成)")
-                    .setAdministrativeClasses(this.checkClass(assignment.getClassGroup()))
-                    .setIsAdministrative(this.checkIfItIsAnAdministrativeClass(assignment.getClassGroup()))
-                    .setClassSize(this.detectClassSize(assignment.getClassGroup()))
-                    .setActualStudentCount(assignment.getNumber())
-                    .setCourseDepartmentUuid(assignment.getCourse().getDepartment())
-                    .setIsEnabled(true);
-            teachingClassService.save(teachingClassDO);
+            //检测是否存在此教学班
+            TeachingClassDTO existingTeachingClass = teachingClassService.getTeachingClassByUuidNoError(
+                    assignment.getTeachingClass().getTeachingClassUuid());
+            log.debug("是否存在教学班：{}", existingTeachingClass != null);
+            if (existingTeachingClass == null) {
+                teachingClassDO
+                        .setTeachingClassUuid(assignment.getTeachingClass().getTeachingClassUuid())
+                        .setSemesterUuid(result.getSemesterUuid())
+                        .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
+                        .setTeachingClassCode(UuidUtil.generateUuidNoDash())
+                        .setTeachingClassName(assignment.getCourse().getName() + "(系统生成)")
+                        .setAdministrativeClasses(this.checkClass(assignment.getClassGroup()))
+                        .setIsAdministrative(this.checkIfItIsAnAdministrativeClass(assignment.getClassGroup()))
+                        .setClassSize(this.detectClassSize(assignment.getClassGroup()))
+                        .setActualStudentCount(assignment.getNumber())
+                        .setCourseDepartmentUuid(assignment.getCourse().getDepartment())
+                        .setIsEnabled(true);
+                 teachingClassService.save(teachingClassDO);
+            }
             ClassAssignmentDO classAssignmentDO = new ClassAssignmentDO();
             classAssignmentDO
                     .setClassAssignmentUuid(assignment.getCourseScheduleItemUuid())
@@ -181,7 +189,7 @@ public class AutomaticClassSchedulingThread extends Thread {
                     .setCampusUuid(assignment.getClassroom().getCampus().getCampusUuid())
                     .setBuildingUuid(assignment.getClassroom().getBuilding().getBuildingUuid())
                     .setClassroomUuid(assignment.getClassroom().getClassroom().getClassroomUuid())
-                    .setTeachingClassUuid(teachingClassDO.getTeachingClassUuid())
+                    .setTeachingClassUuid(assignment.getTeachingClass().getTeachingClassUuid())
                     .setCourseOwnership("未定义")
                     .setCreditHourType(creditHourTypeUuidMapping.get(assignment.getCourseType().getCourseEnuType()))
                     .setScheduledHours(this.getscheduleClassHours(assignment.getTimeSlot()))

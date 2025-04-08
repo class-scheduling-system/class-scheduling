@@ -10,6 +10,7 @@ import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -43,5 +44,11 @@ public class TeachingClassLogic implements TeachingClassService {
     @Override
     public void save(TeachingClassDO teachingClassDO) {
         teachingClassDAO.save(teachingClassDO);
+    }
+
+    @Override
+    public @Nullable TeachingClassDTO getTeachingClassByUuidNoError(String teachingClassUuid) {
+        TeachingClassDO teachingClassDO = teachingClassDAO.getTeachingClassByUuid(teachingClassUuid);
+        return BeanUtil.toBean(teachingClassDO, TeachingClassDTO.class);
     }
 }

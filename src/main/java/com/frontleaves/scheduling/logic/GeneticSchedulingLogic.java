@@ -79,7 +79,7 @@ private final IterateService iterateService;
             // 生成初始种群
             List<ScheduleDTO> allPopulation = generateInitialPopulationService.generateInitialPopulation(baseDTO);
             log.debug("初始种群生成完成，种群大小: {}", allPopulation.size());
-            log.debug("获取第一个种群: {}", allPopulation.get(0));
+            log.debug("获取第50个种群: {}", allPopulation.get(49));
             // 评估初始种群
             log.debug("开始评估初始种群...");
             evaluatePopulationService.evaluatePopulation(allPopulation, baseDTO);

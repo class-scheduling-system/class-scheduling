@@ -3,6 +3,7 @@ package com.frontleaves.scheduling.services;
 import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
 import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -34,4 +35,12 @@ public interface TeachingClassService {
      * @param teachingClassDO
      */
     void save(TeachingClassDO teachingClassDO);
+
+    /**
+     * 根据UUID查询教学班 - 为空
+     * @param teachingClassUuid 教学班UUID
+     * @return 教学班数据传输对象
+     */
+    @Nullable
+    TeachingClassDTO getTeachingClassByUuidNoError(String teachingClassUuid);
 }
