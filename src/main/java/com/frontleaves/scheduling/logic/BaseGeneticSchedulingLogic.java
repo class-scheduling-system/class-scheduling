@@ -361,7 +361,7 @@ class BaseGeneticSchedulingLogic {
     /**
      * 创建教室冲突记录
      */
-    private SchedulingConflictDTO createClassroomConflict(@NotNull CourseScheduleItemDTO item, @NotNull TimeSlotDTO slot, CourseScheduleItemDTO item2) {
+    private SchedulingConflictDTO createClassroomConflict(@NotNull CourseScheduleItemDTO item, @NotNull TimeSlotDTO slot, @NotNull CourseScheduleItemDTO item2) {
         // 获取教室名称
         String classroomName = item.getClassroom().getClassroom().getName();
         // 获取两门课程的名称
@@ -482,10 +482,8 @@ class BaseGeneticSchedulingLogic {
                 assignments.add(assignment);
             }
         }
-
         return assignments;
     }
-
     /**
      * 更新排课任务的进度
      *

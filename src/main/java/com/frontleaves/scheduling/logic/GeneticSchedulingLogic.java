@@ -116,7 +116,10 @@ private final IterateService iterateService;
             }
             // 构建结果
             if (bestSchedule != null) {
-                log.debug("最终排课方案: {}", bestSchedule);
+                bestSchedule.setSchedule(List.of(bestSchedule.getSchedule().get(0)));
+                bestSchedule.getSchedule().forEach(data ->
+                    log.debug("XXXX 最终排课方案: {}", data)
+                );
                 List<SchedulingConflictDTO> conflicts = this.findConflicts(bestSchedule);
                 ScheduleResultDTO.ResourceUtilization utilization = calculateResourceUtilization(bestSchedule);
                 List<ScheduleResultDTO.CourseTeachingClassDTO> assignments = convertScheduleToAssignments(bestSchedule);
