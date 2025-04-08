@@ -189,6 +189,7 @@ public class StringConstant {
         public static final String CLASSROOM_BUILDING = "classroom:building:";
         public static final String SCHEDULE_LESSONS = "schedule:lessons:";
         public static final String COURSE_LIBRARY_LIST = "course:library:list";
+        public static final String COURSE_LIBRARY_PAGE_DEPARTMENT = "course:library:list:department:";
         public static final String SCHEDULE_EXECUTE_STATUS = "schedule:execute:status:";
         public static final String SCHEDULE_EXECUTE_PROGRESS = "schedule:execute:progress:";
         public static final String CREDIT_HOUR_TYPE_UUID = "credit:hour:type:uuid:";

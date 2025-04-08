@@ -9,6 +9,7 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.CourseLibraryMapper;
 import com.frontleaves.scheduling.models.dto.excel.BackAddCourseDTO;
 import com.frontleaves.scheduling.models.entity.base.CourseLibraryDO;
+import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
@@ -90,7 +91,8 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
             }
 
             // 删除Redis中的课程库信息，确保缓存数据与数据库数据保持一致
-            transaction.getMap(StringConstant.Redis.COURSE_LIBRARY_UUID + courseLibraryDO.getCourseLibraryUuid()).delete();
+            transaction.getMap(StringConstant.Redis.COURSE_LIBRARY_UUID + courseLibraryDO.getCourseLibraryUuid())
+                    .delete();
             transaction.getBucket(StringConstant.Redis.COURSE_LIBRARY_ID + courseLibraryDO.getId()).delete();
 
             // 提交Redis事务
@@ -117,7 +119,8 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
             this.removeById(courseLibraryDO);
 
             // 删除Redis中的课程库信息，确保缓存数据与数据库数据保持一致
-            transaction.getMap(StringConstant.Redis.COURSE_LIBRARY_UUID + courseLibraryDO.getCourseLibraryUuid()).delete();
+            transaction.getMap(StringConstant.Redis.COURSE_LIBRARY_UUID + courseLibraryDO.getCourseLibraryUuid())
+                    .delete();
             transaction.getBucket(StringConstant.Redis.COURSE_LIBRARY_ID + courseLibraryDO.getId()).delete();
             transaction.commit();
 
@@ -130,27 +133,43 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
     /**
      * 根据条件获取课程库的分页信息
      *
-     * @param page 页码，表示请求的是第几页数据
-     * @param size 每页大小，即每页包含的课程库数量
-     * @param name 课程库名称的模糊查询条件，如果为空或null则不进行模糊查询
+     * @param page           页码，表示请求的是第几页数据
+     * @param size           每页大小，即每页包含的课程库数量
+     * @param name           课程库名称的模糊查询条件，如果为空或null则不进行模糊查询
+     * @param departmentUuid 部门UUID，用于按部门筛选，如果为空或null则不筛选部门
      * @return 返回一个分页对象，包含符合条件的课程库列表和分页信息
      */
-    public Page<CourseLibraryDO> getCourseLibraryPage(Integer page, Integer size, String name) {
-        // 创建一个Lambda查询链式包装器，用于构造查询条件
-        LambdaQueryChainWrapper<CourseLibraryDO> query = this.lambdaQuery();
+    public Page<CourseLibraryDO> getCourseLibraryPage(Integer page, Integer size, String name, String departmentUuid, Boolean isDesc) {
+        RMap<String, String> map = redisson
+                .getMap(StringConstant.Redis.COURSE_LIBRARY_PAGE_DEPARTMENT + departmentUuid);
+        if (!map.isExists()) {
+            // 创建一个Lambda查询链式包装器，用于构造查询条件
+            LambdaQueryChainWrapper<CourseLibraryDO> query = this.lambdaQuery();
 
-        // 如果名称参数不为空也不为null，则添加模糊查询条件
-        if (name != null && !name.isEmpty()) {
-            query
-                    .or(i -> i.like(CourseLibraryDO::getName, name))
-                    .or(i -> i.like(CourseLibraryDO::getId, name));
+            // 如果部门UUID参数不为空也不为null，则添加部门筛选条件
+            if (departmentUuid != null && !departmentUuid.isEmpty()) {
+                query.eq(CourseLibraryDO::getDepartment, departmentUuid);
+            }
+
+            // 如果名称参数不为空也不为null，则添加模糊查询条件
+            if (name != null && !name.isEmpty()) {
+                query
+                        .or(i -> i.like(CourseLibraryDO::getName, name))
+                        .or(i -> i.like(CourseLibraryDO::getId, name));
+            }
+
+            // 如果isDesc参数不为空也不为null，则添加排序条件
+            query.orderBy(isDesc != null && isDesc, false, CourseLibraryDO::getId);
+
+            // 执行分页查询，并返回结果
+            return ProjectUtil.queryAndCache(query, page, size, map);
+        } else {
+            return ProjectUtil.convertMapToPage(map, CourseLibraryDO.class);
         }
-
-        // 执行分页查询，并返回结果
-        return query.page(new Page<>(page, size));
     }
 
-    public List<CourseLibraryDO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid) {
+    public List<CourseLibraryDO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid,
+            String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid) {
         // 构建缓存键
         String cacheKey = StringConstant.Redis.COURSE_LIBRARY_LITE_LIST +
                 (courseCategoryUuid != null && !courseCategoryUuid.isEmpty() ? courseCategoryUuid : "all") + ":" +
@@ -223,7 +242,7 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
      */
     private BackAddCourseDTO.FailedDetail createCourseLibraryFailedDetail(Exception e, int i) {
         BackAddCourseDTO.FailedDetail failedDetail = new BackAddCourseDTO.FailedDetail();
-        failedDetail.setRow(i + 3);  // +3 是因为Excel文件中有表头和示例行
+        failedDetail.setRow(i + 3); // +3 是因为Excel文件中有表头和示例行
 
         if (e instanceof DuplicateKeyException) {
             failedDetail.setReason("课程ID或名称重复");
@@ -250,8 +269,7 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
                 "fk_cs_course_library_cs_course_category", "课程类别信息错误",
                 "fk_cs_course_library_cs_course_property", "课程属性信息错误",
                 "fk_cs_course_library_cs_course_type", "课程类型信息错误",
-                "fk_cs_course_library_cs_course_nature", "课程性质信息错误"
-        );
+                "fk_cs_course_library_cs_course_nature", "课程性质信息错误");
 
         // 检查外键错误
         for (Map.Entry<String, String> entry : foreignKeyErrors.entrySet()) {
@@ -330,7 +348,7 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
     public void saveCourseLibrary(CourseLibraryDO newCourseLibraryDO) {
         this.save(newCourseLibraryDO);
         RKeys rKeys = redisson.getKeys();
-        //rKeys.delete(StringConstant.Redis.
+        // rKeys.delete(StringConstant.Redis.
     }
 
     /**
@@ -358,7 +376,7 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
         if (!rList.isExists()) {
             List<CourseLibraryDO> courseLibraryList = this
                     .lambdaQuery()
-                    .eq(CourseLibraryDO::getDepartment,departmentUuid)
+                    .eq(CourseLibraryDO::getDepartment, departmentUuid)
                     .list();
             if (!courseLibraryList.isEmpty()) {
                 rList.addAll(courseLibraryList);
@@ -370,4 +388,3 @@ public class CourseLibraryDAO extends ServiceImpl<CourseLibraryMapper, CourseLib
         return rList.readAll();
     }
 }
-

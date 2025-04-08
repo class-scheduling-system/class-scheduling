@@ -28,7 +28,16 @@ public interface CourseLibraryService {
 
     void deleteCourseLibrary(String courseUuid);
 
-    PageDTO<CourseLibraryDTO> getCourseLibrary(Integer page, Integer size, String name);
+    /**
+     * 获取课程库分页
+     *
+     * @param page 页码
+     * @param size 每页记录数
+     * @param name 课程名称，用于模糊查询
+     * @param departmentUuid 部门UUID，用于按部门筛选
+     * @return 课程库分页数据
+     */
+    PageDTO<CourseLibraryDTO> getCourseLibrary(Integer page, Integer size, String name, String departmentUuid, Boolean isDesc);
 
     List<CourseLibraryLiteDTO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid);
 

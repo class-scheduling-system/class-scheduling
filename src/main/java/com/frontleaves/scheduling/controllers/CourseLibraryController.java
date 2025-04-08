@@ -132,6 +132,7 @@ public class CourseLibraryController {
      * @param page 当前页数，默认为1
      * @param size 每页显示数量，默认为10
      * @param keyword 搜索关键字（课程名称），可选参数
+     * @param departmentUuid 部门UUID，用于筛选特定部门的课程，可选参数
      * @return 返回包含课程库分页信息的响应实体
      */
     @RequestLogin
@@ -139,9 +140,11 @@ public class CourseLibraryController {
     public ResponseEntity<BaseResponse<PageDTO<CourseLibraryDTO>>> getCourseLibraryPage(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "20") Integer size,
-            @RequestParam(value = "keyword", required = false) String keyword
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "is_desc", required = false) Boolean isDesc,
+            @RequestParam(value = "department_uuid", required = false) String departmentUuid
     ) {
-        PageDTO<CourseLibraryDTO> courseLibraryPage = courseLibraryService.getCourseLibrary(page, size, keyword);
+        PageDTO<CourseLibraryDTO> courseLibraryPage = courseLibraryService.getCourseLibrary(page, size, keyword, departmentUuid, isDesc);
         return ResultUtil.success("课程库获取成功", courseLibraryPage);
     }
 

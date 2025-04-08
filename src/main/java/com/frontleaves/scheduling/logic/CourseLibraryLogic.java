@@ -496,12 +496,13 @@ public class CourseLibraryLogic implements CourseLibraryService {
      * @param page 页码，从1开始
      * @param size 每页记录数
      * @param name 课程库名称，用于模糊查询
+     * @param departmentUuid 部门UUID，用于按部门筛选
      * @return 包含课程库信息的分页数据传输对象
      */
     @Override
-    public PageDTO<CourseLibraryDTO> getCourseLibrary(Integer page, Integer size, String name) {
+    public PageDTO<CourseLibraryDTO> getCourseLibrary(Integer page, Integer size, String name, String departmentUuid, Boolean isDesc) {
         // 获取课程库分页数据
-        Page<CourseLibraryDO> courseLibraryList = courseLibraryDAO.getCourseLibraryPage(page, size, name);
+        Page<CourseLibraryDO> courseLibraryList = courseLibraryDAO.getCourseLibraryPage(page, size, name, departmentUuid, isDesc);
 
         // 如果查询结果为空，则直接返回一个空的PageDTO对象
         if (courseLibraryList.getTotal() == 0) {
