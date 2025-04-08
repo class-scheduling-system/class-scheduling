@@ -28,72 +28,38 @@ public final class ScheduleFitnessCalculator {
         double totalFitness = 0.0;
         int courseCount = schedule.getSchedule().size();
 
-        // 遍历每个课程计算适应度
         for (CourseScheduleDTO courseSchedule : schedule.getSchedule()) {
-            // 基础分数
             double courseFitness = 0;
-            // 减去冲突惩罚
+            // 冲突惩罚
             courseFitness -= ScheduleFitnessCalculator.calculateConflictPenalty(courseSchedule, baseDTO.getDataCourseScheduleList());
-
-            // 连续课程适应度
+            // 连续课程
             if (Boolean.TRUE.equals(baseDTO.getConstraints().getConsecutiveCoursesPreferred())) {
                 courseFitness += ScheduleFitnessCalculator.calculateConsecutiveCoursesFitness(courseSchedule);
             }
-
-            // 时间偏好适应度
+            // 时间偏好
             courseFitness += ScheduleFitnessCalculator.calculateTimePreferenceFitness(courseSchedule, baseDTO.getTimePreferences());
-
-            // 教室优化适应度
+            // 教室优化
             if (Boolean.TRUE.equals(baseDTO.getConstraints().getRoomOptimization())) {
                 courseFitness += ScheduleFitnessCalculator.calculateRoomOptimizationFitness(courseSchedule);
             }
-
-            // 确保单个课程的适应度不为负，并进行分级处理
+            // 非负限制
             courseFitness = Math.max(0.0, courseFitness);
-            courseFitness = adjustFitnessValue(courseFitness);
-
-            // 将课程适应度添加到总适应度
             totalFitness += courseFitness;
-            // 更新单个课程的适应度
             courseSchedule.setFitness(courseFitness);
         }
-
-        // 计算平均适应度
+        // 平均适应度
         double averageFitness = totalFitness / courseCount;
-        // 更新整个课程表的适应度
-        schedule.setFitness(averageFitness);
-        return averageFitness;
+        // === 等比缩放 ===
+        double maxExpectedFitness = 600.0;
+        double scaledFitness = (averageFitness / maxExpectedFitness) * 100.0;
+        scaledFitness = Math.min(scaledFitness, 100.0);
+
+        schedule.setFitness(scaledFitness);
+        return scaledFitness;
     }
 
-    /**
-     * 根据适应度值大小进行分级处理
-     */
-    private static double adjustFitnessValue(double fitness) {
-        if (fitness <= 100) {
-            // 0-100范围内按比例缩小到0-40
-            return (fitness / 100.0) * 40.0;
-        } else if (fitness <= 200) {
-            return 50.0;
-        } else if (fitness <= 300) {
-            return 55.0;
-        } else if (fitness <= 400) {
-            return 60.0;
-        } else if (fitness <= 500) {
-            return 65.0;
-        } else if (fitness <= 600) {
-            return 70.0;
-        } else if (fitness <= 700) {
-            return 75.0;
-        } else if (fitness <= 800) {
-            return 80.0;
-        } else if (fitness <= 900) {
-            return 90.0;
-        } else if (fitness <= 1000) {
-            return 95.0;
-        } else {
-            return 100.0;
-        }
-    }
+
+
     /**
      * 计算教室优化适应度
      * <p>
@@ -106,14 +72,19 @@ public final class ScheduleFitnessCalculator {
      */
     public static double calculateRoomOptimizationFitness(@NotNull CourseScheduleDTO schedule) {
         double fitness = 0.0;
+        int itemCount = 0;
+
         // 遍历所有课程安排
         for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
             CourseScheduleItemDTO item = entry.getValue();
+            itemCount++;
+
             // 获取教室容量
             int capacity = item.getClassroom().getClassroom().getCapacity();
             // 获取课程所需学生数，使用totalHours作为替代指标
             int studentCount = item.getCourse().getTotalHours() != null ?
                     item.getCourse().getTotalHours().intValue() : 30;
+
             // 计算容量匹配度
             if (capacity >= studentCount) {
                 // 容量足够，计算利用率
@@ -122,11 +93,15 @@ public final class ScheduleFitnessCalculator {
                 if (utilizationRate >= 0.7) {
                     fitness += 5.0;
                 }
-                // 利用率过高（超过90%）给予惩罚
+                // 利用率超过90%给予额外奖励
+                if (utilizationRate > 0.9) {
+                    fitness -= 2.0;
+                }
             } else {
                 // 容量不足，严重惩罚
                 fitness -= 50.0;
             }
+
             // 教室类型匹配度
             String courseType = item.getCourse().getType();
             String classroomType = item.getClassroom().getType().getClassTypeUuid();
@@ -137,8 +112,10 @@ public final class ScheduleFitnessCalculator {
                 fitness -= 5.0;
             }
         }
-        return fitness;
+
+        return itemCount > 0 ? fitness / itemCount : 0.0;
     }
+
 
     /**
      * 计算时间偏好适应度值
@@ -152,11 +129,14 @@ public final class ScheduleFitnessCalculator {
             AutomaticClassSchedulingBaseDTO.TimePreferences preferences
     ) {
         double fitness = 0.0;
+        int slotCount = 0;
+
         // 遍历所有课程安排
         for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
             List<TimeSlotDTO> slots = entry.getKey();
             // 遍历每个时间槽
             for (TimeSlotDTO slot : slots) {
+                slotCount++;
                 // 检查是否在偏好时间段
                 boolean inPreferredSlot = preferences.getPreferredTimeSlots().stream()
                         .anyMatch(preferred ->
@@ -172,8 +152,10 @@ public final class ScheduleFitnessCalculator {
                 }
             }
         }
-        return fitness;
+        // 避免除以 0
+        return slotCount > 0 ? fitness / slotCount : 0.0;
     }
+
 
     /**
      * 计算连续课程的适应度值
@@ -181,11 +163,16 @@ public final class ScheduleFitnessCalculator {
     public static double calculateConsecutiveCoursesFitness(@NotNull CourseScheduleDTO schedule) {
         // 按课程分组，获取每个课程的所有时间槽
         Map<String, List<List<TimeSlotDTO>>> courseSlots = groupSlotsByCourse(schedule);
-        return courseSlots.values().stream()
-                // 使用类名::方法名 的方式引用静态方法
+        // 总课程数
+        int courseCount = courseSlots.size();
+        // 所有课程的总适应度
+        double totalFitness = courseSlots.values().stream()
                 .mapToDouble(ScheduleFitnessCalculator::calculateCourseFitness)
                 .sum();
+        // 计算平均值
+        return courseCount > 0 ? totalFitness / courseCount : 0.0;
     }
+
 
     /**
      * 按课程分组获取时间槽
@@ -206,10 +193,8 @@ public final class ScheduleFitnessCalculator {
         List<TimeSlotDTO> allSlots = courseSlotsLists.stream()
                 .flatMap(List::stream)
                 .toList();
-
         // 按周和天分组
         Map<Integer, Map<Integer, List<TimeSlotDTO>>> weekDaySlots = groupSlotsByWeekAndDay(allSlots);
-
         // 计算每周的适应度值
         return weekDaySlots.values().stream()
                 .mapToDouble(ScheduleFitnessCalculator::calculateWeekFitness)

@@ -197,6 +197,7 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
                 courseSchedule.getNumber(),
                 teachingClassDTO
         );
+        log.debug("排课UUID: {}", item.getCourseScheduleItemUuid());
         assignments.put(timeSlot, item);
     }
 
