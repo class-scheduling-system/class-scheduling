@@ -88,6 +88,7 @@ public class StudentController {
      * @param name        学生姓名
      * @param id          学生学号
      * @param status      学生状态(0:未注册, 1:已注册, 2:已停用)
+     * @param departmentUuid 部门UUID，用于根据部门筛选学生
      * @return 返回包含学生信息列表的响应实体
      */
     @RequestRole({"教务", "管理员"})
@@ -100,9 +101,10 @@ public class StudentController {
             @RequestParam(value = "is_graduated", required = false, defaultValue = "false") Boolean isGraduated,
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "id", required = false) String id,
-            @RequestParam(value = "status", required = false) String status
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "department_uuid", required = false) String departmentUuid
     ) {
-        PageDTO<StudentDTO> result = studentService.getStudentList(page, size, isDesc, clazz, isGraduated, name, id, status);
+        PageDTO<StudentDTO> result = studentService.getStudentList(page, size, isDesc, clazz, isGraduated, name, id, status, departmentUuid);
         return ResultUtil.success("查询成功", result);
     }
 

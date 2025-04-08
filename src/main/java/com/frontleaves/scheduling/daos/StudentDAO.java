@@ -392,57 +392,52 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> {
     }
 
     /**
-     * 列出学生列表
+     * 分页查询学生列表
      *
-     * @param page        当前页码
+     * @param page        页码,从1开始
      * @param size        每页大小
      * @param isDesc      是否降序排序
-     * @param clazz       班级名称，可为空
-     * @param isGraduated 是否毕业，可为空
-     * @param name        学生姓名，可为空
-     * @param id          学生学号，可为空
-     * @param status      学生状态，可为空
-     * @return 返回包含学生信息的页面对象
+     * @param clazz       班级名称,可为空
+     * @param isGraduated 是否毕业,可为空
+     * @param name        学生姓名,可为空
+     * @param id          学生ID,可为空
+     * @param status      学生状态,可为空
+     * @param departmentUuid 部门UUID,可为空
+     * @return 返回一个包含学生列表的分页对象
      */
-    public @Nullable Page<StudentDO> listStudents(int page, int size, Boolean isDesc,
-            @Nullable String clazz, @Nullable Boolean isGraduated,
-            @Nullable String name, @Nullable String id, @Nullable Byte status) {
-        // 构建唯一缓存 key 并获取缓存数据
-        RMap<String, String> map = redisson.getMap(StringConstant.Redis.STUDENT_LIST
-                + page + ":" + size + ":" + isDesc + ":" + clazz + ":" + isGraduated + ":" + name + ":" + id + ":"
-                + status);
+    public Page<StudentDO> listStudents(int page, int size, Boolean isDesc,
+                                    @Nullable String clazz, @Nullable Boolean isGraduated,
+                                    @Nullable String name, @Nullable String id, @Nullable Byte status,
+                                    @Nullable String departmentUuid) {
+        // 使用 LambdaQueryChainWrapper 构建查询条件
+        LambdaQueryChainWrapper<StudentDO> queryWrapper = this.lambdaQuery();
 
-        // 若缓存中不存在数据,则执行数据库查询,并缓存结果
-        if (!map.isExists()) {
-            LambdaQueryChainWrapper<StudentDO> queryWrapper = this.lambdaQuery();
-            // 查看班级是否为空
-            if (CharSequenceUtil.isNotBlank(clazz)) {
-                queryWrapper.eq(StudentDO::getClazz, clazz);
-            }
-            // 查看学生是否毕业
-            if (isGraduated != null) {
-                queryWrapper.eq(StudentDO::getGraduated, isGraduated);
-            }
-            // 查看姓名是否为空
-            if (CharSequenceUtil.isNotBlank(name)) {
-                queryWrapper.like(StudentDO::getName, name);
-            }
-            // 查看学号是否为空
-            if (CharSequenceUtil.isNotBlank(id)) {
-                queryWrapper.like(StudentDO::getId, id);
-            }
-            // 根据 isDesc 进行排序
-            if (Boolean.TRUE.equals(isDesc)) {
-                queryWrapper.orderByDesc(StudentDO::getCreatedAt);
-            } else {
-                queryWrapper.orderByAsc(StudentDO::getCreatedAt);
-            }
-
-            // 调用 ProjectUtil 方法查询并缓存数据
-            return ProjectUtil.queryAndCache(queryWrapper, page, size, map);
-        } else {
-            return ProjectUtil.convertMapToPage(map, StudentDO.class);
+        // 添加条件查询
+        if (clazz != null && !clazz.isBlank()) {
+            queryWrapper.eq(StudentDO::getClazz, clazz);
         }
+        if (isGraduated != null) {
+            queryWrapper.eq(StudentDO::getGraduated, isGraduated);
+        }
+        if (name != null && !name.isBlank()) {
+            queryWrapper.like(StudentDO::getName, name);
+        }
+        if (id != null && !id.isBlank()) {
+            queryWrapper.like(StudentDO::getId, id);
+        }
+        if (departmentUuid != null && !departmentUuid.isBlank()) {
+            queryWrapper.eq(StudentDO::getDepartment, departmentUuid);
+        }
+
+        // 添加排序条件
+        if (Boolean.TRUE.equals(isDesc)) {
+            queryWrapper.orderByDesc(StudentDO::getStudentUuid);
+        } else {
+            queryWrapper.orderByAsc(StudentDO::getStudentUuid);
+        }
+
+        // 执行分页查询
+        return queryWrapper.page(new Page<>(page, size));
     }
 
     /**
@@ -500,31 +495,34 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> {
      * @param name        学生姓名，可为空
      * @param id          学生ID，可为空
      * @param status      学生状态，可为空
+     * @param departmentUuid 部门UUID，可为空
      * @return 返回一个包含UserAndStudentDO对象的列表，每个对象代表一个学生及其相关信息
      */
     public List<StudentDO> getStudentNoRegisterUserList(int page, int size, Boolean isDesc,
             @Nullable String clazz, @Nullable Boolean isGraduated,
-            @Nullable String name, @Nullable String id, @Nullable Byte status) {
+            @Nullable String name, @Nullable String id, @Nullable Byte status,
+            @Nullable String departmentUuid) {
         int offset = (page - 1) * size;
         if (Boolean.TRUE.equals(isDesc)) {
             return this.baseMapper.getStudentNoRegisterUserQueryDesc(clazz, status, name, offset, size, isGraduated,
-                    id);
+                    id, departmentUuid);
         } else {
-            return this.baseMapper.getStudentNoRegisterUserQueryAsc(clazz, status, name, offset, size, isGraduated, id);
+            return this.baseMapper.getStudentNoRegisterUserQueryAsc(clazz, status, name, offset, size, isGraduated, id, departmentUuid);
         }
     }
 
     /**
      * 根据条件获取学生列表，包括用户信息
      *
-     * @param page        页码
-     * @param size        每页大小
-     * @param isDesc      是否降序排序的标志
-     * @param clazz       班级名称，可为空
-     * @param isGraduated 是否毕业的标志，可为空
-     * @param name        学生姓名，可为空
-     * @param id          学生ID，可为空
-     * @param status      学生状态，可为空
+     * @param page          页码
+     * @param size          每页大小
+     * @param isDesc        是否降序排序的标志
+     * @param clazz         班级名称，可为空
+     * @param isGraduated   是否毕业的标志，可为空
+     * @param name          学生姓名，可为空
+     * @param id            学生ID，可为空
+     * @param status        学生状态，可为空
+     * @param departmentUuid 部门UUID，可为空
      * @return 返回一个包含用户和学生信息的列表
      */
     public List<UserAndStudentDO> getStudentListWithUser(
@@ -535,15 +533,16 @@ public class StudentDAO extends ServiceImpl<StudentMapper, StudentDO> {
             @Nullable Boolean isGraduated,
             @Nullable String name,
             @Nullable String id,
-            @Nullable String status) {
+            @Nullable String status,
+            @Nullable String departmentUuid) {
         int offset = (page - 1) * size;
 
         Byte parsedStatus = (status != null && !status.isBlank()) ? Byte.parseByte(status) : null;
 
         if (Boolean.TRUE.equals(isDesc)) {
-            return this.baseMapper.getStudentAndUserQueryDesc(clazz, parsedStatus, name, offset, size, isGraduated, id);
+            return this.baseMapper.getStudentAndUserQueryDesc(clazz, parsedStatus, name, offset, size, isGraduated, id, departmentUuid);
         } else {
-            return this.baseMapper.getStudentAndUserQueryAsc(clazz, parsedStatus, name, offset, size, isGraduated, id);
+            return this.baseMapper.getStudentAndUserQueryAsc(clazz, parsedStatus, name, offset, size, isGraduated, id, departmentUuid);
         }
     }
 

@@ -82,6 +82,9 @@
             <if test="status != null">
                 AND u.status = #{status}
             </if>
+            <if test="departmentUuid != null and departmentUuid != ''">
+                AND s.department = #{departmentUuid}
+            </if>
         </where>
     </sql>
 
@@ -127,6 +130,9 @@
             <if test="id != null and id != ''">
                 AND s.id LIKE CONCAT('%', #{id}, '%')
             </if>
+            <if test="departmentUuid != null and departmentUuid != ''">
+                AND s.department = #{departmentUuid}
+            </if>
         </where>
         ORDER BY s.student_uuid DESC
         LIMIT #{page}, #{size}
@@ -151,6 +157,9 @@
             </if>
             <if test="id != null and id != ''">
                 AND s.id LIKE CONCAT('%', #{id}, '%')
+            </if>
+            <if test="departmentUuid != null and departmentUuid != ''">
+                AND s.department = #{departmentUuid}
             </if>
         </where>
         ORDER BY s.student_uuid ASC

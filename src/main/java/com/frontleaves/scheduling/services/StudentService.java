@@ -96,7 +96,8 @@ public interface StudentService {
      */
     PageDTO<StudentDTO> getStudentList(int page, int size, Boolean isDesc,
                                        @Nullable String clazz, @Nullable Boolean isGraduated,
-                                       @Nullable String name, @Nullable String id, @Nullable String status);
+                                       @Nullable String name, @Nullable String id, @Nullable String status,
+                                       @Nullable String departmentUuid);
 
     /**
      * 添加学生

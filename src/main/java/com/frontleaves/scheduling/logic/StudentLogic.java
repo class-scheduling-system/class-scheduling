@@ -101,35 +101,38 @@ public class StudentLogic implements StudentService {
     /**
      * 获取学生列表信息
      *
-     * @param page        页码,从1开始
-     * @param size        每页记录数
-     * @param isDesc      是否降序排列
-     * @param clazz       可选参数,班级名称
-     * @param isGraduated 可选参数,是否毕业
-     * @param name        可选参数,学生姓名
-     * @param id          可选参数,学生ID
-     * @param status      可选参数,学生状态
+     * @param page          页码,从1开始
+     * @param size          每页记录数
+     * @param isDesc        是否降序排列
+     * @param clazz         可选参数,班级名称
+     * @param isGraduated   可选参数,是否毕业
+     * @param name          可选参数,学生姓名
+     * @param id            可选参数,学生ID
+     * @param status        可选参数,学生状态
+     * @param departmentUuid 可选参数,部门UUID
      * @return 返回一个包含学生信息的PageDTO对象
      */
     @Override
     public PageDTO<StudentDTO> getStudentList(int page, int size, Boolean isDesc,
-                                              @Nullable String clazz, @Nullable Boolean isGraduated, @Nullable String name, @Nullable String id, @Nullable String status) {
+                                              @Nullable String clazz, @Nullable Boolean isGraduated, 
+                                              @Nullable String name, @Nullable String id, @Nullable String status,
+                                              @Nullable String departmentUuid) {
         // 调用DAO层方法获取分页学生数据
         Page<StudentDO> resultPage;
 
         if (status == null || status.isBlank()) {
-            resultPage = studentDAO.listStudents(page, size, isDesc, clazz, isGraduated, name, id, null);
+            resultPage = studentDAO.listStudents(page, size, isDesc, clazz, isGraduated, name, id, null, departmentUuid);
         } else {
             resultPage = switch (status) {
                 case "0" -> {
-                    List<StudentDO> list = studentDAO.getStudentNoRegisterUserList(page, size, isDesc, clazz, isGraduated, name, id, (byte) 0);
+                    List<StudentDO> list = studentDAO.getStudentNoRegisterUserList(page, size, isDesc, clazz, isGraduated, name, id, (byte) 0, departmentUuid);
                     Page<StudentDO> pageObj = new Page<>(page, size, list.size());
                     pageObj.setRecords(list);
                     yield pageObj;
                 }
                 case "1", "2" -> {
                     Byte studentStatus = "1".equals(status) ? (byte) 1 : (byte) 2;
-                    List<UserAndStudentDO> list = studentDAO.getStudentListWithUser(page, size, isDesc, clazz, isGraduated, name, id, String.valueOf(studentStatus));
+                    List<UserAndStudentDO> list = studentDAO.getStudentListWithUser(page, size, isDesc, clazz, isGraduated, name, id, String.valueOf(studentStatus), departmentUuid);
                     List<StudentDO> studentList = list.stream().map(UserAndStudentDO::getStudent).toList();
 
                     Page<StudentDO> pageObj = new Page<>(page, size, list.size());
@@ -145,20 +148,24 @@ public class StudentLogic implements StudentService {
             resultPage = new Page<>(page, size, 0);
         }
 
-        // 使用ProjectUtil 中的 convertPageToPageDTO 方法进行抓换
+        // 使用ProjectUtil 中的 convertPageToPageDTO 方法进行转换
         PageDTO<StudentDTO> pageDTO = ProjectUtil.convertPageToPageDTO(resultPage, StudentDTO.class);
-        pageDTO.getRecords().forEach(dto -> {
-            if (dto.getUserUuid() == null) {
-                dto.setStatus((byte) 0);
+
+        // 设置学生状态
+        for (StudentDTO studentDTO : pageDTO.getRecords()) {
+            // 根据 userUuid 判断学生状态
+            if (studentDTO.getUserUuid() == null || studentDTO.getUserUuid().isBlank()) {
+                studentDTO.setStatus((byte) 0);
             } else {
-                Byte studentStatus = studentDAO.getUserStatusByUuid(dto.getUserUuid());
+                Byte studentStatus = studentDAO.getUserStatusByUuid(studentDTO.getUserUuid());
                 if (studentStatus != null && studentStatus == 1) {
-                    dto.setStatus((byte) 1);
+                    studentDTO.setStatus((byte) 1);
                 } else {
-                    dto.setStatus((byte) 2);
+                    studentDTO.setStatus((byte) 2);
                 }
             }
-        });
+        }
+
         return pageDTO;
     }
 
