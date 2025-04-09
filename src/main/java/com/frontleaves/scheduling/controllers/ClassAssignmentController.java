@@ -6,6 +6,7 @@ import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.BackAdjustCourseScheduleDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.BackClassAssignmentDTO;
 import com.frontleaves.scheduling.models.vo.AdjustmentsVO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
 import com.frontleaves.scheduling.services.ClassAssignmentService;
@@ -82,7 +83,7 @@ public class ClassAssignmentController {
      */
     @RequestRole({"教务"})
     @GetMapping("/{class_assignment_uuid}")
-    public ResponseEntity<BaseResponse<ClassAssignmentDTO>> getById(
+    public ResponseEntity<BaseResponse<BackClassAssignmentDTO>> getById(
             @PathVariable("class_assignment_uuid") String classAssignmentUuid
     ) {
         String getUuid = Optional.ofNullable(classAssignmentUuid)
@@ -90,7 +91,8 @@ public class ClassAssignmentController {
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
                 .orElseThrow(() -> new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         ClassAssignmentDTO dto = classAssignmentService.getById(getUuid);
-        return ResultUtil.success("查询成功", dto);
+        BackClassAssignmentDTO back = classAssignmentService.exchange(dto);
+        return ResultUtil.success("查询成功", back);
     }
 
     /**
@@ -116,18 +118,6 @@ public class ClassAssignmentController {
         if (size > 200) {
             throw new BusinessException(StringConstant.ErrorMessage.PAGE_SIZE_TOO_LARGE, ErrorCode.PARAMETER_INVALID);
         }
-
-        // 验证UUID格式（如果提供）
-        String getSemesterUuid = Optional.ofNullable(semesterUuid)
-                .filter(uuid -> !uuid.isBlank())
-                .map(uuid -> {
-                    if (!uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-                        throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
-                    }
-                    return uuid;
-                })
-                .orElse(null);
-
         String getCourseUuid = Optional.ofNullable(courseUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
@@ -137,7 +127,6 @@ public class ClassAssignmentController {
                     return uuid;
                 })
                 .orElse(null);
-
         String getTeacherUuid = Optional.ofNullable(teacherUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
@@ -147,8 +136,8 @@ public class ClassAssignmentController {
                     return uuid;
                 })
                 .orElse(null);
-
-        PageDTO<ClassAssignmentDTO> pageResult = classAssignmentService.page(page, size, getSemesterUuid, getCourseUuid, getTeacherUuid);
+        PageDTO<ClassAssignmentDTO> pageResult = classAssignmentService.page(
+                page, size, semesterUuid, getCourseUuid, getTeacherUuid);
         return ResultUtil.success("查询排课分配列表成功", pageResult);
     }
 

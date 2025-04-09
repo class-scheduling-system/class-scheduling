@@ -544,6 +544,14 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         return BeanUtil.copyToList(filteredList, ClassAssignmentDTO.class);
     }
 
+    @Override
+    public BackClassAssignmentDTO exchange(ClassAssignmentDTO dto) {
+        BackClassAssignmentDTO back = BeanUtil.toBean(dto,BackClassAssignmentDTO.class);
+        back.setClassTimeDTO(ProjectUtil.convertToClassTimeDTOList(JSONUtil.toList(
+                dto.getClassTime(), TimeSlotDTO.class)));
+        return back;
+    }
+
     /**
      * 处理排课分配对象
      */

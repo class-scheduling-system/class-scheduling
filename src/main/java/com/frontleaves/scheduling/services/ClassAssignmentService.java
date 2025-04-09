@@ -5,6 +5,7 @@ import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.BackAdjustCourseScheduleDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.BackClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
 import com.frontleaves.scheduling.models.vo.AdjustmentsVO;
@@ -104,4 +105,12 @@ public interface ClassAssignmentService {
      * @return 排课分配列表
      */
     List<ClassAssignmentDTO> getClassAssignmentListConflict(ClassAssignmentDTO classAssignment);
+
+    /**
+     * 获取排课分配列表
+     * @param dto 排课分配数据传输对象
+     * @return 排课分配列表
+     */
+    BackClassAssignmentDTO exchange(
+            ClassAssignmentDTO dto);
 }
