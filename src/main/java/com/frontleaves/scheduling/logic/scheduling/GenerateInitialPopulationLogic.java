@@ -322,7 +322,13 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
             List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
         // 获取行政班级列表并按专业排序
-        List<AdministrativeClassDTO> sortedClassList = sortClassesByMajor(courseQualification.getClassList());
+        List<AdministrativeClassDTO> sortedClassList = this.sortClassesByMajor(courseQualification.getClassList());
+
+        // 检查排序后的列表是否为空
+        if (sortedClassList == null || sortedClassList.isEmpty()) {
+            return;
+        }
+
         // 临时存储当前正在组合的班级
         List<AdministrativeClassDTO> currentGroup = new ArrayList<>();
         // 当前组合班级的大小
@@ -351,11 +357,14 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             int currentGroupSize,
             CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
             List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
+        // 如果当前组为空，直接添加当前班级
         if (currentGroup.isEmpty()) {
             currentGroup.add(currentClass);
             return;
         }
+        // 计算添加当前班级后的新组大小
         int newGroupSize = currentGroupSize + currentClass.getStudentCount();
+        // 处理组大小变化
         this.handleGroupSizeChange(currentClass, currentGroup, currentGroupSize, newGroupSize, courseQualification, newList);
     }
 
@@ -369,15 +378,20 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             int newGroupSize,
             CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
             List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
+        // 判断是否需要创建新的教学班
         if (newGroupSize > 180 || (currentGroupSize >= 30 && random.nextBoolean())) {
             if (currentGroupSize >= 30) {
+                // 当前组已足够大，创建新的教学班
                 this.createNewTeachingClass(courseQualification, newList, currentGroup, currentGroupSize);
+                // 清空当前组并添加当前处理的班级
                 currentGroup.clear();
                 currentGroup.add(currentClass);
             } else {
+                // 当前组不够大，继续添加当前班级
                 currentGroup.add(currentClass);
             }
         } else {
+            // 不满足创建新教学班的条件，继续往当前组添加班级
             currentGroup.add(currentClass);
         }
     }
@@ -399,10 +413,16 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             int currentGroupSize,
             CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
             List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
+        // 检查当前组是否为空
+        if (currentGroup == null || currentGroup.isEmpty()) {
+            return;
+        }
 
         if (currentGroupSize < 30) {
+            // 如果最后一组学生人数不足30人，尝试将其重新分配到前一个教学班
             this.redistributeLastGroup(currentGroup, newList);
         } else {
+            // 最后一组学生人数达到了30人，创建新的教学班
             this.createNewTeachingClass(courseQualification, newList, currentGroup, currentGroupSize);
         }
     }
@@ -413,12 +433,44 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
     private void redistributeLastGroup(
             List<AdministrativeClassDTO> lastGroup,
             @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
+        // 检查最后一组是否有班级可以重新分配
+        if (lastGroup == null || lastGroup.isEmpty()) {
+            return;
+        }
+
+        // 检查目标列表是否不为空
         if (!newList.isEmpty()) {
+            // 获取最后一个教学班
             CourseLibraryAndTeacherCourseQualificationListDTO lastTeachingClass = newList.get(newList.size() - 1);
+
+            // 获取已有班级列表
             List<AdministrativeClassDTO> existingClasses = lastTeachingClass.getClassList();
+            if (existingClasses == null) {
+                // 如果班级列表为空，初始化它
+                existingClasses = new ArrayList<>();
+                lastTeachingClass.setClassList(existingClasses);
+            }
+
+            // 计算要添加的学生数量
+            int additionalStudents = lastGroup.stream()
+                    .mapToInt(AdministrativeClassDTO::getStudentCount)
+                    .sum();
+
+            // 将最后一组的班级添加到最后一个教学班
             existingClasses.addAll(lastGroup);
-            lastTeachingClass.setNumber(lastTeachingClass.getNumber() +
-                    lastGroup.stream().mapToInt(AdministrativeClassDTO::getStudentCount).sum());
+
+            // 更新学生总数
+            int currentNumber = lastTeachingClass.getNumber() != null ? lastTeachingClass.getNumber() : 0;
+            lastTeachingClass.setNumber(currentNumber + additionalStudents);
+
+            // 日志输出，帮助调试
+            log.debug("重新分配最后一组: 添加班级数={}, 新增学生数={}, 合并后总班级数={}",
+                    lastGroup.size(),
+                    additionalStudents,
+                    existingClasses.size());
+        } else {
+            // 如果还没有教学班，则创建一个新的教学班
+            log.warn("重新分配最后一组时发现目标列表为空，这可能是一个逻辑错误");
         }
     }
 
@@ -430,13 +482,33 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> newList,
             List<AdministrativeClassDTO> classGroup,
             int totalStudents) {
+        // 检查是否有班级可以添加
+        if (classGroup == null || classGroup.isEmpty()) {
+            return;
+        }
+
+        // 复制基本属性但不复制 classList 和 number 字段
         CourseLibraryAndTeacherCourseQualificationListDTO newClass =
-                BeanUtil.copyProperties(courseQualification, CourseLibraryAndTeacherCourseQualificationListDTO.class);
+                BeanUtil.copyProperties(courseQualification, CourseLibraryAndTeacherCourseQualificationListDTO.class,
+                        "classList", "number", "teachingClassUuid");
+
+        // 设置学生总数
         newClass.setNumber(totalStudents);
+
+        // 创建班级列表的深拷贝
         newClass.setClassList(new ArrayList<>(classGroup));
+
+        // 生成新的教学班UUID
         newClass.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
 
+        // 添加到结果列表
         newList.add(newClass);
+
+        // 日志输出，帮助调试
+        log.debug("创建新教学班: UUID={}, 班级数={}, 学生总数={}",
+                newClass.getTeachingClassUuid(),
+                newClass.getClassList().size(),
+                newClass.getNumber());
     }
 
     /**
