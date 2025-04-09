@@ -20,7 +20,6 @@ public class BackAdjustCourseScheduleDTO {
      */
     private String assignmentId;
 
-
     /**
      * 课程代码
      */
@@ -40,6 +39,8 @@ public class BackAdjustCourseScheduleDTO {
      * 调整后的课程安排详情
      */
     private CourseDetailsDTO after;
+
+
 
     /**
      * 调整操作发生的时间

@@ -1,9 +1,7 @@
 package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.base.SchedulingTaskDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.BackAdjustCourseScheduleDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.SchedulingTaskStatusDTO;
-import com.frontleaves.scheduling.models.vo.AdjustmentsVO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -34,17 +32,7 @@ public interface SchedulingService {
     @NotNull
     SchedulingTaskStatusDTO getSchedulingTaskStatus(String taskId);
 
-    /**
-     * 调整课表安排
-     * @param assignmentId - 排课分配ID
-     * @param adjustmentsVO - 调整信息
-     * @param request - HTTP请求
-     * @return 调整后的课表安排
-     */
-    BackAdjustCourseScheduleDTO adjustCourseSchedule(
-            String assignmentId,
-            AdjustmentsVO adjustmentsVO,
-            HttpServletRequest request);
+
 
     /**
      * 获取调度任务列表

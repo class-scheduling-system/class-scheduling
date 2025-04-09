@@ -13,12 +13,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AdjustmentsVO {
-
+    /**
+     * 排课分配ID
+     */
+    private String assignmentId;
     /**
      * 具体的调整内容
      */
     private AdjustmentDetailsVO adjustments;
 
+    private AdjustTeachingClassVO adjustTeachingClass;
     /**
      * 是否忽略可能产生的冲突，默认false
      */

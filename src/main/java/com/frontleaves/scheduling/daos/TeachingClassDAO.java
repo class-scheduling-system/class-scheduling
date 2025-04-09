@@ -36,6 +36,7 @@ import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RKeys;
 import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -88,7 +89,7 @@ public List<TeachingClassDO> getTeachingClassBySemester(String semesterUuid) {
 
     public TeachingClassDO getTeachingClassByUuid(String teachingClassUuid) {
         RMap<String,String> rMap = redisson.getMap(
-                StringConstant.Redis.TEACHING_CLASS_UUID + teachingClassUuid);
+                StringConstant.Redis.TEACHING_CLASS_UUID );
         if (!rMap.isExists()){
             TeachingClassDO teachingClassDO = this.getById(teachingClassUuid);
             if (teachingClassDO != null) {
@@ -99,4 +100,12 @@ public List<TeachingClassDO> getTeachingClassBySemester(String semesterUuid) {
         }
         return BeanUtil.toBean(rMap,TeachingClassDO.class);
     }
+
+    public void updateTeachingClass(TeachingClassDO teachingClass) {
+        RKeys keys = redisson.getKeys();
+        this.updateById(teachingClass);
+        keys.delete(StringConstant.Redis.TEACHING_CLASS_UUID + teachingClass.getTeachingClassUuid());
+        keys.delete(StringConstant.Redis.TEACHING_CLASS_LIST_SEMESTER + teachingClass.getSemesterUuid());
+    }
+
 }

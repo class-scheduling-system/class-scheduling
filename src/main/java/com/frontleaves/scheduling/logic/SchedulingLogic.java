@@ -1,26 +1,21 @@
 package com.frontleaves.scheduling.logic;
 
-import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.json.JSONUtil;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.AcademicAffairsPermissionDAO;
-import com.frontleaves.scheduling.daos.ClassAssignmentDAO;
-import com.frontleaves.scheduling.daos.SchedulingConflictDAO;
-import com.frontleaves.scheduling.models.dto.base.*;
-import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
+import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
+import com.frontleaves.scheduling.models.dto.base.SchedulingTaskDTO;
+import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.*;
+import com.frontleaves.scheduling.models.dto.scheduling.IterativeDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.SchedulingTaskStatusDTO;
 import com.frontleaves.scheduling.models.entity.base.AcademicAffairsPermissionDO;
-import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
 import com.frontleaves.scheduling.models.entity.base.UserDO;
-import com.frontleaves.scheduling.models.vo.AdjustmentDetailsVO;
-import com.frontleaves.scheduling.models.vo.AdjustmentsVO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
-import com.frontleaves.scheduling.models.vo.ClassTimeVO;
-import com.frontleaves.scheduling.services.*;
+import com.frontleaves.scheduling.services.ClassAssignmentService;
+import com.frontleaves.scheduling.services.SchedulingService;
+import com.frontleaves.scheduling.services.UserService;
 import com.frontleaves.scheduling.thread.ScheduleLessonsDataPreparationThread;
-import com.frontleaves.scheduling.utils.CheckConflicts;
-import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import enums.CourseEnuType;
@@ -35,7 +30,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Objects;
@@ -54,12 +48,7 @@ public class SchedulingLogic implements SchedulingService {
     private final AcademicAffairsPermissionDAO academicAffairsPermissionDAO;
     private final RedissonClient redisson;
     private final ClassAssignmentService classAssignmentService;
-    private final ClassroomService classroomService;
-    private final TeacherService teacherService;
-    private final SchedulingConflictDAO schedulingConflictDAO;
-    private final SchedulingConflictService schedulingConflictService;
-    private final ClassAssignmentDAO classAssignmentDAO;
-    private final CourseLibraryService courseLibraryService;
+
 
 
     /**
@@ -163,27 +152,7 @@ public class SchedulingLogic implements SchedulingService {
         return this.handleTheStatusScheduledTasks(task, iterativeDTO);
     }
 
-    @Override
-    public BackAdjustCourseScheduleDTO adjustCourseSchedule(
-            String assignmentId,
-            @NotNull AdjustmentsVO adjustmentsVO,
-            HttpServletRequest request) {
-        //获取排课分配
-        ClassAssignmentDTO classAssignment = classAssignmentService.getById(assignmentId);
-        ClassAssignmentDTO classAssignment1 =  BeanUtil.toBean(classAssignment,ClassAssignmentDTO.class);
-        AdjustmentDetailsVO details = adjustmentsVO.getAdjustments();
-        this.exchangeClassroom(classAssignment1, details);
-        this.exchangeTeacher(classAssignment1, details);
-        this.exchangeTimeSlot(classAssignment1, details);
-        this.exchangeOtherDetails(classAssignment1, details);
-        List<SchedulingConflictDTO> conflict =
-                this.detectConflicts(classAssignment1, adjustmentsVO.getIgnoreConflicts());
-        //更新排课安排
-        classAssignmentDAO.updateClassAssignment(BeanUtil.toBean(classAssignment1, ClassAssignmentDO.class));
-        //创建返回值
-        return this.createdBackDate(classAssignment,
-                classAssignment1, adjustmentsVO,conflict, request);
-    }
+
 
     @Override
     public List<String> getSchedulingTasks(HttpServletRequest request) {
@@ -196,152 +165,15 @@ public class SchedulingLogic implements SchedulingService {
         return List.of();
     }
 
-    private BackAdjustCourseScheduleDTO createdBackDate(
-            @NotNull ClassAssignmentDTO classAssignment,
-            @NotNull ClassAssignmentDTO classAssignment1,
-            @NotNull AdjustmentsVO adjustmentsVO,
-            List<SchedulingConflictDTO> conflict,
-            HttpServletRequest request) {
-        //获取课程信息
-        CourseLibraryDTO courseLibraryDTO = courseLibraryService.getCourseLibraryByUuid(classAssignment.getCourseUuid());
-        //获取教室信息
-        ClassroomInfoDTO classroom = classroomService.getClassroomByUuid(classAssignment.getClassroomUuid());
-        //获取教室信息
-        ClassroomInfoDTO classroom1 =  classroomService.getClassroomByUuid(classAssignment1.getClassroomUuid());
-        //获取教师信息
-        TeacherDTO teacher = teacherService.getTeacher(classAssignment.getTeacherUuid());
-        TeacherDTO teacher1 = teacherService.getTeacher(classAssignment1.getTeacherUuid());
-        // 将时间槽转换为classTime
-        List<ClassTimeDTO> classTime = ProjectUtil.convertToClassTimeDTOList(JSONUtil.toList(
-                classAssignment.getClassTime(), TimeSlotDTO.class));
-        List<ClassTimeDTO> classTime1 = ProjectUtil.convertToClassTimeDTOList(JSONUtil.toList(
-                classAssignment1.getClassTime(), TimeSlotDTO.class));
-        //或许当前更改用户数据
-        UserDO getUser = userService.getUserByRequest(request);
-        //创建返回值
-        if (classroom1 != null && classroom != null) {
-                return new BackAdjustCourseScheduleDTO()
-                        .setAssignmentId(classAssignment.getClassAssignmentUuid())
-                        .setCourseCode(courseLibraryDTO.getId())
-                        .setCourseName(courseLibraryDTO.getName())
-                        .setBefore(new CourseDetailsDTO()
-                                        .setClassroomId(classroom.getClassroom().getClassroomUuid())
-                                        .setClassroomName(classroom.getClassroom().getName())
-                                        .setClassTime(classTime)
-                                        .setTeacherId(teacher.getTeacherUuid())
-                                        .setTeacherName(teacher.getName())
-                                        .setSchedulingPriority(classAssignment.getSchedulingPriority())
-                                        .setConsecutiveSessions(classAssignment.getConsecutiveSessions())
-                                )
-                        .setAfter(new CourseDetailsDTO()
-                                .setClassroomId(classroom1.getClassroom().getClassroomUuid())
-                                .setClassroomName(classroom1.getClassroom().getName())
-                                .setClassTime(classTime1)
-                                .setTeacherId(teacher1.getTeacherUuid())
-                                .setTeacherName(teacher1.getName())
-                                .setSchedulingPriority(classAssignment1.getSchedulingPriority())
-                                .setConsecutiveSessions(classAssignment1.getConsecutiveSessions()))
-                        .setAdjustedAt(new Timestamp(System.currentTimeMillis()))
-                        .setAdjustedBy(getUser.getUserUuid())
-                        .setAdjustedByName(getUser.getName())
-                        .setNewConflicts(conflict)
-                        .setReason(adjustmentsVO.getReason());
-            }
-        throw new BusinessException("教室不存在", ErrorCode.BODY_ERROR);
-    }
 
-    private List<SchedulingConflictDTO> detectConflicts(ClassAssignmentDTO classAssignment1, Boolean ignoreConflicts) {
-        schedulingConflictService.checkForConflictResolution(classAssignment1);
-        List<SchedulingConflictDTO> conflicts = new ArrayList<>();
-        if (Boolean.FALSE.equals(ignoreConflicts)){
-            // 检查冲突
-             conflicts = this.findConflicts(classAssignment1);
-            //批量保存
-            schedulingConflictDAO.batchSaveConflicts(conflicts, classAssignment1.getSemesterUuid());
-        }
-        return conflicts;
-    }
-    private @NotNull List<SchedulingConflictDTO> findConflicts(ClassAssignmentDTO classAssignment1) {
-        // 获取有可能与之相关的所有课程安排
-        List<ClassAssignmentDTO> allAssignments = classAssignmentService.getClassAssignmentListConflict(classAssignment1);
-        //检查冲突
-        return CheckConflicts.checkConflicts(allAssignments, classAssignment1);
-    }
-    private void exchangeOtherDetails(ClassAssignmentDTO classAssignment1, @NotNull AdjustmentDetailsVO details) {
-        // 交换其他细节
-        if (details.getConsecutiveSessions() != null ) {
-            classAssignment1.setConsecutiveSessions(details.getConsecutiveSessions());
-        }
-        if (details.getSchedulingPriority() != null ) {
-            classAssignment1.setSchedulingPriority(details.getSchedulingPriority());
-        }
-    }
 
-    private void exchangeTimeSlot(ClassAssignmentDTO classAssignment1, @NotNull AdjustmentDetailsVO details) {
-        // 创建一个列表来存储所有解析出来的目标时间槽 DTO
-        List<TimeSlotDTO> targetTimeSlots = new ArrayList<>();
-        if ( details.getClassTime() != null && !details.getClassTime().isEmpty()) {
-            // 遍历 AdjustmentDetailsVO 中的每个 ClassTimeVO 对象
-            for (ClassTimeVO classTime : details.getClassTime()) {
-                Integer day = classTime.getDayOfWeek();
-                Integer startPeriod = classTime.getPeriodStart();
-                Integer endPeriod = classTime.getPeriodEnd();
-                List<Integer> weeks = classTime.getWeekNumbers();
-                // 校验当前 ClassTimeVO 条目是否包含所有必需的信息，并且节次是否有效
-                if (day != null
-                        && startPeriod != null
-                        && endPeriod != null
-                        && weeks != null
-                        && !weeks.isEmpty()
-                        && startPeriod <= endPeriod) {
-                    // 外层循环：遍历所有指定的周
-                    for (Integer week : weeks) {
-                        // 内层循环：遍历从开始节次到结束节次的所有节次（包含）
-                        for (int period = startPeriod; period <= endPeriod; period++) {
-                            // 创建一个新的 TimeSlotDTO 实例
-                            TimeSlotDTO timeSlot = new TimeSlotDTO()
-                                    .setWeek(week)
-                                    .setDay(day)
-                                    .setPeriod(period);
-                            // 将创建的 TimeSlotDTO 添加到结果列表中
-                            targetTimeSlots.add(timeSlot);
-                        }
-                    }
-                } else {
-                    throw new BusinessException("调整时间信息不完整或无效", ErrorCode.BODY_ERROR);
-                }
-            }
-            classAssignment1.setClassTime(JSONUtil.toJsonStr(targetTimeSlots));
-        }
-    }
 
-    private void exchangeTeacher(ClassAssignmentDTO classAssignment, @NotNull AdjustmentDetailsVO details) {
-        if (details.getTeacherId() != null
-                && !details.getTeacherId().isEmpty()) {
-            //获取教师
-            TeacherDTO teacher = teacherService.getTeacher(details.getTeacherId());
-            classAssignment.setTeacherUuid(teacher.getTeacherUuid());
-        }
-    }
 
-    private void exchangeClassroom(ClassAssignmentDTO classAssignment,
-                                   @NotNull AdjustmentDetailsVO details) {
-        //检测是否为更换新教室
-        if (details.getClassroomId() != null
-                && !details.getClassroomId().isEmpty()) {
-            //获取教室
-            ClassroomInfoDTO classroomInfoDTO = classroomService.getClassroomByUuid(details.getClassroomId());
-            if (classroomInfoDTO == null) {
-                throw new BusinessException("教室不存在", ErrorCode.BODY_ERROR);
-            }
-            classAssignment
-                    .setClassroomType(classroomInfoDTO.getType().getClassTypeUuid())
-                    .setBuildingUuid(classAssignment.getBuildingUuid())
-                    .setClassroomUuid(classAssignment.getClassroomUuid())
-                    .setTeachingCampus(classroomInfoDTO.getCampus().getCampusUuid())
-                    .setTeachingCampus(classroomInfoDTO.getCampus().getCampusUuid());
-        }
-    }
+
+
+
+
+
 
 
     private @NotNull SchedulingTaskStatusDTO handleTheStatusScheduledTasks(

@@ -5,12 +5,15 @@ import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.BackAdjustCourseScheduleDTO;
+import com.frontleaves.scheduling.models.vo.AdjustmentsVO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
 import com.frontleaves.scheduling.services.ClassAssignmentService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -53,6 +56,18 @@ public class ClassAssignmentController {
         return ResultUtil.success("排课分配添加成功",schedulingConflict);
     }
 
+    @PutMapping("")
+    @RequestRole("教务")
+    public ResponseEntity<BaseResponse<BackAdjustCourseScheduleDTO>> update(
+            @RequestBody @Validated AdjustmentsVO vo,
+            HttpServletRequest request
+    ) {
+        BackAdjustCourseScheduleDTO schedulingConflict =  classAssignmentService.update(vo,request);
+        return ResultUtil.success("排课分配更新成功",schedulingConflict);
+    }
+
+
+
     /**
      * 根据UUID获取排课分配信息
      *
@@ -88,7 +103,7 @@ public class ClassAssignmentController {
     public ResponseEntity<BaseResponse<PageDTO<ClassAssignmentDTO>>> page(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "20") Integer size,
-            @RequestParam(value = "semester_uuid", required = false) String semesterUuid,
+            @RequestParam(value = "semester_uuid") String semesterUuid,
             @RequestParam(value = "course_uuid", required = false) String courseUuid,
             @RequestParam(value = "teacher_uuid", required = false) String teacherUuid
     ) {
@@ -150,26 +165,7 @@ public class ClassAssignmentController {
         return ResultUtil.success("排课分配记录已删除");
     }
 
-    /**
-     * 更新排课分配信息接口
-     *
-     * @param classAssignmentUuid 排课分配的唯一标识符（UUID）
-     * @param vo                  排课分配更新请求对象
-     * @return 返回包含更新操作结果的响应实体
-     */
-    @RequestRole({"教务"})
-    @PutMapping("/{class_assignment_uuid}")
-    public ResponseEntity<BaseResponse<Void>> update(
-            @PathVariable("class_assignment_uuid") String classAssignmentUuid,
-            @RequestBody @Validated ClassAssignmentVO vo
-    ) {
-        String getUuid = Optional.ofNullable(classAssignmentUuid)
-                .filter(uuid -> !uuid.isBlank())
-                .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
-        classAssignmentService.update(getUuid, vo);
-        return ResultUtil.success("排课分配信息已更新");
-    }
+
 
     /**
      * 获取排课分配列表接口

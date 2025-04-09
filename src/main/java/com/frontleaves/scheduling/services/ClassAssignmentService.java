@@ -4,9 +4,12 @@ import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.BackAdjustCourseScheduleDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
+import com.frontleaves.scheduling.models.vo.AdjustmentsVO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -38,10 +41,11 @@ public interface ClassAssignmentService {
     /**
      * 更新排课分配
      *
-     * @param classAssignmentUuid 排课分配主键
      * @param vo                  排课分配请求对象
      */
-    void update(String classAssignmentUuid, ClassAssignmentVO vo);
+    BackAdjustCourseScheduleDTO update(
+            AdjustmentsVO vo,
+            HttpServletRequest request);
 
     /**
      * 根据主键查询排课分配
