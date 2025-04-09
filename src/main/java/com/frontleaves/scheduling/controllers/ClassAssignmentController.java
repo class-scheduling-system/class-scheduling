@@ -56,6 +56,12 @@ public class ClassAssignmentController {
         return ResultUtil.success("排课分配添加成功",schedulingConflict);
     }
 
+    /**
+     * 更新排课分配的接口
+     * @param vo 排课分配请求对象，包含需要验证的信息
+     * @param request HttpServletRequest对象，用于获取请求信息
+     * @return 返回包含成功消息的响应实体
+     */
     @PutMapping("")
     @RequestRole("教务")
     public ResponseEntity<BaseResponse<BackAdjustCourseScheduleDTO>> update(
