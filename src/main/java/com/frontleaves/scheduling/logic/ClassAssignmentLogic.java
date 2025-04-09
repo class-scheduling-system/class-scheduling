@@ -201,7 +201,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         classAssignmentDAO.updateClassAssignment(BeanUtil.toBean(classAssignment1, ClassAssignmentDO.class));
         //更新教学班
         TeachingClassDO teachingClass
-                = this.exchangeTeachingClass(vo.getAdjustTeachingClass(),classAssignment);
+                = this.exchangeTeachingClass(vo.getAdjustTeachingClass(), classAssignment);
         teachingClassDAO.updateTeachingClass(teachingClass);
         return this.createdBackDate(classAssignment,
                 classAssignment1, vo, conflict, request);
@@ -228,7 +228,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         }
         if (vo.getAdministrativeClassUuids() != null && !vo.getAdministrativeClassUuids().isEmpty()) {
             //检查原先是否为选修班级
-            if (Boolean.FALSE.equals(clazz.getIsAdministrative())){
+            if (Boolean.FALSE.equals(clazz.getIsAdministrative())) {
                 throw new BusinessException("选修课程禁止添加行政班级", ErrorCode.BODY_ERROR);
             }
             for (String uuid : vo.getAdministrativeClassUuids()) {
@@ -411,21 +411,15 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
             String courseUuid,
             String teacherUuid,
             HttpServletRequest request) {
-        // 验证 UUID 格式（如果提供）
-        if (semesterUuid != null && !semesterUuid.isBlank() &&
-                !semesterUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
+
+        if (courseUuid != null && !courseUuid.isBlank()) {
+            courseLibraryService.getCourseLibraryByUuid(courseUuid);
         }
-        if (courseUuid != null && !courseUuid.isBlank() &&
-                !courseUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException(StringConstant.ErrorMessage.COURSE_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
-        }
-        if (teacherUuid != null && !teacherUuid.isBlank() &&
-                !teacherUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException(StringConstant.ErrorMessage.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
+        if (teacherUuid != null && !teacherUuid.isBlank()) {
+            teacherService.getTeacher(teacherUuid);
         }
         //获取教务所开设的教学班
-        String uuid =  this.getDepartment(request);
+        String uuid = this.getDepartment(request);
         List<TeachingClassDTO> allTeachingClassList = teachingClassService
                 .getTeachingClassListBySemester(semesterUuid);
         List<TeachingClassDTO> teachingClassList = allTeachingClassList.stream()
@@ -437,8 +431,8 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
                 .toList();
         // 获取分页数据
         Page<ClassAssignmentDO> pageResult = classAssignmentDAO.getClassAssignmentPage(
-                page, size, semesterUuid, courseUuid, teacherUuid,teachingClassUuidList);
-        if (pageResult == null ) {
+                page, size, semesterUuid, courseUuid, teacherUuid, teachingClassUuidList);
+        if (pageResult == null) {
             throw new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
         // 转换为 DTO
@@ -471,34 +465,73 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         UserDO user = userService.getUserByRequest(request);
         AcademicAffairsPermissionDTO dto =
                 academicAffairsPermissionService.getAcademicPermissionByUserUuid(user.getUserUuid());
-        if (dto == null){
+        if (dto == null) {
             throw new BusinessException("教务所权限不存在", ErrorCode.NOT_EXIST);
         }
         return dto.getDepartment();
     }
 
     @Override
-    public List<ClassAssignmentDTO> list(String semesterUuid, String courseUuid, String teacherUuid) {
+    public List<BackDetailedAssignmentDTO> list(
+            String semesterUuid,
+            String courseUuid,
+            String teacherUuid,
+            HttpServletRequest request) {
         // 验证 UUID 格式（如果提供）
-        if (semesterUuid != null && !semesterUuid.isBlank() &&
-                !semesterUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
-        }
-        if (courseUuid != null && !courseUuid.isBlank() &&
-                !courseUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException(StringConstant.ErrorMessage.COURSE_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
-        }
-        if (teacherUuid != null && !teacherUuid.isBlank() &&
-                !teacherUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-            throw new BusinessException(StringConstant.ErrorMessage.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
-        }
+        SemesterDTO semesterDTO = semesterService.getSemesterByUuidCheckEnabled(semesterUuid);
+        if (courseUuid != null && !courseUuid.isBlank()) {
+            courseLibraryService.getCourseLibraryByUuid(courseUuid);
 
-        // 获取列表数据
-        return Optional.ofNullable(classAssignmentDAO.list(semesterUuid, courseUuid, teacherUuid))
-                .map(list -> list.stream()
-                        .map(entity -> BeanUtil.toBean(entity, ClassAssignmentDTO.class))
-                        .toList())
-                .orElse(List.of());
+        }
+        if (teacherUuid != null && !teacherUuid.isBlank()) {
+            teacherService.getTeacher(teacherUuid);
+        }
+        //获取教务所开设的教学班
+        String uuid = this.getDepartment(request);
+        List<TeachingClassDTO> allTeachingClassList = teachingClassService
+                .getTeachingClassListBySemester(semesterUuid);
+        List<TeachingClassDTO> teachingClassList = allTeachingClassList.stream()
+                .filter(teachingClass -> Objects.equals(teachingClass.getCourseDepartmentUuid(), uuid))
+                .toList();
+        // 从筛选后的教学班列表中只提取UUID字符串列表
+        List<String> teachingClassUuidList = teachingClassList.stream()
+                .map(TeachingClassDTO::getTeachingClassUuid)
+                .toList();
+        // 获取所有排课分配
+        List<ClassAssignmentDO> classAssignments = classAssignmentDAO
+                .getList(semesterUuid, courseUuid, teacherUuid, teachingClassUuidList);
+        List<BackDetailedAssignmentDTO> backList = new ArrayList<>();
+        for (ClassAssignmentDO assignment : classAssignments) {
+            BackDetailedAssignmentDTO back = new BackDetailedAssignmentDTO();
+            BeanUtil.copyProperties(assignment, back);
+            //获取课程信息
+            CourseLibraryDTO courseLibraryDTO = courseLibraryService.getCourseLibraryByUuid(assignment.getCourseUuid());
+            //获取教室信息
+            ClassroomInfoDTO classroom = classroomService.getClassroomByUuid(assignment.getClassroomUuid());
+            //获取教师信息
+            TeacherDTO teacher = teacherService.getTeacher(assignment.getTeacherUuid());
+            //获取教学班信息
+            TeachingClassDTO teachingClass = teachingClassService.getTeachingClassByUuid(assignment.getTeachingClassUuid());
+            //获取校区信息
+            CampusDTO teachingCampus = campusService.getCampusByUuid(assignment.getTeachingCampus());
+            CampusDTO campus = campusService.getCampusByUuid(assignment.getCampusUuid());
+            //学时类型
+            CreditHourTypeEnuDTO creditHourType = creditHourTypeService.getCreditHourTypeByUuid(assignment.getCreditHourType());
+            if (campus != null && classroom != null && teachingCampus != null) {
+                back.setSemesterName(semesterDTO.getName())
+                        .setCourseName(courseLibraryDTO.getName())
+                        .setTeacherName(teacher.getName())
+                        .setCampusName(campus.getCampusName())
+                        .setBuildingName(classroom.getBuilding().getBuildingName())
+                        .setClassroomName(classroom.getClassroom().getName())
+                        .setTeachingClassName(teachingClass.getTeachingClassName())
+                        .setCreditHourTypeName(creditHourType.getName())
+                        .setTeachingCampusName(teachingCampus.getCampusName())
+                        .setClassroomTypeName(classroom.getType().getName());
+            }
+            backList.add(back);
+        }
+        return backList;
     }
 
     @Override
@@ -595,7 +628,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
 
     @Override
     public BackClassAssignmentDTO exchange(ClassAssignmentDTO dto) {
-        BackClassAssignmentDTO back = BeanUtil.toBean(dto,BackClassAssignmentDTO.class);
+        BackClassAssignmentDTO back = BeanUtil.toBean(dto, BackClassAssignmentDTO.class);
         back.setClassTimeDTO(ProjectUtil.convertToClassTimeDTOList(JSONUtil.toList(
                 dto.getClassTime(), TimeSlotDTO.class)));
         return back;

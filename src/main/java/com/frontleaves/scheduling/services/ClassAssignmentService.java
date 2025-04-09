@@ -3,10 +3,7 @@ package com.frontleaves.scheduling.services;
 import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.BackAdjustCourseScheduleDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.BackClassAssignmentDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.*;
 import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
 import com.frontleaves.scheduling.models.vo.AdjustmentsVO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
@@ -78,12 +75,17 @@ public interface ClassAssignmentService {
     /**
      * 查询排课分配列表
      *
-     * @param semesterUuid 学期主键（可选）
+     * @param semesterUuid 学期主键
      * @param courseUuid   课程主键（可选）
      * @param teacherUuid  教师主键（可选）
+     * @param request     HttpServletRequest对象
      * @return 排课分配列表
      */
-    List<ClassAssignmentDTO> list(String semesterUuid, String courseUuid, String teacherUuid);
+    List<BackDetailedAssignmentDTO> list(
+            String semesterUuid,
+            String courseUuid,
+            String teacherUuid,
+            HttpServletRequest request);
 
     /**
      * 保存排课分配

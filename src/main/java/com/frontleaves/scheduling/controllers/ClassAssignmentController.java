@@ -7,6 +7,7 @@ import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.BackAdjustCourseScheduleDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.BackClassAssignmentDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.BackDetailedAssignmentDTO;
 import com.frontleaves.scheduling.models.vo.AdjustmentsVO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
 import com.frontleaves.scheduling.services.ClassAssignmentService;
@@ -174,22 +175,12 @@ public class ClassAssignmentController {
      */
     @RequestRole({"教务"})
     @GetMapping("/list")
-    public ResponseEntity<BaseResponse<List<ClassAssignmentDTO>>> list(
-            @RequestParam(value = "semester_uuid", required = false) String semesterUuid,
+    public ResponseEntity<BaseResponse<List<BackDetailedAssignmentDTO>>> list(
+            @RequestParam(value = "semester_uuid") String semesterUuid,
             @RequestParam(value = "course_uuid", required = false) String courseUuid,
-            @RequestParam(value = "teacher_uuid", required = false) String teacherUuid
+            @RequestParam(value = "teacher_uuid", required = false) String teacherUuid,
+            HttpServletRequest request
     ) {
-        // 验证UUID格式（如果提供）
-        String getSemesterUuid = Optional.ofNullable(semesterUuid)
-                .filter(uuid -> !uuid.isBlank())
-                .map(uuid -> {
-                    if (!uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-                        throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
-                    }
-                    return uuid;
-                })
-                .orElse(null);
-
         String getCourseUuid = Optional.ofNullable(courseUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
@@ -210,7 +201,7 @@ public class ClassAssignmentController {
                 })
                 .orElse(null);
 
-        List<ClassAssignmentDTO> list = classAssignmentService.list(getSemesterUuid, getCourseUuid, getTeacherUuid);
+        List<BackDetailedAssignmentDTO> list = classAssignmentService.list(semesterUuid,getCourseUuid,getTeacherUuid,request);
         return ResultUtil.success("查询排课分配列表成功", list);
     }
 }
