@@ -53,8 +53,6 @@ public class ScheduleResultDTO {
      */
     private List<CourseTeachingClassDTO> assignments;
 
-
-
     /**
      * 冲突信息
      */

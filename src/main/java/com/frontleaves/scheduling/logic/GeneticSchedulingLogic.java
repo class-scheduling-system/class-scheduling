@@ -1,8 +1,10 @@
 package com.frontleaves.scheduling.logic;
 
 
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.IterativeDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.services.scheduling.EvaluatePopulationService;
@@ -12,9 +14,11 @@ import com.frontleaves.scheduling.services.scheduling.IterateService;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -90,6 +94,13 @@ private final IterateService iterateService;
             log.debug("进行迭代进化...");
             // 迭代进化
             while (generation < maxGenerations) {
+                IterativeDTO iterativeDTO = new IterativeDTO()
+                        .setTaskId(taskId)
+                        .setMaximumNumberOfIterations(maxGenerations)
+                        .setNumber(generation - 1);
+                RBucket<IterativeDTO> bucket = redisson.getBucket(StringConstant.Redis.SCHEDULING_ITERATIVE + taskId);
+                bucket.set(iterativeDTO);
+                bucket.expire(Duration.ofHours(24));
                 // 选择
                 List<ScheduleDTO> selected = iterateService.selection(allPopulation);
                 // 交叉
@@ -115,6 +126,13 @@ private final IterateService iterateService;
                 generation++;
             }
             // 构建结果
+            IterativeDTO iterativeDTO = new IterativeDTO()
+                    .setTaskId(taskId)
+                    .setMaximumNumberOfIterations(maxGenerations)
+                    .setNumber(maxGenerations);
+            RBucket<IterativeDTO> bucket = redisson.getBucket(StringConstant.Redis.SCHEDULING_ITERATIVE + taskId);
+            bucket.set(iterativeDTO);
+            bucket.expire(Duration.ofHours(24));
             if (bestSchedule != null) {
                 bestSchedule.setSchedule(List.of(bestSchedule.getSchedule().get(0)));
                 bestSchedule.getSchedule().forEach(data ->

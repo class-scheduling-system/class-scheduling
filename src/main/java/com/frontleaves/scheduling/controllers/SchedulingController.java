@@ -1,16 +1,14 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
-import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.base.SchedulingTaskDTO;
-import com.frontleaves.scheduling.models.dto.scheduling.CourseScheduleDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.SchedulingTaskStatusDTO;
 import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.SchedulingService;
-import com.frontleaves.scheduling.services.UserService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
@@ -20,9 +18,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-import org.redisson.api.RBucket;
-import org.redisson.api.RedissonClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,8 +48,6 @@ public class SchedulingController {
     @Resource
     private TeacherCourseQualificationDAO teacherCourseQualificationDAO;
 
-    private final RedissonClient redisson;
-    private final UserService userService;
 
     @GetMapping("/base-data")
     @RequestRole("教务")
@@ -143,12 +136,20 @@ public class SchedulingController {
         return ResultUtil.success("开始排课", schedulingTaskDTO);
     }
 
-    @GetMapping("/debug")
-    public ResponseEntity<BaseResponse<Object>> debugData(
-            @NotNull HttpServletRequest request
+
+    @GetMapping("/tasks/{task_id}")
+    @RequestRole("教务")
+    public ResponseEntity<BaseResponse<SchedulingTaskStatusDTO>> getSchedulingTaskStatus(
+            @PathVariable("task_id") String taskId
     ) {
-        UserDO getUser = userService.getUserByRequest(request);
-        RBucket<CourseScheduleDTO> data = redisson.getBucket(StringConstant.Redis.SCHEDULE_RESULT + getUser.getUserUuid());
-        return ResultUtil.success("Debug data", data.get());
+        // 数据检查
+        if (taskId == null || taskId.isEmpty()){
+            throw new BusinessException("任务ID不能为空", ErrorCode.BODY_ERROR);
+        }
+        // 获取排课任务状态
+        SchedulingTaskStatusDTO schedulingTaskDTO = schedulingService.getSchedulingTaskStatus(taskId);
+        return ResultUtil.success("获取排课任务状态成功", schedulingTaskDTO);
     }
+
+
 }

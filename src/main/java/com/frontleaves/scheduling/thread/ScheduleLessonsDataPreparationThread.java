@@ -386,7 +386,7 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 .multiply(BigDecimal.valueOf(specificCourseIdVO.getWeeklyHours()));
         // 如果课程的计划学时小于规定学时，抛出异常
         if (expectedTotalHours.compareTo(selectedCredit) < 0) {
-            throw new BusinessException("课程类型 [" + specificCourseIdVO.getCourseEnuType().getChineseName() +
+            throw new BusinessException("课程 [" + courseLibraryDTO.getName() + "] 的课程类型 [" + specificCourseIdVO.getCourseEnuType().getChineseName() +
                     "] 课时无法完成: 计划课时 " + expectedTotalHours + " < 规定课时 " + selectedCredit,
                     ErrorCode.BODY_ERROR);
         }

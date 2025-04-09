@@ -33,6 +33,7 @@ import org.redisson.api.RKeys;
 import org.redisson.api.RedissonClient;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -90,10 +91,13 @@ public class AutomaticClassSchedulingThread extends Thread {
                 log.info("开始执行遗传算法排课，任务ID：{}", taskId);
                 ScheduleResultDTO result = geneticSchedulingService.executeGeneticAlgorithm(taskId, baseData);
                 this.getSaveScheduleDTO(result);
-
                 // 保存排课冲突信息
                 this.saveSchedulingConflicts(result);
-
+                // 将排课结果保存到Redis
+                RBucket<ScheduleResultDTO> resultCache = redisson
+                        .getBucket(StringConstant.Redis.SCHEDULE_RESULT + taskId);
+                resultCache.set(result);
+                resultCache.expire(Duration.ofHours(24));
                 // 删除任务有关的缓存数据
                 RKeys rKeys = redisson.getKeys();
                 rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
@@ -132,7 +136,8 @@ public class AutomaticClassSchedulingThread extends Thread {
         for (SchedulingConflictDTO conflict : conflicts) {
             conflict
                     .setSemesterUuid(result.getSemesterUuid())
-                    .setResolutionStatus(0); // 设置为未解决状态
+                    // 设置为未解决状态
+                    .setResolutionStatus(0);
         }
 
         // 批量保存冲突信息

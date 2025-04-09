@@ -204,6 +204,7 @@ public class StringConstant {
         public static final String CREDIT_HOUR_TYPE_LIST = "credit:hour:type:list";
         public static final String SCHEDULE_RESULT = "schedule:result:";
         public static final String SCHEDULING_TASK = "scheduling:task:";
+        public static final String SCHEDULING_ITERATIVE = "scheduling:iterative:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
