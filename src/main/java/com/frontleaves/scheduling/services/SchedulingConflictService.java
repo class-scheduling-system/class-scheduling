@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.services;
 
+import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 
@@ -49,4 +50,10 @@ public interface SchedulingConflictService {
      * @return 冲突列表
      */
     List<SchedulingConflictDTO> listSimple(String semesterUuid, Integer resolutionStatus);
+
+    /**
+     * 检查冲突解决
+     * @param classAssignment1 第一个排课安排
+     */
+    void checkForConflictResolution(ClassAssignmentDTO classAssignment1);
 }

@@ -137,7 +137,6 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         if (entity == null) {
             throw new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
-
         // 转换为 DTO 并返回
         return BeanUtil.toBean(entity, ClassAssignmentDTO.class);
     }
@@ -217,7 +216,8 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
      * @return 符合条件的排课分配列表
      */
     @Override
-    public List<ClassAssignmentDTO> getClassAssignmentListByLimit(@NotNull AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO) {
+    public List<ClassAssignmentDTO> getClassAssignmentListByLimit(
+            @NotNull AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO) {
         Map<String, Boolean> classroomUuidsMap = automaticClassSchedulingBaseDTO.getClassroomList().stream()
                 .map(dto -> dto.getClassroom().getClassroomUuid())
                 .collect(Collectors.toMap(
@@ -264,6 +264,21 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     @Override
     public void save(ClassAssignmentDO classAssignmentDO) {
         classAssignmentDAO.saveClassAssignment(classAssignmentDO);
+    }
+
+    @Override
+    public List<ClassAssignmentDTO> getClassAssignmentListConflict(@NotNull ClassAssignmentDTO classAssignment) {
+        // 获取老师UUID,教室UUID和教学班UUID
+        List<ClassAssignmentDO> list = classAssignmentDAO.getClassAssignmentListBySemester(classAssignment.getSemesterUuid());
+        List<ClassAssignmentDO> filteredList = list.stream()
+                .filter(assignmentDO ->
+                        // 检查当前 assignmentDO 的 UUID 是否与输入的任一 UUID 匹配
+                        Objects.equals(assignmentDO.getTeacherUuid(), classAssignment.getTeacherUuid()) ||
+                                Objects.equals(assignmentDO.getClassroomUuid(), classAssignment.getClassroomUuid()) ||
+                                Objects.equals(assignmentDO.getTeachingClassUuid(), classAssignment.getTeachingClassUuid())
+                )
+                .toList();
+        return BeanUtil.copyToList(filteredList, ClassAssignmentDTO.class);
     }
 
     /**

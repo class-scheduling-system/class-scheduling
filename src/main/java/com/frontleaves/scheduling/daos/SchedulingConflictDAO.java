@@ -83,4 +83,18 @@ public class SchedulingConflictDAO extends ServiceImpl<SchedulingConflictMapper,
             return 0;
         }
     }
+
+    /**
+     * 根据班级安排的UUID获取冲突列表
+     * @param classAssignmentUuid 排课安排的UUID
+     * @return 冲突列表
+     */
+    public List<SchedulingConflictDO> getConflictByClassAssignmentUuid(String classAssignmentUuid) {
+        return this.lambdaQuery()
+                .eq(SchedulingConflictDO::getFirstAssignmentUuid, classAssignmentUuid)
+                .or()
+                .eq(SchedulingConflictDO::getSecondAssignmentUuid,classAssignmentUuid)
+                .eq(SchedulingConflictDO::getResolutionStatus,0)
+                .list();
+    }
 }

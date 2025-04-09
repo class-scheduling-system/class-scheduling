@@ -4,8 +4,10 @@ import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.models.dto.base.SchedulingTaskDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.BackAdjustCourseScheduleDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.SchedulingTaskStatusDTO;
 import com.frontleaves.scheduling.models.entity.base.*;
+import com.frontleaves.scheduling.models.vo.AdjustmentsVO;
 import com.frontleaves.scheduling.models.vo.AutomaticClassSchedulingVO;
 import com.frontleaves.scheduling.models.vo.SpecificCourseIdVO;
 import com.frontleaves.scheduling.services.SchedulingService;
@@ -136,7 +138,11 @@ public class SchedulingController {
         return ResultUtil.success("开始排课", schedulingTaskDTO);
     }
 
-
+    /**
+     * 获取排课任务状态
+     * @param taskId 排课任务ID
+     * @return ResponseEntity<BaseResponse<SchedulingTaskStatusDTO>> 返回排课任务状态
+     */
     @GetMapping("/tasks/{task_id}")
     @RequestRole("教务")
     public ResponseEntity<BaseResponse<SchedulingTaskStatusDTO>> getSchedulingTaskStatus(
@@ -151,5 +157,32 @@ public class SchedulingController {
         return ResultUtil.success("获取排课任务状态成功", schedulingTaskDTO);
     }
 
+    /**
+     * 进行排课调整
+     * @param assignmentId - 排课分配ID
+     * @param adjustmentsVO - 调整信息
+     * @param request - HTTP请求
+     * @return ResponseEntity<BaseResponse<BackAdjustCourseScheduleDTO>> 返回排课调整结果
+     */
+
+    @PutMapping("/assignments/{assignment_id}/adjust")
+    @RequestRole("教务")
+    public ResponseEntity<BaseResponse<BackAdjustCourseScheduleDTO>> backAdjustCourseSchedule(
+            @PathVariable("assignment_id") String assignmentId,
+            @RequestBody AdjustmentsVO adjustmentsVO,
+            HttpServletRequest request
+    ) {
+        // 数据检查
+        if (assignmentId == null || assignmentId.isEmpty()){
+            throw new BusinessException("任务ID不能为空", ErrorCode.BODY_ERROR);
+        }
+        if (adjustmentsVO == null){
+            throw new BusinessException("请求体不能为空", ErrorCode.BODY_ERROR);
+        }
+        // 进行排课调整
+        BackAdjustCourseScheduleDTO backAdjustCourseScheduleDTO =
+                schedulingService.adjustCourseSchedule(assignmentId, adjustmentsVO,request);
+        return ResultUtil.success("获取排课任务状态成功", backAdjustCourseScheduleDTO);
+    }
 
 }

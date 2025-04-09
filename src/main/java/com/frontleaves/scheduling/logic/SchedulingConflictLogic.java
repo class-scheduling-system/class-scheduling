@@ -31,15 +31,20 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.frontleaves.scheduling.daos.ClassAssignmentDAO;
 import com.frontleaves.scheduling.daos.SchedulingConflictDAO;
+import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
+import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
 import com.frontleaves.scheduling.models.entity.base.SchedulingConflictDO;
 import com.frontleaves.scheduling.services.SchedulingConflictService;
+import com.frontleaves.scheduling.utils.CheckConflicts;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -63,6 +68,7 @@ import java.util.List;
 public class SchedulingConflictLogic implements SchedulingConflictService {
 
     private final SchedulingConflictDAO schedulingConflictDAO;
+    private final ClassAssignmentDAO classAssignmentDAO;
 
     /**
      * 获取排课冲突详情
@@ -175,6 +181,29 @@ public class SchedulingConflictLogic implements SchedulingConflictService {
         } catch (Exception e) {
             log.error("查询简单冲突列表失败", e);
             throw new BusinessException("查询冲突列表失败", ErrorCode.BODY_ERROR);
+        }
+    }
+
+    @Override
+    public void checkForConflictResolution(@NotNull ClassAssignmentDTO classAssignment1) {
+        // 查询出与之有关的冲突
+        List<SchedulingConflictDO> conflictList = schedulingConflictDAO
+                .getConflictByClassAssignmentUuid(classAssignment1.getClassAssignmentUuid());
+        // 遍历每个冲突
+        for (SchedulingConflictDO conflict : conflictList) {
+            //获取冲突的第二个排课安排
+            String classAssignment2Uuid = conflict.getSecondAssignmentUuid();
+            if (classAssignment2Uuid.equals(classAssignment1.getClassAssignmentUuid())){
+                classAssignment2Uuid = conflict.getFirstAssignmentUuid();
+            }
+            ClassAssignmentDO classAssignmentDO = classAssignmentDAO.getClassAssignmentByUuid(classAssignment2Uuid);
+            ClassAssignmentDTO classAssignment2 = BeanUtil.toBean(classAssignmentDO, ClassAssignmentDTO.class);
+            //检查冲突是否已经解决
+            if (Boolean.FALSE.equals(CheckConflicts.booleanConflicts(classAssignment2, classAssignment1))){
+                // 解决冲突
+                conflict.setResolutionStatus(1);
+                schedulingConflictDAO.updateById(conflict);
+            }
         }
     }
 } 

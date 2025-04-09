@@ -92,4 +92,11 @@ public interface ClassAssignmentService {
      * @param classAssignmentDO 排课分配数据对象
      */
     void save(ClassAssignmentDO classAssignmentDO);
+
+    /**
+     * 获取排课分配列表冲突
+     * @param classAssignment 排课分配数据传输对象
+     * @return 排课分配列表
+     */
+    List<ClassAssignmentDTO> getClassAssignmentListConflict(ClassAssignmentDTO classAssignment);
 }

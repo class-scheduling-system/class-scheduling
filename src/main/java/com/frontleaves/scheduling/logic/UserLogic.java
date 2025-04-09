@@ -98,7 +98,7 @@ public class UserLogic implements UserService {
      * @throws UserAuthenticationException 当Token过期或不存在对应的用户时抛出此异常
      */
     @Override
-    public UserDO getUserByRequest(HttpServletRequest request) {
+    public @NotNull UserDO getUserByRequest(HttpServletRequest request) {
         String getUserToken = HeaderUtil.getAuthorizeUserUuidString(request);
         if (getUserToken != null) {
             UserDO getUser = tokenDAO.getTokenUser(getUserToken);

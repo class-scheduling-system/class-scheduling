@@ -269,4 +269,6 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
         keys.deleteByPattern(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
         keys.deleteByPattern(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
     }
+
+
 }

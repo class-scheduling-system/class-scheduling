@@ -64,6 +64,7 @@ public interface UserService {
      * @return UserDO 用户信息对象，包含用户的详细信息
      * @throws UserAuthenticationException 如果Token过期或用户不存在时抛出
      */
+    @NotNull
     UserDO getUserByRequest(HttpServletRequest request);
 
     /**
