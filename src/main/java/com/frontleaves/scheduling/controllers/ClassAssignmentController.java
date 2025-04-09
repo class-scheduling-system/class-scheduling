@@ -102,7 +102,7 @@ public class ClassAssignmentController {
      *
      * @param page         页码，默认为1
      * @param size         每页记录数，默认为20
-     * @param semesterUuid 学期UUID，可选参数
+     * @param semesterUuid 学期UUID，必选
      * @param courseUuid   课程UUID，可选参数
      * @param teacherUuid  教师UUID，可选参数
      * @return 返回包含排课分配列表的分页数据
@@ -168,7 +168,7 @@ public class ClassAssignmentController {
      * 获取排课分配列表接口
      * 该接口返回排课分配的列表信息，支持按学期、课程和教师进行筛选
      *
-     * @param semesterUuid 学期UUID，可选参数
+     * @param semesterUuid 学期UUID,必选
      * @param courseUuid   课程UUID，可选参数
      * @param teacherUuid  教师UUID，可选参数
      * @return 返回包含排课分配列表的响应实体
