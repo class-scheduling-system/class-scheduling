@@ -206,6 +206,21 @@ public class StringConstant {
         public static final String SCHEDULING_TASK = "scheduling:task:";
         public static final String SCHEDULING_ITERATIVE = "scheduling:iterative:";
         public static final String SCHEDULING_TASK_LIST = "scheduling:task:list:";
+        
+        /**
+         * 当前学期缓存键
+         */
+        public static final String CURRENT_SEMESTER = "semester:current";
+        
+        /**
+         * 教师课程表缓存键前缀
+         */
+        public static final String TEACHER_COURSE_SCHEDULE = "course:schedule:teacher:";
+        
+        /**
+         * 学生课程表缓存键前缀
+         */
+        public static final String STUDENT_COURSE_SCHEDULE = "course:schedule:student:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

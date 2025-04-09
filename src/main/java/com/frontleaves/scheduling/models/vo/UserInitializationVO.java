@@ -56,7 +56,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserInitializationVO {
-    @NotNull(message = "类型只能为学生「TRUE」或老师「FALSE」")
+    @NotNull(message = "类型只能为学生「FALSE」或老师「TRUE」")
     private boolean type;
     @NotBlank(message = "学号/工号不能为空")
     @NotNull
