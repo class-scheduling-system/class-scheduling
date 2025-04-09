@@ -1,5 +1,6 @@
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.models.dto.base.CampusDTO;
 import com.frontleaves.scheduling.models.dto.base.FileDTO;
@@ -143,7 +144,7 @@ public class CampusController {
      *
      * @return 包含校区列表的 {@code ResponseEntity<BaseResponse<List<CampusLiteDTO>>>} 对象，其中 {@code BaseResponse} 封装了操作结果和消息
      */
-    @RequestRole({"管理员"})
+    @RequestLogin
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<List<CampusLiteDTO>>> getCampusList() {
         List<CampusLiteDTO> campusList = campusService.getCampusList();

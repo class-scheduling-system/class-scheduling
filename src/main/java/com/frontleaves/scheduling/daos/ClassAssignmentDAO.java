@@ -126,15 +126,12 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
             String courseUuid,
             String teacherUuid,
             List<String> teachingClassUuidList) {
-        // 计算 teachingClassUuidList 的哈希值用于缓存键
-        String teachingClassListHash = teachingClassUuidList != null ?
-                String.valueOf(teachingClassUuidList.hashCode()) : "null";
         // 构建缓存键，包含教学班列表的哈希
         String cacheKey = StringConstant.Redis.CLASS_ASSIGNMENT_LIST +
                 (semesterUuid != null ? semesterUuid : "all") + ":" +
                 (courseUuid != null ? courseUuid : "all") + ":" +
                 (teacherUuid != null ? teacherUuid : "all") + ":" +
-                teachingClassListHash;
+                teachingClassUuidList.hashCode();
         RList<ClassAssignmentDO> cacheList = redisson.getList(cacheKey);
         if (!cacheList.isExists()) {
             // 构建查询条件
@@ -150,7 +147,9 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
             }
             // 添加教学班UUID列表过滤条件
             if (teachingClassUuidList != null && !teachingClassUuidList.isEmpty()) {
-                wrapper.in(ClassAssignmentDO::getTeachingClassUuid, teachingClassUuidList);
+                teachingClassUuidList.forEach(teachingClassUuid ->
+                        wrapper.or().like(ClassAssignmentDO::getTeachingClassUuid, teachingClassUuid)
+                );
             }
             // 执行查询
             List<ClassAssignmentDO> entityList = this.list(wrapper);
@@ -215,7 +214,7 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
      * @param semesterUuid      学期UUID（可选）
      * @param courseUuid        课程UUID（可选）
      * @param teacherUuid       教师UUID（可选）
-     * @param teachingClassList 教学班UUID列表（可选）
+     * @param teachingClassUuidList 教学班UUID列表（可选）
      * @return 返回排课分配分页数据
      */
     @Nullable
@@ -224,17 +223,14 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
             Integer size,
             String semesterUuid,
             String courseUuid,
-            String teacherUuid, List<String> teachingClassList) {
-        // 构建缓存键 (需要包含teachingClassList的哈希值，避免缓存混淆)
-        String teachingClassListHash = teachingClassList != null ?
-                String.valueOf(teachingClassList.hashCode()) : "null";
+            String teacherUuid, List<String> teachingClassUuidList) {
 
         String cacheKey = StringConstant.Redis.CLASS_ASSIGNMENT_PAGE +
                 page + ":" + size + ":" +
                 (semesterUuid != null ? semesterUuid : "all") + ":" +
                 (courseUuid != null ? courseUuid : "all") + ":" +
                 (teacherUuid != null ? teacherUuid : "all") + ":" +
-                teachingClassListHash;
+                teachingClassUuidList.hashCode();
         RMap<String, String> cacheMap = redisson.getMap(cacheKey);
         if (cacheMap.isEmpty()) {
             // 构建查询条件
@@ -249,8 +245,10 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
                 wrapper.eq(ClassAssignmentDO::getTeacherUuid, teacherUuid);
             }
             // 添加教学班UUID列表的过滤条件
-            if (teachingClassList != null && !teachingClassList.isEmpty()) {
-                wrapper.in(ClassAssignmentDO::getTeachingClassUuid, teachingClassList);
+            if (teachingClassUuidList != null && !teachingClassUuidList.isEmpty()) {
+                teachingClassUuidList.forEach(
+                        teachingClassUuid -> wrapper.or().like(ClassAssignmentDO::getTeachingClassUuid, teachingClassUuid)
+                );
             }
             // 执行分页查询并缓存结果
             return ProjectUtil.queryAndCache(wrapper, page, size, cacheMap);
@@ -261,6 +259,7 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
 
     /**
      * 根据学期UUID获取排课分配列表
+     *
      * @param semesterUuid 学期UUID
      * @return 排课分配列表
      */
@@ -271,7 +270,7 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
             List<ClassAssignmentDO> list = this.lambdaQuery()
                     .eq(ClassAssignmentDO::getSemesterUuid, semesterUuid)
                     .list();
-            if (!list.isEmpty()){
+            if (!list.isEmpty()) {
                 rList.addAll(list);
                 rList.expire(Duration.ofHours(1));
                 return list;
@@ -283,6 +282,7 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
 
     /**
      * 保存排课分配
+     *
      * @param classAssignmentDO 排课分配数据对象
      */
     public void saveClassAssignment(ClassAssignmentDO classAssignmentDO) {
