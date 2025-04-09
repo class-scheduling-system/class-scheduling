@@ -66,7 +66,14 @@ public interface ClassAssignmentService {
      * @param teacherUuid  教师主键（可选）
      * @return 分页结果
      */
-    PageDTO<ClassAssignmentDTO> page(Integer page, Integer size, String semesterUuid, String courseUuid, String teacherUuid);
+    PageDTO<BackClassAssignmentDTO> page(
+            Integer page,
+            Integer size,
+            String semesterUuid,
+            String courseUuid,
+            String teacherUuid,
+            HttpServletRequest request
+    );
 
     /**
      * 查询排课分配列表

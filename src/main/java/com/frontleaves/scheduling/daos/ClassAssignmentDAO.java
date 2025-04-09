@@ -173,6 +173,7 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_UUID + entity.getClassAssignmentUuid());
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_UUID + "*");
     }
 
     /**
@@ -190,6 +191,7 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_UUID + classAssignmentUuid);
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + "*");
     }
 
     /**
@@ -199,22 +201,31 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
      * 结果会被缓存在 Redis 中，缓存时间为一小时。
      * </p>
      *
-     * @param page         当前页码
-     * @param size         每页大小
-     * @param semesterUuid 学期UUID（可选）
-     * @param courseUuid   课程UUID（可选）
-     * @param teacherUuid  教师UUID（可选）
+     * @param page              当前页码
+     * @param size              每页大小
+     * @param semesterUuid      学期UUID（可选）
+     * @param courseUuid        课程UUID（可选）
+     * @param teacherUuid       教师UUID（可选）
+     * @param teachingClassList 教学班UUID列表（可选）
      * @return 返回排课分配分页数据
      */
     @Nullable
-    public Page<ClassAssignmentDO> getClassAssignmentPage(Integer page, Integer size, String semesterUuid, String courseUuid, String teacherUuid) {
-        // 构建缓存键
+    public Page<ClassAssignmentDO> getClassAssignmentPage(
+            Integer page,
+            Integer size,
+            String semesterUuid,
+            String courseUuid,
+            String teacherUuid, List<String> teachingClassList) {
+        // 构建缓存键 (需要包含teachingClassList的哈希值，避免缓存混淆)
+        String teachingClassListHash = teachingClassList != null ?
+                String.valueOf(teachingClassList.hashCode()) : "null";
+
         String cacheKey = StringConstant.Redis.CLASS_ASSIGNMENT_PAGE +
                 page + ":" + size + ":" +
                 (semesterUuid != null ? semesterUuid : "all") + ":" +
                 (courseUuid != null ? courseUuid : "all") + ":" +
-                (teacherUuid != null ? teacherUuid : "all");
-
+                (teacherUuid != null ? teacherUuid : "all") + ":" +
+                teachingClassListHash;
         RMap<String, String> cacheMap = redisson.getMap(cacheKey);
         if (cacheMap.isEmpty()) {
             // 构建查询条件
@@ -228,7 +239,10 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
             if (teacherUuid != null) {
                 wrapper.eq(ClassAssignmentDO::getTeacherUuid, teacherUuid);
             }
-
+            // 添加教学班UUID列表的过滤条件
+            if (teachingClassList != null && !teachingClassList.isEmpty()) {
+                wrapper.in(ClassAssignmentDO::getTeachingClassUuid, teachingClassList);
+            }
             // 执行分页查询并缓存结果
             return ProjectUtil.queryAndCache(wrapper, page, size, cacheMap);
         } else {
@@ -264,10 +278,10 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
      */
     public void saveClassAssignment(ClassAssignmentDO classAssignmentDO) {
         RKeys keys = redisson.getKeys();
-
         this.save(classAssignmentDO);
-        keys.deleteByPattern(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
-        keys.deleteByPattern(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + "*");
     }
 
 

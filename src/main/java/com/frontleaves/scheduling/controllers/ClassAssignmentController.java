@@ -108,12 +108,13 @@ public class ClassAssignmentController {
      */
     @RequestRole({"教务"})
     @GetMapping("/page")
-    public ResponseEntity<BaseResponse<PageDTO<ClassAssignmentDTO>>> page(
+    public ResponseEntity<BaseResponse<PageDTO<BackClassAssignmentDTO>>> page(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "20") Integer size,
             @RequestParam(value = "semester_uuid") String semesterUuid,
             @RequestParam(value = "course_uuid", required = false) String courseUuid,
-            @RequestParam(value = "teacher_uuid", required = false) String teacherUuid
+            @RequestParam(value = "teacher_uuid", required = false) String teacherUuid,
+            HttpServletRequest request
     ) {
         if (size > 200) {
             throw new BusinessException(StringConstant.ErrorMessage.PAGE_SIZE_TOO_LARGE, ErrorCode.PARAMETER_INVALID);
@@ -136,8 +137,8 @@ public class ClassAssignmentController {
                     return uuid;
                 })
                 .orElse(null);
-        PageDTO<ClassAssignmentDTO> pageResult = classAssignmentService.page(
-                page, size, semesterUuid, getCourseUuid, getTeacherUuid);
+        PageDTO<BackClassAssignmentDTO> pageResult = classAssignmentService.page(
+                page, size, semesterUuid, getCourseUuid, getTeacherUuid,request);
         return ResultUtil.success("查询排课分配列表成功", pageResult);
     }
 

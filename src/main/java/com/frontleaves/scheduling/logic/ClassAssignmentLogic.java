@@ -59,6 +59,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     private final SchedulingConflictService schedulingConflictService;
     private final UserService userService;
     private final TeachingClassDAO teachingClassDAO;
+    private final AcademicAffairsPermissionService academicAffairsPermissionService;
 
     @Override
     public List<SchedulingConflictDTO> add(@NotNull ClassAssignmentVO vo) {
@@ -403,7 +404,13 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     }
 
     @Override
-    public PageDTO<ClassAssignmentDTO> page(Integer page, Integer size, String semesterUuid, String courseUuid, String teacherUuid) {
+    public PageDTO<BackClassAssignmentDTO> page(
+            Integer page,
+            Integer size,
+            String semesterUuid,
+            String courseUuid,
+            String teacherUuid,
+            HttpServletRequest request) {
         // 验证 UUID 格式（如果提供）
         if (semesterUuid != null && !semesterUuid.isBlank() &&
                 !semesterUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
@@ -417,15 +424,57 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
                 !teacherUuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
             throw new BusinessException(StringConstant.ErrorMessage.TEACHER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
         }
-
+        //获取教务所开设的教学班
+        String uuid =  this.getDepartment(request);
+        List<TeachingClassDTO> allTeachingClassList = teachingClassService
+                .getTeachingClassListBySemester(semesterUuid);
+        List<TeachingClassDTO> teachingClassList = allTeachingClassList.stream()
+                .filter(teachingClass -> Objects.equals(teachingClass.getCourseDepartmentUuid(), uuid))
+                .toList();
+        // 从筛选后的教学班列表中只提取UUID字符串列表
+        List<String> teachingClassUuidList = teachingClassList.stream()
+                .map(TeachingClassDTO::getTeachingClassUuid)
+                .toList();
         // 获取分页数据
-        Page<ClassAssignmentDO> pageResult = classAssignmentDAO.getClassAssignmentPage(page, size, semesterUuid, courseUuid, teacherUuid);
-        if (pageResult == null || !pageResult.hasNext()) {
+        Page<ClassAssignmentDO> pageResult = classAssignmentDAO.getClassAssignmentPage(
+                page, size, semesterUuid, courseUuid, teacherUuid,teachingClassUuidList);
+        if (pageResult == null ) {
             throw new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
-
         // 转换为 DTO
-        return ProjectUtil.convertPageToPageDTO(pageResult, ClassAssignmentDTO.class);
+        PageDTO<ClassAssignmentDTO> pageDTO =
+                ProjectUtil.convertPageToPageDTO(pageResult, ClassAssignmentDTO.class);
+        //转成BackDTO
+        return this.exchangeBackPage(pageDTO);
+    }
+
+    private @NotNull PageDTO<BackClassAssignmentDTO> exchangeBackPage(@NotNull PageDTO<ClassAssignmentDTO> pageDTO) {
+        PageDTO<BackClassAssignmentDTO> backPage = new PageDTO<>();
+        backPage.setCurrent(pageDTO.getCurrent());
+        backPage.setSize(pageDTO.getSize());
+        backPage.setTotal(pageDTO.getTotal());
+        List<BackClassAssignmentDTO> list = pageDTO.getRecords().stream()
+                .map(dto -> {
+                    BackClassAssignmentDTO back = new BackClassAssignmentDTO();
+                    BeanUtil.copyProperties(dto, back);
+                    back.setClassTimeDTO(ProjectUtil.convertToClassTimeDTOList(
+                            JSONUtil.toList(dto.getClassTime(), TimeSlotDTO.class)
+                    ));
+                    return back;
+                }).toList();
+        backPage.setRecords(list);
+        return backPage;
+    }
+
+    private String getDepartment(HttpServletRequest request) {
+        //获取当前用户
+        UserDO user = userService.getUserByRequest(request);
+        AcademicAffairsPermissionDTO dto =
+                academicAffairsPermissionService.getAcademicPermissionByUserUuid(user.getUserUuid());
+        if (dto == null){
+            throw new BusinessException("教务所权限不存在", ErrorCode.NOT_EXIST);
+        }
+        return dto.getDepartment();
     }
 
     @Override
