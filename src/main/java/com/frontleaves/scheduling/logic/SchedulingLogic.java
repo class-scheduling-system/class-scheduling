@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RBucket;
+import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
@@ -137,6 +138,10 @@ public class SchedulingLogic implements SchedulingService {
         }
 
         redisson.getBucket(StringConstant.Redis.SCHEDULING_TASK + taskId).set(schedulingTask);
+        RList<String> taskList = redisson.getList(StringConstant.Redis.SCHEDULING_TASK_LIST + getUser.getUserUuid());
+        if (!taskList.contains(taskId)) {
+            taskList.add(taskId);
+        }
         return schedulingTask;
     }
 
@@ -178,6 +183,17 @@ public class SchedulingLogic implements SchedulingService {
         //创建返回值
         return this.createdBackDate(classAssignment,
                 classAssignment1, adjustmentsVO,conflict, request);
+    }
+
+    @Override
+    public List<String> getSchedulingTasks(HttpServletRequest request) {
+        UserDO getUser = userService.getUserByRequest(request);
+        RList<String> taskList = redisson.getList(
+                StringConstant.Redis.SCHEDULING_TASK_LIST + getUser.getUserUuid());
+        if (taskList.isExists()){
+            return taskList.readAll();
+        }
+        return List.of();
     }
 
     private BackAdjustCourseScheduleDTO createdBackDate(

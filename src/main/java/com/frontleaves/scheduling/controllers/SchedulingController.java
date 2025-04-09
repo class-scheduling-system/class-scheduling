@@ -164,7 +164,6 @@ public class SchedulingController {
      * @param request - HTTP请求
      * @return ResponseEntity<BaseResponse<BackAdjustCourseScheduleDTO>> 返回排课调整结果
      */
-
     @PutMapping("/assignments/{assignment_id}/adjust")
     @RequestRole("教务")
     public ResponseEntity<BaseResponse<BackAdjustCourseScheduleDTO>> backAdjustCourseSchedule(
@@ -185,4 +184,18 @@ public class SchedulingController {
         return ResultUtil.success("获取排课任务状态成功", backAdjustCourseScheduleDTO);
     }
 
+    /**
+     * 获取排课任务列表
+     * @param request HTTP请求对象
+     * @return ResponseEntity<BaseResponse<List<String>>> 返回排课任务列表
+     */
+    @GetMapping("/tasks")
+    @RequestRole("教务")
+    public ResponseEntity<BaseResponse<List<String>>> getSchedulingTasks(
+            HttpServletRequest request
+    ) {
+        // 获取排课任务列表
+        List<String> list = schedulingService.getSchedulingTasks(request);
+        return ResultUtil.success("获取排课任务列表成功", list);
+    }
 }

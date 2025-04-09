@@ -205,6 +205,7 @@ public class StringConstant {
         public static final String SCHEDULE_RESULT = "schedule:result:";
         public static final String SCHEDULING_TASK = "scheduling:task:";
         public static final String SCHEDULING_ITERATIVE = "scheduling:iterative:";
+        public static final String SCHEDULING_TASK_LIST = "scheduling:task:list:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 /**
  * 调度服务
  * @author FLASHLACK
@@ -42,5 +44,13 @@ public interface SchedulingService {
     BackAdjustCourseScheduleDTO adjustCourseSchedule(
             String assignmentId,
             AdjustmentsVO adjustmentsVO,
+            HttpServletRequest request);
+
+    /**
+     * 获取调度任务列表
+     * @param request 请求
+     * @return 调度任务列表
+     */
+    List<String> getSchedulingTasks(
             HttpServletRequest request);
 }
