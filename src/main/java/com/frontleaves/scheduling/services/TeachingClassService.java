@@ -58,12 +58,19 @@ public interface TeachingClassService {
                                                     String departmentUuid, String semesterUuid, boolean isDesc);
     
     /**
-     * 根据部门UUID获取教学班列表
+     * 获取教学班列表（不分页）
      * 
-     * @param departmentUuid 部门UUID
+     * @param keyword 关键字（可选）
+     * @param departmentUuid 部门UUID（可选）
+     * @param semesterUuid 学期UUID（可选）
+     * @param teacherUuid 教师UUID（可选）
+     * @param isEnabled 是否启用（可选）
+     * @param isDesc 是否降序排序
      * @return 教学班简化DTO列表
      */
-    List<TeachingClassLiteDTO> getTeachingClassListByDepartment(String departmentUuid);
+    List<TeachingClassLiteDTO> getTeachingClassesList(String keyword, String departmentUuid, 
+                                                  String semesterUuid, String teacherUuid, 
+                                                  Boolean isEnabled, boolean isDesc);
     
     /**
      * 创建新教学班

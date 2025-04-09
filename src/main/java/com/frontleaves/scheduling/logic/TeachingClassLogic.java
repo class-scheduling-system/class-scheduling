@@ -15,7 +15,6 @@ import com.frontleaves.scheduling.models.entity.base.DepartmentDO;
 import com.frontleaves.scheduling.models.entity.base.SemesterDO;
 import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
 import com.frontleaves.scheduling.services.TeachingClassService;
-import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -176,7 +175,7 @@ public class TeachingClassLogic implements TeachingClassService {
                 })
                 .collect(Collectors.toList());
         
-        // 修改为正确的PageDTO转换方法
+        // 构建分页结果
         return new PageDTO<TeachingClassLiteDTO>()
                 .setTotal(pageResult.getTotal())
                 .setSize(pageResult.getSize())
@@ -184,25 +183,72 @@ public class TeachingClassLogic implements TeachingClassService {
                 .setRecords(teachingClassLiteDTOs);
     }
 
+    /**
+     * 获取教学班列表（不分页）
+     * 
+     * @param keyword 关键字（可选）
+     * @param departmentUuid 部门UUID（可选）
+     * @param semesterUuid 学期UUID（可选）
+     * @param teacherUuid 教师UUID（可选）
+     * @param isEnabled 是否启用（可选）
+     * @param isDesc 是否降序排序
+     * @return 教学班简化DTO列表
+     */
     @Override
-    public List<TeachingClassLiteDTO> getTeachingClassListByDepartment(String departmentUuid) {
-        log.debug("根据部门UUID获取教学班列表: departmentUuid={}", departmentUuid);
+    public List<TeachingClassLiteDTO> getTeachingClassesList(String keyword, String departmentUuid, 
+                                                         String semesterUuid, String teacherUuid, 
+                                                         Boolean isEnabled, boolean isDesc) {
+        log.debug("获取教学班列表: keyword={}, departmentUuid={}, semesterUuid={}, teacherUuid={}, isEnabled={}, isDesc={}", 
+                keyword, departmentUuid, semesterUuid, teacherUuid, isEnabled, isDesc);
+                
+        // 构建查询条件
+        LambdaQueryWrapper<TeachingClassDO> queryWrapper = new LambdaQueryWrapper<>();
         
-        if (!StringUtils.hasText(departmentUuid)) {
-            throw new BusinessException("部门UUID不能为空", ErrorCode.BODY_ERROR);
+        // 添加条件：按关键字查询（教学班名称或编号）
+        if (StringUtils.hasText(keyword)) {
+            queryWrapper.like(TeachingClassDO::getTeachingClassName, keyword)
+                    .or()
+                    .like(TeachingClassDO::getTeachingClassCode, keyword);
         }
         
-        // 查询该部门的所有教学班
-        List<TeachingClassDO> teachingClasses = teachingClassDAO.lambdaQuery()
-                .eq(TeachingClassDO::getCourseDepartmentUuid, departmentUuid)
-                .eq(TeachingClassDO::getIsEnabled, true)
-                .list();
-                
+        // 添加条件：按部门查询
+        if (StringUtils.hasText(departmentUuid)) {
+            queryWrapper.eq(TeachingClassDO::getCourseDepartmentUuid, departmentUuid);
+        }
+        
+        // 添加条件：按学期查询
+        if (StringUtils.hasText(semesterUuid)) {
+            queryWrapper.eq(TeachingClassDO::getSemesterUuid, semesterUuid);
+        }
+        
+        // 添加条件：按教师查询 (注：这里需要根据实际情况实现，如果教师信息在另一个表中需要调整逻辑)
+        if (StringUtils.hasText(teacherUuid)) {
+            // 这里示例假设教学班和教师的关联在另一个表中需要处理
+            // 实际实现可能需要调整，比如使用子查询或连接查询
+            log.debug("教师过滤暂未实现，请在教师模块中筛选"); 
+        }
+        
+        // 添加条件：是否启用
+        if (isEnabled != null) {
+            queryWrapper.eq(TeachingClassDO::getIsEnabled, isEnabled);
+        }
+        
+        // 添加排序
+        if (isDesc) {
+            queryWrapper.orderByDesc(TeachingClassDO::getCreatedAt);
+        } else {
+            queryWrapper.orderByAsc(TeachingClassDO::getCreatedAt);
+        }
+        
+        // 执行查询
+        List<TeachingClassDO> teachingClasses = teachingClassDAO.list(queryWrapper);
+        
+        // 如果没有数据则返回空列表
         if (teachingClasses.isEmpty()) {
             return new ArrayList<>();
         }
         
-        // 获取相关信息
+        // 获取相关的课程、学期和部门信息以丰富结果
         List<String> courseUuids = teachingClasses.stream()
                 .map(TeachingClassDO::getCourseUuid)
                 .distinct()
@@ -210,6 +256,11 @@ public class TeachingClassLogic implements TeachingClassService {
                 
         List<String> semesterUuids = teachingClasses.stream()
                 .map(TeachingClassDO::getSemesterUuid)
+                .distinct()
+                .collect(Collectors.toList());
+                
+        List<String> departmentUuids = teachingClasses.stream()
+                .map(TeachingClassDO::getCourseDepartmentUuid)
                 .distinct()
                 .collect(Collectors.toList());
         
@@ -226,8 +277,11 @@ public class TeachingClassLogic implements TeachingClassService {
                 .stream()
                 .collect(Collectors.toMap(SemesterDO::getSemesterUuid, Function.identity(), (k1, k2) -> k1));
                 
-        // 获取部门信息
-        DepartmentDO department = departmentDAO.getById(departmentUuid);
+        Map<String, DepartmentDO> departmentMap = departmentDAO.lambdaQuery()
+                .in(DepartmentDO::getDepartmentUuid, departmentUuids)
+                .list()
+                .stream()
+                .collect(Collectors.toMap(DepartmentDO::getDepartmentUuid, Function.identity(), (k1, k2) -> k1));
         
         // 转换为DTO
         return teachingClasses.stream()
@@ -246,6 +300,7 @@ public class TeachingClassLogic implements TeachingClassService {
                         dto.setSemesterName(semester.getName());
                     }
                     
+                    DepartmentDO department = departmentMap.get(teachingClassDO.getCourseDepartmentUuid());
                     if (department != null) {
                         dto.setCourseDepartmentName(department.getDepartmentName());
                     }
@@ -254,7 +309,7 @@ public class TeachingClassLogic implements TeachingClassService {
                 })
                 .collect(Collectors.toList());
     }
-
+    
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TeachingClassDTO createTeachingClass(TeachingClassDTO teachingClassDTO) {

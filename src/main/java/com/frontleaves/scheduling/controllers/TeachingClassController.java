@@ -88,7 +88,33 @@ public class TeachingClassController {
     }
 
     /**
-     * 根据学期UUID获取教学班列表
+     * 获取教学班列表（不分页）
+     *
+     * @param keyword       关键字（可选）
+     * @param departmentUuid 部门UUID（可选）
+     * @param semesterUuid  学期UUID（可选）
+     * @param teacherUuid   教师UUID（可选）
+     * @param isEnabled     是否启用（可选，默认true）
+     * @param isDesc        是否降序排序（可选，默认true）
+     * @return 教学班列表
+     */
+    @GetMapping("/list")
+    @RequestRole({"管理员", "教务", "教师"})
+    public ResponseEntity<BaseResponse<List<TeachingClassLiteDTO>>> getTeachingClassList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String departmentUuid,
+            @RequestParam(required = false) String semesterUuid,
+            @RequestParam(required = false) String teacherUuid,
+            @RequestParam(required = false) Boolean isEnabled,
+            @RequestParam(defaultValue = "true") boolean isDesc) {
+
+        List<TeachingClassLiteDTO> result = teachingClassService.getTeachingClassesList(
+                keyword, departmentUuid, semesterUuid, teacherUuid, isEnabled, isDesc);
+        return ResultUtil.success("获取教学班列表成功", result);
+    }
+    
+    /**
+     * 根据学期获取教学班列表（不分页）
      *
      * @param semesterUuid 学期UUID
      * @return 教学班列表
@@ -103,7 +129,7 @@ public class TeachingClassController {
     }
 
     /**
-     * 根据部门UUID获取教学班列表
+     * 根据部门获取教学班列表（不分页）
      *
      * @param departmentUuid 部门UUID
      * @return 教学班列表
@@ -113,7 +139,8 @@ public class TeachingClassController {
     public ResponseEntity<BaseResponse<List<TeachingClassLiteDTO>>> getTeachingClassListByDepartment(
             @PathVariable String departmentUuid) {
 
-        List<TeachingClassLiteDTO> result = teachingClassService.getTeachingClassListByDepartment(departmentUuid);
+        List<TeachingClassLiteDTO> result = teachingClassService.getTeachingClassesList(
+                null, departmentUuid, null, null, true, true);
         return ResultUtil.success("获取部门教学班列表成功", result);
     }
 
