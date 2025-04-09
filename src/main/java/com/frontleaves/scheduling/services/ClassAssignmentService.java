@@ -2,6 +2,7 @@ package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
 import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
@@ -25,7 +26,7 @@ public interface ClassAssignmentService {
      *
      * @param vo 排课分配请求对象
      */
-    void add(ClassAssignmentVO vo);
+    List<SchedulingConflictDTO> add(ClassAssignmentVO vo);
 
     /**
      * 删除排课分配

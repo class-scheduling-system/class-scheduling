@@ -334,7 +334,9 @@ public class SchedulingLogic implements SchedulingService {
             if (classroomInfoDTO == null) {
                 throw new BusinessException("教室不存在", ErrorCode.BODY_ERROR);
             }
-            classAssignment.setBuildingUuid(classAssignment.getBuildingUuid())
+            classAssignment
+                    .setClassroomType(classroomInfoDTO.getType().getClassTypeUuid())
+                    .setBuildingUuid(classAssignment.getBuildingUuid())
                     .setClassroomUuid(classAssignment.getClassroomUuid())
                     .setTeachingCampus(classroomInfoDTO.getCampus().getCampusUuid())
                     .setTeachingCampus(classroomInfoDTO.getCampus().getCampusUuid());

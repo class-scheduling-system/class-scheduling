@@ -39,6 +39,7 @@ import com.frontleaves.scheduling.models.dto.base.UserDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ClassTimeDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.TimeSlotDTO;
 import com.frontleaves.scheduling.models.entity.base.UserDO;
+import com.frontleaves.scheduling.models.vo.ClassTimeVO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
@@ -269,7 +270,9 @@ public class ProjectUtil {
             for (Map.Entry<Integer, Set<Integer>> dayEntry : dailyPeriods.entrySet()) {
                 int day = dayEntry.getKey();
                 Set<Integer> periodSet = dayEntry.getValue();
-                if (periodSet.isEmpty()) continue;
+                if (periodSet.isEmpty()) {
+                    continue;
+                }
                 // 将 Set 转换为 List 并排序，以便查找连续段
                 List<Integer> periods = new ArrayList<>(periodSet);
                 Collections.sort(periods);
@@ -312,5 +315,44 @@ public class ProjectUtil {
         resultList.sort(Comparator.comparingInt(ClassTimeDTO::getDayOfWeek)
                 .thenComparingInt(ClassTimeDTO::getPeriodStart));
         return resultList;
+    }
+
+
+    public static  List<TimeSlotDTO>  ClassTimeToTimeSlot(@NotNull List<ClassTimeVO> vos) {
+        // 创建一个列表来存储所有解析出来的目标时间槽 DTO
+        List<TimeSlotDTO> targetTimeSlots = new ArrayList<>();
+        if (!vos.isEmpty()) {
+            // 遍历 AdjustmentDetailsVO 中的每个 ClassTimeVO 对象
+            for (ClassTimeVO classTime : vos) {
+                Integer day = classTime.getDayOfWeek();
+                Integer startPeriod = classTime.getPeriodStart();
+                Integer endPeriod = classTime.getPeriodEnd();
+                List<Integer> weeks = classTime.getWeekNumbers();
+                // 校验当前 ClassTimeVO 条目是否包含所有必需的信息，并且节次是否有效
+                if (day != null
+                        && startPeriod != null
+                        && endPeriod != null
+                        && weeks != null
+                        && !weeks.isEmpty()
+                        && startPeriod <= endPeriod) {
+                    // 外层循环：遍历所有指定的周
+                    for (Integer week : weeks) {
+                        // 内层循环：遍历从开始节次到结束节次的所有节次（包含）
+                        for (int period = startPeriod; period <= endPeriod; period++) {
+                            // 创建一个新的 TimeSlotDTO 实例
+                            TimeSlotDTO timeSlot = new TimeSlotDTO()
+                                    .setWeek(week)
+                                    .setDay(day)
+                                    .setPeriod(period);
+                            // 将创建的 TimeSlotDTO 添加到结果列表中
+                            targetTimeSlots.add(timeSlot);
+                        }
+                    }
+                } else {
+                    throw new BusinessException("调整时间信息不完整或无效", ErrorCode.BODY_ERROR);
+                }
+            }
+        }
+        return targetTimeSlots;
     }
 }

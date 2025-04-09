@@ -4,28 +4,22 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.daos.ClassAssignmentDAO;
-import com.frontleaves.scheduling.daos.CourseLibraryDAO;
-import com.frontleaves.scheduling.daos.SemesterDAO;
-import com.frontleaves.scheduling.daos.TeacherDAO;
-import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
-import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
-import com.frontleaves.scheduling.models.dto.base.PageDTO;
-import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
+import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.models.dto.base.*;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.AutomaticClassSchedulingBaseDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.CreditHourTypeEnuDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.ScheduleResultDTO;
-import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
-import com.frontleaves.scheduling.models.entity.base.CourseLibraryDO;
-import com.frontleaves.scheduling.models.entity.base.SemesterDO;
-import com.frontleaves.scheduling.models.entity.base.TeacherDO;
+import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
-import com.frontleaves.scheduling.services.ClassAssignmentService;
-import com.frontleaves.scheduling.services.TeachingClassService;
+import com.frontleaves.scheduling.services.*;
+import com.frontleaves.scheduling.utils.CheckConflicts;
 import com.frontleaves.scheduling.utils.ProjectOption;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import com.xlf.utility.util.UuidUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -54,32 +48,124 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
     private final CourseLibraryDAO courseLibraryDAO;
     private final TeacherDAO teacherDAO;
     private final TeachingClassService teachingClassService;
+    private final SemesterService semesterService;
+    private final CourseLibraryService courseLibraryService;
+    private final TeacherService teacherService;
+    private final ClassroomService classroomService;
+    private final CampusService campusService;
+    private final CreditHourTypeService creditHourTypeService;
+    private final AdministrativeClassService administrativeClassService;
+    private final SchedulingConflictDAO schedulingConflictDAO;
 
     @Override
-    public void add(ClassAssignmentVO vo) {
+    public List<SchedulingConflictDTO> add(@NotNull ClassAssignmentVO vo) {
         // 验证学期是否存在
-        SemesterDO semester = semesterDAO.getSemesterByUuid(vo.getSemesterUuid());
-        if (semester == null) {
-            throw new BusinessException("学期不存在", ErrorCode.NOT_EXIST);
-        }
-
+        SemesterDTO semester = semesterService.getSemesterByUuidCheckEnabled(vo.getSemesterUuid());
         // 验证课程是否存在
-        CourseLibraryDO course = courseLibraryDAO.getCourseLibraryByUuid(vo.getCourseUuid());
-        if (course == null) {
-            throw new BusinessException("课程不存在", ErrorCode.NOT_EXIST);
-        }
-
+        CourseLibraryDTO course = courseLibraryService.getCourseLibraryByUuid(vo.getCourseUuid());
         // 验证教师是否存在
-        TeacherDO teacher = teacherDAO.getTeacherByUuid(vo.getTeacherUuid());
-        if (teacher == null) {
-            throw new BusinessException("教师不存在", ErrorCode.NOT_EXIST);
+        TeacherDTO teacher = teacherService.getTeacher(vo.getTeacherUuid());
+        //验证教学楼UUID是否存在
+        ClassroomInfoDTO classroomInfo = classroomService.getClassroomByUuid(vo.getClassroomUuid());
+        if (classroomInfo == null){
+            throw new BusinessException("教室不存在", ErrorCode.NOT_EXIST);
         }
-
-        // 创建实体对象并保存
-        ClassAssignmentDO entity = new ClassAssignmentDO();
-        BeanUtil.copyProperties(vo, entity, ProjectOption.stringBlankToNull());
-        classAssignmentDAO.save(entity);
+        //验证校区是否存在
+        CampusDTO campus = campusService.getCampusByUuid(vo.getTeachingCampus());
+        if (campus == null){
+            throw new BusinessException("教学校区不存在", ErrorCode.NOT_EXIST);
+        }
+        //检测学时类型
+        CreditHourTypeEnuDTO creditHourType = creditHourTypeService.getCreditHourTypeByUuid(
+                vo.getCreditHourType());
+        this.determineWhetherTheCreditHoursAreCorrect(vo,course);
+        this.checkClass(vo.getAdministrativeClassUuids());
+        //新建教学班级
+        TeachingClassDO teachingClass = this.addTeachingClass(vo,course);
+        //新建课程安排
+        ClassAssignmentDO classAssignment = new ClassAssignmentDO();
+        classAssignment
+                .setClassAssignmentUuid(UuidUtil.generateUuidNoDash())
+                .setSemesterUuid(semester.getSemesterUuid())
+                .setCourseUuid(vo.getCourseUuid())
+                .setTeacherUuid(teacher.getTeacherUuid())
+                .setCampusUuid(classroomInfo.getCampus().getCampusUuid())
+                .setBuildingUuid(classroomInfo.getBuilding().getBuildingUuid())
+                .setClassroomUuid(classroomInfo.getClassroom().getClassroomUuid())
+                .setTeachingClassUuid(teachingClass.getTeachingClassUuid())
+                .setCourseOwnership(vo.getCourseOwnership())
+                .setCreditHourType(creditHourType.getCreditHourTypeUuid())
+                .setTeachingHours(vo.getTeachingHours())
+                .setScheduledHours(vo.getScheduledHours())
+                .setTotalHours(vo.getTotalHours())
+                .setTeachingCampus(vo.getTeachingCampus())
+                .setClassroomType(classroomInfo.getType().getClassTypeUuid())
+                .setSchedulingPriority(vo.getSchedulingPriority())
+                .setConsecutiveSessions(vo.getConsecutiveSessions())
+                .setClassTime(JSONUtil.toJsonStr(ProjectUtil.ClassTimeToTimeSlot(vo.getClassTime())));
+        classAssignmentDAO.save(classAssignment);
+        ClassAssignmentDTO classAssignmentDTO = BeanUtil.toBean(classAssignment, ClassAssignmentDTO.class);
+        List<ClassAssignmentDTO> allAssignments = this.getClassAssignmentListConflict(
+                classAssignmentDTO);
+        List<SchedulingConflictDTO> conflict =
+                CheckConflicts.checkConflicts(allAssignments,classAssignmentDTO);
+        schedulingConflictDAO.batchSaveConflicts(conflict, vo.getSemesterUuid());
+        return  conflict;
     }
+
+    private @NotNull TeachingClassDO addTeachingClass(@NotNull ClassAssignmentVO vo, @NotNull CourseLibraryDTO course) {
+        TeachingClassDO teachingClass = new TeachingClassDO();
+        teachingClass.
+                setTeachingClassUuid(UuidUtil.generateUuidNoDash())
+                .setSemesterUuid(vo.getSemesterUuid())
+                .setCourseUuid(vo.getCourseUuid())
+                .setTeachingClassCode(UuidUtil.generateUuidNoDash())
+                .setTeachingClassName(vo.getTeachingClassName())
+                .setActualStudentCount(vo.getStudentCount())
+                .setCourseDepartmentUuid(course.getDepartment())
+                .setIsEnabled(true);
+        if (vo.getAdministrativeClassUuids() != null && !vo.getAdministrativeClassUuids().isEmpty()){
+            teachingClass.setAdministrativeClasses(JSONUtil.toJsonStr(vo.getAdministrativeClassUuids()))
+                    .setClassSize(vo.getAdministrativeClassUuids().size())
+                    .setIsAdministrative(true);
+        }else {
+            teachingClass.setAdministrativeClasses(JSONUtil.toJsonStr(new ArrayList<>()))
+                    .setClassSize(1)
+                    .setIsAdministrative(false);
+        }
+        teachingClassService.save(teachingClass);
+        return  teachingClass;
+    }
+
+    private void checkClass(List<String> administrativeClassUuids) {
+        if (administrativeClassUuids != null && !administrativeClassUuids.isEmpty()){
+            for (String uuid : administrativeClassUuids){
+                administrativeClassService.getClassByUuid(uuid);
+            }
+        }
+    }
+
+    private void determineWhetherTheCreditHoursAreCorrect(
+            @NotNull ClassAssignmentVO vo,
+            @NotNull CourseLibraryDTO course) {
+        // 学时不能小于课程总学时
+        if (vo.getTotalHours().compareTo(course.getTotalHours()) > 0) {
+            log.debug("总学时：{}", course.getTotalHours());
+            log.debug("实际安排学时：{}", vo.getTotalHours());
+            throw new BusinessException("实际安排学时不能大于课程要求总学时", ErrorCode.PARAMETER_ERROR);
+        }
+        if (vo.getTeachingHours().compareTo(course.getTotalHours()) > 0){
+            log.debug("总学时：{}", course.getTotalHours());
+            log.debug("实际教学学时：{}", vo.getTeachingHours());
+            throw new BusinessException("实际安排学时不能大于课程要求总学时", ErrorCode.PARAMETER_ERROR);
+        }
+        if (vo.getScheduledHours().compareTo(course.getTheoryHours()) > 0){
+            log.debug("理论学时：{}", course.getTheoryHours());
+            log.debug("实际安排学时：{}", vo.getScheduledHours());
+            throw new BusinessException("实际安排学时不能大于课程要求理论学时", ErrorCode.PARAMETER_ERROR);
+        }
+    }
+
 
     @Override
     public void delete(String classAssignmentUuid) {

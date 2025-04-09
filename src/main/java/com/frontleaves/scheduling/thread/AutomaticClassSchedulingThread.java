@@ -33,6 +33,7 @@ import org.redisson.api.RKeys;
 import org.redisson.api.RedissonClient;
 
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.locks.Condition;
@@ -61,6 +62,8 @@ public class AutomaticClassSchedulingThread extends Thread {
     private TeachingClassService teachingClassService;
     @Resource
     private SchedulingConflictDAO schedulingConflictDAO;
+
+    private final SecureRandom random = new SecureRandom();
     private boolean hasTask = false;
 
     private UserDO user;
@@ -174,7 +177,7 @@ public class AutomaticClassSchedulingThread extends Thread {
                         .setSemesterUuid(result.getSemesterUuid())
                         .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
                         .setTeachingClassCode(UuidUtil.generateUuidNoDash())
-                        .setTeachingClassName(assignment.getCourse().getName() + "(系统生成)")
+                        .setTeachingClassName(assignment.getCourse().getName() + random.nextInt(900000) + 100000)
                         .setAdministrativeClasses(this.checkClass(assignment.getClassGroup()))
                         .setIsAdministrative(this.checkIfItIsAnAdministrativeClass(assignment.getClassGroup()))
                         .setClassSize(this.detectClassSize(assignment.getClassGroup()))

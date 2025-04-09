@@ -4,6 +4,7 @@ import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
 import com.frontleaves.scheduling.services.ClassAssignmentService;
 import com.xlf.utility.BaseResponse;
@@ -45,11 +46,11 @@ public class ClassAssignmentController {
      */
     @RequestRole({"教务"})
     @PostMapping("")
-    public ResponseEntity<BaseResponse<Void>> add(
+    public ResponseEntity<BaseResponse<List<SchedulingConflictDTO>>> add(
             @RequestBody @Validated ClassAssignmentVO vo
     ) {
-        classAssignmentService.add(vo);
-        return ResultUtil.success("排课分配添加成功");
+        List<SchedulingConflictDTO> schedulingConflict =  classAssignmentService.add(vo);
+        return ResultUtil.success("排课分配添加成功",schedulingConflict);
     }
 
     /**
