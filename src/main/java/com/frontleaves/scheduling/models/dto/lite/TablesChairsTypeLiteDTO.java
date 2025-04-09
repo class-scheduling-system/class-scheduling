@@ -45,7 +45,7 @@ public class TablesChairsTypeLiteDTO {
     /**
      * 桌椅类型UUID
      */
-    private String uuid;
+    private String tablesChairsTypeUuid;
 
     /**
      * 桌椅类型名称
