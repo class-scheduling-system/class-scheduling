@@ -177,9 +177,10 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
         if (entity == null) {
             throw new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_NOT_FOUND, ErrorCode.NOT_EXIST);
         }
-
         // 删除排课分配
         classAssignmentDAO.removeClassAssignment(classAssignmentUuid);
+        // 删除教学班
+        teachingClassDAO.deleteTeachingClass(entity.getTeachingClassUuid());
     }
 
     @Override

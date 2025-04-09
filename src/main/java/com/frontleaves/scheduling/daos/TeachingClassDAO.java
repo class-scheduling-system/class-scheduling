@@ -108,4 +108,10 @@ public List<TeachingClassDO> getTeachingClassBySemester(String semesterUuid) {
         keys.delete(StringConstant.Redis.TEACHING_CLASS_LIST_SEMESTER + teachingClass.getSemesterUuid());
     }
 
+    public void deleteTeachingClass(String teachingClassUuid) {
+        RKeys keys = redisson.getKeys();
+        this.removeById(teachingClassUuid);
+        keys.delete(StringConstant.Redis.TEACHING_CLASS_UUID + teachingClassUuid);
+        keys.delete(StringConstant.Redis.TEACHING_CLASS_LIST_SEMESTER + "*");
+    }
 }
