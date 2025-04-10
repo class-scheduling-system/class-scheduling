@@ -34,7 +34,7 @@ public final class ClassroomSelectionUtil {
         }
         return classrooms.stream()
                 .filter(classroom -> classroom.getType().getClassTypeUuid().equals(classroomType))
-                // 修改为容量低于学生人数
+
                 .filter(classroom -> classroom.getClassroom().getCapacity() > studentCount)
                 .toList();
     }
@@ -48,7 +48,6 @@ public final class ClassroomSelectionUtil {
         if (classrooms == null) {
             return Collections.emptyList();
         }
-
         return classrooms.stream()
                 .sorted((c1, c2) -> {
                     int diff1 = Math.abs(c1.getClassroom().getCapacity() - studentCount);
@@ -99,16 +98,13 @@ public final class ClassroomSelectionUtil {
         if (classrooms == null || course == null) {
             return Collections.emptyList();
         }
-
         String requiredType = getRequiredClassroomType(course.getCourse(), course.getCourseEnuType());
         int studentCount = course.getNumber();
-
         // 先尝试专业教室
         List<ClassroomInfoDTO> specializedClassrooms = classrooms.stream()
                 .filter(classroom -> classroom.getType().getClassTypeUuid().equals(requiredType))
                 .filter(classroom -> classroom.getClassroom().getCapacity() >= studentCount)
                 .toList();
-
         // 如果没有合适的专业教室，尝试理论教室
         if (specializedClassrooms.isEmpty()) {
             return classrooms.stream()
@@ -136,9 +132,7 @@ public final class ClassroomSelectionUtil {
         List<ClassroomInfoDTO> closestSpecializedClassrooms = sortByCapacityDifference(
                 classrooms.stream()
                         .filter(classroom -> classroom.getType().getClassTypeUuid().equals(requiredType))
-                        .toList(),
-                studentCount);
-
+                        .toList(), studentCount);
         if (!closestSpecializedClassrooms.isEmpty()) {
             return closestSpecializedClassrooms;
         }
