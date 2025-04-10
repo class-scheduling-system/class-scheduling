@@ -35,7 +35,7 @@ public final class ClassroomSelectionUtil {
         return classrooms.stream()
                 .filter(classroom -> classroom.getType().getClassTypeUuid().equals(classroomType))
 
-                .filter(classroom -> classroom.getClassroom().getCapacity() > studentCount)
+                .filter(classroom -> classroom.getClassroom().getCapacity() >= studentCount)
                 .toList();
     }
 
