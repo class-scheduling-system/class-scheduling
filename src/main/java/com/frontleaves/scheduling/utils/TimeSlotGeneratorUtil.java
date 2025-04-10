@@ -95,9 +95,9 @@ public class TimeSlotGeneratorUtil {
         // 计算额外时间槽的天数
         Integer extraSlotDay = null;
         if (course.getWeeklyHours() % 2 == 1) {
-            extraSlotDay = 5;  // 默认周五
+            // 默认周五
+            extraSlotDay = RANDOM.nextInt(5) + 1;
         }
-
         return new TimeSlotContext(
                 eveningCoursesEnabled ? 12 : 8,
                 course.getExpectedTotalHours().intValue(),
