@@ -43,7 +43,6 @@ import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
 import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.excel.BackAddCourseDTO;
-import com.frontleaves.scheduling.models.dto.lite.CourseLibraryLiteDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.vo.BatchAddCourseVO;
@@ -526,7 +525,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
      * @return 包含课程库信息的列表
      */
     @Override
-    public List<CourseLibraryLiteDTO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid) {
+    public List<CourseLibraryDTO> getCourseLibraryList(String courseCategoryUuid, String coursePropertyUuid, String courseTypeUuid, String courseNatureUuid, String courseDepartmentUuid) {
         List<CourseLibraryDO> courseLibraryList = courseLibraryDAO.getCourseLibraryList(courseCategoryUuid, coursePropertyUuid, courseTypeUuid, courseNatureUuid, courseDepartmentUuid);
         if (courseLibraryList.isEmpty()) {
             return new ArrayList<>();
@@ -539,7 +538,7 @@ public class CourseLibraryLogic implements CourseLibraryService {
         List<DepartmentDO> getDepartmentList = departmentDAO.getDepartmentList();
 
         // 转换为 CourseLibraryLiteDTO
-        return courseLibraryList.stream().map(courseLibrary -> new CourseLibraryLiteDTO()
+        return courseLibraryList.stream().map(courseLibrary -> BeanUtil.toBean(courseLibrary, CourseLibraryDTO.class)
                 .setCourseLibraryUuid(courseLibrary.getCourseLibraryUuid())
                 .setName(courseLibrary.getName())
                 .setCategory(getCourseCategoryList.stream()
@@ -567,7 +566,6 @@ public class CourseLibraryLogic implements CourseLibraryService {
                         .findFirst()
                         .map(DepartmentDO::getDepartmentName)
                         .orElse(null))
-
         ).toList();
     }
 

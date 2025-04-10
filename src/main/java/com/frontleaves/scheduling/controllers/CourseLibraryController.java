@@ -8,7 +8,6 @@ import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.base.FileDTO;
 import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.dto.excel.BackAddCourseDTO;
-import com.frontleaves.scheduling.models.dto.lite.CourseLibraryLiteDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddCourseVO;
 import com.frontleaves.scheduling.models.vo.CourseLibraryVO;
 import com.frontleaves.scheduling.services.CourseLibraryService;
@@ -160,7 +159,7 @@ public class CourseLibraryController {
      */
     @RequestLogin
     @GetMapping("/list")
-    public ResponseEntity<BaseResponse<List<CourseLibraryLiteDTO>>> getCourseLibraryList(
+    public ResponseEntity<BaseResponse<List<CourseLibraryDTO>>> getCourseLibraryList(
             @RequestParam(value = "course_category_uuid", required = false) String courseCategoryUuid,
             @RequestParam(value = "course_property_uuid", required = false) String coursePropertyUuid,
             @RequestParam(value = "course_type_uuid", required = false) String courseTypeUuid,
@@ -184,7 +183,7 @@ public class CourseLibraryController {
             throw new BusinessException("课程部门UUID格式不正确", ErrorCode.PARAMETER_ERROR);
         }
 
-        List<CourseLibraryLiteDTO> courseLibraryList = courseLibraryService.getCourseLibraryList(
+        List<CourseLibraryDTO> courseLibraryList = courseLibraryService.getCourseLibraryList(
                 courseCategoryUuid,
                 coursePropertyUuid,
                 courseTypeUuid,

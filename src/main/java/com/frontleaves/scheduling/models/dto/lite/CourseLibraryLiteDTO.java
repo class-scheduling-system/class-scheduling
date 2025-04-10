@@ -68,5 +68,4 @@ public class CourseLibraryLiteDTO {
      * 所属院系
      */
     private String department;
-
 }
