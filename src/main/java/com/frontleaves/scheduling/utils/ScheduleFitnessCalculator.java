@@ -1,6 +1,7 @@
 package com.frontleaves.scheduling.utils;
 
 import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherPreferencesDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.*;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -42,6 +43,10 @@ public final class ScheduleFitnessCalculator {
             if (Boolean.TRUE.equals(baseDTO.getConstraints().getRoomOptimization())) {
                 courseFitness += ScheduleFitnessCalculator.calculateRoomOptimizationFitness(courseSchedule);
             }
+            if (Boolean.TRUE.equals(baseDTO.getConstraints().getTeacherPreference())){
+                // 教师偏好
+                courseFitness += ScheduleFitnessCalculator.calculateTeacherPreferenceFitness(courseSchedule);
+            }
             // 非负限制
             courseFitness = Math.max(0.0, courseFitness);
             totalFitness += courseFitness;
@@ -50,14 +55,55 @@ public final class ScheduleFitnessCalculator {
         // 平均适应度
         double averageFitness = totalFitness / courseCount;
         // === 等比缩放 ===
-        double maxExpectedFitness = 600.0;
+        double maxExpectedFitness = 1000;
         double scaledFitness = (averageFitness / maxExpectedFitness) * 100.0;
         scaledFitness = Math.min(scaledFitness, 100.0);
-
         schedule.setFitness(scaledFitness);
         return scaledFitness;
     }
 
+    private static double calculateTeacherPreferenceFitness(@NotNull CourseScheduleDTO courseSchedule) {
+        double fitness = 0.0;
+        int slotCount = 0;
+        // 遍历所有课程安排
+        for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : courseSchedule.getAssignments().entrySet()) {
+            List<TimeSlotDTO> slots = entry.getKey();
+            // 遍历每个时间槽
+            for (TimeSlotDTO slot : slots) {
+                slotCount++;
+                // 获取教师偏好列表
+                List<TeacherPreferencesDTO> preferences = entry.getValue().getTeacher().getPreferenceList();
+                // 检查教师偏好
+                for (TeacherPreferencesDTO preference : preferences) {
+                    if (Objects.equals(preference.getDayOfWeek(), slot.getDay()) &&
+                            Objects.equals(preference.getTimeSlot(), slot.getPeriod())) {
+                        // 根据偏好程度调整适应度
+                        switch (preference.getPreferenceLevel()) {
+                            case 1: // 最不期望
+                                fitness -= 10.0;
+                                break;
+                            case 2: // 尽量避免
+                                fitness -= 5.0;
+                                break;
+                            case 3: // 可接受
+                                fitness += 0.0;
+                                break;
+                            case 4: // 较期望
+                                fitness += 5.0;
+                                break;
+                            case 5: // 非常期望
+                                fitness += 10.0;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+        // 避免除以 0
+        return slotCount > 0 ? fitness / slotCount : 0.0;
+    }
 
 
     /**
@@ -130,7 +176,6 @@ public final class ScheduleFitnessCalculator {
     ) {
         double fitness = 0.0;
         int slotCount = 0;
-
         // 检查 preferences 是否为空或其 preferredTimeSlots 是否为空
         if (preferences == null || preferences.getPreferredTimeSlots() == null || preferences.getPreferredTimeSlots().isEmpty()) {
             // 如果为空，直接返回 0.0
