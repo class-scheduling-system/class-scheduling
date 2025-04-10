@@ -26,98 +26,56 @@
  * --------------------------------------------------------------------------------
  */
 
-package com.frontleaves.scheduling.models.dto.base;
+package com.frontleaves.scheduling.models.vo;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-import java.sql.Timestamp;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
-
 /**
- * 教师课程资格DTO
+ * 教师课程资格视图对象
  *
- * @author
+ * @author xiao_lfeng
  * @version v1.0.0
  * @since v1.0.0
  */
 @Data
 @Accessors(chain = true)
-public class TeacherCourseQualificationDTO {
-
-    /**
-     * 资格主键
-     */
-    private String qualificationUuid;
+public class TeacherCourseQualificationVO {
 
     /**
      * 教师主键
      */
+    @NotBlank(message = "教师主键不能为空")
     private String teacherUuid;
-
-    /**
-     * 教师姓名
-     */
-    private String teacherName;
 
     /**
      * 课程主键
      */
+    @NotBlank(message = "课程主键不能为空")
     private String courseUuid;
-
-    /**
-     * 课程名称
-     */
-    private String courseName;
 
     /**
      * 资格等级 1:初级 2:中级 3:高级
      */
+    @NotNull(message = "资格等级不能为空")
     private Integer qualificationLevel;
 
     /**
      * 是否主讲教师
      */
+    @NotNull(message = "是否主讲教师不能为空")
     private Boolean isPrimary;
 
     /**
      * 教授年限
      */
+    @NotNull(message = "教授年限不能为空")
     private Integer teachYears;
-
-    /**
-     * The status
-     * <p>
-     * 状态 0:待审核 1:已审核 2:已驳回
-     */
-    private Integer status;
 
     /**
      * 备注说明
      */
     private String remarks;
-
-    /**
-     * 审核人
-     */
-    private String approvedBy;
-
-    /**
-     * 审核时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp approvedAt;
-
-    /**
-     * 创建时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp createdAt;
-
-    /**
-     * 更新时间
-     */
-    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-    private Timestamp updatedAt;
-}
+} 

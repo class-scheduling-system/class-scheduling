@@ -1,10 +1,14 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherCourseQualificationMapper;
 import com.frontleaves.scheduling.models.entity.base.TeacherCourseQualificationDO;
+import com.frontleaves.scheduling.models.vo.TeacherCourseQualificationQueryVO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -83,5 +87,151 @@ public class TeacherCourseQualificationDAO extends
             return list();
         }
         return rList.readAll();
+    }
+    
+    /**
+     * 根据查询条件分页获取教师课程资格列表
+     *
+     * @param page 页码
+     * @param size 每页大小
+     * @param isDesc 是否降序排序
+     * @param queryVO 查询条件
+     * @return 分页结果
+     */
+    public IPage<TeacherCourseQualificationDO> getTeacherCourseQualificationPage(
+            Integer page, Integer size, Boolean isDesc, TeacherCourseQualificationQueryVO queryVO) {
+        LambdaQueryWrapper<TeacherCourseQualificationDO> wrapper = createQueryWrapper(queryVO);
+        
+        // 设置排序
+        if (Boolean.TRUE.equals(isDesc)) {
+            wrapper.orderByDesc(TeacherCourseQualificationDO::getUpdatedAt);
+        } else {
+            wrapper.orderByAsc(TeacherCourseQualificationDO::getUpdatedAt);
+        }
+        
+        return this.page(new Page<>(page, size), wrapper);
+    }
+    
+    /**
+     * 根据查询条件获取教师课程资格列表（不分页）
+     *
+     * @param queryVO 查询条件
+     * @return 教师课程资格列表
+     */
+    public List<TeacherCourseQualificationDO> getTeacherCourseQualificationList(
+            TeacherCourseQualificationQueryVO queryVO) {
+        LambdaQueryWrapper<TeacherCourseQualificationDO> wrapper = createQueryWrapper(queryVO);
+        return this.list(wrapper);
+    }
+    
+    /**
+     * 根据教师UUID获取该教师的所有课程资格
+     *
+     * @param teacherUuid 教师UUID
+     * @return 教师课程资格列表
+     */
+    public List<TeacherCourseQualificationDO> getTeacherCourseQualificationsByTeacherUuid(String teacherUuid) {
+        return this.lambdaQuery()
+                .eq(TeacherCourseQualificationDO::getTeacherUuid, teacherUuid)
+                .list();
+    }
+    
+    /**
+     * 保存教师课程资格信息并清除相关缓存
+     *
+     * @param teacherCourseQualificationDO 教师课程资格信息
+     * @return 是否保存成功
+     */
+    public boolean saveTeacherCourseQualification(TeacherCourseQualificationDO teacherCourseQualificationDO) {
+        boolean result = this.save(teacherCourseQualificationDO);
+        if (result) {
+            // 清除课程相关缓存
+            redisson.getList(StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_COURSE_LIBRARY_UUID 
+                    + teacherCourseQualificationDO.getCourseUuid()).delete();
+        }
+        return result;
+    }
+    
+    /**
+     * 更新教师课程资格信息并清除相关缓存
+     *
+     * @param teacherCourseQualificationDO 教师课程资格信息
+     * @return 是否更新成功
+     */
+    public boolean updateTeacherCourseQualification(TeacherCourseQualificationDO teacherCourseQualificationDO) {
+        boolean result = this.updateById(teacherCourseQualificationDO);
+        if (result) {
+            // 清除UUID缓存
+            redisson.getMap(StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_UUID 
+                    + teacherCourseQualificationDO.getQualificationUuid()).delete();
+            // 清除课程相关缓存
+            redisson.getList(StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_COURSE_LIBRARY_UUID 
+                    + teacherCourseQualificationDO.getCourseUuid()).delete();
+        }
+        return result;
+    }
+    
+    /**
+     * 删除教师课程资格信息并清除相关缓存
+     *
+     * @param qualificationUuid 资格UUID
+     * @return 是否删除成功
+     */
+    public boolean removeTeacherCourseQualification(String qualificationUuid) {
+        // 先获取实体以便后续清除课程相关缓存
+        TeacherCourseQualificationDO entity = this.getTeacherCourseQualificationByUuid(qualificationUuid);
+        if (entity == null) {
+            return false;
+        }
+        
+        boolean result = this.removeById(qualificationUuid);
+        if (result) {
+            // 清除UUID缓存
+            redisson.getMap(StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_UUID + qualificationUuid).delete();
+            // 清除课程相关缓存
+            redisson.getList(StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_COURSE_LIBRARY_UUID 
+                    + entity.getCourseUuid()).delete();
+        }
+        return result;
+    }
+    
+    /**
+     * 创建查询条件包装器
+     *
+     * @param queryVO 查询条件
+     * @return 查询条件包装器
+     */
+    private LambdaQueryWrapper<TeacherCourseQualificationDO> createQueryWrapper(
+            TeacherCourseQualificationQueryVO queryVO) {
+        LambdaQueryWrapper<TeacherCourseQualificationDO> wrapper = new LambdaQueryWrapper<>();
+        
+        if (queryVO != null) {
+            // 添加教师UUID条件
+            if (queryVO.getTeacherUuid() != null && !queryVO.getTeacherUuid().isBlank()) {
+                wrapper.eq(TeacherCourseQualificationDO::getTeacherUuid, queryVO.getTeacherUuid());
+            }
+            
+            // 添加课程UUID条件
+            if (queryVO.getCourseUuid() != null && !queryVO.getCourseUuid().isBlank()) {
+                wrapper.eq(TeacherCourseQualificationDO::getCourseUuid, queryVO.getCourseUuid());
+            }
+            
+            // 添加资格等级条件
+            if (queryVO.getQualificationLevel() != null) {
+                wrapper.eq(TeacherCourseQualificationDO::getQualificationLevel, queryVO.getQualificationLevel());
+            }
+            
+            // 添加是否主讲教师条件
+            if (queryVO.getIsPrimary() != null) {
+                wrapper.eq(TeacherCourseQualificationDO::getIsPrimary, queryVO.getIsPrimary());
+            }
+            
+            // 添加状态条件
+            if (queryVO.getStatus() != null) {
+                wrapper.eq(TeacherCourseQualificationDO::getStatus, queryVO.getStatus());
+            }
+        }
+        
+        return wrapper;
     }
 }
