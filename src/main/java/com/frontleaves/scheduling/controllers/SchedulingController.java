@@ -94,11 +94,11 @@ public class SchedulingController {
         if (automaticClassSchedulingVO == null){
             throw new BusinessException("请求体不能为空", ErrorCode.BODY_ERROR);
         }
-        Optional.ofNullable(automaticClassSchedulingVO)
+        Optional.of(automaticClassSchedulingVO)
                 .map(AutomaticClassSchedulingVO::getTimePreferences)
                 .map(AutomaticClassSchedulingVO.TimePreferences::getPreferredTimeSlots)
                 // 确保 slots 不为 null
-                .filter(slots -> slots != null && !slots.isEmpty())
+                .filter(slots -> !slots.isEmpty())
                 // 如果 slots 为 null 或空，返回空列表
                 .orElse(Collections.emptyList())
                 .stream()
