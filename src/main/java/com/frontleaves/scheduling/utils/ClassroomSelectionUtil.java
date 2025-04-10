@@ -20,15 +20,7 @@ public final class ClassroomSelectionUtil {
         throw new AssertionError("Utility class should not be instantiated");
     }
 
-    /**
-     * 判断教室容量是否最优
-     */
-    public static boolean isCapacityOptimal(int capacity, int studentCount) {
-        return capacity >= studentCount
-                && capacity <= studentCount * 2.5
-                && (double) studentCount / capacity >= 0.4
-                && (double) studentCount / capacity <= 0.9;
-    }
+
 
     /**
      * 按类型和容量要求筛选教室
@@ -40,10 +32,10 @@ public final class ClassroomSelectionUtil {
         if (classrooms == null || classroomType == null) {
             return Collections.emptyList();
         }
-
         return classrooms.stream()
                 .filter(classroom -> classroom.getType().getClassTypeUuid().equals(classroomType))
-                .filter(classroom -> isCapacityOptimal(classroom.getClassroom().getCapacity(), studentCount))
+                // 修改为容量低于学生人数
+                .filter(classroom -> classroom.getClassroom().getCapacity() > studentCount)
                 .toList();
     }
 
@@ -75,9 +67,8 @@ public final class ClassroomSelectionUtil {
         if (matchingClassrooms == null || matchingClassrooms.isEmpty() || random == null) {
             return null;
         }
-
-        int maxRandomRange = Math.min(3, matchingClassrooms.size());
-        int randomIndex = random.nextInt(maxRandomRange);
+        // 使用整个列表的大小作为范围
+        int randomIndex = random.nextInt(matchingClassrooms.size());
         return matchingClassrooms.get(randomIndex);
     }
 
@@ -139,10 +130,8 @@ public final class ClassroomSelectionUtil {
         if (classrooms == null || course == null) {
             return Collections.emptyList();
         }
-
         String requiredType = getRequiredClassroomType(course.getCourse(), course.getCourseEnuType());
         int studentCount = course.getNumber();
-
         // 先尝试在专业教室中找最接近的
         List<ClassroomInfoDTO> closestSpecializedClassrooms = sortByCapacityDifference(
                 classrooms.stream()
@@ -153,7 +142,6 @@ public final class ClassroomSelectionUtil {
         if (!closestSpecializedClassrooms.isEmpty()) {
             return closestSpecializedClassrooms;
         }
-
         // 如果没有专业教室，在所有教室中找容量最接近的
         return sortByCapacityDifference(classrooms, studentCount);
     }
@@ -167,20 +155,16 @@ public final class ClassroomSelectionUtil {
         if (classrooms == null || course == null) {
             return Collections.emptyList();
         }
-
         // 查找最优教室
         List<ClassroomInfoDTO> matchingClassrooms = findOptimalClassrooms(classrooms, course);
-
         // 如果没有找到，查找满足最低要求的教室
         if (matchingClassrooms.isEmpty()) {
             matchingClassrooms = findMinimumRequirementClassrooms(classrooms, course);
         }
-
         // 如果仍未找到，查找容量最接近的教室
         if (matchingClassrooms.isEmpty()) {
             matchingClassrooms = findClosestCapacityClassrooms(classrooms, course);
         }
-
         return matchingClassrooms;
     }
 
@@ -193,13 +177,11 @@ public final class ClassroomSelectionUtil {
         if (classrooms == null || course == null) {
             return Collections.emptyList();
         }
-
         // 首先尝试专业教室
         List<ClassroomInfoDTO> specializedClassrooms = findClassroomsByTypeAndCapacity(
                 classrooms,
                 getRequiredClassroomType(course.getCourse(), course.getCourseEnuType()),
                 course.getNumber());
-
         // 如果没有合适的专业教室，尝试理论教室
         if (specializedClassrooms.isEmpty()) {
             return findClassroomsByTypeAndCapacity(
@@ -207,7 +189,6 @@ public final class ClassroomSelectionUtil {
                     course.getCourse().getTheoryClassroomType(),
                     course.getNumber());
         }
-
         return specializedClassrooms;
     }
 }
