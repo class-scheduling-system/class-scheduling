@@ -177,7 +177,8 @@ public class AutomaticClassSchedulingThread extends Thread {
                         .setSemesterUuid(result.getSemesterUuid())
                         .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
                         .setTeachingClassCode(UuidUtil.generateUuidNoDash())
-                        .setTeachingClassName(assignment.getCourse().getName() + assignment.getCourseType().getName()
+                        .setTeachingClassName(assignment.getCourse().getName() +
+                                assignment.getCourseType().getCourseEnuType().getChineseName()
                                 +random.nextInt(900000) + 1000)
                         .setAdministrativeClasses(this.checkClass(assignment.getClassGroup()))
                         .setIsAdministrative(this.checkIfItIsAnAdministrativeClass(assignment.getClassGroup()))
