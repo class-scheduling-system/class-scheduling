@@ -28,7 +28,6 @@ public final class ScheduleFitnessCalculator {
         }
         double totalFitness = 0.0;
         int courseCount = schedule.getSchedule().size();
-
         for (CourseScheduleDTO courseSchedule : schedule.getSchedule()) {
             double courseFitness = 0;
             // 冲突惩罚
@@ -54,12 +53,7 @@ public final class ScheduleFitnessCalculator {
         }
         // 平均适应度
         double averageFitness = totalFitness / courseCount;
-        // === 等比缩放 ===
-        double maxExpectedFitness = 1000;
-        double scaledFitness = (averageFitness / maxExpectedFitness) * 100.0;
-        scaledFitness = Math.min(scaledFitness, 100.0);
-        schedule.setFitness(scaledFitness);
-        return scaledFitness;
+        return averageFitness;
     }
 
     private static double calculateTeacherPreferenceFitness(@NotNull CourseScheduleDTO courseSchedule) {
@@ -408,7 +402,7 @@ public final class ScheduleFitnessCalculator {
         // 检查教师冲突
         boolean teacherConflict = isTeacherConflict(item1, item2);
         if (teacherConflict) {
-            log.info("发现教师冲突 - 教师: {}, 课程1: {}, 课程2: {}",
+            log.debug("发现教师冲突 - 教师: {}, 课程1: {}, 课程2: {}",
                     item1.getTeacher().getTeacher().getName(),
                     item1.getCourse().getName(),
                     item2.getCourse().getName());
@@ -417,7 +411,7 @@ public final class ScheduleFitnessCalculator {
         // 检查教室冲突
         boolean classroomConflict = isClassroomConflict(item1, item2);
         if (classroomConflict) {
-            log.info("发现教室冲突 - 教室: {}, 课程1: {}, 课程2: {}",
+            log.debug("发现教室冲突 - 教室: {}, 课程1: {}, 课程2: {}",
                     item1.getClassroom().getClassroom().getName(),
                     item1.getCourse().getName(),
                     item2.getCourse().getName());
@@ -428,7 +422,7 @@ public final class ScheduleFitnessCalculator {
         if (classConflict) {
             // 获取冲突的班级名称
             List<String> conflictingClasses = getConflictingClassNames(item1, item2);
-            log.info("发现班级冲突 - 冲突班级: {}, 课程1: {}, 课程2: {}",
+            log.debug("发现班级冲突 - 冲突班级: {}, 课程1: {}, 课程2: {}",
                     String.join("、", conflictingClasses),
                     item1.getCourse().getName(),
                     item2.getCourse().getName());
