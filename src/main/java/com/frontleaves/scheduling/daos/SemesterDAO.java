@@ -44,6 +44,29 @@ public class SemesterDAO extends ServiceImpl<SemesterMapper, SemesterDO> {
     private final RedissonClient redisson;
 
     /**
+     * 保存学期
+     * <p>
+     * 该方法用于保存学期信息，同时会清除相关的 Redis 缓存。
+     * </p>
+     *
+     * @param entity 要保存的学期信息
+     * @return 保存成功返回 {@code true}，否则返回 {@code false}
+     */
+    public boolean saveSemester(SemesterDO entity) {
+        try {
+            this.save(entity);
+            RKeys keys = redisson.getKeys();
+            keys.delete(StringConstant.Redis.SEMESTER_UUID + entity.getSemesterUuid());
+            keys.delete(StringConstant.Redis.SEMESTER_LIST);
+            keys.deleteByPattern(StringConstant.Redis.SEMESTER_PAGE + "*");
+            return true;
+        } catch (Exception e) {
+            log.error("保存学期失败", e);
+            return false;
+        }
+    }
+
+    /**
      * 根据学期的唯一标识获取学期信息
      * <p>
      * 该方法首先尝试从 Redis 缓存中获取学期数据。如果缓存中没有找到对应的学期信息，则会从数据库中查询。

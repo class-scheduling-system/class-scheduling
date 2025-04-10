@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.TeacherCourseQualificationMapper;
 import com.frontleaves.scheduling.models.entity.base.TeacherCourseQualificationDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherDO;
 import com.frontleaves.scheduling.models.vo.TeacherCourseQualificationQueryVO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 教师课程资格数据访问对象
@@ -39,6 +41,7 @@ import java.util.List;
 public class TeacherCourseQualificationDAO extends
         ServiceImpl<TeacherCourseQualificationMapper, TeacherCourseQualificationDO> {
     private final RedissonClient redisson;
+    private final TeacherDAO teacherDAO;
 
     /**
      * 根据教师课程资格UUID获取教师课程资格信息
@@ -229,6 +232,20 @@ public class TeacherCourseQualificationDAO extends
             // 添加状态条件
             if (queryVO.getStatus() != null) {
                 wrapper.eq(TeacherCourseQualificationDO::getStatus, queryVO.getStatus());
+            }
+            
+            // 按部门查询 - 通过部门UUID查找该部门下的所有教师，然后添加条件
+            if (queryVO.getDepartmentUuid() != null && !queryVO.getDepartmentUuid().isBlank()) {
+                List<TeacherDO> teacherList = teacherDAO.getTeacherLiteList(queryVO.getDepartmentUuid(), null);
+                if (!teacherList.isEmpty()) {
+                    List<String> teacherUuids = teacherList.stream()
+                            .map(TeacherDO::getTeacherUuid)
+                            .toList();
+                    wrapper.in(TeacherCourseQualificationDO::getTeacherUuid, teacherUuids);
+                } else {
+                    // 如果部门下没有教师，则设置一个不可能满足的条件，保证查询结果为空
+                    wrapper.eq(TeacherCourseQualificationDO::getTeacherUuid, "NO_TEACHER_IN_DEPARTMENT");
+                }
             }
         }
         

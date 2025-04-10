@@ -94,6 +94,7 @@ public class TeacherCourseQualificationController {
             @RequestParam(value = "is_desc", defaultValue = "true") Boolean isDesc,
             @RequestParam(value = "teacher_uuid", required = false) String teacherUuid,
             @RequestParam(value = "course_uuid", required = false) String courseUuid,
+            @RequestParam(value = "department_uuid", required = false) String departmentUuid,
             @RequestParam(value = "qualification_level", required = false) Integer qualificationLevel,
             @RequestParam(value = "is_primary", required = false) Boolean isPrimary,
             @RequestParam(value = "status", required = false) Integer status
@@ -104,6 +105,7 @@ public class TeacherCourseQualificationController {
                 .setCourseUuid(courseUuid)
                 .setQualificationLevel(qualificationLevel)
                 .setIsPrimary(isPrimary)
+                .setDepartmentUuid(departmentUuid)
                 .setStatus(status);
 
         // 查询分页数据

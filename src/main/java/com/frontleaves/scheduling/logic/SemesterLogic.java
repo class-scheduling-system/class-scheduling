@@ -40,7 +40,8 @@ public class SemesterLogic implements SemesterService {
         // 创建实体对象并保存
         SemesterDO entity = new SemesterDO();
         BeanUtil.copyProperties(vo, entity, ProjectOption.stringBlankToNull());
-        semesterDAO.save(entity);
+
+        semesterDAO.saveSemester(entity);
     }
 
     @Override
