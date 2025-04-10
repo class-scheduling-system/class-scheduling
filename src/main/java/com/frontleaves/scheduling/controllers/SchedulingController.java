@@ -22,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -93,11 +94,13 @@ public class SchedulingController {
         if (automaticClassSchedulingVO == null){
             throw new BusinessException("请求体不能为空", ErrorCode.BODY_ERROR);
         }
-        Optional.of(automaticClassSchedulingVO)
+        Optional.ofNullable(automaticClassSchedulingVO)
                 .map(AutomaticClassSchedulingVO::getTimePreferences)
                 .map(AutomaticClassSchedulingVO.TimePreferences::getPreferredTimeSlots)
-                .filter(slots -> !slots.isEmpty())
-                .orElseThrow(() -> new BusinessException("晚间排课约束不能为空", ErrorCode.BODY_ERROR))
+                // 确保 slots 不为 null
+                .filter(slots -> slots != null && !slots.isEmpty())
+                // 如果 slots 为 null 或空，返回空列表
+                .orElse(Collections.emptyList())
                 .stream()
                 .filter(slot -> slot.getPeriodStart() > slot.getPeriodEnd())
                 .findFirst()

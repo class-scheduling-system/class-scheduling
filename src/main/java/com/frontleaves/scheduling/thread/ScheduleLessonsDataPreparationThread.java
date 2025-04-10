@@ -127,7 +127,6 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                 log.debug(LogConstant.THREAD + "获取用户信息: {}", request);
                 // 根据请求获取用户信息
                 UserDO userDO = userService.getUserByRequest(request);
-                assert userDO != null;
                 log.debug(LogConstant.THREAD + "检查用户所属部门与所填写部门是否一致");
                 this.validateUserDepartmentPermission(userDO.getUserUuid(), classSchedulingVO.getDepartmentUuid());
                 log.debug(LogConstant.THREAD + "检查学期是否存在并且是否启用");

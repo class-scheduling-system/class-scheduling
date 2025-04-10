@@ -131,6 +131,11 @@ public final class ScheduleFitnessCalculator {
         double fitness = 0.0;
         int slotCount = 0;
 
+        // 检查 preferences 是否为空或其 preferredTimeSlots 是否为空
+        if (preferences == null || preferences.getPreferredTimeSlots() == null || preferences.getPreferredTimeSlots().isEmpty()) {
+            // 如果为空，直接返回 0.0
+            return 0.0;
+        }
         // 遍历所有课程安排
         for (Map.Entry<List<TimeSlotDTO>, CourseScheduleItemDTO> entry : schedule.getAssignments().entrySet()) {
             List<TimeSlotDTO> slots = entry.getKey();
