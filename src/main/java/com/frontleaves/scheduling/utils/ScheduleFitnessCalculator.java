@@ -67,6 +67,10 @@ public final class ScheduleFitnessCalculator {
                 slotCount++;
                 // 获取教师偏好列表
                 List<TeacherPreferencesDTO> preferences = entry.getValue().getTeacher().getPreferenceList();
+                // 如果 preferences 为空或为 null，跳过检查
+                if (preferences == null || preferences.isEmpty()) {
+                    continue;
+                }
                 // 检查教师偏好
                 for (TeacherPreferencesDTO preference : preferences) {
                     if (Objects.equals(preference.getDayOfWeek(), slot.getDay()) &&
