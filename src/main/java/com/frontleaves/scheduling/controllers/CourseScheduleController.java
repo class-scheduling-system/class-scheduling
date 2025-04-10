@@ -44,7 +44,7 @@ public class CourseScheduleController {
     @RequestRole({"教师", "管理员"})
     public ResponseEntity<BaseResponse<CourseScheduleDTO>> getTeacherCourseSchedule(
             HttpServletRequest request,
-            @RequestParam(required = false) String semesterUuid
+            @RequestParam(value = "semester_uuid", required = false) String semesterUuid
     ) {
         CourseScheduleDTO scheduleDTO;
         if (semesterUuid == null || semesterUuid.isEmpty()) {
@@ -70,7 +70,7 @@ public class CourseScheduleController {
     @RequestRole({"学生", "管理员"})
     public ResponseEntity<BaseResponse<CourseScheduleDTO>> getStudentCourseSchedule(
             HttpServletRequest request,
-            @RequestParam(required = false) String semesterUuid
+            @RequestParam(value = "semester_uuid", required = false) String semesterUuid
     ) {
         CourseScheduleDTO scheduleDTO;
         if (semesterUuid == null || semesterUuid.isEmpty()) {

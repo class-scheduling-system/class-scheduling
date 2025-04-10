@@ -49,7 +49,7 @@ public class CourseScheduleDAO {
     private final TeachingClassDAO teachingClassDAO;
     private final CreditHourTypeDAO creditHourTypeDAO;
     private final StudentDAO studentDAO;
-    
+
     /**
      * 获取当前学期
      * <p>
@@ -62,34 +62,34 @@ public class CourseScheduleDAO {
     public SemesterDO getCurrentSemester() {
         // 尝试从Redis缓存获取当前学期
         RMap<String, String> rMap = redisson.getMap(StringConstant.Redis.CURRENT_SEMESTER);
-        
+
         if (!rMap.isExists()) {
             // 如果缓存中不存在，从数据库查询
             SemesterDO currentSemester = semesterDAO.lambdaQuery()
                     .eq(SemesterDO::getIsCurrent, true)
                     .eq(SemesterDO::getIsEnabled, true)
                     .one();
-            
+
             if (currentSemester == null) {
                 throw new BusinessException("当前没有激活的学期", ErrorCode.NOT_EXIST);
             }
-            
+
             // 将查询结果缓存到Redis
             Map<String, String> map = BeanUtil.beanToMap(currentSemester, false, true)
                     .entrySet().stream()
                     .filter(entry -> entry.getValue() != null)
                     .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().toString()));
-            
+
             rMap.putAll(map);
             rMap.expire(Duration.ofHours(1));
-            
+
             return currentSemester;
         } else {
             // 如果缓存中存在，转换成对象并返回
             return BeanUtil.toBean(rMap, SemesterDO.class);
         }
     }
-    
+
     /**
      * 获取教师课程表
      * <p>
@@ -105,26 +105,26 @@ public class CourseScheduleDAO {
         if (teacherUuid == null) {
             throw new BusinessException("教师UUID不能为空", ErrorCode.PARAMETER_INVALID);
         }
-        
+
         // 如果未指定学期，使用当前学期
         if (semesterUuid == null) {
             SemesterDO currentSemester = getCurrentSemester();
             semesterUuid = currentSemester.getSemesterUuid();
         }
-        
+
         // 构建缓存键
         String cacheKey = StringConstant.Redis.TEACHER_COURSE_SCHEDULE + teacherUuid + ":" + semesterUuid;
         RMap<String, String> rMap = redisson.getMap(cacheKey);
-        
+
         if (!rMap.isExists()) {
             // 如果缓存不存在，从数据库查询并组装数据
             CourseScheduleDTO scheduleDTO = buildTeacherCourseSchedule(teacherUuid, semesterUuid);
-            
+
             // 缓存结果
             String jsonString = JSONUtil.toJsonStr(scheduleDTO);
             rMap.put("data", jsonString);
             rMap.expire(Duration.ofHours(1));
-            
+
             return scheduleDTO;
         } else {
             // 从缓存读取
@@ -132,7 +132,7 @@ public class CourseScheduleDAO {
             return JSONUtil.toBean(jsonString, CourseScheduleDTO.class);
         }
     }
-    
+
     /**
      * 获取学生课程表
      * <p>
@@ -148,26 +148,26 @@ public class CourseScheduleDAO {
         if (studentUuid == null) {
             throw new BusinessException("学生UUID不能为空", ErrorCode.PARAMETER_INVALID);
         }
-        
+
         // 如果未指定学期，使用当前学期
         if (semesterUuid == null) {
             SemesterDO currentSemester = getCurrentSemester();
             semesterUuid = currentSemester.getSemesterUuid();
         }
-        
+
         // 构建缓存键
         String cacheKey = StringConstant.Redis.STUDENT_COURSE_SCHEDULE + studentUuid + ":" + semesterUuid;
         RMap<String, String> rMap = redisson.getMap(cacheKey);
-        
+
         if (!rMap.isExists()) {
             // 如果缓存不存在，从数据库查询并组装数据
             CourseScheduleDTO scheduleDTO = buildStudentCourseSchedule(studentUuid, semesterUuid);
-            
+
             // 缓存结果
             String jsonString = JSONUtil.toJsonStr(scheduleDTO);
             rMap.put("data", jsonString);
             rMap.expire(Duration.ofHours(1));
-            
+
             return scheduleDTO;
         } else {
             // 从缓存读取
@@ -175,7 +175,7 @@ public class CourseScheduleDAO {
             return JSONUtil.toBean(jsonString, CourseScheduleDTO.class);
         }
     }
-    
+
     /**
      * 构建教师课程表
      * <p>
@@ -188,13 +188,13 @@ public class CourseScheduleDAO {
      */
     private CourseScheduleDTO buildTeacherCourseSchedule(String teacherUuid, String semesterUuid) {
         CourseScheduleDTO scheduleDTO = new CourseScheduleDTO();
-        
+
         // 获取学期信息
-        SemesterDO semesterDO = semesterDAO.getById(semesterUuid);
+        SemesterDO semesterDO = semesterDAO.getSemesterByUuid(semesterUuid);
         if (semesterDO == null) {
             throw new BusinessException("学期不存在", ErrorCode.NOT_EXIST);
         }
-        
+
         // 设置学期信息
         CourseScheduleDTO.SemesterInfo semesterInfo = new CourseScheduleDTO.SemesterInfo()
                 .setSemesterUuid(semesterDO.getSemesterUuid())
@@ -202,72 +202,75 @@ public class CourseScheduleDAO {
                 .setStartDate(semesterDO.getStartDate())
                 .setEndDate(semesterDO.getEndDate());
         scheduleDTO.setSemester(semesterInfo);
-        
+
         // 查询教师在该学期的所有排课信息
         List<ClassAssignmentDO> assignments = classAssignmentDAO.lambdaQuery()
-                .eq(ClassAssignmentDO::getSemesterUuid, semesterUuid)
-                .eq(ClassAssignmentDO::getTeacherUuid, teacherUuid)
+                .and(teacherUuid != null, i -> i.eq(ClassAssignmentDO::getTeacherUuid, teacherUuid))
+                .and(semesterUuid != null, i -> i.eq(ClassAssignmentDO::getSemesterUuid, semesterDO.getSemesterUuid()))
                 .list();
-        
+
+        log.debug("教师{}的课程安排: {}", teacherUuid, assignments);
+
         // 收集所有需要的ID列表
         List<String> courseIds = assignments.stream()
                 .map(ClassAssignmentDO::getCourseUuid)
                 .filter(Objects::nonNull)
                 .distinct()
-                .collect(Collectors.toList());
-        
+                .toList();
+
         List<String> campusIds = assignments.stream()
                 .map(ClassAssignmentDO::getCampusUuid)
                 .filter(Objects::nonNull)
                 .distinct()
-                .collect(Collectors.toList());
-        
+                .toList();
+
         List<String> buildingIds = assignments.stream()
                 .map(ClassAssignmentDO::getBuildingUuid)
                 .filter(Objects::nonNull)
                 .distinct()
-                .collect(Collectors.toList());
-        
+                .toList();
+
         List<String> classroomIds = assignments.stream()
                 .map(ClassAssignmentDO::getClassroomUuid)
                 .filter(Objects::nonNull)
                 .distinct()
-                .collect(Collectors.toList());
-        
+                .toList();
+
         List<String> teachingClassIds = assignments.stream()
                 .map(ClassAssignmentDO::getTeachingClassUuid)
                 .filter(Objects::nonNull)
                 .distinct()
-                .collect(Collectors.toList());
-        
+                .toList();
+
         List<String> creditHourTypeIds = assignments.stream()
                 .map(ClassAssignmentDO::getCreditHourType)
                 .filter(Objects::nonNull)
                 .distinct()
-                .collect(Collectors.toList());
-        
+                .toList();
+
+        log.debug("{}", courseIds);
         // 批量查询所有相关数据
         Map<String, CourseLibraryDO> courseMap = courseLibraryDAO.listByIds(courseIds).stream()
                 .collect(Collectors.toMap(CourseLibraryDO::getCourseLibraryUuid, course -> course));
-        
+
         Map<String, CampusDO> campusMap = campusDAO.listByIds(campusIds).stream()
                 .collect(Collectors.toMap(CampusDO::getCampusUuid, campus -> campus));
-        
+
         Map<String, BuildingDO> buildingMap = buildingDAO.listByIds(buildingIds).stream()
                 .collect(Collectors.toMap(BuildingDO::getBuildingUuid, building -> building));
-        
+
         Map<String, ClassroomDO> classroomMap = classroomDAO.listByIds(classroomIds).stream()
                 .collect(Collectors.toMap(ClassroomDO::getClassroomUuid, classroom -> classroom));
-        
+
         Map<String, TeachingClassDO> teachingClassMap = teachingClassDAO.listByIds(teachingClassIds).stream()
                 .collect(Collectors.toMap(TeachingClassDO::getTeachingClassUuid, teachingClass -> teachingClass));
-        
+
         Map<String, CreditHourTypeDO> creditHourTypeMap = creditHourTypeDAO.listByIds(creditHourTypeIds).stream()
                 .collect(Collectors.toMap(CreditHourTypeDO::getCreditHourTypeUuid, creditHourType -> creditHourType));
-        
+
         // 获取教师信息
         TeacherDO teacherDO = teacherDAO.getById(teacherUuid);
-        
+
         // 组装课程表项
         List<CourseScheduleDTO.ScheduleItem> scheduleItems = new ArrayList<>();
         for (ClassAssignmentDO assignment : assignments) {
@@ -275,49 +278,49 @@ public class CourseScheduleDAO {
             if (assignment.getClassTime() == null || assignment.getClassTime().isEmpty()) {
                 continue;
             }
-            
+
             // 解析上课时间 - 支持两种格式：对象格式和数组格式
             try {
                 String classTimeStr = assignment.getClassTime().trim();
-                
+
                 // 检查是否是数组格式 [{"day":1,"week":1,"period":9},...]
                 if (classTimeStr.startsWith("[") && classTimeStr.endsWith("]")) {
-                    processArrayTimeFormat(classTimeStr, assignment, scheduleItems, teacherDO, 
+                    processArrayTimeFormat(classTimeStr, assignment, scheduleItems, teacherDO,
                             courseMap, teachingClassMap, campusMap, buildingMap, classroomMap, creditHourTypeMap);
                     continue;
                 }
-                
+
                 // 处理对象格式 {"dayOfWeek":1,"startSlot":1,"endSlot":2}
                 if (classTimeStr.startsWith("{") && classTimeStr.endsWith("}")) {
                     JSONObject classTimeJson = JSONUtil.parseObj(classTimeStr);
-                    
+
                     Integer dayOfWeek = classTimeJson.getInt("dayOfWeek");
                     Integer startSlot = classTimeJson.getInt("startSlot");
                     Integer endSlot = classTimeJson.getInt("endSlot");
-                    
+
                     if (dayOfWeek == null || startSlot == null || endSlot == null) {
                         log.warn("课程时间缺少必要字段: {}", classTimeStr);
                         continue;
                     }
-                    
+
                     // 创建课程表项
                     CourseScheduleDTO.ScheduleItem item = createScheduleItem(assignment, dayOfWeek, startSlot, endSlot,
                             teacherUuid, teacherDO, courseMap, teachingClassMap, campusMap, buildingMap, classroomMap, creditHourTypeMap);
                     scheduleItems.add(item);
                     continue;
                 }
-                
+
                 // 既不是对象也不是数组格式
                 log.warn("无效的课程时间格式: {}", classTimeStr);
             } catch (Exception e) {
                 log.error("解析课程时间异常: {}, 原始数据: {}", e.getMessage(), assignment.getClassTime());
             }
         }
-        
+
         scheduleDTO.setScheduleItems(scheduleItems);
         return scheduleDTO;
     }
-    
+
     /**
      * 构建学生课程表
      * <p>
@@ -330,13 +333,13 @@ public class CourseScheduleDAO {
      */
     private CourseScheduleDTO buildStudentCourseSchedule(String studentUuid, String semesterUuid) {
         CourseScheduleDTO scheduleDTO = new CourseScheduleDTO();
-        
+
         // 获取学期信息
         SemesterDO semesterDO = semesterDAO.getById(semesterUuid);
         if (semesterDO == null) {
             throw new BusinessException("学期不存在", ErrorCode.NOT_EXIST);
         }
-        
+
         // 设置学期信息
         CourseScheduleDTO.SemesterInfo semesterInfo = new CourseScheduleDTO.SemesterInfo()
                 .setSemesterUuid(semesterDO.getSemesterUuid())
@@ -344,13 +347,13 @@ public class CourseScheduleDAO {
                 .setStartDate(semesterDO.getStartDate())
                 .setEndDate(semesterDO.getEndDate());
         scheduleDTO.setSemester(semesterInfo);
-        
+
         // 获取学生所在的行政班级
         StudentDO student = this.getSudentByUuid(studentUuid);
         if (student == null) {
             throw new BusinessException("学生不存在", ErrorCode.NOT_EXIST);
         }
-        
+
         // 获取学生的行政班级UUID
         String administrativeClassUuid = student.getClazz();
         if (administrativeClassUuid == null || administrativeClassUuid.isEmpty()) {
@@ -358,9 +361,9 @@ public class CourseScheduleDAO {
             scheduleDTO.setScheduleItems(new ArrayList<>());
             return scheduleDTO;
         }
-        
+
         log.info("获取学生{}所在行政班级{}的课程表", studentUuid, administrativeClassUuid);
-        
+
         try {
             // 获取学生所在行政班级关联的教学班
             // 由于administrativeClasses是JSON格式，使用like查询可能不够精确
@@ -369,103 +372,103 @@ public class CourseScheduleDAO {
                     .eq(TeachingClassDO::getSemesterUuid, semesterUuid)
                     .eq(TeachingClassDO::getIsEnabled, true)
                     .list();
-            
+
             // 筛选出包含学生所在行政班级的教学班
             List<TeachingClassDO> teachingClasses = allTeachingClasses.stream()
                     .filter(teachingClass -> {
                         String administrativeClasses = teachingClass.getAdministrativeClasses();
                         // 仅当行政班级信息包含学生的行政班级UUID时才选中
-                        return administrativeClasses != null && 
+                        return administrativeClasses != null &&
                                administrativeClasses.contains(administrativeClassUuid);
                     })
                     .collect(Collectors.toList());
-            
+
             if (teachingClasses.isEmpty()) {
                 log.warn("未找到学生{}所在行政班级{}相关的教学班", studentUuid, administrativeClassUuid);
                 scheduleDTO.setScheduleItems(new ArrayList<>());
                 return scheduleDTO;
             }
-            
+
             log.info("找到学生{}所在行政班级{}相关的教学班{}个", studentUuid, administrativeClassUuid, teachingClasses.size());
-            
+
             // 获取这些教学班对应的课程安排
             List<String> teachingClassIds = teachingClasses.stream()
                     .map(TeachingClassDO::getTeachingClassUuid)
                     .collect(Collectors.toList());
-            
+
             // 查询所有相关的课程安排
             List<ClassAssignmentDO> assignments = classAssignmentDAO.lambdaQuery()
                     .eq(ClassAssignmentDO::getSemesterUuid, semesterUuid)
                     .in(ClassAssignmentDO::getTeachingClassUuid, teachingClassIds)
                     .list();
-            
+
             if (assignments.isEmpty()) {
                 log.warn("未找到学生{}所在教学班的课程安排", studentUuid);
                 scheduleDTO.setScheduleItems(new ArrayList<>());
                 return scheduleDTO;
             }
-            
+
             log.info("找到学生{}的课程安排{}个", studentUuid, assignments.size());
-            
+
             // 收集所有需要的ID列表
             List<String> courseIds = assignments.stream()
                     .map(ClassAssignmentDO::getCourseUuid)
                     .filter(Objects::nonNull)
                     .distinct()
                     .collect(Collectors.toList());
-            
+
             List<String> teacherIds = assignments.stream()
                     .map(ClassAssignmentDO::getTeacherUuid)
                     .filter(Objects::nonNull)
                     .distinct()
                     .collect(Collectors.toList());
-            
+
             List<String> campusIds = assignments.stream()
                     .map(ClassAssignmentDO::getCampusUuid)
                     .filter(Objects::nonNull)
                     .distinct()
                     .collect(Collectors.toList());
-            
+
             List<String> buildingIds = assignments.stream()
                     .map(ClassAssignmentDO::getBuildingUuid)
                     .filter(Objects::nonNull)
                     .distinct()
                     .collect(Collectors.toList());
-            
+
             List<String> classroomIds = assignments.stream()
                     .map(ClassAssignmentDO::getClassroomUuid)
                     .filter(Objects::nonNull)
                     .distinct()
                     .collect(Collectors.toList());
-            
+
             List<String> creditHourTypeIds = assignments.stream()
                     .map(ClassAssignmentDO::getCreditHourType)
                     .filter(Objects::nonNull)
                     .distinct()
                     .collect(Collectors.toList());
-            
+
             // 批量查询所有相关数据
             Map<String, CourseLibraryDO> courseMap = courseLibraryDAO.listByIds(courseIds).stream()
                     .collect(Collectors.toMap(CourseLibraryDO::getCourseLibraryUuid, course -> course));
-            
+
             Map<String, TeacherDO> teacherMap = teacherDAO.listByIds(teacherIds).stream()
                     .collect(Collectors.toMap(TeacherDO::getTeacherUuid, teacher -> teacher));
-            
+
             Map<String, CampusDO> campusMap = campusDAO.listByIds(campusIds).stream()
                     .collect(Collectors.toMap(CampusDO::getCampusUuid, campus -> campus));
-            
+
             Map<String, BuildingDO> buildingMap = buildingDAO.listByIds(buildingIds).stream()
                     .collect(Collectors.toMap(BuildingDO::getBuildingUuid, building -> building));
-            
+
             Map<String, ClassroomDO> classroomMap = classroomDAO.listByIds(classroomIds).stream()
                     .collect(Collectors.toMap(ClassroomDO::getClassroomUuid, classroom -> classroom));
-            
+
             Map<String, TeachingClassDO> teachingClassMap = teachingClasses.stream()
                     .collect(Collectors.toMap(TeachingClassDO::getTeachingClassUuid, teachingClass -> teachingClass));
-            
+
             Map<String, CreditHourTypeDO> creditHourTypeMap = creditHourTypeDAO.listByIds(creditHourTypeIds).stream()
                     .collect(Collectors.toMap(CreditHourTypeDO::getCreditHourTypeUuid, creditHourType -> creditHourType));
-            
+
             // 组装课程表项
             List<CourseScheduleDTO.ScheduleItem> scheduleItems = new ArrayList<>();
             for (ClassAssignmentDO assignment : assignments) {
@@ -473,33 +476,33 @@ public class CourseScheduleDAO {
                 if (assignment.getClassTime() == null || assignment.getClassTime().isEmpty()) {
                     continue;
                 }
-                
+
                 // 解析上课时间 - 支持两种格式：对象格式和数组格式
                 try {
                     String classTimeStr = assignment.getClassTime().trim();
-                    
+
                     // 检查是否是数组格式 [{"day":1,"week":1,"period":9},...]
                     if (classTimeStr.startsWith("[") && classTimeStr.endsWith("]")) {
                         String teacherUuid = assignment.getTeacherUuid();
                         TeacherDO teacher = teacherMap.get(teacherUuid);
-                        processArrayTimeFormat(classTimeStr, assignment, scheduleItems, teacher, 
+                        processArrayTimeFormat(classTimeStr, assignment, scheduleItems, teacher,
                                 courseMap, teachingClassMap, campusMap, buildingMap, classroomMap, creditHourTypeMap);
                         continue;
                     }
-                    
+
                     // 处理对象格式 {"dayOfWeek":1,"startSlot":1,"endSlot":2}
                     if (classTimeStr.startsWith("{") && classTimeStr.endsWith("}")) {
                         JSONObject classTimeJson = JSONUtil.parseObj(classTimeStr);
-                        
+
                         Integer dayOfWeek = classTimeJson.getInt("dayOfWeek");
                         Integer startSlot = classTimeJson.getInt("startSlot");
                         Integer endSlot = classTimeJson.getInt("endSlot");
-                        
+
                         if (dayOfWeek == null || startSlot == null || endSlot == null) {
                             log.warn("课程时间缺少必要字段: {}", classTimeStr);
                             continue;
                         }
-                        
+
                         // 创建课程表项
                         String teacherUuid = assignment.getTeacherUuid();
                         TeacherDO teacher = teacherMap.get(teacherUuid);
@@ -508,14 +511,14 @@ public class CourseScheduleDAO {
                         scheduleItems.add(item);
                         continue;
                     }
-                    
+
                     // 既不是对象也不是数组格式
                     log.warn("无效的课程时间格式: {}", classTimeStr);
                 } catch (Exception e) {
                     log.error("解析课程时间异常: {}, 原始数据: {}", e.getMessage(), assignment.getClassTime());
                 }
             }
-            
+
             scheduleDTO.setScheduleItems(scheduleItems);
             return scheduleDTO;
         } catch (Exception e) {
@@ -525,73 +528,73 @@ public class CourseScheduleDAO {
             return scheduleDTO;
         }
     }
-    
+
     /**
      * 处理数组格式的时间数据
      */
-    private void processArrayTimeFormat(String classTimeStr, ClassAssignmentDO assignment, 
+    private void processArrayTimeFormat(String classTimeStr, ClassAssignmentDO assignment,
                                       List<CourseScheduleDTO.ScheduleItem> scheduleItems,
-                                      TeacherDO teacher, Map<String, CourseLibraryDO> courseMap, 
+                                      TeacherDO teacher, Map<String, CourseLibraryDO> courseMap,
                                       Map<String, TeachingClassDO> teachingClassMap,
                                       Map<String, CampusDO> campusMap, Map<String, BuildingDO> buildingMap,
                                       Map<String, ClassroomDO> classroomMap, Map<String, CreditHourTypeDO> creditHourTypeMap) {
         try {
             // 解析为数组
             List<JSONObject> timeSlots = JSONUtil.parseArray(classTimeStr).toList(JSONObject.class);
-            
+
             // 按周次和星期分组
             Map<Integer, Map<Integer, List<Integer>>> weekDayPeriodMap = new HashMap<>();
-            
+
             // 遍历所有时间槽，按周次和星期分组
             for (JSONObject slot : timeSlots) {
                 Integer week = slot.getInt("week");
                 Integer day = slot.getInt("day");
                 Integer period = slot.getInt("period");
-                
+
                 if (week == null || day == null || period == null) {
                     continue;
                 }
-                
+
                 // 获取或创建该周的映射
                 Map<Integer, List<Integer>> dayPeriodMap = weekDayPeriodMap.computeIfAbsent(week, k -> new HashMap<>());
-                
+
                 // 获取或创建该星期的课时列表
                 List<Integer> periods = dayPeriodMap.computeIfAbsent(day, k -> new ArrayList<>());
-                
+
                 // 添加课时
                 periods.add(period);
             }
-            
+
             // 为每周的每天创建课程项
             for (Map.Entry<Integer, Map<Integer, List<Integer>>> weekEntry : weekDayPeriodMap.entrySet()) {
                 Integer week = weekEntry.getKey();
                 Map<Integer, List<Integer>> dayPeriodMap = weekEntry.getValue();
-                
+
                 for (Map.Entry<Integer, List<Integer>> dayEntry : dayPeriodMap.entrySet()) {
                     Integer day = dayEntry.getKey();
                     List<Integer> periods = dayEntry.getValue();
-                    
+
                     // 对课时排序
                     Collections.sort(periods);
-                    
+
                     // 查找连续的课时段
                     List<List<Integer>> consecutivePeriods = findConsecutivePeriods(periods);
-                    
+
                     // 为每个连续段创建一个课程项
                     for (List<Integer> consecutiveSegment : consecutivePeriods) {
                         if (consecutiveSegment.isEmpty()) continue;
-                        
+
                         Integer startSlot = consecutiveSegment.get(0);
                         Integer endSlot = consecutiveSegment.get(consecutiveSegment.size() - 1);
-                        
+
                         // 创建课程表项
                         String teacherUuid = assignment.getTeacherUuid();
                         CourseScheduleDTO.ScheduleItem item = createScheduleItem(assignment, day, startSlot, endSlot,
                                 teacherUuid, teacher, courseMap, teachingClassMap, campusMap, buildingMap, classroomMap, creditHourTypeMap);
-                        
+
                         // 添加周次信息
                         item.setWeek(week);
-                        
+
                         scheduleItems.add(item);
                     }
                 }
@@ -600,17 +603,17 @@ public class CourseScheduleDAO {
             log.error("处理数组格式时间数据异常: {}", e.getMessage());
         }
     }
-    
+
     /**
      * 查找连续的课时段
      */
     private List<List<Integer>> findConsecutivePeriods(List<Integer> periods) {
         List<List<Integer>> result = new ArrayList<>();
         if (periods.isEmpty()) return result;
-        
+
         List<Integer> current = new ArrayList<>();
         current.add(periods.get(0));
-        
+
         for (int i = 1; i < periods.size(); i++) {
             // 如果与前一个课时连续
             if (periods.get(i) == periods.get(i-1) + 1) {
@@ -622,26 +625,26 @@ public class CourseScheduleDAO {
                 current.add(periods.get(i));
             }
         }
-        
+
         // 添加最后一个连续段
         if (!current.isEmpty()) {
             result.add(current);
         }
-        
+
         return result;
     }
-    
+
     /**
      * 创建课程表项
      */
-    private CourseScheduleDTO.ScheduleItem createScheduleItem(ClassAssignmentDO assignment, Integer dayOfWeek, 
+    private CourseScheduleDTO.ScheduleItem createScheduleItem(ClassAssignmentDO assignment, Integer dayOfWeek,
                                                             Integer startSlot, Integer endSlot,
                                                             String teacherUuid, TeacherDO teacher,
-                                                            Map<String, CourseLibraryDO> courseMap, 
+                                                            Map<String, CourseLibraryDO> courseMap,
                                                             Map<String, TeachingClassDO> teachingClassMap,
-                                                            Map<String, CampusDO> campusMap, 
+                                                            Map<String, CampusDO> campusMap,
                                                             Map<String, BuildingDO> buildingMap,
-                                                            Map<String, ClassroomDO> classroomMap, 
+                                                            Map<String, ClassroomDO> classroomMap,
                                                             Map<String, CreditHourTypeDO> creditHourTypeMap) {
         CourseScheduleDTO.ScheduleItem item = new CourseScheduleDTO.ScheduleItem();
         item.setClassAssignmentUuid(assignment.getClassAssignmentUuid());
@@ -650,7 +653,7 @@ public class CourseScheduleDAO {
         item.setEndSlot(endSlot);
         item.setConsecutiveSessions(assignment.getConsecutiveSessions());
         item.setTotalHours(assignment.getTotalHours());
-        
+
         // 设置课程信息
         String courseUuid = assignment.getCourseUuid();
         CourseLibraryDO course = courseMap.get(courseUuid);
@@ -658,13 +661,13 @@ public class CourseScheduleDAO {
             item.setCourseUuid(courseUuid);
             item.setCourseName(course.getName());
         }
-        
+
         // 设置教师信息
         if (teacher != null) {
             item.setTeacherUuid(teacherUuid);
             item.setTeacherName(teacher.getName());
         }
-        
+
         // 设置教学班信息
         String teachingClassUuid = assignment.getTeachingClassUuid();
         TeachingClassDO teachingClass = teachingClassMap.get(teachingClassUuid);
@@ -672,7 +675,7 @@ public class CourseScheduleDAO {
             item.setTeachingClassUuid(teachingClassUuid);
             item.setTeachingClassName(teachingClass.getTeachingClassName());
         }
-        
+
         // 设置校区信息
         String campusUuid = assignment.getCampusUuid();
         CampusDO campus = campusMap.get(campusUuid);
@@ -680,7 +683,7 @@ public class CourseScheduleDAO {
             item.setCampusUuid(campusUuid);
             item.setCampusName(campus.getCampusName());
         }
-        
+
         // 设置教学楼信息
         String buildingUuid = assignment.getBuildingUuid();
         BuildingDO building = buildingMap.get(buildingUuid);
@@ -688,7 +691,7 @@ public class CourseScheduleDAO {
             item.setBuildingUuid(buildingUuid);
             item.setBuildingName(building.getBuildingName());
         }
-        
+
         // 设置教室信息
         String classroomUuid = assignment.getClassroomUuid();
         ClassroomDO classroom = classroomMap.get(classroomUuid);
@@ -696,7 +699,7 @@ public class CourseScheduleDAO {
             item.setClassroomUuid(classroomUuid);
             item.setClassroomName(classroom.getName());
         }
-        
+
         // 设置学时类型信息
         String creditHourTypeUuid = assignment.getCreditHourType();
         CreditHourTypeDO creditHourType = creditHourTypeMap.get(creditHourTypeUuid);
@@ -704,10 +707,10 @@ public class CourseScheduleDAO {
             item.setCreditHourTypeUuid(creditHourTypeUuid);
             item.setCreditHourTypeName(creditHourType.getName());
         }
-        
+
         return item;
     }
-    
+
     /**
      * 根据UUID获取学生信息
      * <p>
@@ -721,5 +724,4 @@ public class CourseScheduleDAO {
         // 从 StudentDAO 获取学生信息
         return studentDAO.getById(studentUuid);
     }
-} 
- 
+}

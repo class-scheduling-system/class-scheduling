@@ -9,7 +9,7 @@
  *
  * 版权所有 (c) 2022-2025 锋楪技术团队。保留所有权利。
  *
- * 本软件是“按原样”提供的，没有任何形式的明示或暗示的保证，包括但不限于
+ * 本软件是"按原样"提供的，没有任何形式的明示或暗示的保证，包括但不限于
  * 对适销性、特定用途的适用性和非侵权性的暗示保证。在任何情况下，
  * 作者或版权持有人均不承担因软件或软件的使用或其他交易而产生的、
  * 由此引起的或以任何方式与此软件有关的任何索赔、损害或其他责任。
@@ -53,6 +53,7 @@ import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -122,128 +123,143 @@ public class ScheduleLessonsDataPreparationThread extends Thread {
                     log.info(LogConstant.THREAD + "线程进入等待状态");
                     condition.await();
                 }
-                log.debug(LogConstant.THREAD + "线程已获取锁，准备执行任务");
+                log.info(LogConstant.THREAD + "线程已获取锁，准备执行任务");
                 log.debug(LogConstant.THREAD + "获取到的自动排课请求数据: {}", classSchedulingVO);
                 log.debug(LogConstant.THREAD + "获取用户信息: {}", request);
-                // 根据请求获取用户信息
-                UserDO userDO = userService.getUserByRequest(request);
-                log.debug(LogConstant.THREAD + "检查用户所属部门与所填写部门是否一致");
-                this.validateUserDepartmentPermission(userDO.getUserUuid(), classSchedulingVO.getDepartmentUuid());
-                log.debug(LogConstant.THREAD + "检查学期是否存在并且是否启用");
-                SemesterDTO semesterDTO =
-                        semesterService.getSemesterByUuidCheckEnabled(classSchedulingVO.getSemesterUuid());
-                assert semesterDTO != null;
-                log.debug(LogConstant.THREAD + "检查结束周是否超过学期周");
-                this.validateCourseWeeks(classSchedulingVO.getScopeSettings().getSpecificCourseIds(), semesterDTO);
-                log.debug(LogConstant.THREAD + "获取课程库和学生班级");
-                List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList =
-                        courseLibraryService.getCourseListAndClassDTO(
-                                classSchedulingVO.getScopeSettings().getSpecificCourseIds(),
-                                classSchedulingVO.getDepartmentUuid()
-                        );
-                log.debug("检查课程学分是否能够修满");
-                this.fillSpecificCourseInfo(classSchedulingVO.getScopeSettings().getSpecificCourseIds(), libraryAndClassDTOList);
-                log.debug(LogConstant.THREAD + "获取老师所有数据");
-                List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList = teacherCourseQualificationService
-                        .getCourseLibraryAndTeacherCourseQualificationList(
-                                libraryAndClassDTOList, classSchedulingVO.getConstraints().getTeacherPreference()
-                        );
-                assert courseQualificationList != null;
-                log.debug(LogConstant.THREAD + "把混排课程的分为数据库内定义课程的类");
-                List<CourseLibraryAndTeacherCourseQualificationListDTO> updatedList =
-                        this.expandMixedCourses(courseQualificationList);
-                log.debug("更新课程表");
-                courseQualificationList.clear();
-                courseQualificationList.addAll(updatedList);
-                log.debug(LogConstant.THREAD + "使用 Map 存储课程类型优先级，以 courseTypeUuid 为键");
-                Map<String, CourseTypePriorityDTO> courseTypePriorityMap = this.setupCourseTypePriority(classSchedulingVO);
-                log.debug("设置课程优先级");
-                this.applyCourseTypePriority(courseQualificationList, courseTypePriorityMap);
-                log.debug(LogConstant.THREAD + "获取教室数据");
-                List<ClassroomInfoDTO> allClassroomInfo =
-                        this.getAllClassroomInfo(classSchedulingVO.getScopeSettings().getAllowedBuildingIds());
-                log.debug(LogConstant.THREAD + "获取部门DTO");
-                DepartmentDTO departmentDTO = departmentService.
-                        getDepartmentByUuidWithThrows(classSchedulingVO.getDepartmentUuid());
-                assert departmentDTO != null;
-                //创建返回结果
-                log.debug(LogConstant.THREAD + "创建返回结果");
-                AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO = new AutomaticClassSchedulingBaseDTO();
-                //设置学期、部门、策略、结束周、课程和教师列表、教室和类型
-                automaticClassSchedulingBaseDTO.setSemester(semesterDTO)
-                        .setDepartment(departmentDTO)
-                        .setStrategy(classSchedulingVO.getStrategy())
-                        .setCourseList(courseQualificationList)
-                        .setClassroomList(allClassroomInfo);
-                //设置约束
-                AutomaticClassSchedulingBaseDTO.Constraints constraints =
-                        new AutomaticClassSchedulingBaseDTO.Constraints();
-                constraints.setTeacherPreference(classSchedulingVO.getConstraints().getTeacherPreference())
-                        .setRoomOptimization(classSchedulingVO.getConstraints().getRoomOptimization())
-                        .setStudentConflictAvoidance(classSchedulingVO.getConstraints().getStudentConflictAvoidance())
-                        .setConsecutiveCoursesPreferred(classSchedulingVO.getConstraints().getConsecutiveCoursesPreferred())
-                        .setSpecializationRoomMatching(classSchedulingVO.getConstraints().getSpecializationRoomMatching());
-                automaticClassSchedulingBaseDTO.setConstraints(constraints);
-                //根据策略生成算法参数
-                AutomaticClassSchedulingBaseDTO.AlgorithmParams algorithmParams = switch (classSchedulingVO.getStrategy()) {
-                    case OPTIMAL -> new AutomaticClassSchedulingBaseDTO.AlgorithmParams()
-                            .setPopulationSize(200)
-                            .setMaxIterations(1000)
-                            .setCrossoverRate(0.8)
-                            .setMutationRate(0.1);
-                    case BALANCED -> new AutomaticClassSchedulingBaseDTO.AlgorithmParams()
-                            .setPopulationSize(100)
-                            .setMaxIterations(500)
-                            .setCrossoverRate(0.7)
-                            .setMutationRate(0.2);
-                    case QUICK -> new AutomaticClassSchedulingBaseDTO.AlgorithmParams()
-                            .setPopulationSize(50)
-                            .setMaxIterations(200)
-                            .setCrossoverRate(0.6)
-                            .setMutationRate(0.3);
-                };
-                automaticClassSchedulingBaseDTO.setAlgorithmParams(algorithmParams);
-                //设置时间偏好
-                AutomaticClassSchedulingBaseDTO.TimePreferences timePreferences =
-                        new AutomaticClassSchedulingBaseDTO.TimePreferences();
-                for (AutomaticClassSchedulingVO.TimePreferences.PreferredTimeSlot preferredTimeSlot
-                        : classSchedulingVO.getTimePreferences().getPreferredTimeSlots()) {
-                    AutomaticClassSchedulingBaseDTO.TimePreferences.PreferredTimeSlot preferredTimeSlotDTO =
-                            new AutomaticClassSchedulingBaseDTO.TimePreferences.PreferredTimeSlot();
-                    preferredTimeSlotDTO.setDay(preferredTimeSlot.getDay())
-                            .setPeriodStart(preferredTimeSlot.getPeriodStart())
-                            .setPeriodEnd(preferredTimeSlot.getPeriodEnd());
-                    timePreferences.setPreferredTimeSlots(new ArrayList<>());
-                    timePreferences.getPreferredTimeSlots().add(preferredTimeSlotDTO);
+                
+                try {
+                    // 根据请求获取用户信息
+                    UserDO userDO = userService.getUserByRequest(request);
+                    log.debug(LogConstant.THREAD + "检查用户所属部门与所填写部门是否一致");
+                    this.validateUserDepartmentPermission(userDO.getUserUuid(), classSchedulingVO.getDepartmentUuid());
+                    log.debug(LogConstant.THREAD + "检查学期是否存在并且是否启用");
+                    SemesterDTO semesterDTO =
+                            semesterService.getSemesterByUuidCheckEnabled(classSchedulingVO.getSemesterUuid());
+                    assert semesterDTO != null;
+                    log.debug(LogConstant.THREAD + "检查结束周是否超过学期周");
+                    this.validateCourseWeeks(classSchedulingVO.getScopeSettings().getSpecificCourseIds(), semesterDTO);
+                    log.debug(LogConstant.THREAD + "获取课程库和学生班级");
+                    List<CourseLibraryAndTeacherCourseQualificationListDTO> libraryAndClassDTOList =
+                            courseLibraryService.getCourseListAndClassDTO(
+                                    classSchedulingVO.getScopeSettings().getSpecificCourseIds(),
+                                    classSchedulingVO.getDepartmentUuid()
+                            );
+                    log.debug("检查课程学分是否能够修满");
+                    this.fillSpecificCourseInfo(classSchedulingVO.getScopeSettings().getSpecificCourseIds(), libraryAndClassDTOList);
+                    log.debug(LogConstant.THREAD + "获取老师所有数据");
+                    List<CourseLibraryAndTeacherCourseQualificationListDTO> courseQualificationList = teacherCourseQualificationService
+                            .getCourseLibraryAndTeacherCourseQualificationList(
+                                    libraryAndClassDTOList, classSchedulingVO.getConstraints().getTeacherPreference()
+                            );
+                    assert courseQualificationList != null;
+                    log.debug(LogConstant.THREAD + "把混排课程的分为数据库内定义课程的类");
+                    List<CourseLibraryAndTeacherCourseQualificationListDTO> updatedList =
+                            this.expandMixedCourses(courseQualificationList);
+                    log.debug("更新课程表");
+                    courseQualificationList.clear();
+                    courseQualificationList.addAll(updatedList);
+                    log.debug(LogConstant.THREAD + "使用 Map 存储课程类型优先级，以 courseTypeUuid 为键");
+                    Map<String, CourseTypePriorityDTO> courseTypePriorityMap = this.setupCourseTypePriority(classSchedulingVO);
+                    log.debug("设置课程优先级");
+                    this.applyCourseTypePriority(courseQualificationList, courseTypePriorityMap);
+                    log.debug(LogConstant.THREAD + "获取教室数据");
+                    List<ClassroomInfoDTO> allClassroomInfo =
+                            this.getAllClassroomInfo(classSchedulingVO.getScopeSettings().getAllowedBuildingIds());
+                    log.debug(LogConstant.THREAD + "获取部门DTO");
+                    DepartmentDTO departmentDTO = departmentService.
+                            getDepartmentByUuidWithThrows(classSchedulingVO.getDepartmentUuid());
+                    assert departmentDTO != null;
+                    //创建返回结果
+                    log.debug(LogConstant.THREAD + "创建返回结果");
+                    AutomaticClassSchedulingBaseDTO automaticClassSchedulingBaseDTO = new AutomaticClassSchedulingBaseDTO();
+                    //设置学期、部门、策略、结束周、课程和教师列表、教室和类型
+                    automaticClassSchedulingBaseDTO.setSemester(semesterDTO)
+                            .setDepartment(departmentDTO)
+                            .setStrategy(classSchedulingVO.getStrategy())
+                            .setCourseList(courseQualificationList)
+                            .setClassroomList(allClassroomInfo);
+                    //设置约束
+                    AutomaticClassSchedulingBaseDTO.Constraints constraints =
+                            new AutomaticClassSchedulingBaseDTO.Constraints();
+                    constraints.setTeacherPreference(classSchedulingVO.getConstraints().getTeacherPreference())
+                            .setRoomOptimization(classSchedulingVO.getConstraints().getRoomOptimization())
+                            .setStudentConflictAvoidance(classSchedulingVO.getConstraints().getStudentConflictAvoidance())
+                            .setConsecutiveCoursesPreferred(classSchedulingVO.getConstraints().getConsecutiveCoursesPreferred())
+                            .setSpecializationRoomMatching(classSchedulingVO.getConstraints().getSpecializationRoomMatching());
+                    automaticClassSchedulingBaseDTO.setConstraints(constraints);
+                    //根据策略生成算法参数
+                    AutomaticClassSchedulingBaseDTO.AlgorithmParams algorithmParams = switch (classSchedulingVO.getStrategy()) {
+                        case OPTIMAL -> new AutomaticClassSchedulingBaseDTO.AlgorithmParams()
+                                .setPopulationSize(200)
+                                .setMaxIterations(1000)
+                                .setCrossoverRate(0.8)
+                                .setMutationRate(0.1);
+                        case BALANCED -> new AutomaticClassSchedulingBaseDTO.AlgorithmParams()
+                                .setPopulationSize(100)
+                                .setMaxIterations(500)
+                                .setCrossoverRate(0.7)
+                                .setMutationRate(0.2);
+                        case QUICK -> new AutomaticClassSchedulingBaseDTO.AlgorithmParams()
+                                .setPopulationSize(50)
+                                .setMaxIterations(200)
+                                .setCrossoverRate(0.6)
+                                .setMutationRate(0.3);
+                    };
+                    automaticClassSchedulingBaseDTO.setAlgorithmParams(algorithmParams);
+                    //设置时间偏好
+                    AutomaticClassSchedulingBaseDTO.TimePreferences timePreferences =
+                            new AutomaticClassSchedulingBaseDTO.TimePreferences();
+                    for (AutomaticClassSchedulingVO.TimePreferences.PreferredTimeSlot preferredTimeSlot
+                            : classSchedulingVO.getTimePreferences().getPreferredTimeSlots()) {
+                        AutomaticClassSchedulingBaseDTO.TimePreferences.PreferredTimeSlot preferredTimeSlotDTO =
+                                new AutomaticClassSchedulingBaseDTO.TimePreferences.PreferredTimeSlot();
+                        preferredTimeSlotDTO.setDay(preferredTimeSlot.getDay())
+                                .setPeriodStart(preferredTimeSlot.getPeriodStart())
+                                .setPeriodEnd(preferredTimeSlot.getPeriodEnd());
+                        timePreferences.setPreferredTimeSlots(new ArrayList<>());
+                        timePreferences.getPreferredTimeSlots().add(preferredTimeSlotDTO);
+                    }
+                    timePreferences.setEveningCourses(classSchedulingVO.getTimePreferences().getAvoidEveningCourses())
+                            .setBalanceWeekdayCourses(classSchedulingVO.getTimePreferences().getBalanceWeekdayCourses());
+                    automaticClassSchedulingBaseDTO.setTimePreferences(timePreferences);
+                    log.debug("获取排课表内存在可能冲突的课程排课数据");
+                    List<ClassAssignmentDTO> classAssignmentDTOList =
+                            classAssignmentService.getClassAssignmentListByLimit(automaticClassSchedulingBaseDTO);
+                    //将数据库内排课数据转换成baseDTO
+                    log.debug("准备数据库内排课数据");
+                    List<CourseScheduleDTO> courseScheduleDTOList = this.buildCourseScheduleList(classAssignmentDTOList);
+                    automaticClassSchedulingBaseDTO.setDataCourseScheduleList(courseScheduleDTOList);
+                    log.debug("准备的基础上数据为: {}", JSONUtil.toJsonStr(automaticClassSchedulingBaseDTO));
+                    RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
+                    cacheBaseData.set(automaticClassSchedulingBaseDTO);
+                    automaticThread.startUp(userDO, taskId);
+                    log.info(LogConstant.THREAD + "任务成功交给自动排课线程处理");
+                } catch (Exception e) {
+                    log.error("{}执行任务过程中出错：{}", LogConstant.THREAD, e.getMessage(), e);
+                    // 记录错误状态到Redis，让客户端能够获取到错误信息
+                    try {
+                        UserDO userDO = userService.getUserByRequest(request);
+                        if (userDO != null) {
+                            RBucket<String> errorBucket = redisson.getBucket(StringConstant.Redis.SCHEDULE_EXECUTE_STATUS + userDO.getUserUuid());
+                            errorBucket.set("ERROR: " + e.getMessage());
+                            errorBucket.expire(Duration.ofHours(24));
+                        }
+                    } catch (Exception ex) {
+                        log.error("{}记录错误状态失败：{}", LogConstant.THREAD, ex.getMessage(), ex);
+                    }
+                } finally {
+                    // 无论处理成功还是失败，都将hasTask设置为false，以便线程可以处理下一个任务
+                    hasTask = false;
+                    log.info(LogConstant.THREAD + "任务处理完成，准备接收下一个任务");
                 }
-                timePreferences.setEveningCourses(classSchedulingVO.getTimePreferences().getAvoidEveningCourses())
-                        .setBalanceWeekdayCourses(classSchedulingVO.getTimePreferences().getBalanceWeekdayCourses());
-                automaticClassSchedulingBaseDTO.setTimePreferences(timePreferences);
-                log.debug("获取排课表内存在可能冲突的课程排课数据");
-                List<ClassAssignmentDTO> classAssignmentDTOList =
-                        classAssignmentService.getClassAssignmentListByLimit(automaticClassSchedulingBaseDTO);
-                //将数据库内排课数据转换成baseDTO
-                log.debug("准备数据库内排课数据");
-                List<CourseScheduleDTO> courseScheduleDTOList = this.buildCourseScheduleList(classAssignmentDTOList);
-                automaticClassSchedulingBaseDTO.setDataCourseScheduleList(courseScheduleDTOList);
-                log.debug("准备的基础上数据为: {}", JSONUtil.toJsonStr(automaticClassSchedulingBaseDTO));
-                RBucket<AutomaticClassSchedulingBaseDTO> cacheBaseData = redisson.getBucket(StringConstant.Redis.SCHEDULE_LESSONS + userDO.getUserUuid());
-                cacheBaseData.set(automaticClassSchedulingBaseDTO);
-                automaticThread.startUp(userDO, taskId);
+            } catch (InterruptedException e) {
+                log.error("{}线程等待被中断：{}", LogConstant.THREAD, e.getMessage(), e);
                 hasTask = false;
-            } catch (Exception e) {
-                Thread.currentThread().interrupt();
-                log.error("{}获取报错信息：{}", LogConstant.THREAD, e.getMessage(), e);
-                hasTask = false;
-                lock.unlock();
             } finally {
                 lock.unlock();
             }
         }
     }
-
-
-
 
     /**
      * 执行具体的任务

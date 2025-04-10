@@ -83,42 +83,57 @@ public class AutomaticClassSchedulingThread extends Thread {
                     log.info(LogConstant.THREAD + "线程进入等待状态");
                     condition.await();
                 }
-                // 从Redis获取排课基础数据
-                RBucket<AutomaticClassSchedulingBaseDTO> cacheData = redisson
-                        .getBucket(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
-                if (!cacheData.isExists()) {
-                    throw new BusinessException("缓存数据不存在", ErrorCode.BODY_ERROR);
-                }
-                AutomaticClassSchedulingBaseDTO baseData = cacheData.get();
-                // 执行遗传算法排课
-                log.info("开始执行遗传算法排课，任务ID：{}", taskId);
-                ScheduleResultDTO result = geneticSchedulingService.executeGeneticAlgorithm(taskId, baseData);
-                this.getSaveScheduleDTO(result);
-                // 保存排课冲突信息
-                this.saveSchedulingConflicts(result);
-                // 将排课结果保存到Redis
-                RBucket<ScheduleResultDTO> resultCache = redisson
-                        .getBucket(StringConstant.Redis.SCHEDULE_RESULT + taskId);
-                resultCache.set(result);
-                resultCache.expire(Duration.ofHours(24));
-                // 删除任务有关的缓存数据
-                RKeys rKeys = redisson.getKeys();
-                rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
-                rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_EXECUTE_STATUS + user.getUserUuid());
-                rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_EXECUTE_PROGRESS + user.getUserUuid());
+                try {
+                    // 从Redis获取排课基础数据
+                    RBucket<AutomaticClassSchedulingBaseDTO> cacheData = redisson
+                            .getBucket(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
+                    if (!cacheData.isExists()) {
+                        throw new BusinessException("缓存数据不存在", ErrorCode.BODY_ERROR);
+                    }
+                    AutomaticClassSchedulingBaseDTO baseData = cacheData.get();
+                    // 执行遗传算法排课
+                    log.info("开始执行遗传算法排课，任务ID：{}", taskId);
+                    ScheduleResultDTO result = geneticSchedulingService.executeGeneticAlgorithm(taskId, baseData);
+                    this.getSaveScheduleDTO(result);
+                    // 保存排课冲突信息
+                    this.saveSchedulingConflicts(result);
+                    // 将排课结果保存到Redis
+                    RBucket<ScheduleResultDTO> resultCache = redisson
+                            .getBucket(StringConstant.Redis.SCHEDULE_RESULT + taskId);
+                    resultCache.set(result);
+                    resultCache.expire(Duration.ofHours(24));
+                    // 删除任务有关的缓存数据
+                    RKeys rKeys = redisson.getKeys();
+                    rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
+                    rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_EXECUTE_STATUS + user.getUserUuid());
+                    rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_EXECUTE_PROGRESS + user.getUserUuid());
 
-                log.info("排课完成，适应度：{}", result.getFitness());
+                    log.info("排课完成，适应度：{}", result.getFitness());
+                } catch (Exception e) {
+                    log.error("排课过程发生错误：{}", e.getMessage(), e);
+                    // 记录错误状态到Redis
+                    try {
+                        RBucket<String> errorBucket = redisson.getBucket(
+                                StringConstant.Redis.SCHEDULE_EXECUTE_STATUS + user.getUserUuid());
+                        errorBucket.set("ERROR: " + e.getMessage());
+                        errorBucket.expire(Duration.ofHours(24));
+
+                        log.info("已记录错误状态到Redis：{}", e.getMessage());
+                    } catch (Exception ex) {
+                        log.error("记录错误状态到Redis失败：{}", ex.getMessage(), ex);
+                    }
+                } finally {
+                    // 无论处理成功还是失败，都将hasTask设置为false，以便线程可以处理下一个任务
+                    hasTask = false;
+                    log.info("任务处理完成，线程准备接收下一个任务");
+                }
+            } catch (InterruptedException e) {
+                log.error("线程等待被中断：{}", e.getMessage(), e);
                 hasTask = false;
-            } catch (Exception e) {
-                log.error("排课过程发生错误：", e);
-                Thread.currentThread().interrupt();
-                break;
             } finally {
                 lock.unlock();
             }
         }
-
-        log.info("排课线程结束运行");
     }
 
     /**
@@ -154,7 +169,7 @@ public class AutomaticClassSchedulingThread extends Thread {
      * 将排课结果中的教学班和课程安排信息保存到数据库
      * 同时将冲突信息保存到cs_scheduling_conflict表
      * </p>
-     * 
+     *
      * @param result 排课结果
      */
     private void getSaveScheduleDTO(@NotNull ScheduleResultDTO result) {
@@ -177,9 +192,11 @@ public class AutomaticClassSchedulingThread extends Thread {
                         .setSemesterUuid(result.getSemesterUuid())
                         .setCourseUuid(assignment.getCourse().getCourseLibraryUuid())
                         .setTeachingClassCode(UuidUtil.generateUuidNoDash())
-                        .setTeachingClassName(assignment.getCourse().getName() +
-                                assignment.getCourseType().getCourseEnuType().getChineseName()
-                                +random.nextInt(900000) + 1000)
+                        .setTeachingClassName(
+                                assignment.getCourse().getName() + "(" +
+                                assignment.getCourseType().getCourseEnuType().getChineseName().replace("学时", "") + ")" +
+                                random.nextInt(100,999)
+                        )
                         .setAdministrativeClasses(this.checkClass(assignment.getClassGroup()))
                         .setIsAdministrative(this.checkIfItIsAnAdministrativeClass(assignment.getClassGroup()))
                         .setClassSize(this.detectClassSize(assignment.getClassGroup()))
@@ -200,7 +217,7 @@ public class AutomaticClassSchedulingThread extends Thread {
                     .setTeachingClassUuid(assignment.getTeachingClass().getTeachingClassUuid())
                     .setCourseOwnership("未定义")
                     .setCreditHourType(creditHourTypeUuidMapping.get(assignment.getCourseType().getCourseEnuType()))
-                    .setScheduledHours(this.getscheduleClassHours(assignment.getTimeSlot()))
+                    .setScheduledHours(this.getScheduleClassHours(assignment.getTimeSlot()))
                     .setTotalHours(this.getHoursByCourseType(assignment.getCourseType().getCourseEnuType(),
                             assignment.getCourse()))
                     .setSchedulingPriority(assignment.getPriority())
@@ -310,7 +327,7 @@ public class AutomaticClassSchedulingThread extends Thread {
      * @param timeSlot 时间段列表，表示课程安排的时间
      * @return 返回总学时如果时间段列表为空或null，则返回0
      */
-    private BigDecimal getscheduleClassHours(List<TimeSlotDTO> timeSlot) {
+    private BigDecimal getScheduleClassHours(List<TimeSlotDTO> timeSlot) {
         // 检查时间段列表是否为空或null，如果是，则返回0
         if (timeSlot == null || timeSlot.isEmpty()) {
             return BigDecimal.ZERO;
