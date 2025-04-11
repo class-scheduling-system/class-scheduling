@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.SemesterMapper;
-import com.frontleaves.scheduling.models.entity.SemesterDO;
+import com.frontleaves.scheduling.models.entity.base.SemesterDO;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -42,6 +42,29 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SemesterDAO extends ServiceImpl<SemesterMapper, SemesterDO> {
     private final RedissonClient redisson;
+
+    /**
+     * 保存学期
+     * <p>
+     * 该方法用于保存学期信息，同时会清除相关的 Redis 缓存。
+     * </p>
+     *
+     * @param entity 要保存的学期信息
+     * @return 保存成功返回 {@code true}，否则返回 {@code false}
+     */
+    public boolean saveSemester(SemesterDO entity) {
+        try {
+            this.save(entity);
+            RKeys keys = redisson.getKeys();
+            keys.delete(StringConstant.Redis.SEMESTER_UUID + entity.getSemesterUuid());
+            keys.delete(StringConstant.Redis.SEMESTER_LIST);
+            keys.deleteByPattern(StringConstant.Redis.SEMESTER_PAGE + "*");
+            return true;
+        } catch (Exception e) {
+            log.error("保存学期失败", e);
+            return false;
+        }
+    }
 
     /**
      * 根据学期的唯一标识获取学期信息

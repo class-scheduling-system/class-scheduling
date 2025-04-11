@@ -6,12 +6,12 @@ import com.frontleaves.scheduling.daos.CourseLibraryDAO;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.MajorDAO;
 import com.frontleaves.scheduling.daos.TeacherDAO;
-import com.frontleaves.scheduling.models.dto.DepartmentDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.entity.CourseLibraryDO;
-import com.frontleaves.scheduling.models.entity.DepartmentDO;
-import com.frontleaves.scheduling.models.entity.MajorDO;
-import com.frontleaves.scheduling.models.entity.TeacherDO;
+import com.frontleaves.scheduling.models.dto.base.DepartmentDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.entity.base.CourseLibraryDO;
+import com.frontleaves.scheduling.models.entity.base.DepartmentDO;
+import com.frontleaves.scheduling.models.entity.base.MajorDO;
+import com.frontleaves.scheduling.models.entity.base.TeacherDO;
 import com.frontleaves.scheduling.services.DepartmentService;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.annotation.Resource;
@@ -29,7 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.util.Date;
 import java.util.List;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 class DepartmentTest {
     @Resource

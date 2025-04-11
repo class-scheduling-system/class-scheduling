@@ -31,7 +31,7 @@ package com.frontleaves.scheduling.dao;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.ClassroomDAO;
-import com.frontleaves.scheduling.models.entity.ClassroomDO;
+import com.frontleaves.scheduling.models.entity.base.ClassroomDO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -54,7 +54,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @since v1.0.0
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ClassroomTest {
     @Resource
     private ClassroomDAO classroomDAO;

@@ -36,8 +36,10 @@ import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.dto.base.*;
+import com.frontleaves.scheduling.models.dto.merge.UserAddInfoDTO;
+import com.frontleaves.scheduling.models.dto.merge.UserInfoDTO;
+import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.frontleaves.scheduling.services.UserService;
@@ -54,6 +56,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -95,7 +98,7 @@ public class UserLogic implements UserService {
      * @throws UserAuthenticationException 当Token过期或不存在对应的用户时抛出此异常
      */
     @Override
-    public UserDO getUserByRequest(HttpServletRequest request) {
+    public @NotNull UserDO getUserByRequest(HttpServletRequest request) {
         String getUserToken = HeaderUtil.getAuthorizeUserUuidString(request);
         if (getUserToken != null) {
             UserDO getUser = tokenDAO.getTokenUser(getUserToken);
@@ -543,5 +546,23 @@ public class UserLogic implements UserService {
         if (userDAO.getUserByTel(phone) != null) {
             throw new BusinessException("手机号已存在", ErrorCode.BODY_ERROR);
         }
+    }
+
+    /**
+     * 获取用户信息
+     *
+     * @param userUuid 用户唯一标识符
+     * @return 用户信息数据传输对象
+     */
+    @Override
+    public @Nullable UserDO getUserByUuid(String userUuid) {
+        if (userUuid == null || userUuid.isEmpty()) {
+            throw new BusinessException("丢失用户主键", ErrorCode.PARAMETER_ERROR);
+        }
+        UserDO userDO = userDAO.getUserByUuid(userUuid);
+        if (userDO == null) {
+            throw new BusinessException("用户不存在", ErrorCode.PARAMETER_ERROR);
+        }
+        return userDO;
     }
 }

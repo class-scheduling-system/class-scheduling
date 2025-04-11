@@ -31,7 +31,7 @@ package com.frontleaves.scheduling.dao;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.ClassroomTagDAO;
-import com.frontleaves.scheduling.models.entity.ClassroomTagDO;
+import com.frontleaves.scheduling.models.entity.base.ClassroomTagDO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * 教室标签测试类
  * <p>
  * 该类用于测试 {@code ClassroomTagDAO} 中的方法，特别是对教室标签数据的获取功能。
- * 通过 Spring 的 {@code @SpringBootTest} 注解，该测试类可以在完整的应用上下文中运行，确保了与实际环境的一致性。
+ * 通过 Spring 的 {@code @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)} 注解，该测试类可以在完整的应用上下文中运行，确保了与实际环境的一致性。
  * 测试过程中，首先会清除 Redis 缓存中的教室标签列表，然后从数据库中获取教室标签，并再次尝试从缓存中获取这些标签，最后验证两次获取的结果是否一致。
  * </p>
  *
@@ -56,7 +56,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @since v1.0.0
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ClassroomTagTest {
 
     @Resource

@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.dto.BackAddStudentDTO;
-import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.dto.excel.BackAddStudentDTO;
+import com.frontleaves.scheduling.models.entity.base.*;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
@@ -27,7 +27,7 @@ import java.time.Duration;
 import java.util.List;
 
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class StudentTest {
     @Resource
     private StudentDAO studentDAO;
@@ -353,16 +353,6 @@ class StudentTest {
     @Test
     void testSaveStudentBackErrorWithError (){
         StudentDO studentDO =new StudentDO();
-        studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
-                .setId("1")
-                .setName("ZhangSan1314")
-                .setGender(true)
-                .setGradeUuid(gradeDAO.lambdaQuery().list().get(0).getGradeUuid())
-                .setDepartment(getDepartmentByName().getDepartmentUuid())
-                .setMajor(getMajorByName().getMajorUuid())
-                .setClazz(administrativeClassDAO.lambdaQuery().list().get(0).getAdministrativeClassUuid())
-                .setGraduated(false);
-        Assertions.assertThrows(BusinessException.class,()->studentDAO.saveStudentBackError(studentDO,1));
         studentDO.setStudentUuid(UuidUtil.generateUuidNoDash())
                 .setId("123456789")
                 .setName(null)

@@ -30,8 +30,8 @@ package com.frontleaves.scheduling.configs.aspect;
 
 import com.frontleaves.scheduling.annotations.IgnoreLog;
 import com.frontleaves.scheduling.daos.RequestLogDAO;
-import com.frontleaves.scheduling.models.entity.RequestLogDO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.base.RequestLogDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.frontleaves.scheduling.services.UserService;
 import com.frontleaves.scheduling.utils.RequestUtil;
 import com.xlf.utility.aspect.BusinessLogAspect;

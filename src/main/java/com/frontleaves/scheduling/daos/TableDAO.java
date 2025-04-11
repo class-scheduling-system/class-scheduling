@@ -22,7 +22,7 @@ package com.frontleaves.scheduling.daos;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.mappers.TableMapper;
-import com.frontleaves.scheduling.models.entity.TableDO;
+import com.frontleaves.scheduling.models.entity.base.TableDO;
 import org.springframework.stereotype.Repository;
 
 /**

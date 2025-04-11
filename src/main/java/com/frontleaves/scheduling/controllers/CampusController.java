@@ -1,10 +1,14 @@
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
-import com.frontleaves.scheduling.models.dto.CampusDTO;
-import com.frontleaves.scheduling.models.dto.ListOfCampusDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.entity.CampusDO;
+import com.frontleaves.scheduling.models.dto.base.CampusDTO;
+import com.frontleaves.scheduling.models.dto.base.FileDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddCampusDTO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
+import com.frontleaves.scheduling.models.entity.base.CampusDO;
+import com.frontleaves.scheduling.models.vo.BatchAddCampusVO;
 import com.frontleaves.scheduling.models.vo.CampusVO;
 import com.frontleaves.scheduling.services.CampusService;
 import com.xlf.utility.BaseResponse;
@@ -17,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -135,16 +140,73 @@ public class CampusController {
     /**
      * 获取校区列表
      * <p>
-     * 该方法用于从系统中获取所有校区的列表，并将其封装为 {@code List<ListOfCampusDTO>} 对象返回。此操作需要管理员权限。
+     * 该方法用于从系统中获取所有校区的列表，并将其封装为 {@code List<CampusLiteDTO>} 对象返回。此操作需要管理员权限。
      *
-     * @return 包含校区列表的 {@code ResponseEntity<BaseResponse<List<ListOfCampusDTO>>>} 对象，其中 {@code BaseResponse} 封装了操作结果和消息
+     * @return 包含校区列表的 {@code ResponseEntity<BaseResponse<List<CampusLiteDTO>>>} 对象，其中 {@code BaseResponse} 封装了操作结果和消息
      */
-    @RequestRole({"管理员"})
+    @RequestLogin
     @GetMapping("/list")
-    public ResponseEntity<BaseResponse<List<ListOfCampusDTO>>> getCampusList() {
-        List<ListOfCampusDTO> campusList = campusService.getCampusList();
+    public ResponseEntity<BaseResponse<List<CampusLiteDTO>>> getCampusList() {
+        List<CampusLiteDTO> campusList = campusService.getCampusList();
         return ResultUtil.success("获取校区列表成功", campusList);
     }
 
+    /**
+     * 获取校区导入模板
+     * <p>
+     * 该方法用于提供校区批量导入的Excel模板文件，以Base64编码的形式返回。
+     * 此接口仅限拥有"管理员"角色的用户访问。
+     * </p>
+     *
+     * @return 包含Excel模板文件Base64编码的响应实体
+     */
+    @RequestRole({"管理员"})
+    @GetMapping("/get-template")
+    public ResponseEntity<BaseResponse<FileDTO>> getCampusImportTemplate() {
+        // 获取校区导入模板的字节数组
+        byte[] bytes = campusService.getCampusImportTemplate();
 
+        // 将字节数组转换为Base64编码字符串
+        FileDTO fileDTO = new FileDTO(
+                "校区导入模板.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + Base64.getEncoder().encodeToString(bytes)
+        );
+
+        return ResultUtil.success("获取校区导入模板成功", fileDTO);
+    }
+
+    /**
+     * 批量导入校区信息
+     * <p>
+     * 该方法用于批量导入校区信息，支持忽略错误的选项。
+     * 只有具有"管理员"角色的用户才能访问此方法。
+     * </p>
+     *
+     * @param batchAddCampusVO 批量添加校区的信息对象
+     * @return 返回一个包含操作结果的响应实体对象
+     */
+    @RequestRole({"管理员"})
+    @PostMapping("/batch-import")
+    public ResponseEntity<BaseResponse<BackAddCampusDTO>> batchImportCampus(
+            @RequestBody @Validated BatchAddCampusVO batchAddCampusVO
+    ) {
+        // 验证批量导入校区数据并返回处理后的文件
+        byte[] file = campusService.verifyCampusBatchAndBackFile(batchAddCampusVO);
+
+        // 根据是否忽略错误选择相应的导入方法
+        BackAddCampusDTO backAddCampusDTO = Optional.ofNullable(batchAddCampusVO.getIgnoreError())
+                .filter(Boolean.TRUE::equals)
+                .map(ignoreError -> campusService.batchImportIgnoreError(file))
+                .orElseGet(() -> campusService.batchImportNoIgnoreError(file));
+
+        // 检查是否有校区导入失败
+        if (backAddCampusDTO.getFailedCount() > 0) {
+            // 如果有校区导入失败，返回带有错误信息的响应
+            return ResultUtil.success("存在添加失败的校区", backAddCampusDTO);
+        }
+
+        // 如果所有校区都成功导入，返回批量添加校区成功的响应
+        return ResultUtil.success("批量添加校区成功", backAddCampusDTO);
+    }
 }

@@ -32,7 +32,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.frontleaves.scheduling.constants.LogConstant;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.PermissionDAO;
-import com.frontleaves.scheduling.models.entity.PermissionDO;
+import com.frontleaves.scheduling.models.entity.base.PermissionDO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -54,7 +54,7 @@ import java.util.List;
  * @since v1.0.0
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class PermissionTest {
     @Resource
     private PermissionDAO permissionDAO;

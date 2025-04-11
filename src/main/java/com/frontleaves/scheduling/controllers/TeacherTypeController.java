@@ -2,8 +2,8 @@ package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.TeacherTypeDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherTypeDTO;
 import com.frontleaves.scheduling.services.TeacherTypeService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;

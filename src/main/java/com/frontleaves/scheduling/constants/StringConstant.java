@@ -81,6 +81,8 @@ public class StringConstant {
     public static final String TABLES_CHAIRS_NOT_EXIST = "桌椅类型不存在";
     public static final String TABLES_CHAIRS_NAME_EXISTS = "桌椅类型名称已存在";
     public static final String TABLES_CHAIRS_UUID_FORMAT_ERROR = "桌椅类型UUID格式不正确";
+    public static final String COURSE_UUID_FORMAT_ERROR = " 课程UUID格式不正确";
+
 
     private StringConstant() {
         log.error("StringConstant 不能被实例化");
@@ -104,6 +106,7 @@ public class StringConstant {
         public static final String STUDENT_ID = "stu:id:";
         public static final String STUDENT_UUID = "stu:uuid:";
         public static final String STUDENT_LIST = "stu:list";
+        public static final String STUDENT_LIST_BY_DEPARTMENT_AND_CLASS = "stu:list:department:class:";
         public static final String STUDENT_USER_UUID = "stu:user:uuid:";
         public static final String TEACHER_ID = "tea:id:";
         public static final String TEACHER_UUID = "tea:uuid:";
@@ -123,13 +126,20 @@ public class StringConstant {
         public static final String CAMPUS_CODE = "campus:code:";
         public static final String MAJOR_UUID = "major:uuid:";
         public static final String CAMPUS_LIST = "campus:list";
+        public static final String CAMPUS_FULL_LIST = "campus:full:list";
         public static final String CAMPUS_PAGE_OF_LIST = "campus:page:";
         public static final String DEPARTMENT_UUID = "department:uuid:";
         public static final String DEPARTMENT_LIST = "department:list";
+        public static final String COURSE_LIBRARY_UUID = "course:library:uuid";
+        public static final String COURSE_CATEGORY_UUID = "course:category:uuid:";
+        public static final String COURSE_NATURE_UUID = "course:nature:uuid:";
+        public static final String COURSE_PROPERTY_UUID = "course:property:uuid:";
+        public static final String COURSE_TYPE_UUID = "course:type:uuid:";
         public static final String UNIT_CATEGORY_UUID = "unit:cate:uuid:";
         public static final String UNIT_CATEGORY_NAME = "unit:cate:name:";
         public static final String UNIT_TYPE_UUID = "unit:type:uuid:";
         public static final String CLASSROOM_TAG_LIST = "classroom:tag:list";
+        public static final String COURSE_LIBRARY_LITE_LIST = "course:library:lite:list";
         public static final String CLASSROOM_TAG_UUID = "classroom:tag:uuid:";
         public static final String CLASSROOM_TYPE_LIST = "classroom:type:list";
         public static final String CLASSROOM_TYPE_UUID = "classroom:type:uuid:";
@@ -148,6 +158,7 @@ public class StringConstant {
         public static final String GRADE_LIST = "grade:list";
         public static final String ADMINISTRATIVE_CLASS_LIST = "ait:class:list";
         public static final String ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT = "ait:class:list:department:";
+        public static final String ADMINISTRATIVE_CLASS_LIST_BY_MAJOR = "ait:class:list:major:";
         public static final String ADMINISTRATIVE_CLASS_MAPPING_BY_CALZZ = "ait:class:mapping:class:";
         public static final String ACADEMIC_AFFAIRS_PERMISSION_USER_UUID = "aca:affairs:per:user:uuid:";
         public static final String ACADEMIC_AFFAIRS_PERMISSION_UUID = "aca:affairs:per:uuid:";
@@ -170,9 +181,46 @@ public class StringConstant {
         public static final String CLASS_ASSIGNMENT_PAGE = "class:assignment:page:";
         public static final String SEMESTER_UUID = "semester:uuid:";
         public static final String SEMESTER_ENABLED = "semester:enabled:";
-        public static final String COURSE_LIBRARY_UUID = "course:library:uuid:";
         public static final String SEMESTER_LIST = "semester:list";
         public static final String SEMESTER_PAGE = "semester:page:";
+        public static final String TEACHER_COURSE_QUALIFICATION_UUID = "teacher:course:qualification:uuid:";
+        public static final String TEACHER_COURSE_QUALIFICATION_COURSE_LIBRARY_UUID = "teacher:course:qualification:course:library:uuid:";
+        public static final String COURSE_TYPE_LIST = "course:type:list";
+        public static final String CLASSROOM_BUILDING = "classroom:building:";
+        public static final String SCHEDULE_LESSONS = "schedule:lessons:";
+        public static final String COURSE_LIBRARY_LIST = "course:library:list";
+        public static final String COURSE_LIBRARY_PAGE_DEPARTMENT = "course:library:list:department:";
+        public static final String SCHEDULE_EXECUTE_STATUS = "schedule:execute:status:";
+        public static final String SCHEDULE_EXECUTE_PROGRESS = "schedule:execute:progress:";
+        public static final String CREDIT_HOUR_TYPE_UUID = "credit:hour:type:uuid:";
+        public static final String TEACHING_CLASS_LIST_SEMESTER = "teaching:class:list:semester:";
+        public static final String CLASS_ASSIGNMENT_LIST_SEMESTER = "class:assignment:list:semester:";
+        public static final String COURSE_CATEGORY_LIST = "course:category:list";
+        public static final String COURSE_PROPERTY_LIST = "course:property:list";
+        public static final String COURSE_NATURE_LIST = "course:nature:list";
+        public static final String COURSE_LIBRARY_ID = "course:library:id:";
+        public static final String CLASSROOM_LIST = "classroom:list";
+        public static final String TEACHING_CLASS_UUID = "teaching:class:uuid:";
+        public static final String CREDIT_HOUR_TYPE_LIST = "credit:hour:type:list";
+        public static final String SCHEDULE_RESULT = "schedule:result:";
+        public static final String SCHEDULING_TASK = "scheduling:task:";
+        public static final String SCHEDULING_ITERATIVE = "scheduling:iterative:";
+        public static final String SCHEDULING_TASK_LIST = "scheduling:task:list:";
+        
+        /**
+         * 当前学期缓存键
+         */
+        public static final String CURRENT_SEMESTER = "semester:current";
+        
+        /**
+         * 教师课程表缓存键前缀
+         */
+        public static final String TEACHER_COURSE_SCHEDULE = "course:schedule:teacher:";
+        
+        /**
+         * 学生课程表缓存键前缀
+         */
+        public static final String STUDENT_COURSE_SCHEDULE = "course:schedule:student:";
 
         private Redis() {
             log.error("Redis 不能被实例化");
@@ -253,6 +301,20 @@ public class StringConstant {
 
         private Major() {
             log.error("不能被实例化");
+        }
+    }
+
+    /**
+     * 行政班级常量
+     */
+    public static class AdministrativeClass {
+        public static final String ADMINISTRATIVE_CLASS_NOT_FOUND = "行政班级不存在";
+        public static final String ADMINISTRATIVE_CLASS_UUID_FORMAT_ERROR = "行政班级UUID格式无效";
+        public static final String ADMINISTRATIVE_CLASS_CODE_EXISTS = "班级编号已存在";
+        public static final String ADMINISTRATIVE_CLASS_NAME_EXISTS = "班级名称已存在";
+
+        private AdministrativeClass() {
+            log.error("AdministrativeClass 不能被实例化");
         }
     }
 

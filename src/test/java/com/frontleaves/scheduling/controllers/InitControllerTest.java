@@ -31,7 +31,7 @@ package com.frontleaves.scheduling.controllers;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.RoleDAO;
 import com.frontleaves.scheduling.daos.SystemDAO;
-import com.frontleaves.scheduling.models.dto.RoleDTO;
+import com.frontleaves.scheduling.models.dto.base.RoleDTO;
 import com.frontleaves.scheduling.models.vo.InitVO;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.exception.BusinessException;
@@ -43,7 +43,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.ResponseEntity;
 
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class InitControllerTest {
     // 备份初始化模式
     private String backupInitMode;

@@ -2,14 +2,20 @@ package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.ClassAssignmentDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.ClassAssignmentDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.BackAdjustCourseScheduleDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.BackClassAssignmentDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.BackDetailedAssignmentDTO;
+import com.frontleaves.scheduling.models.vo.AdjustmentsVO;
 import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
 import com.frontleaves.scheduling.services.ClassAssignmentService;
 import com.xlf.utility.BaseResponse;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.ResultUtil;
 import com.xlf.utility.exception.BusinessException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -45,12 +51,30 @@ public class ClassAssignmentController {
      */
     @RequestRole({"教务"})
     @PostMapping("")
-    public ResponseEntity<BaseResponse<Void>> add(
+    public ResponseEntity<BaseResponse<List<SchedulingConflictDTO>>> add(
             @RequestBody @Validated ClassAssignmentVO vo
     ) {
-        classAssignmentService.add(vo);
-        return ResultUtil.success("排课分配添加成功");
+        List<SchedulingConflictDTO> schedulingConflict =  classAssignmentService.add(vo);
+        return ResultUtil.success("排课分配添加成功",schedulingConflict);
     }
+
+    /**
+     * 更新排课分配的接口
+     * @param vo 排课分配请求对象，包含需要验证的信息
+     * @param request HttpServletRequest对象，用于获取请求信息
+     * @return 返回包含成功消息的响应实体
+     */
+    @PutMapping("")
+    @RequestRole("教务")
+    public ResponseEntity<BaseResponse<BackAdjustCourseScheduleDTO>> update(
+            @RequestBody @Validated AdjustmentsVO vo,
+            HttpServletRequest request
+    ) {
+        BackAdjustCourseScheduleDTO schedulingConflict =  classAssignmentService.update(vo,request);
+        return ResultUtil.success("排课分配更新成功",schedulingConflict);
+    }
+
+
 
     /**
      * 根据UUID获取排课分配信息
@@ -60,7 +84,7 @@ public class ClassAssignmentController {
      */
     @RequestRole({"教务"})
     @GetMapping("/{class_assignment_uuid}")
-    public ResponseEntity<BaseResponse<ClassAssignmentDTO>> getById(
+    public ResponseEntity<BaseResponse<BackClassAssignmentDTO>> getById(
             @PathVariable("class_assignment_uuid") String classAssignmentUuid
     ) {
         String getUuid = Optional.ofNullable(classAssignmentUuid)
@@ -68,7 +92,8 @@ public class ClassAssignmentController {
                 .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
                 .orElseThrow(() -> new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
         ClassAssignmentDTO dto = classAssignmentService.getById(getUuid);
-        return ResultUtil.success("查询成功", dto);
+        BackClassAssignmentDTO back = classAssignmentService.exchange(dto);
+        return ResultUtil.success("查询成功", back);
     }
 
     /**
@@ -77,35 +102,24 @@ public class ClassAssignmentController {
      *
      * @param page         页码，默认为1
      * @param size         每页记录数，默认为20
-     * @param semesterUuid 学期UUID，可选参数
+     * @param semesterUuid 学期UUID，必选
      * @param courseUuid   课程UUID，可选参数
      * @param teacherUuid  教师UUID，可选参数
      * @return 返回包含排课分配列表的分页数据
      */
     @RequestRole({"教务"})
     @GetMapping("/page")
-    public ResponseEntity<BaseResponse<PageDTO<ClassAssignmentDTO>>> page(
+    public ResponseEntity<BaseResponse<PageDTO<BackClassAssignmentDTO>>> page(
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "20") Integer size,
-            @RequestParam(value = "semester_uuid", required = false) String semesterUuid,
+            @RequestParam(value = "semester_uuid") String semesterUuid,
             @RequestParam(value = "course_uuid", required = false) String courseUuid,
-            @RequestParam(value = "teacher_uuid", required = false) String teacherUuid
+            @RequestParam(value = "teacher_uuid", required = false) String teacherUuid,
+            HttpServletRequest request
     ) {
         if (size > 200) {
             throw new BusinessException(StringConstant.ErrorMessage.PAGE_SIZE_TOO_LARGE, ErrorCode.PARAMETER_INVALID);
         }
-
-        // 验证UUID格式（如果提供）
-        String getSemesterUuid = Optional.ofNullable(semesterUuid)
-                .filter(uuid -> !uuid.isBlank())
-                .map(uuid -> {
-                    if (!uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-                        throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
-                    }
-                    return uuid;
-                })
-                .orElse(null);
-
         String getCourseUuid = Optional.ofNullable(courseUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
@@ -115,7 +129,6 @@ public class ClassAssignmentController {
                     return uuid;
                 })
                 .orElse(null);
-
         String getTeacherUuid = Optional.ofNullable(teacherUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
@@ -125,8 +138,8 @@ public class ClassAssignmentController {
                     return uuid;
                 })
                 .orElse(null);
-
-        PageDTO<ClassAssignmentDTO> pageResult = classAssignmentService.page(page, size, getSemesterUuid, getCourseUuid, getTeacherUuid);
+        PageDTO<BackClassAssignmentDTO> pageResult = classAssignmentService.page(
+                page, size, semesterUuid, getCourseUuid, getTeacherUuid,request);
         return ResultUtil.success("查询排课分配列表成功", pageResult);
     }
 
@@ -149,54 +162,25 @@ public class ClassAssignmentController {
         return ResultUtil.success("排课分配记录已删除");
     }
 
-    /**
-     * 更新排课分配信息接口
-     *
-     * @param classAssignmentUuid 排课分配的唯一标识符（UUID）
-     * @param vo                  排课分配更新请求对象
-     * @return 返回包含更新操作结果的响应实体
-     */
-    @RequestRole({"教务"})
-    @PutMapping("/{class_assignment_uuid}")
-    public ResponseEntity<BaseResponse<Void>> update(
-            @PathVariable("class_assignment_uuid") String classAssignmentUuid,
-            @RequestBody @Validated ClassAssignmentVO vo
-    ) {
-        String getUuid = Optional.ofNullable(classAssignmentUuid)
-                .filter(uuid -> !uuid.isBlank())
-                .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
-                .orElseThrow(() -> new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
-        classAssignmentService.update(getUuid, vo);
-        return ResultUtil.success("排课分配信息已更新");
-    }
+
 
     /**
      * 获取排课分配列表接口
      * 该接口返回排课分配的列表信息，支持按学期、课程和教师进行筛选
      *
-     * @param semesterUuid 学期UUID，可选参数
+     * @param semesterUuid 学期UUID,必选
      * @param courseUuid   课程UUID，可选参数
      * @param teacherUuid  教师UUID，可选参数
      * @return 返回包含排课分配列表的响应实体
      */
     @RequestRole({"教务"})
     @GetMapping("/list")
-    public ResponseEntity<BaseResponse<List<ClassAssignmentDTO>>> list(
-            @RequestParam(value = "semester_uuid", required = false) String semesterUuid,
+    public ResponseEntity<BaseResponse<List<BackDetailedAssignmentDTO>>> list(
+            @RequestParam(value = "semester_uuid") String semesterUuid,
             @RequestParam(value = "course_uuid", required = false) String courseUuid,
-            @RequestParam(value = "teacher_uuid", required = false) String teacherUuid
+            @RequestParam(value = "teacher_uuid", required = false) String teacherUuid,
+            HttpServletRequest request
     ) {
-        // 验证UUID格式（如果提供）
-        String getSemesterUuid = Optional.ofNullable(semesterUuid)
-                .filter(uuid -> !uuid.isBlank())
-                .map(uuid -> {
-                    if (!uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION)) {
-                        throw new BusinessException(StringConstant.ErrorMessage.SEMESTER_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR);
-                    }
-                    return uuid;
-                })
-                .orElse(null);
-
         String getCourseUuid = Optional.ofNullable(courseUuid)
                 .filter(uuid -> !uuid.isBlank())
                 .map(uuid -> {
@@ -217,7 +201,7 @@ public class ClassAssignmentController {
                 })
                 .orElse(null);
 
-        List<ClassAssignmentDTO> list = classAssignmentService.list(getSemesterUuid, getCourseUuid, getTeacherUuid);
+        List<BackDetailedAssignmentDTO> list = classAssignmentService.list(semesterUuid,getCourseUuid,getTeacherUuid,request);
         return ResultUtil.success("查询排课分配列表成功", list);
     }
 }

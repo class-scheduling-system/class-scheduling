@@ -1,25 +1,26 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.daos.StudentDAO;
-import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.StudentDTO;
-import com.frontleaves.scheduling.models.dto.StudentDisableDTO;
-import com.frontleaves.scheduling.models.entity.StudentDO;
-import com.frontleaves.scheduling.models.entity.UserDO;
-import com.frontleaves.scheduling.models.entity.multiple.UserAndStudentDO;
-import com.frontleaves.scheduling.models.vo.StudentVO;
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.*;
 import com.frontleaves.scheduling.exceptions.lib.DataInvalidException;
 import com.frontleaves.scheduling.exceptions.lib.DataNotFoundException;
-import com.frontleaves.scheduling.models.dto.*;
-import com.frontleaves.scheduling.models.entity.*;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.StudentDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddStudentDTO;
+import com.frontleaves.scheduling.models.dto.excel.PrepareStudentExampleDTO;
+import com.frontleaves.scheduling.models.dto.excel.StudentImportDTO;
+import com.frontleaves.scheduling.models.dto.lite.StudentDisableDTO;
+import com.frontleaves.scheduling.models.dto.lite.StudentLiteDTO;
+import com.frontleaves.scheduling.models.dto.merge.ImportBaseStudentDTO;
+import com.frontleaves.scheduling.models.dto.merge.ValidateStudentReturnDTO;
+import com.frontleaves.scheduling.models.entity.base.*;
+import com.frontleaves.scheduling.models.entity.multiple.UserAndStudentDO;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
+import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.services.StudentService;
 import com.frontleaves.scheduling.services.UserService;
 import com.frontleaves.scheduling.utils.ProjectUtil;
@@ -29,11 +30,11 @@ import com.xlf.utility.util.UuidUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.Nullable;
-import org.springframework.beans.BeanUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.springframework.beans.BeanUtils;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -100,35 +101,38 @@ public class StudentLogic implements StudentService {
     /**
      * 获取学生列表信息
      *
-     * @param page        页码,从1开始
-     * @param size        每页记录数
-     * @param isDesc      是否降序排列
-     * @param clazz       可选参数,班级名称
-     * @param isGraduated 可选参数,是否毕业
-     * @param name        可选参数,学生姓名
-     * @param id          可选参数,学生ID
-     * @param status      可选参数,学生状态
+     * @param page          页码,从1开始
+     * @param size          每页记录数
+     * @param isDesc        是否降序排列
+     * @param clazz         可选参数,班级名称
+     * @param isGraduated   可选参数,是否毕业
+     * @param name          可选参数,学生姓名
+     * @param id            可选参数,学生ID
+     * @param status        可选参数,学生状态
+     * @param departmentUuid 可选参数,部门UUID
      * @return 返回一个包含学生信息的PageDTO对象
      */
     @Override
     public PageDTO<StudentDTO> getStudentList(int page, int size, Boolean isDesc,
-                                              @Nullable String clazz, @Nullable Boolean isGraduated, @Nullable String name, @Nullable String id, @Nullable String status) {
+                                              @Nullable String clazz, @Nullable Boolean isGraduated, 
+                                              @Nullable String name, @Nullable String id, @Nullable String status,
+                                              @Nullable String departmentUuid) {
         // 调用DAO层方法获取分页学生数据
         Page<StudentDO> resultPage;
 
         if (status == null || status.isBlank()) {
-            resultPage = studentDAO.listStudents(page, size, isDesc, clazz, isGraduated, name, id, null);
+            resultPage = studentDAO.listStudents(page, size, isDesc, clazz, isGraduated, name, id, null, departmentUuid);
         } else {
             resultPage = switch (status) {
                 case "0" -> {
-                    List<StudentDO> list = studentDAO.getStudentNoRegisterUserList(page, size, isDesc, clazz, isGraduated, name, id, (byte) 0);
+                    List<StudentDO> list = studentDAO.getStudentNoRegisterUserList(page, size, isDesc, clazz, isGraduated, name, id, (byte) 0, departmentUuid);
                     Page<StudentDO> pageObj = new Page<>(page, size, list.size());
                     pageObj.setRecords(list);
                     yield pageObj;
                 }
                 case "1", "2" -> {
                     Byte studentStatus = "1".equals(status) ? (byte) 1 : (byte) 2;
-                    List<UserAndStudentDO> list = studentDAO.getStudentListWithUser(page, size, isDesc, clazz, isGraduated, name, id, String.valueOf(studentStatus));
+                    List<UserAndStudentDO> list = studentDAO.getStudentListWithUser(page, size, isDesc, clazz, isGraduated, name, id, String.valueOf(studentStatus), departmentUuid);
                     List<StudentDO> studentList = list.stream().map(UserAndStudentDO::getStudent).toList();
 
                     Page<StudentDO> pageObj = new Page<>(page, size, list.size());
@@ -144,20 +148,24 @@ public class StudentLogic implements StudentService {
             resultPage = new Page<>(page, size, 0);
         }
 
-        // 使用ProjectUtil 中的 convertPageToPageDTO 方法进行抓换
+        // 使用ProjectUtil 中的 convertPageToPageDTO 方法进行转换
         PageDTO<StudentDTO> pageDTO = ProjectUtil.convertPageToPageDTO(resultPage, StudentDTO.class);
-        pageDTO.getRecords().forEach(dto -> {
-            if (dto.getUserUuid() == null) {
-                dto.setStatus((byte) 0);
+
+        // 设置学生状态
+        for (StudentDTO studentDTO : pageDTO.getRecords()) {
+            // 根据 userUuid 判断学生状态
+            if (studentDTO.getUserUuid() == null || studentDTO.getUserUuid().isBlank()) {
+                studentDTO.setStatus((byte) 0);
             } else {
-                Byte studentStatus = studentDAO.getUserStatusByUuid(dto.getUserUuid());
+                Byte studentStatus = studentDAO.getUserStatusByUuid(studentDTO.getUserUuid());
                 if (studentStatus != null && studentStatus == 1) {
-                    dto.setStatus((byte) 1);
+                    studentDTO.setStatus((byte) 1);
                 } else {
-                    dto.setStatus((byte) 2);
+                    studentDTO.setStatus((byte) 2);
                 }
             }
-        });
+        }
+
         return pageDTO;
     }
 
@@ -979,4 +987,22 @@ public class StudentLogic implements StudentService {
         // 返回部门UUID
         return academicAffairsPermissionDO.getDepartment();
     }
+
+    /**
+     * 获取学生列表（根据部门和行政班进行筛选）
+     * 
+     * @param departmentUuid 部门UUID，可选参数
+     * @param administrativeClassUuid 行政班UUID，可选参数
+     * @return 返回学生轻量级列表
+     */
+    @Override
+    public List<StudentLiteDTO> getStudentLiteList(@Nullable String departmentUuid, @Nullable String administrativeClassUuid) {
+        // 调用DAO层方法获取学生列表
+        List<StudentDO> studentList = studentDAO.getStudentListByDepartmentAndClass(departmentUuid, administrativeClassUuid);
+        if (studentList == null) {
+            return List.of();
+        }
+        return BeanUtil.copyToList(studentList, StudentLiteDTO.class);
+    }
+    
 }

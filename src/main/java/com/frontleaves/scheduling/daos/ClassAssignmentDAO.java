@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.ClassAssignmentMapper;
-import com.frontleaves.scheduling.models.entity.ClassAssignmentDO;
+import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
 import com.frontleaves.scheduling.utils.ProjectUtil;
 import com.xlf.utility.exception.library.ServerInternalErrorException;
 import com.xlf.utility.util.ConvertUtil;
@@ -115,18 +115,23 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
      * 结果会被缓存在 Redis 中，缓存时间为一小时。
      * </p>
      *
-     * @param semesterUuid 学期UUID（可选）
-     * @param courseUuid   课程UUID（可选）
-     * @param teacherUuid  教师UUID（可选）
+     * @param semesterUuid          学期UUID（可选）
+     * @param courseUuid            课程UUID（可选）
+     * @param teacherUuid           教师UUID（可选）
+     * @param teachingClassUuidList 教学班UUID列表（可选）
      * @return 返回排课分配列表
      */
-    public List<ClassAssignmentDO> list(String semesterUuid, String courseUuid, String teacherUuid) {
-        // 构建缓存键
+    public List<ClassAssignmentDO> getList(
+            String semesterUuid,
+            String courseUuid,
+            String teacherUuid,
+            List<String> teachingClassUuidList) {
+        // 构建缓存键，包含教学班列表的哈希
         String cacheKey = StringConstant.Redis.CLASS_ASSIGNMENT_LIST +
                 (semesterUuid != null ? semesterUuid : "all") + ":" +
                 (courseUuid != null ? courseUuid : "all") + ":" +
-                (teacherUuid != null ? teacherUuid : "all");
-
+                (teacherUuid != null ? teacherUuid : "all") + ":" +
+                teachingClassUuidList.hashCode();
         RList<ClassAssignmentDO> cacheList = redisson.getList(cacheKey);
         if (!cacheList.isExists()) {
             // 构建查询条件
@@ -140,15 +145,18 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
             if (teacherUuid != null) {
                 wrapper.eq(ClassAssignmentDO::getTeacherUuid, teacherUuid);
             }
-
+            // 添加教学班UUID列表过滤条件
+            if (teachingClassUuidList != null && !teachingClassUuidList.isEmpty()) {
+                teachingClassUuidList.forEach(teachingClassUuid ->
+                        wrapper.or().like(ClassAssignmentDO::getTeachingClassUuid, teachingClassUuid)
+                );
+            }
             // 执行查询
             List<ClassAssignmentDO> entityList = this.list(wrapper);
-
             // 如果查询结果为空，返回空列表
             if (entityList.isEmpty()) {
                 return new ArrayList<>();
             }
-
             // 缓存结果
             cacheList.addAll(entityList);
             cacheList.expire(Duration.ofHours(1));
@@ -173,6 +181,7 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_UUID + entity.getClassAssignmentUuid());
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_UUID + "*");
     }
 
     /**
@@ -190,6 +199,7 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_UUID + classAssignmentUuid);
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + "*");
     }
 
     /**
@@ -199,22 +209,28 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
      * 结果会被缓存在 Redis 中，缓存时间为一小时。
      * </p>
      *
-     * @param page         当前页码
-     * @param size         每页大小
-     * @param semesterUuid 学期UUID（可选）
-     * @param courseUuid   课程UUID（可选）
-     * @param teacherUuid  教师UUID（可选）
+     * @param page              当前页码
+     * @param size              每页大小
+     * @param semesterUuid      学期UUID（可选）
+     * @param courseUuid        课程UUID（可选）
+     * @param teacherUuid       教师UUID（可选）
+     * @param teachingClassUuidList 教学班UUID列表（可选）
      * @return 返回排课分配分页数据
      */
     @Nullable
-    public Page<ClassAssignmentDO> getClassAssignmentPage(Integer page, Integer size, String semesterUuid, String courseUuid, String teacherUuid) {
-        // 构建缓存键
+    public Page<ClassAssignmentDO> getClassAssignmentPage(
+            Integer page,
+            Integer size,
+            String semesterUuid,
+            String courseUuid,
+            String teacherUuid, List<String> teachingClassUuidList) {
+
         String cacheKey = StringConstant.Redis.CLASS_ASSIGNMENT_PAGE +
                 page + ":" + size + ":" +
                 (semesterUuid != null ? semesterUuid : "all") + ":" +
                 (courseUuid != null ? courseUuid : "all") + ":" +
-                (teacherUuid != null ? teacherUuid : "all");
-
+                (teacherUuid != null ? teacherUuid : "all") + ":" +
+                teachingClassUuidList.hashCode();
         RMap<String, String> cacheMap = redisson.getMap(cacheKey);
         if (cacheMap.isEmpty()) {
             // 构建查询条件
@@ -228,11 +244,54 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
             if (teacherUuid != null) {
                 wrapper.eq(ClassAssignmentDO::getTeacherUuid, teacherUuid);
             }
-
+            // 添加教学班UUID列表的过滤条件
+            if (teachingClassUuidList != null && !teachingClassUuidList.isEmpty()) {
+                teachingClassUuidList.forEach(
+                        teachingClassUuid -> wrapper.or().like(ClassAssignmentDO::getTeachingClassUuid, teachingClassUuid)
+                );
+            }
             // 执行分页查询并缓存结果
             return ProjectUtil.queryAndCache(wrapper, page, size, cacheMap);
         } else {
             return ProjectUtil.convertMapToPage(cacheMap, ClassAssignmentDO.class);
         }
     }
+
+    /**
+     * 根据学期UUID获取排课分配列表
+     *
+     * @param semesterUuid 学期UUID
+     * @return 排课分配列表
+     */
+    public List<ClassAssignmentDO> getClassAssignmentListBySemester(String semesterUuid) {
+        RList<ClassAssignmentDO> rList = redisson.getList(
+                StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + semesterUuid);
+        if (!rList.isExists()) {
+            List<ClassAssignmentDO> list = this.lambdaQuery()
+                    .eq(ClassAssignmentDO::getSemesterUuid, semesterUuid)
+                    .list();
+            if (!list.isEmpty()) {
+                rList.addAll(list);
+                rList.expire(Duration.ofHours(1));
+                return list;
+            }
+            return List.of();
+        }
+        return rList.readAll();
+    }
+
+    /**
+     * 保存排课分配
+     *
+     * @param classAssignmentDO 排课分配数据对象
+     */
+    public void saveClassAssignment(ClassAssignmentDO classAssignmentDO) {
+        RKeys keys = redisson.getKeys();
+        this.save(classAssignmentDO);
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + "*");
+    }
+
+
 }

@@ -1,0 +1,589 @@
+package com.frontleaves.scheduling.logic.scheduling;
+
+import cn.hutool.core.bean.BeanUtil;
+import com.frontleaves.scheduling.models.dto.base.AdministrativeClassDTO;
+import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
+import com.frontleaves.scheduling.models.dto.base.TeacherCoursePreferencesDTO;
+import com.frontleaves.scheduling.models.dto.base.TeachingClassDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
+import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.*;
+import com.frontleaves.scheduling.services.scheduling.GenerateInitialPopulationService;
+import com.frontleaves.scheduling.utils.ClassroomSelectionUtil;
+import com.frontleaves.scheduling.utils.TimeSlotGeneratorUtil;
+import com.xlf.utility.util.UuidUtil;
+import jakarta.annotation.Nonnull;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.springframework.stereotype.Service;
+
+import java.security.SecureRandom;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * 遗传算法生成初始种群逻辑实现类
+ *
+ * @author FLASHLACK
+ */
+@Service
+@Slf4j
+public class GenerateInitialPopulationLogic implements GenerateInitialPopulationService {
+    /**
+     * 安全随机数生成器
+     * 使用 SecureRandom 而不是普通的 Random 来确保随机性的安全性和不可预测性
+     * 在遗传算法中，这种不可预测性对于确保种群多样性和避免陷入局部最优解是很重要的
+     */
+    private final SecureRandom random = new SecureRandom();
+
+    /**
+     * 重写生成初始种群的方法
+     * 该方法根据提供的基础数据生成一个包含多个时间表的列表，作为遗传算法的初始种群
+     *
+     * @param baseData 不为空的自动课程调度基础数据对象，包含算法参数和种群大小等信息
+     * @return 返回一个包含多个时间表的列表，表示初始种群
+     */
+    @Override
+    public List<ScheduleDTO> generateInitialPopulation(@NotNull AutomaticClassSchedulingBaseDTO baseData) {
+        // 初始化一个空列表来存储所有个体
+        List<ScheduleDTO> allPopulation = new ArrayList<>();
+        // 获取种群大小
+        int populationSize = baseData.getAlgorithmParams().getPopulationSize();
+        // 生成种群
+        for (int i = 0; i < populationSize; i++) {
+            // 记录每个个体的生成过程
+            log.debug("生成第 {} 个个体", i + 1);
+            // 调用生成个体的方法，并将个体添加到种群中
+            ScheduleDTO scheduleDTO = this.generateIndividual(baseData);
+            allPopulation.add(scheduleDTO);
+        }
+        // 种群生成完成后，记录种群大小
+        log.debug("生成初始种群完成，种群大小: {}", allPopulation.size());
+        // 返回生成的种群
+        return allPopulation;
+    }
+
+    /**
+     * 生成单个个体
+     */
+    private @NotNull ScheduleDTO generateIndividual(
+            @NotNull AutomaticClassSchedulingBaseDTO baseData) {
+        CourseScheduleDTO schedule = new CourseScheduleDTO();
+        Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments = new HashMap<>();
+
+        // 处理每个课程
+        for (CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers : baseData.getCourseList()) {
+            this.processCourseAssignment(courseAndTeachers, baseData, assignments);
+        }
+
+        schedule.setAssignments(assignments);
+
+        return this.createScheduleDTO(schedule, baseData);
+    }
+
+    /**
+     * 处理单个课程的分配
+     */
+    private void processCourseAssignment(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers,
+            @NotNull AutomaticClassSchedulingBaseDTO baseData,
+            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments) {
+
+        CourseLibraryDTO course = courseAndTeachers.getCourse();
+
+        // 获取教室和班级列表
+        Map<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> classroomAssignments =
+                this.selectClassroomsForCourse(courseAndTeachers, baseData.getClassroomList());
+        if (classroomAssignments == null) {
+            return;
+        }
+        // 为每个班级分配教师
+        List<CourseScheduleItemDTO> teacherAssignments =
+                this.assignTeachersToClasses(course, courseAndTeachers, classroomAssignments);
+
+        // 分配时间槽
+        this.assignTimeSlots(courseAndTeachers, baseData, assignments,teacherAssignments);
+    }
+
+    /**
+     * 为班级分配教师
+     */
+    private @NotNull List<CourseScheduleItemDTO> assignTeachersToClasses(
+            CourseLibraryDTO course,
+            CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers,
+            @NotNull Map<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> classroomAssignments) {
+        List<CourseScheduleItemDTO> courseScheduleItem = new ArrayList<>();
+        // 使用entrySet()来同时获取key和value
+        for (Map.Entry<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> entry :
+                classroomAssignments.entrySet()) {
+            CourseLibraryAndTeacherCourseQualificationListDTO classGroup = entry.getKey();
+            ClassroomInfoDTO classroom = entry.getValue();
+            TeacherCoursePreferencesDTO teacher = this.selectTeacherForCourse(
+                    course, courseAndTeachers.getTeacherList());
+            if (teacher != null) {
+                CreditHourTypeEnuDTO creditHourTypeEnuDTO = new CreditHourTypeEnuDTO();
+                creditHourTypeEnuDTO.setCourseEnuType(courseAndTeachers.getCourseEnuType());
+                TeachingClassDTO teachingClassDTO = new TeachingClassDTO();
+                teachingClassDTO.setTeachingClassUuid(classGroup.getTeachingClassUuid());
+                // 分配教师
+                courseScheduleItem.add(new CourseScheduleItemDTO(
+                        UuidUtil.generateUuidNoDash(),
+                        course,
+                        teacher,
+                        classroom,
+                        classGroup.getClassList(),
+                        creditHourTypeEnuDTO,
+                        courseAndTeachers.getPriority(),
+                        classGroup.getNumber(),
+                        teachingClassDTO
+                ));
+            }
+        }
+        return courseScheduleItem;
+    }
+
+    /**
+     * 分配时间槽
+     */
+    private void assignTimeSlots(
+            CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers,
+            AutomaticClassSchedulingBaseDTO baseData,
+            Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments,
+            @NotNull List<CourseScheduleItemDTO> teacherAssignments) {
+        for (CourseScheduleItemDTO courseSchedule : teacherAssignments) {
+            List<AdministrativeClassDTO> classGroup = courseSchedule.getClassGroup();
+            TeacherCoursePreferencesDTO assignedTeacher =courseSchedule.getTeacher();
+            ClassroomInfoDTO assignedClassroom = courseSchedule.getClassroom();
+            this.createAndAssignTimeSlot(
+                    courseAndTeachers,
+                    baseData,
+                    assignments,
+                    classGroup,
+                    assignedTeacher,
+                    assignedClassroom,
+                    courseSchedule
+            );
+        }
+    }
+
+    /**
+     * 创建并分配时间槽
+     */
+    private void createAndAssignTimeSlot(
+            CourseLibraryAndTeacherCourseQualificationListDTO courseAndTeachers,
+            AutomaticClassSchedulingBaseDTO baseData,
+            @NotNull Map<List<TimeSlotDTO>, CourseScheduleItemDTO> assignments,
+            List<AdministrativeClassDTO> classGroup,
+            TeacherCoursePreferencesDTO assignedTeacher,
+            ClassroomInfoDTO assignedClassroom, @NotNull CourseScheduleItemDTO courseSchedule) {
+        List<TimeSlotDTO> timeSlot = this.findSuitableTimeSlot(
+                courseAndTeachers,
+                baseData
+        );
+        CreditHourTypeEnuDTO creditHourTypeEnuDTO = new CreditHourTypeEnuDTO();
+        creditHourTypeEnuDTO.setCourseEnuType(courseAndTeachers.getCourseEnuType());
+        TeachingClassDTO teachingClassDTO = new TeachingClassDTO();
+        teachingClassDTO.setTeachingClassUuid(courseSchedule.getTeachingClass().getTeachingClassUuid());
+        CourseScheduleItemDTO item = new CourseScheduleItemDTO(
+                UuidUtil.generateUuidNoDash(),
+                courseAndTeachers.getCourse(),
+                assignedTeacher,
+                assignedClassroom,
+                classGroup,
+                creditHourTypeEnuDTO,
+                courseAndTeachers.getPriority(),
+                courseSchedule.getNumber(),
+                teachingClassDTO
+        );
+        log.debug("排课UUID: {}", item.getCourseScheduleItemUuid());
+        assignments.put(timeSlot, item);
+    }
+
+    /**
+     * 创建ScheduleDTO
+     */
+    private @NotNull ScheduleDTO createScheduleDTO(CourseScheduleDTO schedule, @NotNull AutomaticClassSchedulingBaseDTO baseData) {
+        List<CourseScheduleDTO> population = new ArrayList<>();
+        population.add(schedule);
+        ScheduleDTO scheduleDTO = new ScheduleDTO();
+        scheduleDTO.setSchedule(population);
+        scheduleDTO.setData(baseData.getDataCourseScheduleList());
+        return scheduleDTO;
+    }
+
+    /**
+     * 查找合适的时间槽
+     */
+    private @NotNull List<TimeSlotDTO> findSuitableTimeSlot(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO course,
+            @NotNull AutomaticClassSchedulingBaseDTO baseDTO
+    ) {
+        // 生成时间槽
+        List<TimeSlotDTO> timeSlots = TimeSlotGeneratorUtil.generateTimeSlots(
+                course,
+                Boolean.TRUE.equals(baseDTO.getTimePreferences().getEveningCourses())
+        );
+        log.debug("初始化种群，直接返回随机生成的时间槽");
+        return timeSlots;
+    }
+
+    /**
+     * 为课程选择合适的教师
+     * <p>
+     * 本方法根据课程的学科要求，从候选教师列表中选择一名合适的教师进行课程教学。
+     * 选择过程仅考虑教师对课程学科的适应性，确保教师具备教授该课程的资格。
+     * </p>
+     *
+     * @param course   课程信息对象，包含课程学科、课程类型等基本属性
+     * @param teachers 候选教师列表，包含所有可能分配给该课程的教师
+     * @return 选择的教师对象；如果没有合适的教师，则返回null
+     */
+    @Nullable
+    private TeacherCoursePreferencesDTO selectTeacherForCourse(
+            CourseLibraryDTO course,
+            @NotNull List<TeacherCoursePreferencesDTO> teachers
+    ) {
+        // 筛选出能够教授该课程学科的教师列表
+        List<TeacherCoursePreferencesDTO> suitableTeachers = teachers.stream()
+                .filter(teacher -> teacher.getQualification() != null
+                        && teacher.getQualification().getCourseUuid().equals(course.getCourseLibraryUuid()))
+                .toList();
+        // 如果没有找到符合条件的教师，返回null
+        if (suitableTeachers.isEmpty()) {
+            log.warn("没有找到合适的教师来教授课程: {}", course.getName());
+            return null;
+        }
+        // 随机选择一个符合条件的教师
+        return suitableTeachers.get(random.nextInt(suitableTeachers.size()));
+    }
+
+    /**
+     * 为课程选择合适的教室
+     */
+    Map<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> selectClassroomsForCourse(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
+            @Nonnull List<ClassroomInfoDTO> classrooms) {
+
+        List<AdministrativeClassDTO> classList = courseQualification.getClassList();
+        List<CourseLibraryAndTeacherCourseQualificationListDTO> newList = new ArrayList<>();
+        if (classList == null || classList.isEmpty()) {
+            // 没有行政班级则为选修课，优先创建教学班级(即分配班级)
+            this.assignTeachingClasses(courseQualification, newList);
+        } else {
+            // 为行政班级分配教学班级
+            this.assignTeachingClassesForAdministrative(courseQualification, newList);
+        }
+        for (CourseLibraryAndTeacherCourseQualificationListDTO c : newList) {
+            log.debug("教学班uuid: {}", c.getTeachingClassUuid());
+            log.debug("课程名称: {}", c.getCourse().getName());
+            log.debug("教学班人数: {}", c.getNumber());
+        }
+        // 为教学班级分配教室
+        return this.assignClassrooms(classrooms, newList);
+    }
+
+    /**
+     * 随机分配教室给课程
+     */
+    @Contract(pure = true)
+    private @NotNull Map<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> assignClassrooms(
+            List<ClassroomInfoDTO> classrooms,
+            @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
+        // 初始化结果映射
+        Map<CourseLibraryAndTeacherCourseQualificationListDTO, ClassroomInfoDTO> result = new HashMap<>();
+        // 遍历课程列表
+        for (CourseLibraryAndTeacherCourseQualificationListDTO course : newList) {
+            // 查找适合当前课程的教室
+            List<ClassroomInfoDTO> matchingClassrooms =
+                    ClassroomSelectionUtil.findSuitableClassrooms(classrooms, course);
+            // 如果有合适的教室，则随机选择一个教室进行分配
+            if (!matchingClassrooms.isEmpty()) {
+                ClassroomInfoDTO selectedClassroom =
+                        ClassroomSelectionUtil.selectRandomClassroom(matchingClassrooms, random);
+                // 将课程的班级列表和选定的教室信息存入结果映射中
+                result.put(course, selectedClassroom);
+            }
+        }
+        // 返回分配结果
+        return result;
+    }
+
+    /**
+     * 为行政班级分配课程
+     * 此方法根据课程资格和班级列表，为行政班级分配课程
+     * 它通过排序班级并按组处理来确保班级组合符合课程要求
+     *
+     * @param courseQualification 课程资格信息，包括可教授课程和班级列表
+     * @param newList             用于存储处理后的班级列表
+     */
+    private void assignTeachingClassesForAdministrative(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
+            List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
+        // 获取行政班级列表并按专业排序
+        List<AdministrativeClassDTO> sortedClassList = this.sortClassesByMajor(courseQualification.getClassList());
+
+        // 检查排序后的列表是否为空
+        if (sortedClassList == null || sortedClassList.isEmpty()) {
+            return;
+        }
+
+        // 临时存储当前正在组合的班级
+        List<AdministrativeClassDTO> currentGroup = new ArrayList<>();
+        // 当前组合班级的大小
+        int currentGroupSize = 0;
+        // 遍历排序后的班级列表
+        for (int i = 0; i < sortedClassList.size(); i++) {
+            // 当前正在处理的班级
+            AdministrativeClassDTO currentClass = sortedClassList.get(i);
+            // 处理当前班级的分配
+            this.processClassAssignment(currentClass, currentGroup, currentGroupSize, courseQualification, newList);
+            // 重新计算当前组合班级的大小
+            currentGroupSize = this.calculateCurrentGroupSize(currentGroup);
+            // 如果是最后一个班级，则处理最后一组
+            if (i == sortedClassList.size() - 1) {
+                this.handleLastGroup(currentGroup, currentGroupSize, courseQualification, newList);
+            }
+        }
+    }
+
+    /**
+     * 处理班级分配
+     */
+    private void processClassAssignment(
+            AdministrativeClassDTO currentClass,
+            @NotNull List<AdministrativeClassDTO> currentGroup,
+            int currentGroupSize,
+            CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
+            List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
+        // 如果当前组为空，直接添加当前班级
+        if (currentGroup.isEmpty()) {
+            currentGroup.add(currentClass);
+            return;
+        }
+        // 计算添加当前班级后的新组大小
+        int newGroupSize = currentGroupSize + currentClass.getStudentCount();
+        // 处理组大小变化
+        this.handleGroupSizeChange(currentClass, currentGroup, currentGroupSize, newGroupSize, courseQualification, newList);
+    }
+
+    /**
+     * 处理组大小变化
+     */
+    private void handleGroupSizeChange(
+            AdministrativeClassDTO currentClass,
+            List<AdministrativeClassDTO> currentGroup,
+            int currentGroupSize,
+            int newGroupSize,
+            CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
+            List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
+        // 判断是否需要创建新的教学班
+        if (newGroupSize > 180 || (currentGroupSize >= 30 && random.nextBoolean())) {
+            if (currentGroupSize >= 30) {
+                // 当前组已足够大，创建新的教学班
+                this.createNewTeachingClass(courseQualification, newList, currentGroup, currentGroupSize);
+                // 清空当前组并添加当前处理的班级
+                currentGroup.clear();
+                currentGroup.add(currentClass);
+            } else {
+                // 当前组不够大，继续添加当前班级
+                currentGroup.add(currentClass);
+            }
+        } else {
+            // 不满足创建新教学班的条件，继续往当前组添加班级
+            currentGroup.add(currentClass);
+        }
+    }
+
+    /**
+     * 计算当前组的总人数
+     */
+    private int calculateCurrentGroupSize(@NotNull List<AdministrativeClassDTO> currentGroup) {
+        return currentGroup.stream()
+                .mapToInt(AdministrativeClassDTO::getStudentCount)
+                .sum();
+    }
+
+    /**
+     * 处理最后一组
+     */
+    private void handleLastGroup(
+            List<AdministrativeClassDTO> currentGroup,
+            int currentGroupSize,
+            CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
+            List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
+        // 检查当前组是否为空
+        if (currentGroup == null || currentGroup.isEmpty()) {
+            return;
+        }
+
+        if (currentGroupSize < 30) {
+            // 如果最后一组学生人数不足30人，尝试将其重新分配到前一个教学班
+            this.redistributeLastGroup(currentGroup, newList);
+        } else {
+            // 最后一组学生人数达到了30人，创建新的教学班
+            this.createNewTeachingClass(courseQualification, newList, currentGroup, currentGroupSize);
+        }
+    }
+
+    /**
+     * 重新分配最后一组不足30人的班级
+     */
+    private void redistributeLastGroup(
+            List<AdministrativeClassDTO> lastGroup,
+            @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> newList) {
+        // 检查最后一组是否有班级可以重新分配
+        if (lastGroup == null || lastGroup.isEmpty()) {
+            return;
+        }
+
+        // 检查目标列表是否不为空
+        if (!newList.isEmpty()) {
+            // 获取最后一个教学班
+            CourseLibraryAndTeacherCourseQualificationListDTO lastTeachingClass = newList.get(newList.size() - 1);
+
+            // 获取已有班级列表
+            List<AdministrativeClassDTO> existingClasses = lastTeachingClass.getClassList();
+            if (existingClasses == null) {
+                // 如果班级列表为空，初始化它
+                existingClasses = new ArrayList<>();
+                lastTeachingClass.setClassList(existingClasses);
+            }
+
+            // 计算要添加的学生数量
+            int additionalStudents = lastGroup.stream()
+                    .mapToInt(AdministrativeClassDTO::getStudentCount)
+                    .sum();
+
+            // 将最后一组的班级添加到最后一个教学班
+            existingClasses.addAll(lastGroup);
+
+            // 更新学生总数
+            int currentNumber = lastTeachingClass.getNumber() != null ? lastTeachingClass.getNumber() : 0;
+            lastTeachingClass.setNumber(currentNumber + additionalStudents);
+
+            // 日志输出，帮助调试
+            log.debug("重新分配最后一组: 添加班级数={}, 新增学生数={}, 合并后总班级数={}",
+                    lastGroup.size(),
+                    additionalStudents,
+                    existingClasses.size());
+        } else {
+            // 如果还没有教学班，则创建一个新的教学班
+            log.warn("重新分配最后一组时发现目标列表为空，这可能是一个逻辑错误");
+        }
+    }
+
+    /**
+     * 创建新的教学班
+     */
+    private void createNewTeachingClass(
+            CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
+            @NotNull List<CourseLibraryAndTeacherCourseQualificationListDTO> newList,
+            List<AdministrativeClassDTO> classGroup,
+            int totalStudents) {
+        // 检查是否有班级可以添加
+        if (classGroup == null || classGroup.isEmpty()) {
+            return;
+        }
+
+        // 复制基本属性但不复制 classList 和 number 字段
+        CourseLibraryAndTeacherCourseQualificationListDTO newClass =
+                BeanUtil.copyProperties(courseQualification, CourseLibraryAndTeacherCourseQualificationListDTO.class,
+                        "classList", "number", "teachingClassUuid");
+
+        // 设置学生总数
+        newClass.setNumber(totalStudents);
+
+        // 创建班级列表的深拷贝
+        newClass.setClassList(new ArrayList<>(classGroup));
+
+        // 生成新的教学班UUID
+        newClass.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
+
+        // 添加到结果列表
+        newList.add(newClass);
+
+        // 日志输出，帮助调试
+        log.debug("创建新教学班: UUID={}, 班级数={}, 学生总数={}",
+                newClass.getTeachingClassUuid(),
+                newClass.getClassList().size(),
+                newClass.getNumber());
+    }
+
+    /**
+     * 按专业对行政班级列表进行排序，使相同专业的班级在列表中位置相连
+     *
+     * @param classList 行政班级列表
+     * @return 排序后的行政班级列表，相同专业的班级位置相连
+     */
+    private List<AdministrativeClassDTO> sortClassesByMajor(List<AdministrativeClassDTO> classList) {
+        if (classList == null || classList.isEmpty()) {
+            return Collections.emptyList();
+        }
+        // 按专业分组
+        Map<String, List<AdministrativeClassDTO>> groupedByMajor = classList.stream()
+                .collect(Collectors.groupingBy(
+                        AdministrativeClassDTO::getMajorUuid,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+        // 将分组后的结果展平为一个列表，保持相同专业的班级位置相连
+        return groupedByMajor.values().stream()
+                .flatMap(List::stream)
+                .toList();
+    }
+
+    /**
+     * 分配教学班级并更新课程资质列表中的人数
+     *
+     * @param courseQualification        课程资质信息
+     * @param newCourseQualificationList 新的课程资质列表
+     */
+    private void assignTeachingClasses(
+            @NotNull CourseLibraryAndTeacherCourseQualificationListDTO courseQualification,
+            List<CourseLibraryAndTeacherCourseQualificationListDTO> newCourseQualificationList) {
+        Integer number = courseQualification.getNumber();
+        // 如果总人数小于等于120，可以只开一个班
+        if (number <= 120) {
+            courseQualification.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
+            newCourseQualificationList.add(courseQualification);
+            return;
+        }
+        // 计算最小需要的班级数（以确保每班不超过120人）
+        int minRequiredClasses = (int) Math.ceil(number / 120.0);
+        // 可以多分1-2个班，增加随机性
+        int maxPossibleClasses = minRequiredClasses + 2;
+        // 随机选择实际班级数，但不少于最小需要的班级数
+        // 随机增加0-2个班
+        int numClasses = minRequiredClasses + random.nextInt(3);
+        numClasses = Math.min(numClasses, maxPossibleClasses);
+        int remainingStudents = number;
+        List<Integer> classSizes = new ArrayList<>();
+        // 随机分配每个班的人数
+        for (int i = 0; i < numClasses; i++) {
+            // 确保每个班至少30人，且剩余班级也至少能分到30人
+            int minSize = Math.max(30, remainingStudents / (numClasses - i));
+            // 确保每个班最多120人，且为后续班级预留足够人数
+            int maxSize = Math.min(120, remainingStudents - ((numClasses - i - 1) * 30));
+            int classSize;
+            if (i == numClasses - 1) {
+                // 最后一个班级分配所有剩余学生
+                classSize = remainingStudents;
+            } else {
+                // 随机分配人数，但确保在合理范围内
+                classSize = minSize + random.nextInt(maxSize - minSize + 1);
+            }
+            classSizes.add(classSize);
+            remainingStudents -= classSize;
+        }
+        // 创建班级并分配人数
+        for (int classSize : classSizes) {
+            CourseLibraryAndTeacherCourseQualificationListDTO newClass =
+                    BeanUtil.copyProperties(courseQualification, CourseLibraryAndTeacherCourseQualificationListDTO.class);
+            newClass.setNumber(classSize);
+            newClass.setTeachingClassUuid(UuidUtil.generateUuidNoDash());
+            newCourseQualificationList.add(newClass);
+        }
+    }
+}

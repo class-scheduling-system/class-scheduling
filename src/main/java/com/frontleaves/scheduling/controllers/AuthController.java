@@ -29,10 +29,10 @@
 package com.frontleaves.scheduling.controllers;
 
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.BackProfileDTO;
-import com.frontleaves.scheduling.models.dto.ForgetPasswordResponseDTO;
-import com.frontleaves.scheduling.models.dto.UserLoginDTO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.dto.base.ForgetPasswordResponseDTO;
+import com.frontleaves.scheduling.models.dto.lite.BackProfileDTO;
+import com.frontleaves.scheduling.models.dto.merge.UserLoginDTO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.frontleaves.scheduling.models.vo.UserInitializationVO;
 import com.frontleaves.scheduling.models.vo.UserLoginVO;
 import com.frontleaves.scheduling.services.AuthService;

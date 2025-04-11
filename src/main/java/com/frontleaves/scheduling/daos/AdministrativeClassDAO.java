@@ -29,10 +29,12 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.AdministrativeClassMapper;
-import com.frontleaves.scheduling.models.entity.AdministrativeClassDO;
+import com.frontleaves.scheduling.models.entity.base.AdministrativeClassDO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RList;
@@ -62,7 +64,6 @@ import java.util.List;
 public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMapper, AdministrativeClassDO> {
 
     private final RedissonClient redisson;
-
 
     /**
      * 根据UUID获取行政班级信息
@@ -94,6 +95,7 @@ public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMappe
         // 如果既没有从数据库中获取到信息，Redis中也没有信息，则返回null
         return  null;
     }
+    
     /**
      * 获取管理班级列表
      * 该方法首先尝试从Redis中获取管理班级列表如果列表在Redis中不存在，
@@ -125,7 +127,6 @@ public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMappe
         // 如果列表为空，则返回空列表
         return Collections.emptyList();
     }
-
 
     /**
      * 根据部门UUID获取行政班级列表
@@ -183,6 +184,109 @@ public class AdministrativeClassDAO extends ServiceImpl<AdministrativeClassMappe
             return administrativeClassDO;
         } else {
             return BeanUtil.toBean(rMap, AdministrativeClassDO.class);
+        }
+    }
+
+    /**
+     * 根据部门UUID获取行政班级列表
+     * @param departmentUuid 部门的唯一标识符
+     * @return 行政班级列表，如果找不到则返回空列表
+     */
+    public List<AdministrativeClassDO>  getAdministrativeClassListByDepartment(String departmentUuid) {
+        // 尝试从Redis中获取缓存的行政班级列表
+        RList<AdministrativeClassDO> rList = redisson.getList(
+                StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT + departmentUuid);
+        // 检查缓存是否存在
+        if (!rList.isExists()){
+            // 从数据库中查询行政班级列表
+            List<AdministrativeClassDO> administrativeClassDOList =
+                    this.lambdaQuery()
+                            .eq(AdministrativeClassDO::getDepartmentUuid, departmentUuid)
+                            .list();
+            // 如果查询结果不为空，则将其添加到Redis缓存中，并设置过期时间
+            if (!administrativeClassDOList.isEmpty()){
+                rList.addAll(administrativeClassDOList);
+                rList.expire(Duration.ofSeconds(86400));
+                return administrativeClassDOList;
+            }
+        }else {
+            // 如果缓存存在，则直接读取并返回缓存中的列表
+            return rList.readAll();
+        }
+        // 如果没有找到任何行政班级，则返回空列表
+        return Collections.emptyList();
+    }
+
+    /**
+     * 根据专业UUID获取行政班级列表
+     * @param majorUuid 专业的唯一标识符
+     * @return 行政班级列表，如果找不到则返回空列表
+     */
+    public List<AdministrativeClassDO> getAdministrativeClassListByMajor(String majorUuid) {
+        // 尝试从Redis中获取缓存的行政班级列表
+        RList<AdministrativeClassDO> rList = redisson.getList(
+                StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST_BY_MAJOR + majorUuid);
+        // 检查缓存是否存在
+        if (!rList.isExists()){
+            // 从数据库中查询行政班级列表
+            List<AdministrativeClassDO> administrativeClassDOList =
+                    this.lambdaQuery()
+                            .eq(AdministrativeClassDO::getMajorUuid, majorUuid)
+                            .list();
+            // 如果查询结果不为空，则将其添加到Redis缓存中，并设置过期时间
+            if (!administrativeClassDOList.isEmpty()){
+                rList.addAll(administrativeClassDOList);
+                rList.expire(Duration.ofSeconds(86400));
+                return administrativeClassDOList;
+            }
+        }else {
+            // 如果缓存存在，则直接读取并返回缓存中的列表
+            return rList.readAll();
+        }
+        // 如果没有找到任何行政班级，则返回空列表
+        return Collections.emptyList();
+    }
+    
+    /**
+     * 分页查询行政班级列表
+     * 支持按部门UUID、专业UUID和名称筛选
+     *
+     * @param page 分页对象
+     * @param queryWrapper 查询条件
+     * @return 分页结果
+     */
+    public Page<AdministrativeClassDO> getAdministrativeClassPage(Page<AdministrativeClassDO> page, 
+                                              LambdaQueryWrapper<AdministrativeClassDO> queryWrapper) {
+        return this.page(page, queryWrapper);
+    }
+    
+    /**
+     * 清除行政班级缓存
+     * 当行政班级数据发生变化时调用此方法清除相关缓存
+     *
+     * @param administrativeClassUuid 行政班级UUID
+     */
+    public void clearCache(String administrativeClassUuid) {
+        // 清除单个行政班级的缓存
+        redisson.getMap(StringConstant.Redis.ADMINISTRATIVE_CLASS_UUID + administrativeClassUuid).delete();
+        
+        // 清除列表缓存
+        redisson.getList(StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST).delete();
+        
+        // 通过查询获取行政班级信息，用于清除相关缓存
+        AdministrativeClassDO administrativeClass = this.getById(administrativeClassUuid);
+        if (administrativeClass != null) {
+            // 清除部门相关缓存
+            redisson.getList(StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST_BY_DEPARTMENT + 
+                    administrativeClass.getDepartmentUuid()).delete();
+            
+            // 清除专业相关缓存
+            redisson.getList(StringConstant.Redis.ADMINISTRATIVE_CLASS_LIST_BY_MAJOR + 
+                    administrativeClass.getMajorUuid()).delete();
+            
+            // 清除映射缓存
+            redisson.getMap(StringConstant.Redis.ADMINISTRATIVE_CLASS_MAPPING_BY_CALZZ + 
+                    administrativeClassUuid).delete();
         }
     }
 }

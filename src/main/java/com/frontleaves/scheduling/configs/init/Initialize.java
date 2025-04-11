@@ -31,7 +31,7 @@ package com.frontleaves.scheduling.configs.init;
 import cn.hutool.core.date.DateUtil;
 import com.frontleaves.scheduling.constants.SystemConstant;
 import com.frontleaves.scheduling.daos.*;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.xlf.utility.util.PasswordUtil;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.PostConstruct;
@@ -63,13 +63,14 @@ public class Initialize {
     private final RedissonClient redissonClient;
     private final UserDAO userDAO;
     private final TeacherTypeDAO teacherTypeDAO;
+    private final  ClassroomTypeDAO classroomTypeDAO;
 
     private FunctionInit init;
 
     @PostConstruct
     public void init() {
         // 初始化准备算法
-        init = new FunctionInit(tableDAO, systemDAO, roleDAO, redissonClient,teacherTypeDAO);
+        init = new FunctionInit(tableDAO, systemDAO, roleDAO, redissonClient,teacherTypeDAO,classroomTypeDAO);
 
         // 初始化数据库完整性检查
         this.checkTable();
@@ -77,6 +78,7 @@ public class Initialize {
         this.checkSystemTable();
         this.writeRoleInfo();
         this.writeTeacherType();
+        this.withClassroomType();
         this.initTestUser();
     }
 
@@ -191,6 +193,10 @@ public class Initialize {
         init.checkSystemTable("web_launch_date", "2025-01-01");
         init.checkSystemTable("web_technology_stack", "Spring Boot, React, MySQL, Redis");
 
+        // APIKEY
+        init.checkSystemTable("ai_front_api_key", "app-PI6ZLJbaYnwDQBllEI50cP8c");
+        init.checkSystemTable("ai_message_api_key", "app-Gd2OjXtXLHc9082P8QuWLfaG");
+
         log.info("[INIT] 系统数据表检查完成");
     }
 
@@ -222,6 +228,9 @@ public class Initialize {
         SystemConstant.setTeacherTypeProfessor(init.loadTeacherTypeContent("教授"));
         SystemConstant.setTeacherTypeFullTime(init.loadTeacherTypeContent("专职教师"));
         SystemConstant.setTeacherTypeCounselor(init.loadTeacherTypeContent("辅导员"));
+    }
+    private void withClassroomType(){
+        SystemConstant.setClassroomTypeCommon(init.loadClassroomTypeContent("普通教室"));
     }
 
     /**

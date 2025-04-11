@@ -28,7 +28,11 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.dto.base.BuildingDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddBuildingDTO;
+import com.frontleaves.scheduling.models.dto.lite.BuildingLiteDTO;
+import com.frontleaves.scheduling.models.dto.lite.CampusLiteDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddBuildingVO;
 import com.xlf.utility.exception.BusinessException;
 import org.jetbrains.annotations.NotNull;
@@ -146,9 +150,9 @@ public interface BuildingService {
     List<BuildingLiteDTO> getBuildingList(
             String keyword);
 
-    PrepareBuildingDTO prepareCampusData();
+    List<CampusLiteDTO> prepareCampusData();
 
-    byte[] getBuildingImportTemplate(PrepareBuildingDTO prepareBuildingExampleDTO);
+    byte[] getBuildingImportTemplate(List<CampusLiteDTO> prepareBuildingExampleDTO);
 
     byte[] verifyBuildingBatchAndBackFile(BatchAddBuildingVO batchAddBuildingVO);
 

@@ -34,20 +34,23 @@ import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.sax.handler.RowHandler;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.UserDTO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.UserDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.ClassTimeDTO;
+import com.frontleaves.scheduling.models.dto.scheduling.TimeSlotDTO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
+import com.frontleaves.scheduling.models.vo.ClassTimeVO;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.redisson.api.RMap;
 
 import java.io.ByteArrayInputStream;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 项目工具类
@@ -59,6 +62,7 @@ import java.util.Map;
  * @version v1.0.0
  * @since v1.0.0
  */
+@Slf4j
 public class ProjectUtil {
 
     private ProjectUtil() {
@@ -235,4 +239,120 @@ public class ProjectUtil {
         return false;
     }
 
+    @Contract("null -> new")
+    public static @NotNull List<ClassTimeDTO>  convertToClassTimeDTOList(List<TimeSlotDTO> timeSlotS){
+        if (timeSlotS == null || timeSlotS.isEmpty()) {
+            return new ArrayList<>();
+        }
+        // 1. 按周和天分组，收集每天的节次列表
+        Map<Integer, Map<Integer, Set<Integer>>> weeklyDailyPeriods = new HashMap<>();
+        for (TimeSlotDTO slot : timeSlotS) {
+            // 跳过无效数据
+            if (slot.getWeek() == null || slot.getDay() == null || slot.getPeriod() == null) {
+                continue;
+            }
+            // 使用 Set 自动去重同一周、同一天、同一节次的重复记录
+            weeklyDailyPeriods
+                    .computeIfAbsent(slot.getWeek(), k -> new HashMap<>())
+                    .computeIfAbsent(slot.getDay(), k -> new HashSet<>())
+                    .add(slot.getPeriod());
+        }
+        // 2. 识别每个唯一的 (天, 开始节次, 结束节次) 段，并收集它们出现的周
+        // 使用 Map 来聚合结果:
+        // Key: 一个代表 (天, 开始节次, 结束节次) 的对象或简单结构。
+        //      为避免创建新类，我们使用 List<Integer> 作为 Key，格式为 [day, startPeriod, endPeriod]。
+        Map<List<Integer>, Set<Integer>> segmentToWeeksMap = new HashMap<>();
+        // 遍历每个周
+        for (Map.Entry<Integer, Map<Integer, Set<Integer>>> weekEntry : weeklyDailyPeriods.entrySet()) {
+            int week = weekEntry.getKey();
+            Map<Integer, Set<Integer>> dailyPeriods = weekEntry.getValue();
+            // 遍历该周的每一天
+            for (Map.Entry<Integer, Set<Integer>> dayEntry : dailyPeriods.entrySet()) {
+                int day = dayEntry.getKey();
+                Set<Integer> periodSet = dayEntry.getValue();
+                if (periodSet.isEmpty()) {
+                    continue;
+                }
+                // 将 Set 转换为 List 并排序，以便查找连续段
+                List<Integer> periods = new ArrayList<>(periodSet);
+                Collections.sort(periods);
+                // 查找连续节次段
+                int startPeriod = periods.get(0);
+                int endPeriod = periods.get(0);
+                for (int i = 1; i < periods.size(); i++) {
+                    if (periods.get(i) == endPeriod + 1) {
+                        // 节次连续，扩展结束节次
+                        endPeriod = periods.get(i);
+                    } else {
+                        // 节次不连续，记录上一个段，开始新段
+                        List<Integer> segmentKey = List.of(day, startPeriod, endPeriod);
+                        segmentToWeeksMap.computeIfAbsent(segmentKey, k -> new HashSet<>()).add(week);
+                        startPeriod = periods.get(i);
+                        endPeriod = periods.get(i);
+                    }
+                }
+                // 添加最后一个（或唯一的）段
+                List<Integer> lastSegmentKey = List.of(day, startPeriod, endPeriod);
+                segmentToWeeksMap.computeIfAbsent(lastSegmentKey, k -> new HashSet<>()).add(week);
+            }
+        }
+        // 3. 构建最终的 ClassTimeDTO 列表
+        List<ClassTimeDTO> resultList = new ArrayList<>();
+        for (Map.Entry<List<Integer>, Set<Integer>> entry : segmentToWeeksMap.entrySet()) {
+            List<Integer> segmentKey = entry.getKey();
+            Set<Integer> weekSet = entry.getValue();
+            // 将 Set<Integer> 转换为 List<Integer> 并排序
+            List<Integer> weekNumbers = new ArrayList<>(weekSet);
+            Collections.sort(weekNumbers);
+            resultList.add(new ClassTimeDTO()
+                    // day
+                    .setDayOfWeek(segmentKey.get(0))
+                    .setPeriodStart(segmentKey.get(1))
+                    .setPeriodEnd(segmentKey.get(2))
+                    .setWeekNumbers(weekNumbers));
+        }
+        // 4. 最终结果排序 (可选，按天、开始时间排序，使输出稳定)
+        resultList.sort(Comparator.comparingInt(ClassTimeDTO::getDayOfWeek)
+                .thenComparingInt(ClassTimeDTO::getPeriodStart));
+        return resultList;
+    }
+
+
+    public static  List<TimeSlotDTO>  ClassTimeToTimeSlot(@NotNull List<ClassTimeVO> vos) {
+        // 创建一个列表来存储所有解析出来的目标时间槽 DTO
+        List<TimeSlotDTO> targetTimeSlots = new ArrayList<>();
+        if (!vos.isEmpty()) {
+            // 遍历 AdjustmentDetailsVO 中的每个 ClassTimeVO 对象
+            for (ClassTimeVO classTime : vos) {
+                Integer day = classTime.getDayOfWeek();
+                Integer startPeriod = classTime.getPeriodStart();
+                Integer endPeriod = classTime.getPeriodEnd();
+                List<Integer> weeks = classTime.getWeekNumbers();
+                // 校验当前 ClassTimeVO 条目是否包含所有必需的信息，并且节次是否有效
+                if (day != null
+                        && startPeriod != null
+                        && endPeriod != null
+                        && weeks != null
+                        && !weeks.isEmpty()
+                        && startPeriod <= endPeriod) {
+                    // 外层循环：遍历所有指定的周
+                    for (Integer week : weeks) {
+                        // 内层循环：遍历从开始节次到结束节次的所有节次（包含）
+                        for (int period = startPeriod; period <= endPeriod; period++) {
+                            // 创建一个新的 TimeSlotDTO 实例
+                            TimeSlotDTO timeSlot = new TimeSlotDTO()
+                                    .setWeek(week)
+                                    .setDay(day)
+                                    .setPeriod(period);
+                            // 将创建的 TimeSlotDTO 添加到结果列表中
+                            targetTimeSlots.add(timeSlot);
+                        }
+                    }
+                } else {
+                    throw new BusinessException("调整时间信息不完整或无效", ErrorCode.BODY_ERROR);
+                }
+            }
+        }
+        return targetTimeSlots;
+    }
 }

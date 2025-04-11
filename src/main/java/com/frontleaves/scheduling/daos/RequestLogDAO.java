@@ -29,9 +29,10 @@
 package com.frontleaves.scheduling.daos;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.annotations.IgnoreLog;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.RequestLogMapper;
-import com.frontleaves.scheduling.models.entity.RequestLogDO;
+import com.frontleaves.scheduling.models.entity.base.RequestLogDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RList;
@@ -68,11 +69,11 @@ public class RequestLogDAO extends ServiceImpl<RequestLogMapper, RequestLogDO> {
      * @param requestLogDO 请求日志实体
      * @return 添加结果
      */
+    @IgnoreLog
     public boolean addRequestLog(RequestLogDO requestLogDO) {
         try {
             RList<RequestLogDO> cacheList = redisson.getList(StringConstant.REQUEST_LOG_CACHE);
             cacheList.add(requestLogDO);
-            log.info("[LOG] 添加日志记录成功：{}", requestLogDO);
             return true;
         } catch (Exception e) {
             log.error("[LOG] 添加日志记录失败：{}", e.getMessage());

@@ -31,8 +31,8 @@ package com.frontleaves.scheduling.dao;
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.TokenDAO;
 import com.frontleaves.scheduling.daos.UserDAO;
-import com.frontleaves.scheduling.models.dto.EmailVerificationTokenDTO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.dto.email.EmailVerificationTokenDTO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.xlf.utility.exception.BusinessException;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +50,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  * @author yourname
  */
 @Slf4j
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 class EmailTokenTest {
     @Resource
     private UserDAO userDAO;

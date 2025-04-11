@@ -4,7 +4,7 @@
     <!-- 结果映射 -->
     <resultMap id="userAndTeacherResultMap" type="com.frontleaves.scheduling.models.entity.multiple.UserAndTeacherDO">
         <!-- User 映射 -->
-        <association property="user" javaType="com.frontleaves.scheduling.models.entity.UserDO">
+        <association property="user" javaType="com.frontleaves.scheduling.models.entity.base.UserDO">
             <id property="userUuid" column="user_uuid"/>
             <result property="name" column="user_name"/>
             <result property="password" column="password"/>
@@ -19,7 +19,7 @@
         </association>
 
         <!-- Teacher 映射 -->
-        <association property="teacher" javaType="com.frontleaves.scheduling.models.entity.TeacherDO">
+        <association property="teacher" javaType="com.frontleaves.scheduling.models.entity.base.TeacherDO">
             <id property="teacherUuid" column="teacher_uuid"/>
             <result property="unitUuid" column="unit_uuid"/>
             <result property="userUuid" column="teacher_user_uuid"/>

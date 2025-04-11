@@ -1,8 +1,9 @@
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.SemesterDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.SemesterDTO;
 import com.frontleaves.scheduling.models.vo.SemesterVO;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
@@ -64,4 +65,15 @@ public interface SemesterService {
      * @return 启用的学期列表
      */
     List<SemesterDTO> list();
-} 
+
+    /**
+     * 根据学期UUID获取学期，并且检查是否启用
+     *
+     * @param semesterUuid 学期的唯一标识符
+     * @return 返回学期信息对象，如果找不到则返回null，若不启用则报错
+     */
+    @NotNull
+    SemesterDTO getSemesterByUuidCheckEnabled(
+            String semesterUuid
+    );
+}

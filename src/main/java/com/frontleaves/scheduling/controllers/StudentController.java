@@ -1,9 +1,16 @@
 package com.frontleaves.scheduling.controllers;
 
 import cn.hutool.core.bean.BeanUtil;
+
+import com.frontleaves.scheduling.annotations.RequestLogin;
 import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.*;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.StudentDTO;
+import com.frontleaves.scheduling.models.dto.excel.BackAddStudentDTO;
+import com.frontleaves.scheduling.models.dto.excel.PrepareStudentExampleDTO;
+import com.frontleaves.scheduling.models.dto.lite.StudentDisableDTO;
+import com.frontleaves.scheduling.models.dto.lite.StudentLiteDTO;
 import com.frontleaves.scheduling.models.vo.BatchAddStudentVO;
 import com.frontleaves.scheduling.models.vo.StudentVO;
 import com.frontleaves.scheduling.services.StudentService;
@@ -25,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -49,6 +57,7 @@ public class StudentController {
      * @param studentUuid 学生的唯一标识符
      * @return 返回一个包含学生信息的ResponseEntity对象
      */
+    @RequestRole({"教务", "管理员"})
     @GetMapping("/{student_uuid}")
     public ResponseEntity<BaseResponse<StudentDTO>> getStudentInfo(
             @PathVariable("student_uuid") String studentUuid
@@ -79,8 +88,10 @@ public class StudentController {
      * @param name        学生姓名
      * @param id          学生学号
      * @param status      学生状态(0:未注册, 1:已注册, 2:已停用)
+     * @param departmentUuid 部门UUID，用于根据部门筛选学生
      * @return 返回包含学生信息列表的响应实体
      */
+    @RequestRole({"教务", "管理员"})
     @GetMapping("/page")
     public @NotNull ResponseEntity<BaseResponse<PageDTO<StudentDTO>>> getStudentList(
             @RequestParam(value = "page", defaultValue = "1") int page,
@@ -90,9 +101,10 @@ public class StudentController {
             @RequestParam(value = "is_graduated", required = false, defaultValue = "false") Boolean isGraduated,
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "id", required = false) String id,
-            @RequestParam(value = "status", required = false) String status
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "department_uuid", required = false) String departmentUuid
     ) {
-        PageDTO<StudentDTO> result = studentService.getStudentList(page, size, isDesc, clazz, isGraduated, name, id, status);
+        PageDTO<StudentDTO> result = studentService.getStudentList(page, size, isDesc, clazz, isGraduated, name, id, status, departmentUuid);
         return ResultUtil.success("查询成功", result);
     }
 
@@ -106,6 +118,7 @@ public class StudentController {
      * @param studentVO 学生视图对象,包含从前端传入的学生信息
      * @return 返回包含学生信息的响应实体,包括操作结果和学生DTO
      */
+    @RequestRole({"教务", "管理员"})
     @PostMapping("")
     public @NotNull ResponseEntity<BaseResponse<StudentDTO>> addStudent(
             @Valid @RequestBody StudentVO studentVO
@@ -126,6 +139,7 @@ public class StudentController {
      * @param disable 表示是否禁用学生账户,true为禁用,false为启用
      * @return 返回一个包含禁用或启用结果的ResponseEntity对象
      */
+    @RequestRole({"教务", "管理员"})
     @PutMapping("/disable/{student_uuid}")
     public ResponseEntity<BaseResponse<StudentDisableDTO>> disableStudent(
             @PathVariable("student_uuid") String studentUuid,
@@ -149,6 +163,7 @@ public class StudentController {
      * @param studentUuid 学生的唯一标识符（UUID）,通过URL路径传递
      * @return 返回一个包含成功消息的响应实体,表示学生删除成功
      */
+    @RequestRole({"教务", "管理员"})
     @DeleteMapping("/{student_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteStudent(
             @PathVariable("student_uuid") String studentUuid
@@ -168,6 +183,7 @@ public class StudentController {
      * @param studentVO 包含新的学生信息的实体对象,用于更新学生数据
      * @return 返回一个包含执行结果和学生数据的响应实体
      */
+    @RequestRole({"教务", "管理员"})
     @PutMapping("/{student_uuid}")
     public @NotNull ResponseEntity<BaseResponse<StudentDTO>> editStudent(
             @PathVariable("student_uuid") String studentUuid,
@@ -188,7 +204,7 @@ public class StudentController {
      *
      * @return 返回一个包含示例数据的响应实体
      */
-    @RequestRole("教务")
+    @RequestRole({"教务", "管理员"})
     @GetMapping("/get-example")
     public ResponseEntity<byte[]> getExample(
             @NotNull HttpServletRequest request
@@ -218,6 +234,7 @@ public class StudentController {
      * @param batchAddStudentVO 包含批量添加学生信息的请求体
      * @return 返回一个包含添加结果的响应实体
      */
+    @RequestRole({"教务", "管理员"})
     @PostMapping("/batch-import")
     public ResponseEntity<BaseResponse<BackAddStudentDTO>> batchImport(
             @RequestBody @Validated BatchAddStudentVO batchAddStudentVO,
@@ -237,5 +254,39 @@ public class StudentController {
         }
         // 返回批量添加学生成功的响应
         return ResultUtil.success("批量添加学生成功", backAddStudentDTO);
+    }
+    
+    /**
+     * 获取学生列表
+     * <p>
+     * 该接口用于根据部门（院系）和行政班获取简单的学生列表
+     * 可以根据部门和行政班进行筛选，也可以不指定任何筛选条件获取全部学生
+     * </p>
+     *
+     * @param departmentUuid      部门（院系）UUID，可选参数
+     * @param administrativeClassUuid 行政班UUID，可选参数
+     * @return 返回包含学生列表的响应实体
+     */
+    @RequestLogin
+    @GetMapping("/list")
+    public ResponseEntity<BaseResponse<List<StudentLiteDTO>>> getStudentList(
+            @RequestParam(value = "department_uuid", required = false) String departmentUuid,
+            @RequestParam(value = "administrative_class_uuid", required = false) String administrativeClassUuid
+    ) {
+        // 检查UUID格式（如果提供了）
+        if (departmentUuid != null && !departmentUuid.isBlank() && 
+            !Pattern.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, departmentUuid)) {
+            throw new BusinessException("部门UUID格式错误", ErrorCode.PARAMETER_ERROR);
+        }
+        
+        if (administrativeClassUuid != null && !administrativeClassUuid.isBlank() && 
+            !Pattern.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION, administrativeClassUuid)) {
+            throw new BusinessException("行政班UUID格式错误", ErrorCode.PARAMETER_ERROR);
+        }
+        
+        // 调用服务层获取学生列表
+        List<StudentLiteDTO> studentList = studentService.getStudentLiteList(departmentUuid, administrativeClassUuid);
+        
+        return ResultUtil.success("获取学生列表成功", studentList);
     }
 }

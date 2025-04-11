@@ -28,16 +28,17 @@
 
 package com.frontleaves.scheduling.services;
 
-import com.frontleaves.scheduling.models.dto.PageDTO;
-import com.frontleaves.scheduling.models.dto.UserAddInfoDTO;
-import com.frontleaves.scheduling.models.dto.UserInfoDTO;
-import com.frontleaves.scheduling.models.entity.UserDO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
+import com.frontleaves.scheduling.models.dto.merge.UserAddInfoDTO;
+import com.frontleaves.scheduling.models.dto.merge.UserInfoDTO;
+import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.frontleaves.scheduling.models.vo.UserAddVO;
 import com.frontleaves.scheduling.models.vo.UserEditVO;
 import com.xlf.utility.exception.BusinessException;
 import com.xlf.utility.exception.library.UserAuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 用户服务接口，定义了与用户相关的操作方法。
@@ -63,6 +64,7 @@ public interface UserService {
      * @return UserDO 用户信息对象，包含用户的详细信息
      * @throws UserAuthenticationException 如果Token过期或用户不存在时抛出
      */
+    @NotNull
     UserDO getUserByRequest(HttpServletRequest request);
 
     /**
@@ -178,4 +180,13 @@ boolean checkAddUser(
             Integer size);
 
     void checkUserExist(String username, String email, String phone) throws BusinessException;
+
+    /**
+     * 获取用户信息
+     *
+     * @param userUuid 用户唯一标识符
+     * @return 用户信息数据传输对象
+     */
+    @Nullable
+    UserDO getUserByUuid(String userUuid);
 }

@@ -1,9 +1,11 @@
 package com.frontleaves.scheduling.controllers;
 
+import com.frontleaves.scheduling.annotations.RequestLogin;
+import com.frontleaves.scheduling.annotations.RequestRole;
 import com.frontleaves.scheduling.constants.StringConstant;
-import com.frontleaves.scheduling.models.dto.DepartmentDTO;
-import com.frontleaves.scheduling.models.dto.DepartmentLiteDTO;
-import com.frontleaves.scheduling.models.dto.PageDTO;
+import com.frontleaves.scheduling.models.dto.base.DepartmentDTO;
+import com.frontleaves.scheduling.models.dto.lite.DepartmentLiteDTO;
+import com.frontleaves.scheduling.models.dto.base.PageDTO;
 import com.frontleaves.scheduling.models.vo.DepartmentVO;
 import com.frontleaves.scheduling.services.DepartmentService;
 import com.xlf.utility.BaseResponse;
@@ -41,6 +43,7 @@ public class DepartmentController {
      * @param departmentVO 部门添加请求对象，包含需要验证的部门信息
      * @return 返回包含成功消息和新创建部门数据的响应实体
      */
+    @RequestRole({"管理员"})
     @PostMapping("")
     public ResponseEntity<BaseResponse<DepartmentDTO>> addDepartment(
             @RequestBody @Validated DepartmentVO departmentVO
@@ -61,6 +64,7 @@ public class DepartmentController {
      * 表示参数错误接着，调用部门服务的getDepartment方法获取部门信息最后，使用ResultUtil
      * 工具类生成包含“查询成功”消息和部门信息的响应实体返回
      */
+    @RequestLogin
     @GetMapping("/{department_uuid}")
     public ResponseEntity<BaseResponse<DepartmentDTO>> getDepartment(
             @PathVariable("department_uuid") String departmentUuid
@@ -85,7 +89,7 @@ public class DepartmentController {
      * 表示参数错误接着，调用部门服务的deleteDepartment方法删除部门最后，使用ResultUtil
      * 工具类生成包含“删除成功”消息的响应实体返回
      */
-
+    @RequestRole({"管理员"})
     @DeleteMapping("/{department_uuid}")
     public ResponseEntity<BaseResponse<Void>> deleteDepartment(
             @PathVariable("department_uuid") String departmentUuid
@@ -108,6 +112,7 @@ public class DepartmentController {
      * 表示参数错误接着，调用部门服务的updateDepartment方法更新部门信息最后，使用ResultUtil
      * 工具类生成包含“部门修改成功”消息和更新后的部门数据的响应实体返回
      */
+    @RequestRole({"管理员"})
     @PutMapping("/{department_uuid}")
     public ResponseEntity<BaseResponse<DepartmentDTO>> updateDepartment(
             @PathVariable("department_uuid") String departmentUuid,
@@ -132,7 +137,7 @@ public class DepartmentController {
      * 此方法用于获取部门列表，支持分页、排序和名称过滤功能。
      * 通过调用部门服务的getDepartmentList方法获取部门列表，并使用ResultUtil工具类生成响应返回
      */
-
+    @RequestLogin
     @GetMapping("/page")
     public ResponseEntity<BaseResponse<PageDTO<DepartmentDTO>>> getDepartmentPage(
             @RequestParam(value = "page", defaultValue = "1") int page,
@@ -152,6 +157,7 @@ public class DepartmentController {
      * 此方法用于获取部门简洁列表，不包含详细信息。
      * 通过调用部门服务的getDepartmentList方法获取部门简洁列表，并使用ResultUtil工具类生成响应返回
      */
+    @RequestLogin
     @GetMapping("/list")
     public ResponseEntity<BaseResponse<List<DepartmentLiteDTO>>> getDepartmentList() {
         List<DepartmentLiteDTO> departmentList = departmentService.getDepartmentList();

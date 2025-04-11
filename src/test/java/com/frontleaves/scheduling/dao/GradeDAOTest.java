@@ -30,7 +30,7 @@ package com.frontleaves.scheduling.dao;
 
 import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.GradeDAO;
-import com.frontleaves.scheduling.models.entity.GradeDO;
+import com.frontleaves.scheduling.models.entity.base.GradeDO;
 import com.xlf.utility.util.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +42,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Slf4j
 class GradeDAOTest {
 
@@ -63,23 +63,23 @@ class GradeDAOTest {
         // 获取数据库中第一条年级数据作为测试数据
         GradeDO gradeDO = gradeDAO.lambdaQuery().list().get(0);
         String existingUuid = gradeDO.getGradeUuid();
-        
+
         log.debug("测试获取年级信息(UUID)");
         GradeDO gradeData = gradeDAO.getGradeByUuid(existingUuid);
-        
+
         // 如果年级在数据库中存在，应该不为null
         Assertions.assertNotNull(gradeData);
-        
+
         log.debug("删除缓存并再次获取");
         // 删除Redis缓存
         redisson.getMap(StringConstant.Redis.GRADE_UUID + existingUuid).delete();
-        
+
         // 再次获取，这次应该从数据库获取并重新缓存
         GradeDO gradeData2 = gradeDAO.getGradeByUuid(existingUuid);
-        
+
         // 验证仍然能获到数据
         Assertions.assertNotNull(gradeData2);
-        
+
         // 清理测试后的缓存
         redisson.getMap(StringConstant.Redis.GRADE_UUID + existingUuid).delete();
     }
@@ -90,13 +90,13 @@ class GradeDAOTest {
     @Test
     void testGetNonExistingGrade() {
         log.debug("测试获取不存在的年级");
-        
+
         // 使用一个肯定不存在的UUID
         String nonExistingUuid = UuidUtil.generateUuidNoDash();
-        
+
         // 尝试获取不存在的年级
         GradeDO gradeData = gradeDAO.getGradeByUuid(nonExistingUuid);
-        
+
         // 应该返回null
         Assertions.assertNull(gradeData);
     }
