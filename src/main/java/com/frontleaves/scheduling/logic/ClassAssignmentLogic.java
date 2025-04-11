@@ -211,7 +211,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
                                                   @NotNull ClassAssignmentDTO classAssignment) {
         TeachingClassDTO clazz = teachingClassService.getTeachingClassByUuid(vo.getTeachingClassUuid());
         //检查是否更新的是此课程的教学班
-        if (!clazz.getCourseUuid().equals(classAssignment.getCourseUuid())) {
+        if (!classAssignment.getTeachingClassUuid().equals(vo.getTeachingClassUuid())) {
             throw new BusinessException("教学班不属于此课程", ErrorCode.PARAMETER_ERROR);
         }
         if (vo.getTeachingClassName() != null && !vo.getTeachingClassName().isEmpty()) {

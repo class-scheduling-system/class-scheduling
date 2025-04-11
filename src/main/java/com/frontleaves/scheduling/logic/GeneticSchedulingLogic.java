@@ -86,7 +86,7 @@ private final IterateService iterateService;
             log.debug("获取第50个种群: {}", allPopulation.get(49));
             // 评估初始种群
             log.debug("开始评估初始种群...");
-            evaluatePopulationService.evaluatePopulation(allPopulation, baseDTO);
+                evaluatePopulationService.evaluatePopulation(allPopulation, baseDTO);
             int generation = 0;
             int maxGenerations = baseDTO.getAlgorithmParams().getMaxIterations();
             double bestFitness = 0.0;
