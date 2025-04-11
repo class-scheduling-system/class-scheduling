@@ -70,8 +70,7 @@ public class TimeSlotGeneratorUtil {
                     context.totalScheduledHours(),
                     context.isOddWeekCourse(),
                     context.weeklyHours(),
-                    // 默认使用周五作为补课日
-                    5
+                    RANDOM.nextInt(5) + 1
             );
         }
 
