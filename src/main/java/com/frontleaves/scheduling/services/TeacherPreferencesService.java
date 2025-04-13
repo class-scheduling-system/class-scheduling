@@ -103,7 +103,7 @@ public interface TeacherPreferencesService {
      * @param teacherPreferencesVO 包含要添加的教师课程偏好信息的视图对象
      * @return 返回新创建的教师课程偏好信息
      */
-    TeacherPreferencesDTO addTeacherPreferences(TeacherPreferencesVO teacherPreferencesVO);
+    TeacherPreferencesDTO addTeacherPreferences(TeacherPreferencesVO teacherPreferencesVO, HttpServletRequest request);
 
     /**
      * 编辑教师课程偏好

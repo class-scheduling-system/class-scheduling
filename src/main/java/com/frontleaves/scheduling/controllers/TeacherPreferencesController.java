@@ -207,9 +207,10 @@ public class TeacherPreferencesController {
     @RequestRole({"教师"})
     @PostMapping("")
     public ResponseEntity<BaseResponse<TeacherPreferencesDTO>> addTeacherPreferences(
-            @RequestBody @Validated TeacherPreferencesVO teacherPreferencesVO
+            @RequestBody @Validated TeacherPreferencesVO teacherPreferencesVO,
+            @NotNull HttpServletRequest request
     ) {
-        TeacherPreferencesDTO preferencesDTO = teacherPreferencesService.addTeacherPreferences(teacherPreferencesVO);
+        TeacherPreferencesDTO preferencesDTO = teacherPreferencesService.addTeacherPreferences(teacherPreferencesVO, request);
         return ResultUtil.success(StringConstant.OPERATE_SUCCESS, preferencesDTO);
     }
 

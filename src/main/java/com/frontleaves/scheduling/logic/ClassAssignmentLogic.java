@@ -107,7 +107,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
                 .setSchedulingPriority(vo.getSchedulingPriority())
                 .setConsecutiveSessions(vo.getConsecutiveSessions())
                 .setClassTime(JSONUtil.toJsonStr(ProjectUtil.ClassTimeToTimeSlot(vo.getClassTime())));
-        classAssignmentDAO.save(classAssignment);
+        classAssignmentDAO.saveClassAssignment(classAssignment);
         ClassAssignmentDTO classAssignmentDTO = BeanUtil.toBean(classAssignment, ClassAssignmentDTO.class);
         List<ClassAssignmentDTO> allAssignments = this.getClassAssignmentListConflict(
                 classAssignmentDTO);

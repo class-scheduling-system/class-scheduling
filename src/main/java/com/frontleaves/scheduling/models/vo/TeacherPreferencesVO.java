@@ -52,13 +52,6 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class TeacherPreferencesVO {
     /**
-     * 教师主键
-     */
-    @NotNull(message = "教师主键不能为空")
-    @Pattern(regexp = "^[0-9a-f]{32}$", message = "教师主键格式不正确")
-    private String teacherUuid;
-
-    /**
      * 学期主键
      */
     @NotNull(message = "学期主键不能为空")
