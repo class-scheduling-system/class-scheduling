@@ -1,6 +1,9 @@
 package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.HashUtil;
+import cn.hutool.crypto.digest.MD5;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -13,6 +16,8 @@ import com.frontleaves.scheduling.models.vo.TeacherCourseQualificationQueryVO;
 import com.xlf.utility.util.ConvertUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.codec.digest.Md5Crypt;
 import org.redisson.api.RList;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
@@ -20,7 +25,6 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 教师课程资格数据访问对象
@@ -250,5 +254,30 @@ public class TeacherCourseQualificationDAO extends
         }
         
         return wrapper;
+    }
+
+    /**
+     * 根据教师UUID列表获取教师课程资格列表（不分页）
+     *
+     * @param teacherUuids 教师UUID列表
+     * @return 教师课程资格列表
+     */
+    public List<TeacherCourseQualificationDO> getTeacherCourseQualificationLiteList(List<String> teacherUuids) {
+        // 计算 teacherUuids 的 hash
+        String newHash = teacherUuids == null ? "all" : Md5Crypt.md5Crypt(teacherUuids.toString().getBytes());
+        RList<TeacherCourseQualificationDO> rList = redisson.getList(StringConstant.Redis.TEACHER_COURSE_QUALIFICATION_LITE_LIST + newHash);
+        if (!rList.isExists()) {
+            if (teacherUuids == null || teacherUuids.isEmpty()) {
+                return this.list();
+            } else {
+                List<TeacherCourseQualificationDO> teacherCourseQualificationDOList = this.lambdaQuery()
+                        .in(TeacherCourseQualificationDO::getTeacherUuid, teacherUuids)
+                        .list();
+                rList.addAll(teacherCourseQualificationDOList);
+                rList.expire(Duration.ofSeconds(3600));
+                return teacherCourseQualificationDOList;
+            }
+        }
+        return rList.readAll();
     }
 }

@@ -196,6 +196,8 @@ public class Initialize {
         // APIKEY
         init.checkSystemTable("ai_front_api_key", "app-PI6ZLJbaYnwDQBllEI50cP8c");
         init.checkSystemTable("ai_message_api_key", "app-Gd2OjXtXLHc9082P8QuWLfaG");
+        init.checkSystemTable("ai_course_api_key", "app-6IpEBO3tvhzDSGaY8CtS2NYw");
+        init.checkSystemTable("ai_course_edit_api_key", "app-jSXGfBIZCVoMSNiilGYsiIlC");
 
         log.info("[INIT] 系统数据表检查完成");
     }

@@ -28,9 +28,23 @@
 
 package com.frontleaves.scheduling.controllers;
 
+import cn.hutool.json.JSONObject;
+import com.frontleaves.scheduling.annotations.RequestRole;
+import com.frontleaves.scheduling.models.vo.ManualSchedulingRequestVO;
 import com.frontleaves.scheduling.services.AiService;
+import com.google.gson.JsonObject;
+import com.xlf.utility.BaseResponse;
+import com.xlf.utility.ResultUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.jetbrains.annotations.NotNull;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -52,4 +66,24 @@ import org.springframework.web.bind.annotation.RestController;
 public class AiController {
 
     private final AiService aiService;
+
+    /**
+     * 手动排课(AI)
+     * <p>
+     * 该接口用于手动排课，接收排课请求并返回结果。
+     * </p>
+     *
+     * @param manualScheduling 排课请求对象
+     * @param request          HTTP请求对象
+     * @return 返回手动排课结果
+     */
+    @RequestRole({"管理员", "教务"})
+    @PostMapping("/manual-scheduling")
+    public ResponseEntity<BaseResponse<Object>> manualScheduling(
+            @RequestBody @Validated ManualSchedulingRequestVO manualScheduling,
+            @NotNull HttpServletRequest request
+    ) {
+        Object result = aiService.manualScheduling(manualScheduling, request);
+        return ResultUtil.success("手动排课结果获取成功", result);
+    }
 }

@@ -222,6 +222,11 @@ public class StringConstant {
          */
         public static final String STUDENT_COURSE_SCHEDULE = "course:schedule:student:";
 
+        /**
+         * 教师课程资格表缓存键前缀
+         */
+        public static final String TEACHER_COURSE_QUALIFICATION_LITE_LIST = "teacher:course:qualification:lite:list:";
+
         private Redis() {
             log.error("Redis 不能被实例化");
         }
