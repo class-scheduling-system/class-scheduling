@@ -230,13 +230,26 @@ class BaseGeneticSchedulingLogic {
     }
 
     private SchedulingConflictDTO createTeachingConflict(@NotNull CourseScheduleItemDTO item1, TimeSlotDTO slot1, @NotNull CourseScheduleItemDTO item2) {
+        // 获取两个课程的名称
+        String courseName1 = item1.getCourse().getName();
+        String courseName2 = item2.getCourse().getName();
+        String teachingClassName = item1.getTeachingClass().getTeachingClassName();
+        
         // 创建冲突描述
         return new SchedulingConflictDTO()
                 .setFirstAssignmentUuid(item1.getCourseScheduleItemUuid())
                 .setSecondAssignmentUuid(item2.getCourseScheduleItemUuid())
                 .setConflictTime(slot1)
                 .setConflictType(3)
-                .setDescription("教学班级冲突");
+                .setDescription(String.format(
+                        "教学班 %s 在第%d周星期%d第%d节课被安排了两门课程 [%s] 和 [%s]，学生无法同时上课。建议：1.调整其中一个课程到不同时间段；2.检查教学班安排是否合理；3.可考虑拆分为两个教学班。",
+                        teachingClassName,
+                        slot1.getWeek(),
+                        slot1.getDay(),
+                        slot1.getPeriod(),
+                        courseName1,
+                        courseName2
+                ));
     }
 
     private boolean isTeachingConflict(@NotNull CourseScheduleItemDTO item1, @NotNull CourseScheduleItemDTO item2) {
@@ -267,11 +280,8 @@ class BaseGeneticSchedulingLogic {
                 .setConflictTime(slot)
                 .setConflictType(3) // 冲突类型：3 表示班级冲突
                 .setDescription(String.format(
-                        "班级组 [%s] 在第%d周星期%d第%d节课 与 班级组 [%s] 在第%d周星期%d第%d节课 发生冲突",
+                        "班级 [%s] 和班级 [%s] 在第%d周星期%d第%d节课安排了不同课程，存在共同学生无法同时上课。建议：1.调整其中一个课程到其他时间段；2.检查班级组合是否合理；3.考虑不同年级错峰上课。",
                         classGroupNames1,
-                        slot.getWeek(),
-                        slot.getDay(),
-                        slot.getPeriod(),
                         classGroupNames2,
                         slot.getWeek(),
                         slot.getDay(),
@@ -348,7 +358,7 @@ class BaseGeneticSchedulingLogic {
                 .setConflictTime(slot)
                 .setConflictType(1) // 冲突类型：1 表示教师冲突
                 .setDescription(String.format(
-                        "教师 %s 在第%d周星期%d第%d节课被安排了两门课程 [%s] 和 [%s]，发生时间冲突",
+                        "教师 %s 在第%d周星期%d第%d节课被安排了两门课程 [%s] 和 [%s]，无法同时上课。建议：1.调整其中一个课程到教师空闲时段；2.分配其中一门课程给其他合格教师；3.检查教师工作量是否合理分配。",
                         teacherName,
                         slot.getWeek(),
                         slot.getDay(),
@@ -374,7 +384,7 @@ class BaseGeneticSchedulingLogic {
                 .setConflictTime(slot)
                 .setConflictType(2) // 冲突类型：2 表示教室冲突
                 .setDescription(String.format(
-                        "教室 %s 在第%d周星期%d第%d节课被安排了两门课程 [%s] 和 [%s]，发生时间冲突",
+                        "教室 %s 在第%d周星期%d第%d节课被安排了两门课程 [%s] 和 [%s]，无法同时使用。建议：1.将其中一门课程调整到同类型的其他空闲教室；2.调整其中一个课程的上课时间；3.检查特殊教室需求是否合理。",
                         classroomName,
                         slot.getWeek(),
                         slot.getDay(),

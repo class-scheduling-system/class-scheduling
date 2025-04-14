@@ -226,6 +226,8 @@ public class StringConstant {
          * 教师课程资格表缓存键前缀
          */
         public static final String TEACHER_COURSE_QUALIFICATION_LITE_LIST = "teacher:course:qualification:lite:list:";
+        public static final String SCHEDULING_CONFLICT_LIST = "scheduling:conflict:list";
+        public static final String SCHEDULING_CONFLICT_LIST_CLASS_ASSIGNMENT = "scheduling:conflict:list:class:assignment:";
 
         private Redis() {
             log.error("Redis 不能被实例化");

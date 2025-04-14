@@ -30,13 +30,20 @@ package com.frontleaves.scheduling.daos;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.mappers.SchedulingConflictMapper;
 import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.entity.base.SchedulingConflictDO;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.redisson.api.RKeys;
+import org.redisson.api.RList;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,8 +55,10 @@ import java.util.List;
  */
 @Slf4j
 @Repository
+@RequiredArgsConstructor
 public class SchedulingConflictDAO extends ServiceImpl<SchedulingConflictMapper, SchedulingConflictDO> {
 
+    private final RedissonClient redisson;
     /**
      * 批量保存排课冲突信息
      *
@@ -67,21 +76,80 @@ public class SchedulingConflictDAO extends ServiceImpl<SchedulingConflictMapper,
         log.info("开始保存{}条排课冲突信息到数据库", conflictDTOList.size());
 
         List<SchedulingConflictDO> entityList = new ArrayList<>(conflictDTOList.size());
+        int updatedCount = 0;
+
         for (SchedulingConflictDTO dto : conflictDTOList) {
-            // 使用 BeanUtil 直接转换
-            SchedulingConflictDO conflictDO = BeanUtil.toBean(dto, SchedulingConflictDO.class);
-            entityList.add(conflictDO);
+            // 检查冲突是否已存在（无论顺序）
+            SchedulingConflictDO existingConflict = checkConflictExists(
+                    dto.getFirstAssignmentUuid(),
+                    dto.getSecondAssignmentUuid(),
+                    dto.getConflictType());
+
+            if (existingConflict != null) {
+                // 如果冲突已存在，更新冲突信息而不是创建新记录
+                existingConflict.setConflictTime(cn.hutool.json.JSONUtil.parseObj(dto.getConflictTime()));
+                existingConflict.setDescription(dto.getDescription());
+                existingConflict.setResolutionStatus(0); // 重置为未解决状态
+                this.updateById(existingConflict);
+                updatedCount++;
+            } else {
+                // 如果冲突不存在，创建新记录
+                SchedulingConflictDO conflictDO = BeanUtil.toBean(dto, SchedulingConflictDO.class);
+                // 同样需要转换TimeSlotDTO
+                if (dto.getConflictTime() != null) {
+                    conflictDO.setConflictTime(cn.hutool.json.JSONUtil.parseObj(dto.getConflictTime()));
+                }
+                entityList.add(conflictDO);
+            }
         }
 
-        // 使用MybatisPlus批量保存
-        boolean success = this.saveBatch(entityList);
-        if (success) {
-            log.info("批量保存排课冲突信息成功, 共{}条", entityList.size());
-            return entityList.size();
-        } else {
-            log.error("批量保存排课冲突信息失败");
-            return 0;
+        if (!entityList.isEmpty()) {
+            // 使用MybatisPlus批量保存
+            boolean success = this.saveBatch(entityList);
+            if (success) {
+                log.info("批量保存排课冲突信息成功, 共{}条新增, {}条更新", entityList.size(), updatedCount);
+
+                // 清除所有相关缓存
+                RKeys rKeys = redisson.getKeys();
+                // 清除冲突列表缓存
+                rKeys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST + "*");
+                // 清除与排课安排关联的冲突列表缓存
+                rKeys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST_CLASS_ASSIGNMENT + "*");
+                log.info("排课冲突相关缓存已清除");
+
+                return entityList.size() + updatedCount;
+            } else {
+                log.error("批量保存排课冲突信息失败");
+                return updatedCount;
+            }
         }
+
+        return updatedCount;
+    }
+
+    /**
+     * 检查冲突是否已存在
+     * 注意：会检查两个排课安排无论顺序的冲突
+     *
+     * @param firstAssignmentUuid 第一个排课安排UUID
+     * @param secondAssignmentUuid 第二个排课安排UUID
+     * @param conflictType 冲突类型
+     * @return 已存在的冲突对象，不存在则返回null
+     */
+    private SchedulingConflictDO checkConflictExists(String firstAssignmentUuid, String secondAssignmentUuid, Integer conflictType) {
+        // 查询可能的两种排列方式
+        return this.lambdaQuery()
+                .eq(SchedulingConflictDO::getConflictType, conflictType)
+                .and(q -> q
+                        .or(i -> i
+                                .eq(SchedulingConflictDO::getFirstAssignmentUuid, firstAssignmentUuid)
+                                .eq(SchedulingConflictDO::getSecondAssignmentUuid, secondAssignmentUuid))
+                        .or(i -> i
+                                .eq(SchedulingConflictDO::getFirstAssignmentUuid, secondAssignmentUuid)
+                                .eq(SchedulingConflictDO::getSecondAssignmentUuid, firstAssignmentUuid))
+                )
+                .last("LIMIT 1")
+                .one();
     }
 
     /**
@@ -90,11 +158,58 @@ public class SchedulingConflictDAO extends ServiceImpl<SchedulingConflictMapper,
      * @return 冲突列表
      */
     public List<SchedulingConflictDO> getConflictByClassAssignmentUuid(String classAssignmentUuid) {
-        return this.lambdaQuery()
-                .eq(SchedulingConflictDO::getFirstAssignmentUuid, classAssignmentUuid)
-                .or()
-                .eq(SchedulingConflictDO::getSecondAssignmentUuid,classAssignmentUuid)
-                .eq(SchedulingConflictDO::getResolutionStatus,0)
-                .list();
+        RList<SchedulingConflictDO> list = redisson.getList(StringConstant.Redis.SCHEDULING_CONFLICT_LIST_CLASS_ASSIGNMENT + classAssignmentUuid);
+        if (!list.isExists()) {
+            List<SchedulingConflictDO> getList = this.lambdaQuery()
+                            .eq(SchedulingConflictDO::getResolutionStatus,0)
+                            .or(i -> i.eq(SchedulingConflictDO::getFirstAssignmentUuid, classAssignmentUuid))
+                            .or(i -> i.eq(SchedulingConflictDO::getSecondAssignmentUuid,classAssignmentUuid))
+                            .list();
+            list.addAll(getList);
+            list.expire(Duration.ofHours(1));
+            return getList;
+        } else {
+            return list.readAll();
+        }
+    }
+
+    /**0
+     * 获取学期的冲突列表
+     * @param currentSemesterUuid 学期UUID
+     * @return 冲突列表
+     */
+    public List<SchedulingConflictDO> getConflictListBySemester(String currentSemesterUuid) {
+        RList<SchedulingConflictDO> list = redisson.getList(StringConstant.Redis.SCHEDULING_CONFLICT_LIST);
+        if (!list.isExists()) {
+            List<SchedulingConflictDO> getList = this.lambdaQuery()
+                            .eq(SchedulingConflictDO::getResolutionStatus,0)
+                            .eq(SchedulingConflictDO::getSemesterUuid, currentSemesterUuid)
+                            .list();
+            list.addAll(getList);
+            list.expire(Duration.ofHours(1));
+            return getList;
+        } else {
+            return list.readAll();
+        }
+    }
+
+    /**
+     * 删除冲突记录
+     * @param conflict 排课冲突对象
+     * @return 是否删除成功
+     */
+    @Transactional
+    public boolean deleteConflict(SchedulingConflictDO conflict) {
+        boolean success = this.removeById(conflict.getConflictUuid());
+        if (success) {
+            // 清除所有相关缓存
+            RKeys rKeys = redisson.getKeys();
+            // 清除冲突列表缓存
+            rKeys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST + "*");
+            // 清除与排课安排关联的冲突列表缓存
+            rKeys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST_CLASS_ASSIGNMENT + "*");
+            log.info("排课冲突相关缓存已清除");
+        }
+        return success;
     }
 }

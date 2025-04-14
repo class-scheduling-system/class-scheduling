@@ -52,7 +52,7 @@ import java.util.List;
  * 提供年级相关的接口，包括创建、更新、删除、查询等功能。
  * </p>
  *
- * @author AI Assistant
+ * @author xiao_lfneg
  * @version v1.0.0
  * @since v1.0.0
  */

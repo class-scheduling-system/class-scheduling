@@ -74,8 +74,6 @@ public class ClassAssignmentController {
         return ResultUtil.success("排课分配更新成功",schedulingConflict);
     }
 
-
-
     /**
      * 根据UUID获取排课分配信息
      *
@@ -162,8 +160,6 @@ public class ClassAssignmentController {
         return ResultUtil.success("排课分配记录已删除");
     }
 
-
-
     /**
      * 获取排课分配列表接口
      * 该接口返回排课分配的列表信息，支持按学期、课程和教师进行筛选
@@ -203,5 +199,28 @@ public class ClassAssignmentController {
 
         List<BackDetailedAssignmentDTO> list = classAssignmentService.list(semesterUuid,getCourseUuid,getTeacherUuid,request);
         return ResultUtil.success("查询排课分配列表成功", list);
+    }
+
+    /**
+     * 解决排课分配相关的冲突
+     * <p>
+     * 检查并自动解决与指定排课分配相关的所有冲突
+     * </p>
+     *
+     * @param classAssignmentUuid 排课分配UUID
+     * @return 操作结果，包含已解决的冲突数量
+     */
+    @RequestRole({"教务"})
+    @PostMapping("/{class_assignment_uuid}/resolve-conflicts")
+    public ResponseEntity<BaseResponse<Integer>> resolveConflicts(
+            @PathVariable("class_assignment_uuid") String classAssignmentUuid
+    ) {
+        String getUuid = Optional.ofNullable(classAssignmentUuid)
+                .filter(uuid -> !uuid.isBlank())
+                .filter(uuid -> uuid.matches(StringConstant.Regular.UUID_NO_DASH_REGULAR_EXPRESSION))
+                .orElseThrow(() -> new BusinessException(StringConstant.ErrorMessage.CLASS_ASSIGNMENT_UUID_FORMAT_ERROR, ErrorCode.PARAMETER_ERROR));
+        
+        int resolvedCount = classAssignmentService.resolveConflicts(getUuid);
+        return ResultUtil.success("成功解决 " + resolvedCount + " 个冲突", resolvedCount);
     }
 }

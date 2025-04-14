@@ -102,8 +102,17 @@ public class AutomaticClassSchedulingThread extends Thread {
                             .getBucket(StringConstant.Redis.SCHEDULE_RESULT + taskId);
                     resultCache.set(result);
                     resultCache.expire(Duration.ofHours(24));
-                    // 删除任务有关的缓存数据
+                    
+                    // 清除所有与排课冲突相关的缓存
                     RKeys rKeys = redisson.getKeys();
+                    rKeys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST + "*");
+                    rKeys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST_CLASS_ASSIGNMENT + "*");
+                    rKeys.deleteByPattern(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
+                    rKeys.deleteByPattern(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
+                    rKeys.deleteByPattern(StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + "*");
+                    log.info("排课冲突缓存已清除");
+                    
+                    // 删除任务有关的缓存数据
                     rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_LESSONS + user.getUserUuid());
                     rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_EXECUTE_STATUS + user.getUserUuid());
                     rKeys.deleteByPattern(StringConstant.Redis.SCHEDULE_EXECUTE_PROGRESS + user.getUserUuid());

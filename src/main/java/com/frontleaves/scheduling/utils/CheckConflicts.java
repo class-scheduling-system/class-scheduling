@@ -95,7 +95,9 @@ public class CheckConflicts {
                     .setConflictUuid(UuidUtil.generateUuidNoDash())
                     .setConflictType(1)
                     .setConflictTime(timeSlot)
-                    .setDescription("老师冲突")
+                    .setDescription(String.format(
+                            "教师在第%d周星期%d第%d节课被安排了多个课程，无法同时上课。建议：1.调整其中一个课程到其他时间；2.更换其中一个课程的授课教师；3.检查教师工作量分配是否合理。",
+                            timeSlot.getWeek(), timeSlot.getDay(), timeSlot.getPeriod()))
                     .setSemesterUuid(classAssignment.getSemesterUuid())
                     .setResolutionStatus(0)
                     .setFirstAssignmentUuid(classAssignment.getClassAssignmentUuid())
@@ -107,7 +109,9 @@ public class CheckConflicts {
                     .setConflictUuid(UuidUtil.generateUuidNoDash())
                     .setConflictType(2)
                     .setConflictTime(timeSlot)
-                    .setDescription("教室冲突")
+                    .setDescription(String.format(
+                            "教室在第%d周星期%d第%d节课被多个课程同时占用。建议：1.将其中一个课程调整到空闲教室；2.调整其中一个课程的上课时间；3.检查是否有容量更大的教室可用。", 
+                            timeSlot.getWeek(), timeSlot.getDay(), timeSlot.getPeriod()))
                     .setSemesterUuid(classAssignment.getSemesterUuid())
                     .setResolutionStatus(0)
                     .setFirstAssignmentUuid(classAssignment.getClassAssignmentUuid())
@@ -119,7 +123,9 @@ public class CheckConflicts {
                     .setConflictUuid(UuidUtil.generateUuidNoDash())
                     .setConflictType(3)
                     .setConflictTime(timeSlot)
-                    .setDescription("班级冲突")
+                    .setDescription(String.format(
+                            "班级在第%d周星期%d第%d节课被安排了多个课程，学生无法同时上课。建议：1.调整其中一个课程到该班级的空闲时间；2.检查课程是否重复安排；3.平衡班级课程分布。", 
+                            timeSlot.getWeek(), timeSlot.getDay(), timeSlot.getPeriod()))
                     .setSemesterUuid(classAssignment.getSemesterUuid())
                     .setResolutionStatus(0)
                     .setFirstAssignmentUuid(classAssignment.getClassAssignmentUuid())

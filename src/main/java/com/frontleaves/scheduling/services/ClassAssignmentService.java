@@ -122,4 +122,15 @@ public interface ClassAssignmentService {
      */
     BackClassAssignmentDTO exchange(
             ClassAssignmentDTO dto);
+
+    /**
+     * 检查并解决所有相关的排课冲突
+     * <p>
+     * 该方法用于检查特定排课分配的所有相关冲突，如果冲突已解决，则将其状态更新为已解决
+     * </p>
+     *
+     * @param classAssignmentUuid 排课分配UUID
+     * @return 已解决的冲突数量
+     */
+    int resolveConflicts(String classAssignmentUuid);
 }

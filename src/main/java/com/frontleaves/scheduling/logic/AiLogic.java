@@ -67,10 +67,12 @@ import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 /**
  * AI 逻辑处理类
@@ -98,6 +100,7 @@ public class AiLogic implements AiService {
     private final AiFrontWebSocketComponent aiFrontWebSocketComponent;
     private final CreditHourTypeDAO creditHourTypeDAO;
     private final AdministrativeClassDAO administrativeClassDAO;
+    private final SchedulingConflictDAO schedulingConflictDAO;
 
     /**
      * 发送路由跳转
@@ -358,18 +361,41 @@ public class AiLogic implements AiService {
         // 获取当前部门
         AcademicAffairsPermissionDO academicAffairsPermission = academicAffairsPermissionDAO.getAcademicAffairsPermissionByUserUuid(user.getUserUuid());
 
-        List<CourseLibraryDO> courseLibraryList = courseLibraryDAO.getCourseLibraryList(null, null, null, null, academicAffairsPermission.getDepartment());
+        List<CourseLibraryDO> courseLibraryList = courseLibraryDAO.getCourseLibraryList(null, null, null, null, academicAffairsPermission.getDepartment())
+                .stream()
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        list -> {
+                            Collections.shuffle(list);
+                            return list.stream().limit(50).collect(Collectors.toList());
+                        }
+                ));
         List<TeacherLiteDTO> teacherList = teacherDAO.getTeacherLiteList(academicAffairsPermission.getDepartment(), null)
                 .stream()
                 .map(data -> BeanUtil.toBean(data, TeacherLiteDTO.class))
                 .toList();
         List<TeacherCourseQualificationDO> teacherCourseQualificationList = teacherCourseQualificationDAO.getTeacherCourseQualificationLiteList(teacherList.stream().map(TeacherLiteDTO::getTeacherUuid).toList());
-        List<ClassroomLiteDTO> classroomList = classroomDAO.getClassroomByBuilding(null)
+        List<ClassroomDO> classroomList = classroomDAO.getClassroomByBuilding(null)
                 .stream()
-                .map(data -> BeanUtil.toBean(data, ClassroomLiteDTO.class))
-                .toList();
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        list -> {
+                            Collections.shuffle(list);
+                            return list.stream().limit(50).collect(Collectors.toList());
+                        }
+                ));
         List<CreditHourTypeDO> creditHourTypeList = creditHourTypeDAO.getList();
         List<AdministrativeClassDO> administrativeClassList = administrativeClassDAO.getAdministrativeClassListByDepartment(academicAffairsPermission.getDepartment());
+        List<SchedulingConflictDO> schedulingConflictList = schedulingConflictDAO.getConflictListBySemester(manualScheduling.getCurrentSemesterUuid())
+                .stream()
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        list -> {
+                            Collections.shuffle(list);
+                            return list.stream().limit(100).collect(Collectors.toList());
+                        }
+                ));
+        
 
         String requestUrl = UrlBuilder.of()
                 .setScheme("http")
@@ -396,13 +422,14 @@ public class AiLogic implements AiService {
                         "inputs", Map.of(
                                 "user_input", manualScheduling.getStructuredData(),
                                 "current_schedule", JSONUtil.toJsonStr(classAssignmentList),
-                                "department_course", JSONUtil.toJsonStr(courseLibraryList),
+                                "department_course", Boolean.TRUE.equals(manualScheduling.getEdit()) ? JSONUtil.toJsonStr(courseLibraryList) : "",
                                 "department_teacher", JSONUtil.toJsonStr(teacherList),
                                 "teacher_qualification", JSONUtil.toJsonStr(teacherCourseQualificationList),
                                 "current_semester", manualScheduling.getCurrentSemesterUuid(),
                                 "classroom", JSONUtil.toJsonStr(classroomList),
                                 "credit_hour_type", JSONUtil.toJsonStr(creditHourTypeList),
-                                "administrative_class", JSONUtil.toJsonStr(administrativeClassList)
+                                "administrative_class", JSONUtil.toJsonStr(administrativeClassList),
+                                "conflict", JSONUtil.toJsonStr(schedulingConflictList)
                         ),
                         "response_mode", "blocking",
                         "user", "uuid_" + user.getUserUuid() + "_" + System.currentTimeMillis())))

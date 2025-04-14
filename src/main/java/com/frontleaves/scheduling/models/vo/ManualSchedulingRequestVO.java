@@ -33,5 +33,13 @@ public class ManualSchedulingRequestVO {
      */
     private String ask;
 
+    /**
+     * 是否是编辑模式
+     */
     private Boolean edit;
+
+    /**
+     * 排课主键
+     */
+    private String scheduleUuid;
 }

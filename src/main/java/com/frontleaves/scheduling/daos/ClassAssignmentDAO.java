@@ -182,6 +182,10 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_UUID + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + "*");
+        // 删除冲突缓存
+        keys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST + "*");
+        keys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST_CLASS_ASSIGNMENT + "*");
     }
 
     /**
@@ -200,6 +204,9 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + "*");
+        // 删除冲突缓存
+        keys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST + "*");
+        keys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST_CLASS_ASSIGNMENT + "*");
     }
 
     /**
@@ -272,6 +279,7 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
                     .list();
             if (!list.isEmpty()) {
                 rList.addAll(list);
+                // 设置缓存过期时间为1小时，确保缓存不会无限期存在
                 rList.expire(Duration.ofHours(1));
                 return list;
             }
@@ -291,6 +299,9 @@ public class ClassAssignmentDAO extends ServiceImpl<ClassAssignmentMapper, Class
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
         keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + "*");
+        // 删除冲突缓存
+        keys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST + "*");
+        keys.deleteByPattern(StringConstant.Redis.SCHEDULING_CONFLICT_LIST_CLASS_ASSIGNMENT + "*");
     }
 
 

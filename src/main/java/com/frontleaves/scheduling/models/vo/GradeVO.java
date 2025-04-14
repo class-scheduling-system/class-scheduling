@@ -47,7 +47,7 @@ import java.sql.Date;
  * 包含年级名称、入学年份、年级开始日期、年级结束日期和年级描述等字段。
  * </p>
  *
- * @author AI Assistant
+ * @author xiao_lfneg
  * @version v1.0.0
  * @since v1.0.0
  */
