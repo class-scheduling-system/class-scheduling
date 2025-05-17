@@ -256,7 +256,10 @@ class BaseGeneticSchedulingLogic {
         // 获取两个课程安排项的教学班 UUID
         String teachingClassUuid1 = item1.getTeachingClass().getTeachingClassUuid();
         String teachingClassUuid2 = item2.getTeachingClass().getTeachingClassUuid();
-
+        // 如果是同一个课程安排项，不应该被视为冲突
+        if (item1.getCourseScheduleItemUuid().equals(item2.getCourseScheduleItemUuid())) {
+            return false;
+        }
         // 比较两个教学班的 UUID 是否相同
         return teachingClassUuid1.equals(teachingClassUuid2);
     }
