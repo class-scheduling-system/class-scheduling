@@ -7,13 +7,13 @@ import enums.CourseEnuType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
 /**
  * 教室选择工具类
+ *
  * @author FLASHLACK
  */
 @Slf4j
@@ -23,7 +23,6 @@ public final class ClassroomSelectionUtil {
     private ClassroomSelectionUtil() {
         throw new AssertionError("Utility class should not be instantiated");
     }
-
 
 
     /**
@@ -156,7 +155,9 @@ public final class ClassroomSelectionUtil {
         // 查找最优教室
         List<ClassroomInfoDTO> matchingClassrooms = findOptimalClassrooms(classrooms, course);
         // 如果没有找到，查找满足最低要求的教室
-        matchingClassrooms = findMinimumRequirementClassrooms(classrooms, course);
+        if (matchingClassrooms.isEmpty()) {
+            matchingClassrooms = findMinimumRequirementClassrooms(classrooms, course);
+        }
         // 如果仍未找到，查找容量最接近的教室
         if (matchingClassrooms.isEmpty()) {
             matchingClassrooms = findClosestCapacityClassrooms(classrooms, course);
