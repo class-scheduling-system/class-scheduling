@@ -47,3 +47,4 @@ diff_output.txt
 # 忽略邮箱配置文件
 src/main/resources/config/mail.setting
 /cli/cli-windows-amd64.exe
+/cli/configuration.toml
