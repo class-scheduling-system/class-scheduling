@@ -4,7 +4,10 @@ import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import enums.CourseEnuType;
+import lombok.extern.slf4j.Slf4j;
 
+import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -13,6 +16,7 @@ import java.util.Random;
  * 教室选择工具类
  * @author FLASHLACK
  */
+@Slf4j
 public final class ClassroomSelectionUtil {
 
     // 私有构造函数防止实例化
@@ -59,12 +63,13 @@ public final class ClassroomSelectionUtil {
     /**
      * 选择随机教室
      */
-    public static ClassroomInfoDTO selectRandomClassroom(
-            List<ClassroomInfoDTO> matchingClassrooms,
-            Random random) {
-        if (matchingClassrooms == null || matchingClassrooms.isEmpty() || random == null) {
+    public static ClassroomInfoDTO selectRandomClassroom(List<ClassroomInfoDTO> matchingClassrooms) {
+        Random random = new SecureRandom();
+        random.setSeed(System.currentTimeMillis());
+        if (matchingClassrooms == null || matchingClassrooms.isEmpty()) {
             return null;
         }
+        log.debug("选择随机教室，匹配教室数：{}", matchingClassrooms.size());
         // 使用整个列表的大小作为范围
         int randomIndex = random.nextInt(matchingClassrooms.size());
         return matchingClassrooms.get(randomIndex);
@@ -151,9 +156,7 @@ public final class ClassroomSelectionUtil {
         // 查找最优教室
         List<ClassroomInfoDTO> matchingClassrooms = findOptimalClassrooms(classrooms, course);
         // 如果没有找到，查找满足最低要求的教室
-        if (matchingClassrooms.isEmpty()) {
-            matchingClassrooms = findMinimumRequirementClassrooms(classrooms, course);
-        }
+        matchingClassrooms = findMinimumRequirementClassrooms(classrooms, course);
         // 如果仍未找到，查找容量最接近的教室
         if (matchingClassrooms.isEmpty()) {
             matchingClassrooms = findClosestCapacityClassrooms(classrooms, course);

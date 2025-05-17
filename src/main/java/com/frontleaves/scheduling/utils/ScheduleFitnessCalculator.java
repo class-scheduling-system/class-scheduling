@@ -410,7 +410,7 @@ public final class ScheduleFitnessCalculator {
                     item1.getTeacher().getTeacher().getName(),
                     item1.getCourse().getName(),
                     item2.getCourse().getName());
-            penalty += 100.0;
+            penalty += 100000.0;
         }
         // 检查教室冲突
         boolean classroomConflict = isClassroomConflict(item1, item2);
@@ -419,7 +419,7 @@ public final class ScheduleFitnessCalculator {
                     item1.getClassroom().getClassroom().getName(),
                     item1.getCourse().getName(),
                     item2.getCourse().getName());
-            penalty += 100.0;
+            penalty += 1000000.0;
         }
         // 检查班级冲突
         boolean classConflict = isClassConflict(item1, item2);
@@ -430,7 +430,7 @@ public final class ScheduleFitnessCalculator {
                     String.join("、", conflictingClasses),
                     item1.getCourse().getName(),
                     item2.getCourse().getName());
-            penalty += 100.0;
+            penalty += 1000000.0;
         }
         return penalty;
     }

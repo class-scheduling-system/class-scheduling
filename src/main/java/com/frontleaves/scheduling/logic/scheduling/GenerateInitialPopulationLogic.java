@@ -301,7 +301,7 @@ public class GenerateInitialPopulationLogic implements GenerateInitialPopulation
             // 如果有合适的教室，则随机选择一个教室进行分配
             if (!matchingClassrooms.isEmpty()) {
                 ClassroomInfoDTO selectedClassroom =
-                        ClassroomSelectionUtil.selectRandomClassroom(matchingClassrooms, random);
+                        ClassroomSelectionUtil.selectRandomClassroom(matchingClassrooms);
                 // 将课程的班级列表和选定的教室信息存入结果映射中
                 result.put(course, selectedClassroom);
             }
