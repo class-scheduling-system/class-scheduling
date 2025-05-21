@@ -283,7 +283,7 @@ public class IterateLogic implements IterateService {
         if (!suitableClassrooms.isEmpty()) {
             // 使用随机数生成器选择教室
             ClassroomInfoDTO selectedClassroom =
-                    ClassroomSelectionUtil.selectRandomClassroom(suitableClassrooms, random);
+                    ClassroomSelectionUtil.selectRandomClassroom(suitableClassrooms);
             // 将教室与班级关联
             result.put(courseAndTeacher.getClassList(), selectedClassroom);
         }

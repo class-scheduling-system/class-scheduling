@@ -251,17 +251,22 @@ public class ClassroomDAO extends ServiceImpl<ClassroomMapper, ClassroomDO> {
      * @return 返回教室列表，如果找不到则返回空列表
      */
     @Nullable
-    public List<ClassroomDO> getClassroomByBuilding(String buildingUuid) {
+    public List<ClassroomDO> getClassroomByBuilding(@Nullable String buildingUuid) {
         // 从Redis中获取缓存的教室列表
-        RList<ClassroomDO> rList = redisson.getList(StringConstant.Redis.CLASSROOM_BUILDING + buildingUuid);
+        RList<ClassroomDO> rList = redisson.getList(StringConstant.Redis.CLASSROOM_BUILDING + (buildingUuid != null && !buildingUuid.isBlank() ? buildingUuid : "all"));
         if (!rList.isExists()){
             // 如果缓存不存在，从数据库中查询教室列表
-            List<ClassroomDO> classroomDOList = this.lambdaQuery().eq(ClassroomDO::getBuildingUuid, buildingUuid).list();
-            if (!classroomDOList.isEmpty()){
+            LambdaQueryChainWrapper<ClassroomDO> wrapper = this.lambdaQuery();
+            if (buildingUuid != null) {
+                wrapper.eq(ClassroomDO::getBuildingUuid, buildingUuid);
+            }
+            wrapper.orderByAsc(ClassroomDO::getNumber);
+            List<ClassroomDO> classroomList = wrapper.list();
+            if (!classroomList.isEmpty()){
                 // 如果查询结果不为空，将其添加到Redis缓存中，并设置过期时间
-                rList.addAll(classroomDOList);
+                rList.addAll(classroomList);
                 rList.expire(Duration.ofSeconds(3600));
-                return classroomDOList;
+                return classroomList;
             }
             // 如果查询结果为空，返回空列表
             return null;

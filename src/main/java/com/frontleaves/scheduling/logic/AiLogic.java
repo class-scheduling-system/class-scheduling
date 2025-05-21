@@ -29,33 +29,50 @@
 package com.frontleaves.scheduling.logic;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.net.url.UrlBuilder;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONConfig;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.frontleaves.scheduling.daos.SystemDAO;
+import com.frontleaves.scheduling.daos.*;
+import com.frontleaves.scheduling.models.dto.lite.CourseLibraryLiteDTO;
+import com.frontleaves.scheduling.models.dto.lite.TeacherLiteDTO;
+import com.frontleaves.scheduling.models.dto.merge.ClassroomLiteDTO;
+
+import com.frontleaves.scheduling.models.entity.base.*;
+import com.frontleaves.scheduling.models.vo.ClassAssignmentVO;
+import jakarta.servlet.http.HttpServletRequest;
+
 import com.frontleaves.scheduling.models.dto.base.RoleDTO;
 import com.frontleaves.scheduling.models.dto.base.UserDTO;
-import com.frontleaves.scheduling.models.entity.base.UserDO;
+import com.frontleaves.scheduling.models.vo.ManualSchedulingRequestVO;
+import com.frontleaves.scheduling.models.vo.TeacherCourseQualificationQueryVO;
 import com.frontleaves.scheduling.services.AiService;
+import com.frontleaves.scheduling.services.DepartmentService;
 import com.frontleaves.scheduling.services.RoleService;
+import com.frontleaves.scheduling.services.UserService;
 import com.frontleaves.scheduling.utils.WsResponseUtil;
 import com.frontleaves.scheduling.ws.AiFrontWebSocketComponent;
 import com.xlf.utility.ErrorCode;
 import com.xlf.utility.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 /**
  * AI 逻辑处理类
@@ -73,7 +90,17 @@ import java.util.Scanner;
 public class AiLogic implements AiService {
     private final SystemDAO systemDAO;
     private final RoleService roleService;
+    private final UserService userService;
+    private final CourseLibraryDAO courseLibraryDAO;
+    private final AcademicAffairsPermissionDAO academicAffairsPermissionDAO;
+    private final ClassroomDAO classroomDAO;
+    private final TeacherDAO teacherDAO;
+    private final ClassAssignmentDAO classAssignmentDAO;
+    private final TeacherCourseQualificationDAO teacherCourseQualificationDAO;
     private final AiFrontWebSocketComponent aiFrontWebSocketComponent;
+    private final CreditHourTypeDAO creditHourTypeDAO;
+    private final AdministrativeClassDAO administrativeClassDAO;
+    private final SchedulingConflictDAO schedulingConflictDAO;
 
     /**
      * 发送路由跳转
@@ -317,6 +344,106 @@ public class AiLogic implements AiService {
             log.error("处理 SSE 流时发生错误", e);
         } finally {
             response.close();
+        }
+    }
+
+    @Override
+    public Object manualScheduling(ManualSchedulingRequestVO manualScheduling, @NotNull HttpServletRequest request) {
+        String aiFrontApiKey;
+        if (Boolean.TRUE.equals(manualScheduling.getEdit())) {
+            aiFrontApiKey = systemDAO.getSystemInfo("ai_course_edit_api_key");
+        } else {
+            aiFrontApiKey = systemDAO.getSystemInfo("ai_course_api_key");
+        }
+
+        UserDO user = userService.getUserByRequest(request);
+
+        // 获取当前部门
+        AcademicAffairsPermissionDO academicAffairsPermission = academicAffairsPermissionDAO.getAcademicAffairsPermissionByUserUuid(user.getUserUuid());
+
+        List<CourseLibraryDO> courseLibraryList = courseLibraryDAO.getCourseLibraryList(null, null, null, null, academicAffairsPermission.getDepartment())
+                .stream()
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        list -> {
+                            Collections.shuffle(list);
+                            return list.stream().limit(50).collect(Collectors.toList());
+                        }
+                ));
+        List<TeacherLiteDTO> teacherList = teacherDAO.getTeacherLiteList(academicAffairsPermission.getDepartment(), null)
+                .stream()
+                .map(data -> BeanUtil.toBean(data, TeacherLiteDTO.class))
+                .toList();
+        List<TeacherCourseQualificationDO> teacherCourseQualificationList = teacherCourseQualificationDAO.getTeacherCourseQualificationLiteList(teacherList.stream().map(TeacherLiteDTO::getTeacherUuid).toList());
+        List<ClassroomDO> classroomList = classroomDAO.getClassroomByBuilding(null)
+                .stream()
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        list -> {
+                            Collections.shuffle(list);
+                            return list.stream().limit(50).collect(Collectors.toList());
+                        }
+                ));
+        List<CreditHourTypeDO> creditHourTypeList = creditHourTypeDAO.getList();
+        List<AdministrativeClassDO> administrativeClassList = administrativeClassDAO.getAdministrativeClassListByDepartment(academicAffairsPermission.getDepartment());
+        List<SchedulingConflictDO> schedulingConflictList = schedulingConflictDAO.getConflictListBySemester(manualScheduling.getCurrentSemesterUuid())
+                .stream()
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        list -> {
+                            Collections.shuffle(list);
+                            return list.stream().limit(100).collect(Collectors.toList());
+                        }
+                ));
+        
+
+        String requestUrl = UrlBuilder.of()
+                .setScheme("http")
+                .setHost("172.16.1.6")
+                .addPath("/v1")
+                .addPath("/chat-messages")
+                .build();
+
+        List<ClassAssignmentDO> classAssignmentList = classAssignmentDAO.getClassAssignmentListBySemester(manualScheduling.getCurrentSemesterUuid());
+
+
+        log.info("请求地址: {}", requestUrl);
+
+        HttpResponse response = HttpRequest.post(requestUrl)
+                .addHeaders(Map.of(
+                        "Authorization", "Bearer " + aiFrontApiKey,
+                        "Content-Type", "application/json",
+                        "Accept", "application/json",
+                        "Accept-Charset", "utf-8",
+                        "User-Agent", request.getHeader("User-Agent")))
+                .setReadTimeout(120000)
+                .body(JSONUtil.toJsonStr(Map.of(
+                        "query", manualScheduling.getAsk(),
+                        "inputs", Map.of(
+                                "user_input", manualScheduling.getStructuredData(),
+                                "current_schedule", JSONUtil.toJsonStr(classAssignmentList),
+                                "department_course", Boolean.TRUE.equals(manualScheduling.getEdit()) ? JSONUtil.toJsonStr(courseLibraryList) : "",
+                                "department_teacher", JSONUtil.toJsonStr(teacherList),
+                                "teacher_qualification", JSONUtil.toJsonStr(teacherCourseQualificationList),
+                                "current_semester", manualScheduling.getCurrentSemesterUuid(),
+                                "classroom", JSONUtil.toJsonStr(classroomList),
+                                "credit_hour_type", JSONUtil.toJsonStr(creditHourTypeList),
+                                "administrative_class", JSONUtil.toJsonStr(administrativeClassList),
+                                "conflict", JSONUtil.toJsonStr(schedulingConflictList)
+                        ),
+                        "response_mode", "blocking",
+                        "user", "uuid_" + user.getUserUuid() + "_" + System.currentTimeMillis())))
+                .execute();
+
+        // 获取结果
+        JSONObject result = new JSONObject();
+        try (response) {
+            log.debug("请求结果: {}", response.body());
+            result = JSONUtil.parseObj(response.body());
+            log.info("请求结果: {}", result);
+            return result.getByPath("answer");
+        } catch (NullPointerException e) {
+            return result;
         }
     }
 }

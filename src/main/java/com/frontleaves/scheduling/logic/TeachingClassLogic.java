@@ -3,6 +3,7 @@ package com.frontleaves.scheduling.logic;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.frontleaves.scheduling.constants.StringConstant;
 import com.frontleaves.scheduling.daos.CourseLibraryDAO;
 import com.frontleaves.scheduling.daos.DepartmentDAO;
 import com.frontleaves.scheduling.daos.SemesterDAO;
@@ -21,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.redisson.api.RKeys;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -44,6 +47,7 @@ public class TeachingClassLogic implements TeachingClassService {
     private final CourseLibraryDAO courseLibraryDAO;
     private final DepartmentDAO departmentDAO;
     private final SemesterDAO semesterDAO;
+    private final RedissonClient redisson;
 
     @Override
     public List<TeachingClassDTO> getTeachingClassListBySemester(String semesterUuid) {
@@ -65,6 +69,10 @@ public class TeachingClassLogic implements TeachingClassService {
     @Override
     public void save(TeachingClassDO teachingClassDO) {
         teachingClassDAO.save(teachingClassDO);
+        RKeys keys = redisson.getKeys();
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_PAGE + "*");
+        keys.delete(StringConstant.Redis.CLASS_ASSIGNMENT_LIST_SEMESTER + "*");
     }
 
     @Override

@@ -135,9 +135,6 @@ private final IterateService iterateService;
             bucket.expire(Duration.ofHours(24));
             if (bestSchedule != null) {
                 bestSchedule.setSchedule(List.of(bestSchedule.getSchedule().get(0)));
-                bestSchedule.getSchedule().forEach(data ->
-                    log.debug("XXXX 最终排课方案: {}", data)
-                );
                 List<SchedulingConflictDTO> conflicts = this.findConflicts(bestSchedule);
                 ScheduleResultDTO.ResourceUtilization utilization = calculateResourceUtilization(bestSchedule);
                 List<ScheduleResultDTO.CourseTeachingClassDTO> assignments = convertScheduleToAssignments(bestSchedule);

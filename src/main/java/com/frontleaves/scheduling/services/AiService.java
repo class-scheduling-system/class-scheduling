@@ -29,6 +29,10 @@
 package com.frontleaves.scheduling.services;
 
 import com.frontleaves.scheduling.models.entity.base.UserDO;
+import com.frontleaves.scheduling.models.vo.ManualSchedulingRequestVO;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -69,8 +73,7 @@ public interface AiService {
             @Nullable String thisPage,
             @Nullable String chat,
             @NotNull UserDO user,
-            @NotNull String userAgent
-    );
+            @NotNull String userAgent);
 
     /**
      * 发送 AI 聊天消息
@@ -78,10 +81,22 @@ public interface AiService {
      * 该方法用于处理 AI 聊天消息请求。
      * </p>
      *
-     * @param userInput      用户输入的消息
-     * @param chat          聊天记录
-     * @param user          用户对象
-     * @param userAgent     用户代理信息
+     * @param userInput 用户输入的消息
+     * @param chat      聊天记录
+     * @param user      用户对象
+     * @param userAgent 用户代理信息
      */
     void sendAiChat(String userInput, String chat, UserDO user, String userAgent);
+
+    /**
+     * 手动排课
+     * <p>
+     * 该方法用于处理手动排课请求。
+     * </p>
+     *
+     * @param manualScheduling 手动排课请求视图对象 {@code ManualSchedulingRequestVO}
+     * @param request          请求对象
+     * @return 手动排课结果
+     */
+    Object manualScheduling(ManualSchedulingRequestVO manualScheduling, @NotNull HttpServletRequest request);
 }

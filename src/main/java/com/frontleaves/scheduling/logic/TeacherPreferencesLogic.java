@@ -142,9 +142,15 @@ public class TeacherPreferencesLogic implements TeacherPreferencesService {
      * @return 返回新创建的教师课程偏好信息
      */
     @Override
-    public TeacherPreferencesDTO addTeacherPreferences(TeacherPreferencesVO teacherPreferencesVO) {
+    public TeacherPreferencesDTO addTeacherPreferences(TeacherPreferencesVO teacherPreferencesVO, HttpServletRequest request) {
         TeacherPreferencesDO preferencesDO = BeanUtil.toBean(teacherPreferencesVO, TeacherPreferencesDO.class);
-        teacherPreferencesDAO.save(preferencesDO);
+
+        UserDO getUser = userService.getUserByRequest(request);
+        TeacherDO getTeacher = teacherDAO.getTeacherByUserUuid(getUser.getUserUuid());
+
+        preferencesDO.setTeacherUuid(getTeacher.getTeacherUuid());
+
+        teacherPreferencesDAO.saveTeacherPreferences(preferencesDO);
         return Optional.ofNullable(teacherPreferencesDAO.getTeacherPreferencesByUuid(preferencesDO.getPreferenceUuid()))
                 .map(data -> BeanUtil.toBean(data, TeacherPreferencesDTO.class))
                 .orElseThrow(() -> new BusinessException("添加教师课程偏好失败", ErrorCode.SERVER_INTERNAL_ERROR));
@@ -168,10 +174,6 @@ public class TeacherPreferencesLogic implements TeacherPreferencesService {
                 .orElseThrow(() -> new BusinessException("教师课程偏好不存在", ErrorCode.NOT_EXIST));
 
         UserDO getUser = userService.getUserByRequest(request);
-        if (getUser == null) {
-            throw new UserAuthenticationException(UserAuthenticationException.ErrorType.USER_NOT_LOGIN, request);
-        }
-
         TeacherDO getTeacher = teacherDAO.getTeacherByUserUuid(getUser.getUserUuid());
 
         Optional.ofNullable(getPreference.getTeacherUuid())

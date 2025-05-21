@@ -77,9 +77,9 @@ public class TeacherPreferencesDAO extends ServiceImpl<TeacherPreferencesMapper,
             int size,
             boolean isDesc,
             @Nullable String teacherUuid,
-            @Nullable String semesterUuid
-    ) {
-        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TEACHER_PREFERENCES_PAGE + page + ":" + size + ":" + isDesc + ":" + teacherUuid + ":" + semesterUuid);
+            @Nullable String semesterUuid) {
+        RMap<String, String> map = redisson.getMap(StringConstant.Redis.TEACHER_PREFERENCES_PAGE + page + ":" + size
+                + ":" + isDesc + ":" + teacherUuid + ":" + semesterUuid);
         if (!map.isExists()) {
             LambdaQueryChainWrapper<TeacherPreferencesDO> queryWrapper = this.lambdaQuery();
             if (teacherUuid != null && !teacherUuid.isBlank()) {
@@ -134,7 +134,8 @@ public class TeacherPreferencesDAO extends ServiceImpl<TeacherPreferencesMapper,
      * @return 返回教师课程偏好列表
      */
     @Nullable
-    public List<TeacherPreferencesDO> getTeacherPreferencesByTeacherAndSemester(String teacherUuid, String semesterUuid) {
+    public List<TeacherPreferencesDO> getTeacherPreferencesByTeacherAndSemester(String teacherUuid,
+            String semesterUuid) {
         String cacheKey = StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherUuid + ":" + semesterUuid;
         RList<TeacherPreferencesDO> cacheList = redisson.getList(cacheKey);
         if (!cacheList.isExists()) {
@@ -167,8 +168,10 @@ public class TeacherPreferencesDAO extends ServiceImpl<TeacherPreferencesMapper,
         Optional.of(redisson.getKeys())
                 .ifPresent(rKeys -> {
                     rKeys.delete(StringConstant.Redis.TEACHER_PREFERENCES_UUID + teacherPreference.getPreferenceUuid());
-                    rKeys.deleteByPattern(StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherPreference.getTeacherUuid() + "*");
-                    rKeys.deleteByPattern(StringConstant.Redis.TEACHER_PREFERENCES_PAGE + "*" + teacherPreference.getTeacherUuid() + "*");
+                    rKeys.deleteByPattern(
+                            StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherPreference.getTeacherUuid() + "*");
+                    rKeys.deleteByPattern(StringConstant.Redis.TEACHER_PREFERENCES_PAGE + "*"
+                            + teacherPreference.getTeacherUuid() + "*");
                 });
         this.updateById(teacherPreference);
     }
@@ -187,9 +190,12 @@ public class TeacherPreferencesDAO extends ServiceImpl<TeacherPreferencesMapper,
         if (teacherPreference != null) {
             Optional.of(redisson.getKeys())
                     .ifPresent(rKeys -> {
-                        rKeys.delete(StringConstant.Redis.TEACHER_PREFERENCES_UUID + teacherPreference.getTeacherUuid());
-                        rKeys.deleteByPattern(StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherPreference.getTeacherUuid() + "*");
-                        rKeys.deleteByPattern(StringConstant.Redis.TEACHER_PREFERENCES_PAGE + "*" + teacherPreference.getTeacherUuid() + "*");
+                        rKeys.delete(
+                                StringConstant.Redis.TEACHER_PREFERENCES_UUID + teacherPreference.getTeacherUuid());
+                        rKeys.deleteByPattern(StringConstant.Redis.TEACHER_PREFERENCES_LIST
+                                + teacherPreference.getTeacherUuid() + "*");
+                        rKeys.deleteByPattern(StringConstant.Redis.TEACHER_PREFERENCES_PAGE + "*"
+                                + teacherPreference.getTeacherUuid() + "*");
                     });
             this.removeById(teacherPreference);
             return true;
@@ -209,7 +215,8 @@ public class TeacherPreferencesDAO extends ServiceImpl<TeacherPreferencesMapper,
      */
     @Nullable
     public List<TeacherPreferencesDO> getTeacherPreferencesByTeacherUuid(String teacherUuid) {
-        RList<TeacherPreferencesDO> cacheList = redisson.getList(StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherUuid);
+        RList<TeacherPreferencesDO> cacheList = redisson
+                .getList(StringConstant.Redis.TEACHER_PREFERENCES_LIST + teacherUuid);
         if (!cacheList.isExists()) {
             List<TeacherPreferencesDO> preferences = this.lambdaQuery()
                     .eq(TeacherPreferencesDO::getTeacherUuid, teacherUuid)
@@ -225,5 +232,25 @@ public class TeacherPreferencesDAO extends ServiceImpl<TeacherPreferencesMapper,
             return cacheList;
         }
         return null;
+    }
+
+    /**
+     * 保存教师课程偏好信息
+     * <p>
+     * 该方法用于保存教师课程偏好信息。首先会删除Redis中与该偏好相关的缓存，然后调用MyBatis-Plus的save方法将偏好信息保存到数据库中。
+     * </p>
+     *
+     * @param preferencesDO 教师课程偏好实体对象 {@code TeacherPreferencesDO}
+     */
+    public void saveTeacherPreferences(TeacherPreferencesDO preferencesDO) {
+        this.save(preferencesDO);
+        Optional.of(redisson.getKeys())
+                .ifPresent(rKeys -> {
+                    rKeys.delete(StringConstant.Redis.TEACHER_PREFERENCES_UUID + preferencesDO.getTeacherUuid());
+                    rKeys.deleteByPattern(
+                            StringConstant.Redis.TEACHER_PREFERENCES_LIST + preferencesDO.getTeacherUuid() + "*");
+                    rKeys.deleteByPattern(
+                            StringConstant.Redis.TEACHER_PREFERENCES_PAGE + "*" + preferencesDO.getTeacherUuid() + "*");
+                });
     }
 }

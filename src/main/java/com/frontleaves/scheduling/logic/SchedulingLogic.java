@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -160,7 +161,9 @@ public class SchedulingLogic implements SchedulingService {
         RList<String> taskList = redisson.getList(
                 StringConstant.Redis.SCHEDULING_TASK_LIST + getUser.getUserUuid());
         if (taskList.isExists()){
-            return taskList.readAll();
+            List<String> tasks = taskList.readAll();
+            Collections.reverse(tasks);
+            return tasks;
         }
         return List.of();
     }

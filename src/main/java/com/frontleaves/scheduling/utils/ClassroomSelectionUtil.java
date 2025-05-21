@@ -4,22 +4,25 @@ import com.frontleaves.scheduling.models.dto.base.CourseLibraryDTO;
 import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import enums.CourseEnuType;
+import lombok.extern.slf4j.Slf4j;
 
+import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
 /**
  * 教室选择工具类
+ *
  * @author FLASHLACK
  */
+@Slf4j
 public final class ClassroomSelectionUtil {
 
     // 私有构造函数防止实例化
     private ClassroomSelectionUtil() {
         throw new AssertionError("Utility class should not be instantiated");
     }
-
 
 
     /**
@@ -34,7 +37,6 @@ public final class ClassroomSelectionUtil {
         }
         return classrooms.stream()
                 .filter(classroom -> classroom.getType().getClassTypeUuid().equals(classroomType))
-
                 .filter(classroom -> classroom.getClassroom().getCapacity() >= studentCount)
                 .toList();
     }
@@ -60,12 +62,13 @@ public final class ClassroomSelectionUtil {
     /**
      * 选择随机教室
      */
-    public static ClassroomInfoDTO selectRandomClassroom(
-            List<ClassroomInfoDTO> matchingClassrooms,
-            Random random) {
-        if (matchingClassrooms == null || matchingClassrooms.isEmpty() || random == null) {
+    public static ClassroomInfoDTO selectRandomClassroom(List<ClassroomInfoDTO> matchingClassrooms) {
+        Random random = new SecureRandom();
+        random.setSeed(System.currentTimeMillis());
+        if (matchingClassrooms == null || matchingClassrooms.isEmpty()) {
             return null;
         }
+        log.debug("选择随机教室，匹配教室数：{}", matchingClassrooms.size());
         // 使用整个列表的大小作为范围
         int randomIndex = random.nextInt(matchingClassrooms.size());
         return matchingClassrooms.get(randomIndex);

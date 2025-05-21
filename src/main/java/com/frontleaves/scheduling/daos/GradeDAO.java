@@ -58,7 +58,7 @@ import java.util.List;
  * 提供了面向业务的数据库访问方法。
  * </p>
  *
- * @author AI Assistant
+ * @author xiao_lfneg
  * @version v1.0.0
  * @since v1.0.0
  */

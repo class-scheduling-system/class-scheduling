@@ -12,6 +12,7 @@ import com.frontleaves.scheduling.models.dto.merge.ClassroomInfoDTO;
 import com.frontleaves.scheduling.models.dto.merge.CourseLibraryAndTeacherCourseQualificationListDTO;
 import com.frontleaves.scheduling.models.dto.scheduling.*;
 import com.frontleaves.scheduling.models.entity.base.ClassAssignmentDO;
+import com.frontleaves.scheduling.models.entity.base.SchedulingConflictDO;
 import com.frontleaves.scheduling.models.entity.base.TeachingClassDO;
 import com.frontleaves.scheduling.models.entity.base.UserDO;
 import com.frontleaves.scheduling.models.vo.*;
@@ -107,7 +108,7 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
                 .setSchedulingPriority(vo.getSchedulingPriority())
                 .setConsecutiveSessions(vo.getConsecutiveSessions())
                 .setClassTime(JSONUtil.toJsonStr(ProjectUtil.ClassTimeToTimeSlot(vo.getClassTime())));
-        classAssignmentDAO.save(classAssignment);
+        classAssignmentDAO.saveClassAssignment(classAssignment);
         ClassAssignmentDTO classAssignmentDTO = BeanUtil.toBean(classAssignment, ClassAssignmentDTO.class);
         List<ClassAssignmentDTO> allAssignments = this.getClassAssignmentListConflict(
                 classAssignmentDTO);
@@ -698,5 +699,67 @@ public class ClassAssignmentLogic implements ClassAssignmentService {
                     teachingClassDTO.getAdministrativeClasses(),
                     e);
         }
+    }
+
+    /**
+     * 检查并解决所有相关的排课冲突
+     * <p>
+     * 该方法用于检查特定排课分配的所有相关冲突，如果冲突已解决，则将其状态更新为已解决（resolutionStatus=1）
+     * </p>
+     *
+     * @param classAssignmentUuid 排课分配UUID
+     * @return 已解决的冲突数量
+     */
+    @Override
+    public int resolveConflicts(String classAssignmentUuid) {
+        if (classAssignmentUuid == null || classAssignmentUuid.isBlank()) {
+            throw new BusinessException("排课分配UUID不能为空", ErrorCode.BODY_ERROR);
+        }
+        
+        // 获取排课分配详情
+        ClassAssignmentDO classAssignmentDO = classAssignmentDAO.getClassAssignmentByUuid(classAssignmentUuid);
+        if (classAssignmentDO == null) {
+            throw new BusinessException("未找到该排课分配", ErrorCode.BODY_ERROR);
+        }
+        
+        ClassAssignmentDTO classAssignmentDTO = BeanUtil.toBean(classAssignmentDO, ClassAssignmentDTO.class);
+        
+        // 获取所有相关的冲突
+        List<SchedulingConflictDO> conflictList = schedulingConflictDAO
+                .getConflictByClassAssignmentUuid(classAssignmentUuid);
+        
+        if (conflictList.isEmpty()) {
+            return 0;
+        }
+        
+        int resolvedCount = 0;
+        
+        // 遍历每个冲突
+        for (SchedulingConflictDO conflict : conflictList) {
+            //获取冲突的另一个排课安排
+            String otherAssignmentUuid = conflict.getSecondAssignmentUuid();
+            if (otherAssignmentUuid.equals(classAssignmentUuid)) {
+                otherAssignmentUuid = conflict.getFirstAssignmentUuid();
+            }
+            
+            ClassAssignmentDO otherAssignmentDO = classAssignmentDAO.getClassAssignmentByUuid(otherAssignmentUuid);
+            if (otherAssignmentDO == null) {
+                // 如果另一个排课安排已被删除，则直接删除冲突记录
+                schedulingConflictDAO.deleteConflict(conflict);
+                resolvedCount++;
+                continue;
+            }
+            
+            ClassAssignmentDTO otherAssignmentDTO = BeanUtil.toBean(otherAssignmentDO, ClassAssignmentDTO.class);
+            
+            // 检查冲突是否已经解决
+            if (Boolean.FALSE.equals(CheckConflicts.booleanConflicts(otherAssignmentDTO, classAssignmentDTO))) {
+                // 冲突已解决，直接删除冲突记录
+                schedulingConflictDAO.deleteConflict(conflict);
+                resolvedCount++;
+            }
+        }
+        
+        return resolvedCount;
     }
 }
