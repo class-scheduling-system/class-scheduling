@@ -36,7 +36,6 @@ import com.frontleaves.scheduling.models.dto.base.SchedulingConflictDTO;
 import com.frontleaves.scheduling.models.entity.base.SchedulingConflictDO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.redisson.api.RKeys;
 import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
@@ -89,7 +88,7 @@ public class SchedulingConflictDAO extends ServiceImpl<SchedulingConflictMapper,
                 // 如果冲突已存在，更新冲突信息而不是创建新记录
                 existingConflict.setConflictTime(cn.hutool.json.JSONUtil.parseObj(dto.getConflictTime()));
                 existingConflict.setDescription(dto.getDescription());
-                existingConflict.setResolutionStatus(0); // 重置为未解决状态
+                existingConflict.setResolutionStatus(0);
                 this.updateById(existingConflict);
                 updatedCount++;
             } else {

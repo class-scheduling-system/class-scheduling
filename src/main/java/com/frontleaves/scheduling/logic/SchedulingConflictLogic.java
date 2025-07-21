@@ -101,44 +101,45 @@ public class SchedulingConflictLogic implements SchedulingConflictService {
      * @return 分页数据
      */
     @Override
-    public PageDTO<SchedulingConflictDTO> page(Integer page, Integer size, 
+    public PageDTO<SchedulingConflictDTO> page(Integer page, Integer size,
                                               String semesterUuid,
-                                              Integer conflictType, 
+                                              Integer conflictType,
                                               Integer resolutionStatus) {
         LambdaQueryWrapper<SchedulingConflictDO> queryWrapper = new LambdaQueryWrapper<>();
-        
+
         // 构建查询条件
         if (semesterUuid != null && !semesterUuid.isBlank()) {
             queryWrapper.eq(SchedulingConflictDO::getSemesterUuid, semesterUuid);
         }
-        
+
         if (conflictType != null) {
             queryWrapper.eq(SchedulingConflictDO::getConflictType, conflictType);
         }
-        
+
         if (resolutionStatus != null) {
             queryWrapper.eq(SchedulingConflictDO::getResolutionStatus, resolutionStatus);
         }
-        
+
         // 按创建时间降序排序
+        queryWrapper.eq(SchedulingConflictDO::getResolutionStatus, 0);
         queryWrapper.orderByDesc(SchedulingConflictDO::getCreatedAt);
-        
+
         try {
             // 执行分页查询
             Page<SchedulingConflictDO> resultPage = schedulingConflictDAO.page(
                     new Page<>(page, size), queryWrapper);
-            
+
             // 转换为DTO列表
             List<SchedulingConflictDTO> dtoList = new ArrayList<>();
             for (SchedulingConflictDO entity : resultPage.getRecords()) {
                 dtoList.add(BeanUtil.toBean(entity, SchedulingConflictDTO.class));
             }
-            
+
             // 构建并返回PageDTO
             PageDTO<SchedulingConflictDTO> pageDTO = new PageDTO<>(resultPage.getTotal(), resultPage.getSize());
             pageDTO.setCurrent(resultPage.getCurrent());
             pageDTO.setRecords(dtoList);
-            
+
             return pageDTO;
         } catch (Exception e) {
             log.error("分页查询排课冲突列表失败", e);
@@ -161,22 +162,23 @@ public class SchedulingConflictLogic implements SchedulingConflictService {
 
         LambdaQueryWrapper<SchedulingConflictDO> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(SchedulingConflictDO::getSemesterUuid, semesterUuid);
-        
+
         if (resolutionStatus != null) {
             queryWrapper.eq(SchedulingConflictDO::getResolutionStatus, resolutionStatus);
         }
-        
+
         // 按创建时间降序排序
+        queryWrapper.eq(SchedulingConflictDO::getResolutionStatus, 0);
         queryWrapper.orderByDesc(SchedulingConflictDO::getCreatedAt);
-        
+
         try {
             List<SchedulingConflictDO> entities = schedulingConflictDAO.list(queryWrapper);
             List<SchedulingConflictDTO> dtoList = new ArrayList<>();
-            
+
             for (SchedulingConflictDO entity : entities) {
                 dtoList.add(BeanUtil.toBean(entity, SchedulingConflictDTO.class));
             }
-            
+
             return dtoList;
         } catch (Exception e) {
             log.error("查询简单冲突列表失败", e);
@@ -206,4 +208,4 @@ public class SchedulingConflictLogic implements SchedulingConflictService {
             }
         }
     }
-} 
+}
